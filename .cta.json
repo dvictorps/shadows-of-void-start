@@ -1,0 +1,28 @@
+{
+  "projectName": "shadows-of-void-start",
+  "mode": "file-router",
+  "typescript": true,
+  "packageManager": "npm",
+  "includeExamples": false,
+  "tailwind": true,
+  "addOnOptions": {},
+  "envVarValues": {
+    "VITE_CONVEX_URL": "https://quick-bee-700.convex.cloud"
+  },
+  "git": true,
+  "routerOnly": false,
+  "version": 1,
+  "framework": "react",
+  "chosenAddOns": [
+    "biome",
+    "convex",
+    "form",
+    "paraglide",
+    "shadcn",
+    "t3env",
+    "table",
+    "better-auth",
+    "posthog",
+    "tanstack-query"
+  ]
+}
