@@ -1,0 +1,369 @@
+import {
+	MODIFIERS,
+	type ModifierId,
+	getModifierTierForItemLevel,
+} from "./data/modifiers"
+import { EQUIPMENT_TEMPLATES, TEMPLATE_BY_ID } from "./data/templates"
+import type { EquipmentTemplate } from "./data/templates"
+import type {
+	GeneratedItem,
+	ItemRarity,
+	RolledImplicit,
+	RolledMod,
+	ComputedWeaponStats,
+	ComputedDefenseStats,
+} from "./types"
+import { MOD_LIMITS } from "./types"
+
+// ── RNG helpers ──
+
+function randInt(min: number, max: number): number {
+	return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function pickRandom<T>(arr: T[]): T {
+	return arr[Math.floor(Math.random() * arr.length)]
+}
+
+// ── Name generation for rare/legendary/epic ──
+
+const NAME_FIRST = [
+	"Doom", "Storm", "Grim", "Soul", "Death", "Mind", "Dragon", "Eagle",
+	"Phoenix", "Rune", "Viper", "Kraken", "Havoc", "Gale", "Dusk", "Blood",
+	"Shadow", "Wrath", "Spirit", "Blight", "Dread", "Rage", "Spite", "Void",
+	"Plague", "Skull", "Foe", "Bone", "Ash", "Thorn",
+]
+
+const NAME_SECOND = [
+	"Mark", "Shelter", "Bane", "Grasp", "Edge", "Turn", "Song", "Roar",
+	"Call", "Star", "Keep", "Bite", "Wound", "Strike", "Haven", "Gutter",
+	"Knell", "Breaker", "Whisper", "Rend", "Scar", "Pyre", "Reach", "Span",
+	"Coil", "Trail", "Veil", "Crown", "Thirst", "Shatter",
+]
+
+function generateName(): string {
+	return `${pickRandom(NAME_FIRST)} ${pickRandom(NAME_SECOND)}`
+}
+
+// ── Value formatting ──
+
+function formatValue(value: number): string {
+	return String(Math.round(value))
+}
+
+function formatDescription(displayFormat: string, value: number): string {
+	return displayFormat.replace("{value}", formatValue(value))
+}
+
+// ── Defense label resolution (local defense mods adapt to armor base type) ──
+
+const DEFENSE_LABELS: Record<string, { stat: string; flat: string; pct: string }> = {
+	plate: { stat: "armor", flat: "Armor", pct: "Armor" },
+	leather: { stat: "evasion", flat: "Evasion Rating", pct: "Evasion" },
+	silk: { stat: "barrier", flat: "Barrier", pct: "Barrier" },
+}
+
+function resolveDefenseFormat(modId: string, displayFormat: string, armorType?: string): string {
+	if (!armorType) return displayFormat
+	const labels = DEFENSE_LABELS[armorType]
+	if (!labels) return displayFormat
+	if (modId === "localDefenseFlat") return displayFormat.replace("Defense", labels.flat)
+	if (modId === "localDefenseIncrease") return displayFormat.replace("Defense", labels.pct)
+	return displayFormat
+}
+
+// ── Modifier eligibility (derived from applicableTo) ──
+
+function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
+	return (Object.keys(MODIFIERS) as ModifierId[]).filter((modId) => {
+		const mod = MODIFIERS[modId]
+		return mod.applicableTo.some(
+			(target) =>
+				target === template.equipmentType ||
+				(template.weaponType != null && target === template.weaponType),
+		)
+	})
+}
+
+// ── Rolling logic ──
+
+function rollImplicits(template: EquipmentTemplate): RolledImplicit[] {
+	return template.implicits.map((imp) => {
+		const value = randInt(imp.minValue, imp.maxValue)
+		return {
+			description: formatDescription(imp.displayFormat, value),
+			value,
+		}
+	})
+}
+
+function rollExplicits(
+	rarity: ItemRarity,
+	template: EquipmentTemplate,
+	itemLevel: number,
+): RolledMod[] {
+	const limits = MOD_LIMITS[rarity]
+	if (limits.totalMax === 0) return []
+
+	const totalTarget = randInt(limits.totalMin, limits.totalMax)
+	const availableModifiers = getModifiersForTemplate(template)
+
+	let prefixTarget: number
+	let suffixTarget: number
+
+	if (rarity === "legendary") {
+		if (Math.random() < 0.5) {
+			prefixTarget = 3
+			suffixTarget = 2
+		} else {
+			prefixTarget = 2
+			suffixTarget = 3
+		}
+	} else if (rarity === "epic") {
+		prefixTarget = 3
+		suffixTarget = 3
+	} else {
+		const maxP = Math.min(totalTarget, limits.maxPrefix)
+		const minP = Math.max(0, totalTarget - limits.maxSuffix)
+		prefixTarget = randInt(minP, maxP)
+		suffixTarget = totalTarget - prefixTarget
+	}
+
+	const mods: RolledMod[] = []
+	const usedModIds = new Set<string>()
+
+	// Pre-resolve tiers for all available modifiers at this item level
+	const tierCache = new Map<ModifierId, ReturnType<typeof getModifierTierForItemLevel>>()
+	for (const modId of availableModifiers) {
+		const tier = getModifierTierForItemLevel(modId, itemLevel)
+		if (tier) tierCache.set(modId, tier)
+	}
+
+	const getEligible = (affixType: "prefix" | "suffix"): ModifierId[] => {
+		return availableModifiers.filter((modId) => {
+			if (usedModIds.has(modId)) return false
+			const mod = MODIFIERS[modId]
+			if (mod.affixType !== affixType) return false
+			return tierCache.has(modId)
+		})
+	}
+
+	const rollMod = (affixType: "prefix" | "suffix"): boolean => {
+		const eligible = getEligible(affixType)
+		if (eligible.length === 0) return false
+
+		const modId = pickRandom(eligible)
+		const mod = MODIFIERS[modId]
+		const tier = tierCache.get(modId)!
+		const value = randInt(tier.valueRange[0], tier.valueRange[1])
+		const displayFormat = resolveDefenseFormat(modId, mod.displayFormat, template.armorType)
+
+		mods.push({
+			modifierId: modId,
+			modifierName: mod.name,
+			affixType: mod.affixType,
+			modifierType: mod.modifierType,
+			isGlobalStat: mod.isGlobalStat ?? false,
+			tier: tier.tier,
+			value,
+			description: formatDescription(displayFormat, value),
+		})
+		usedModIds.add(modId)
+		return true
+	}
+
+	for (let i = 0; i < prefixTarget; i++) {
+		if (!rollMod("prefix")) break
+	}
+
+	for (let i = 0; i < suffixTarget; i++) {
+		if (!rollMod("suffix")) break
+	}
+
+	// Sort: prefixes first (increased → flat), then suffixes (increased → flat)
+	mods.sort((a, b) => {
+		const affixOrder = (m: RolledMod) => (m.affixType === "prefix" ? 0 : 1)
+		const typeOrder = (m: RolledMod) => (m.modifierType === "increased" ? 0 : 1)
+		const aPri = affixOrder(a) * 10 + typeOrder(a)
+		const bPri = affixOrder(b) * 10 + typeOrder(b)
+		return aPri - bPri
+	})
+
+	return mods
+}
+
+// ── Compute weapon stats (base + local mods) ──
+
+const ELEMENTAL_FLAT_MODS: Record<string, string> = {
+	coldDamageToAttacksFlat: "Cold",
+	fireDamageToAttacksFlat: "Fire",
+	lightningDamageToAttacksFlat: "Lightning",
+	voidDamageToAttacksFlat: "Void",
+}
+
+function computeWeaponStats(
+	baseStats: Record<string, number>,
+	explicits: RolledMod[],
+): ComputedWeaponStats {
+	let minPhys = baseStats.minDamage ?? 0
+	let maxPhys = baseStats.maxDamage ?? 0
+	let physIncrease = 0
+	let atkSpeed = baseStats.attackSpeed ?? 1
+	let atkSpeedIncrease = 0
+	let critChance = baseStats.criticalChance ?? 5
+	let critIncrease = 0
+
+	const elementalDamage: { element: string; min: number; max: number }[] = []
+
+	for (const mod of explicits) {
+		const modifier = MODIFIERS[mod.modifierId as ModifierId]
+		if (!modifier || modifier.isGlobalStat) continue
+
+		switch (mod.modifierId) {
+			case "physicalDamageFlat":
+				minPhys += mod.value
+				maxPhys += mod.value
+				break
+			case "physicalDamageIncrease":
+				physIncrease += mod.value
+				break
+			case "attackSpeedIncrease":
+				atkSpeedIncrease += mod.value
+				break
+			case "criticalChanceIncrease":
+				critIncrease += mod.value
+				break
+			default: {
+				const element = ELEMENTAL_FLAT_MODS[mod.modifierId]
+				if (element) {
+					elementalDamage.push({ element, min: mod.value, max: mod.value })
+				}
+				break
+			}
+		}
+	}
+
+	// Apply %increased physical damage: base+flat → ×(1 + %inc)
+	if (physIncrease > 0) {
+		minPhys = Math.round(minPhys * (1 + physIncrease / 100))
+		maxPhys = Math.round(maxPhys * (1 + physIncrease / 100))
+	}
+
+	// Apply %increased attack speed
+	if (atkSpeedIncrease > 0) {
+		atkSpeed = Math.round(atkSpeed * (1 + atkSpeedIncrease / 100) * 100) / 100
+	}
+
+	// Apply %increased critical strike chance (multiplicative, not flat)
+	if (critIncrease > 0) {
+		critChance = critChance * (1 + critIncrease / 100)
+	}
+
+	return {
+		physicalDamage: { min: minPhys, max: maxPhys },
+		elementalDamage,
+		attackSpeed: atkSpeed,
+		criticalChance: Math.round(critChance * 10) / 10,
+	}
+}
+
+// ── Compute armor stats (base + local defense mods) ──
+
+function computeArmorStats(
+	baseStats: Record<string, number>,
+	armorType: string | undefined,
+	explicits: RolledMod[],
+): ComputedDefenseStats | undefined {
+	const defenseInfo = armorType ? DEFENSE_LABELS[armorType] : null
+	if (!defenseInfo) return undefined
+
+	let flatBonus = 0
+	let increase = 0
+
+	for (const mod of explicits) {
+		if (mod.modifierId === "localDefenseFlat") flatBonus += mod.value
+		if (mod.modifierId === "localDefenseIncrease") increase += mod.value
+	}
+
+	if (flatBonus === 0 && increase === 0) return undefined
+
+	let value = (baseStats[defenseInfo.stat] ?? 0) + flatBonus
+	if (increase > 0) {
+		value = Math.round(value * (1 + increase / 100))
+	}
+
+	return { [defenseInfo.stat]: value } as ComputedDefenseStats
+}
+
+// ── Item naming ──
+
+function buildItemName(
+	rarity: ItemRarity,
+	template: EquipmentTemplate,
+	explicits: RolledMod[],
+): string {
+	if (rarity === "normal") return template.name
+
+	if (rarity === "magic") {
+		const prefix = explicits.find((m) => m.affixType === "prefix")
+		const suffix = explicits.find((m) => m.affixType === "suffix")
+		const parts: string[] = []
+		if (prefix) parts.push(prefix.modifierName)
+		parts.push(template.name)
+		if (suffix) parts.push(suffix.modifierName)
+		return parts.join(" ")
+	}
+
+	return generateName()
+}
+
+// ── Public API ──
+
+export interface GenerateItemOptions {
+	itemLevel?: number
+	rarity: ItemRarity
+	templateId?: string
+}
+
+export function generateItem(options: GenerateItemOptions): GeneratedItem {
+	const itemLevel = options.itemLevel ?? randInt(1, 100)
+
+	let template: EquipmentTemplate
+	if (options.templateId) {
+		template =
+			TEMPLATE_BY_ID.get(options.templateId) ??
+			pickRandom(EQUIPMENT_TEMPLATES)
+	} else {
+		const eligible = EQUIPMENT_TEMPLATES.filter(
+			(t) => t.dropLevel <= itemLevel,
+		)
+		template =
+			eligible.length > 0 ? pickRandom(eligible) : pickRandom(EQUIPMENT_TEMPLATES)
+	}
+
+	const implicits = rollImplicits(template)
+	const explicits = rollExplicits(options.rarity, template, itemLevel)
+	const baseStats = { ...template.baseStats }
+
+	const isWeapon = "minDamage" in baseStats
+	const isSpellWeapon = template.weaponType === "staff" || template.weaponType === "wand"
+	const computed = isWeapon && !isSpellWeapon ? computeWeaponStats(baseStats, explicits) : undefined
+	const computedDefense = computeArmorStats(baseStats, template.armorType, explicits)
+
+	return {
+		id: crypto.randomUUID(),
+		templateId: template.id,
+		templateName: template.name,
+		equipmentType: template.equipmentType,
+		weaponType: template.weaponType,
+		armorType: template.armorType,
+		rarity: options.rarity,
+		name: buildItemName(options.rarity, template, explicits),
+		itemLevel,
+		baseStats,
+		implicits,
+		explicits,
+		computedStats: computed,
+		computedDefenseStats: computedDefense,
+	}
+}
