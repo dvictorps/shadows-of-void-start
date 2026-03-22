@@ -50,6 +50,7 @@ export interface Modifier {
 	isGlobalStat?: boolean
 	statEffect?: StatEffect
 	weight?: number // default DEFAULT_MODIFIER_WEIGHT. Higher = more common.
+	tags?: string[] // synergy tags (e.g. ["cold", "spell"]) — used for intelligent generation
 	tiers: ModifierTier[]
 }
 

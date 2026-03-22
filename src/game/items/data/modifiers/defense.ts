@@ -12,6 +12,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allArmor", "offhand"],
 		displayFormat: "+{value} Defense",
 		statEffect: { target: "defense", operation: "flat" },
+		tags: ["defense"],
 		tiers: createStandardTiers(10, 20, 101, 110),
 	},
 	localDefenseIncrease: {
@@ -21,8 +22,9 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["allArmor", "offhand"],
-		displayFormat: "+{value}% Defense",
+		displayFormat: "+{value}% increased Defense",
 		statEffect: { target: "defense", operation: "increased" },
+		tags: ["defense"],
 		tiers: createStandardTiers(10, 15, 64, 70),
 	},
 
@@ -36,6 +38,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allJewelry"],
 		displayFormat: "+{value} Armor",
 		isGlobalStat: true,
+		tags: ["defense"],
 		tiers: createStandardTiers(10, 20, 101, 110),
 	},
 	evasionFlat: {
@@ -47,6 +50,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allJewelry"],
 		displayFormat: "+{value} Evasion Rating",
 		isGlobalStat: true,
+		tags: ["defense"],
 		tiers: createStandardTiers(10, 20, 101, 110),
 	},
 	barrierFlat: {
@@ -58,6 +62,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allJewelry"],
 		displayFormat: "+{value} Barrier",
 		isGlobalStat: true,
+		tags: ["defense"],
 		tiers: createStandardTiers(5, 10, 51, 55),
 	},
 
@@ -69,8 +74,9 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry"],
-		displayFormat: "+{value}% Armor",
+		displayFormat: "+{value}% increased Armor",
 		isGlobalStat: true,
+		tags: ["defense"],
 		tiers: createStandardTiers(10, 15, 64, 70),
 	},
 	globalEvasionIncrease: {
@@ -80,8 +86,9 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry"],
-		displayFormat: "+{value}% Evasion",
+		displayFormat: "+{value}% increased Evasion",
 		isGlobalStat: true,
+		tags: ["defense"],
 		tiers: createStandardTiers(10, 15, 64, 70),
 	},
 	globalBarrierIncrease: {
@@ -91,8 +98,9 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry"],
-		displayFormat: "+{value}% Barrier",
+		displayFormat: "+{value}% increased Barrier",
 		isGlobalStat: true,
+		tags: ["defense"],
 		tiers: createStandardTiers(10, 15, 64, 70),
 	},
 
@@ -106,6 +114,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allArmor", "allJewelry"],
 		displayFormat: "+{value} Maximum Life",
 		isGlobalStat: true,
+		tags: ["life"],
 		weight: 600,
 		tiers: createStandardTiers(10, 20, 101, 110),
 	},
@@ -118,6 +127,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allArmor", "allJewelry", "staff", "wand"],
 		displayFormat: "+{value} Maximum Mana",
 		isGlobalStat: true,
+		tags: ["mana"],
 		tiers: createStandardTiers(10, 20, 101, 110),
 	},
 
@@ -131,6 +141,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allArmor", "allJewelry"],
 		displayFormat: "+{value} Life Regeneration per second",
 		isGlobalStat: true,
+		tags: ["life"],
 		tiers: createStandardTiers(1, 2, 8, 10),
 	},
 	manaRegenFlat: {
@@ -142,10 +153,11 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allArmor", "allJewelry"],
 		displayFormat: "+{value} Mana Regeneration per second",
 		isGlobalStat: true,
+		tags: ["mana"],
 		tiers: createStandardTiers(1, 1, 4, 6),
 	},
 
-	// ── On kill ──
+	// ── On hit / On kill ──
 	lifeGainOnHitFlat: {
 		id: "lifeGainOnHitFlat",
 		name: "Siphoning",
@@ -155,6 +167,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["weapon", "ring", "amulet", "gloves"],
 		displayFormat: "+{value} Life gained on Hit",
 		isGlobalStat: true,
+		tags: ["life"],
 		tiers: createStandardTiers(1, 2, 10, 15),
 	},
 	manaGainOnHitFlat: {
@@ -166,6 +179,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["weapon", "ring", "amulet"],
 		displayFormat: "+{value} Mana gained on Hit",
 		isGlobalStat: true,
+		tags: ["mana"],
 		tiers: createStandardTiers(1, 1, 5, 8),
 	},
 	lifeOnKillFlat: {
@@ -177,6 +191,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["weapon", "ring", "amulet", "belt"],
 		displayFormat: "+{value} Life on Kill",
 		isGlobalStat: true,
+		tags: ["life"],
 		tiers: createStandardTiers(1, 3, 15, 20),
 	},
 	manaOnKillFlat: {
@@ -188,10 +203,11 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["weapon", "ring", "amulet", "belt"],
 		displayFormat: "+{value} Mana on Kill",
 		isGlobalStat: true,
+		tags: ["mana"],
 		tiers: createStandardTiers(1, 2, 8, 12),
 	},
 
-	// ── Thorns (bad mod) ──
+	// ── Thorns (bad mod — no tags, no synergy pull) ──
 	thornsDamageFlat: {
 		id: "thornsDamageFlat",
 		name: "of Thorns",
@@ -213,8 +229,9 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["offhand"],
-		displayFormat: "+{value}% Block Chance",
+		displayFormat: "+{value}% increased Block Chance",
 		statEffect: { target: "blockChance", operation: "increased" },
+		tags: ["defense"],
 		tiers: createStandardTiers(1, 2, 4, 5),
 	},
 }

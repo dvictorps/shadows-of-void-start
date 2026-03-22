@@ -10,6 +10,8 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry"],
 		displayFormat: "+{value}% Cold Resistance",
+		isGlobalStat: true,
+		tags: ["resistance", "cold"],
 		tiers: createStandardTiers(5, 10, 51, 55),
 	},
 	fireResistance: {
@@ -20,6 +22,8 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry"],
 		displayFormat: "+{value}% Fire Resistance",
+		isGlobalStat: true,
+		tags: ["resistance", "fire"],
 		tiers: createStandardTiers(5, 10, 51, 55),
 	},
 	lightningResistance: {
@@ -30,6 +34,8 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry"],
 		displayFormat: "+{value}% Lightning Resistance",
+		isGlobalStat: true,
+		tags: ["resistance", "lightning"],
 		tiers: createStandardTiers(5, 10, 51, 55),
 	},
 	voidResistance: {
@@ -40,6 +46,8 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry"],
 		displayFormat: "+{value}% Void Resistance",
+		isGlobalStat: true,
+		tags: ["resistance", "void"],
 		tiers: createStandardTiers(5, 10, 51, 55),
 	},
 }

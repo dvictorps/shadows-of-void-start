@@ -12,6 +12,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Physical Damage to Attacks",
 		statEffect: { target: "physicalDamage", operation: "flat" },
+		tags: ["physical", "attack"],
 		tiers: createStandardTiers(1, 2, 18, 28),
 	},
 	physicalDamageFlatGlobal: {
@@ -23,6 +24,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["ring", "amulet", "gloves"],
 		displayFormat: "+{value} Physical Damage to Attacks",
 		isGlobalStat: true,
+		tags: ["physical", "attack"],
 		tiers: createStandardTiers(1, 2, 18, 28),
 	},
 	physicalDamageIncrease: {
@@ -32,8 +34,9 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
-		displayFormat: "+{value}% Physical Damage with Attacks",
+		displayFormat: "+{value}% increased Physical Damage with Attacks",
 		statEffect: { target: "physicalDamage", operation: "increased" },
+		tags: ["physical", "attack"],
 		tiers: createStandardTiers(5, 8, 41, 45),
 	},
 	attackSpeedIncrease: {
@@ -43,8 +46,9 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
-		displayFormat: "+{value}% Attack Speed",
+		displayFormat: "+{value}% increased Attack Speed",
 		statEffect: { target: "attackSpeed", operation: "increased" },
+		tags: ["attack", "speed"],
 		weight: 500,
 		tiers: createStandardTiers(3, 5, 30, 33),
 	},
@@ -55,8 +59,9 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
-		displayFormat: "+{value}% Critical Strike Chance",
+		displayFormat: "+{value}% increased Critical Strike Chance",
 		statEffect: { target: "criticalChance", operation: "increased" },
+		tags: ["critical", "attack"],
 		weight: 500,
 		tiers: createStandardTiers(15, 20, 35, 40),
 	},
@@ -69,6 +74,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Cold Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Cold" },
+		tags: ["cold", "elemental", "attack"],
 		tiers: createStandardTiers(1, 2, 18, 28),
 	},
 	fireDamageToAttacksFlat: {
@@ -80,6 +86,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Fire Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Fire" },
+		tags: ["fire", "elemental", "attack"],
 		tiers: createStandardTiers(1, 2, 18, 28),
 	},
 	lightningDamageToAttacksFlat: {
@@ -91,6 +98,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Lightning Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Lightning" },
+		tags: ["lightning", "elemental", "attack"],
 		tiers: createStandardTiers(1, 3, 35, 40),
 	},
 	voidDamageToAttacksFlat: {
@@ -102,6 +110,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Void Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Void" },
+		tags: ["void", "elemental", "attack"],
 		tiers: createStandardTiers(1, 2, 18, 28),
 	},
 
@@ -115,6 +124,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allAttackWeapons", "helmet", "gloves", "ring"],
 		displayFormat: "+{value} Accuracy Rating",
 		isGlobalStat: true,
+		tags: ["attack"],
 		tiers: createStandardTiers(20, 40, 201, 250),
 	},
 	criticalStrikeMultiplierFlat: {
@@ -126,6 +136,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["weapon", "ring", "amulet", "gloves"],
 		displayFormat: "+{value}% Critical Strike Multiplier",
 		isGlobalStat: true,
+		tags: ["critical"],
 		tiers: createStandardTiers(5, 10, 41, 45),
 	},
 }

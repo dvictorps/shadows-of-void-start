@@ -109,6 +109,41 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 	})
 }
 
+// ── Synergy system (intelligent generation for epic/legendary) ──
+
+const SYNERGY_MULTIPLIERS: Partial<Record<ItemRarity, number>> = {
+	epic: 3,
+	legendary: 1.5,
+}
+
+export function getSynergyWeight(
+	baseWeight: number,
+	candidateTags: string[],
+	rolledTags: Set<string>,
+	synergyMultiplier: number,
+): number {
+	if (synergyMultiplier === 0 || rolledTags.size === 0 || candidateTags.length === 0) return baseWeight
+	let matches = 0
+	for (const tag of candidateTags) {
+		if (rolledTags.has(tag)) matches++
+	}
+	return baseWeight * (1 + synergyMultiplier * matches)
+}
+
+const SPELL_WEAPON_SET = new Set(["staff", "wand"])
+const ARMOR_SLOTS = new Set(["helmet", "chestplate", "leggings", "boots", "gloves"])
+
+function getItemSeedTags(template: EquipmentTemplate): string[] {
+	if (template.equipmentType === "weapon") {
+		if (SPELL_WEAPON_SET.has(template.weaponType ?? "")) return ["spell", "elemental"]
+		return ["attack", "physical", "critical"]
+	}
+	if (ARMOR_SLOTS.has(template.equipmentType) || template.equipmentType === "offhand") {
+		return ["defense", "life"]
+	}
+	return []
+}
+
 // ── Rolling logic ──
 
 function rollImplicits(template: EquipmentTemplate): RolledImplicit[] {
@@ -156,6 +191,12 @@ function rollExplicits(
 	const mods: RolledMod[] = []
 	const usedModIds = new Set<string>()
 
+	// Synergy: seed tags for epic, empty for legendary, unused for others
+	const synergyMultiplier = SYNERGY_MULTIPLIERS[rarity] ?? 0
+	const rolledTags = new Set<string>(
+		rarity === "epic" ? getItemSeedTags(template) : [],
+	)
+
 	// Pre-resolve tiers for all available modifiers at this item level
 	const tierCache = new Map<ModifierId, ReturnType<typeof getModifierTierForItemLevel>>()
 	for (const modId of availableModifiers) {
@@ -176,18 +217,27 @@ function rollExplicits(
 		const eligible = getEligible(affixType)
 		if (eligible.length === 0) return false
 
-		const modId = pickWeighted(eligible, (id) => MODIFIERS[id].weight ?? DEFAULT_MODIFIER_WEIGHT)
+		const modId = pickWeighted(eligible, (id) => {
+			const m = MODIFIERS[id]
+			return getSynergyWeight(m.weight ?? DEFAULT_MODIFIER_WEIGHT, m.tags ?? [], rolledTags, synergyMultiplier)
+		})
 		const mod = MODIFIERS[modId]
 		const tier = tierCache.get(modId)!
-		const value = randInt(tier.valueRange[0], tier.valueRange[1])
 		const displayFormat = resolveDefenseFormat(modId, mod.displayFormat, template.armorType)
 
-		const isElementalFlat = mod.statEffect?.target === "elementalDamage" && mod.statEffect?.operation === "flat"
+		// All flat damage mods roll as min-max range (min = half of max)
+		const isFlatDamage = mod.modifierType === "flat" && mod.category === "offensive" && mod.displayFormat.includes("Damage to")
+
+		let value: number
 		let minValue: number | undefined
 		let maxValue: number | undefined
-		if (isElementalFlat) {
-			minValue = randInt(tier.valueRange[0], tier.valueRange[1])
-			maxValue = randInt(minValue, tier.valueRange[1])
+
+		if (isFlatDamage) {
+			maxValue = randInt(tier.valueRange[0], tier.valueRange[1])
+			minValue = Math.round(maxValue / 2)
+			value = maxValue
+		} else {
+			value = randInt(tier.valueRange[0], tier.valueRange[1])
 		}
 
 		mods.push({
@@ -198,12 +248,13 @@ function rollExplicits(
 			isGlobalStat: mod.isGlobalStat ?? false,
 			tier: tier.tier,
 			value,
-			...(isElementalFlat && { minValue, maxValue }),
-			description: isElementalFlat
+			...(isFlatDamage && { minValue, maxValue }),
+			description: isFlatDamage
 				? formatRangeDescription(displayFormat, minValue!, maxValue!)
 				: formatDescription(displayFormat, value),
 		})
 		usedModIds.add(modId)
+		for (const tag of mod.tags ?? []) rolledTags.add(tag)
 		return true
 	}
 
@@ -252,8 +303,8 @@ function computeWeaponStats(
 		switch (target) {
 			case "physicalDamage":
 				if (operation === "flat") {
-					minPhys += mod.value
-					maxPhys += mod.value
+					minPhys += mod.minValue ?? mod.value
+					maxPhys += mod.maxValue ?? mod.value
 				} else {
 					physIncrease += mod.value
 				}
