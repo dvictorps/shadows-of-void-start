@@ -179,15 +179,21 @@ function rollExplicits(
 		const modId = pickWeighted(eligible, (id) => MODIFIERS[id].weight ?? DEFAULT_MODIFIER_WEIGHT)
 		const mod = MODIFIERS[modId]
 		const tier = tierCache.get(modId)!
-		const value = randInt(tier.valueRange[0], tier.valueRange[1])
 		const displayFormat = resolveDefenseFormat(modId, mod.displayFormat, template.armorType)
 
-		const isElementalFlat = mod.statEffect?.target === "elementalDamage" && mod.statEffect?.operation === "flat"
+		// All flat damage mods roll as min-max range (min = half of max)
+		const isFlatDamage = mod.modifierType === "flat" && mod.category === "offensive" && mod.displayFormat.includes("Damage to")
+
+		let value: number
 		let minValue: number | undefined
 		let maxValue: number | undefined
-		if (isElementalFlat) {
-			minValue = randInt(tier.valueRange[0], tier.valueRange[1])
-			maxValue = randInt(minValue, tier.valueRange[1])
+
+		if (isFlatDamage) {
+			maxValue = randInt(tier.valueRange[0], tier.valueRange[1])
+			minValue = Math.round(maxValue / 2)
+			value = maxValue
+		} else {
+			value = randInt(tier.valueRange[0], tier.valueRange[1])
 		}
 
 		mods.push({
@@ -198,8 +204,8 @@ function rollExplicits(
 			isGlobalStat: mod.isGlobalStat ?? false,
 			tier: tier.tier,
 			value,
-			...(isElementalFlat && { minValue, maxValue }),
-			description: isElementalFlat
+			...(isFlatDamage && { minValue, maxValue }),
+			description: isFlatDamage
 				? formatRangeDescription(displayFormat, minValue!, maxValue!)
 				: formatDescription(displayFormat, value),
 		})
@@ -252,8 +258,8 @@ function computeWeaponStats(
 		switch (target) {
 			case "physicalDamage":
 				if (operation === "flat") {
-					minPhys += mod.value
-					maxPhys += mod.value
+					minPhys += mod.minValue ?? mod.value
+					maxPhys += mod.maxValue ?? mod.value
 				} else {
 					physIncrease += mod.value
 				}

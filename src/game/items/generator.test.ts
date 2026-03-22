@@ -280,15 +280,20 @@ describe("spell weapons (staff/wand)", () => {
 // ── Attack weapons: compute weapon stats ──
 
 describe("attack weapon computed stats", () => {
-	it("computes physicalDamage with flat added", () => {
+	it("computes physicalDamage with flat min/max added", () => {
 		const items = generateMany(300, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 })
 		const withFlat = items.find((i) =>
 			i.explicits.some((m) => m.modifierId === "physicalDamageFlat") && i.computedStats,
 		)
 		if (withFlat) {
 			const flatMod = withFlat.explicits.find((m) => m.modifierId === "physicalDamageFlat")!
+			expect(flatMod.minValue).toBeDefined()
+			expect(flatMod.maxValue).toBeDefined()
 			expect(withFlat.computedStats!.physicalDamage.min).toBeGreaterThanOrEqual(
-				(withFlat.baseStats.minDamage ?? 0) + flatMod.value,
+				(withFlat.baseStats.minDamage ?? 0) + flatMod.minValue!,
+			)
+			expect(withFlat.computedStats!.physicalDamage.max).toBeGreaterThanOrEqual(
+				(withFlat.baseStats.maxDamage ?? 0) + flatMod.maxValue!,
 			)
 		}
 	})
@@ -495,6 +500,74 @@ describe("filler mods exist in the pool", () => {
 		const items = generateMany(300, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("lifeOnKillFlat")).toBe(true)
+	})
+})
+
+// ── Flat damage min/max ranges ──
+
+describe("flat damage mods roll as min-max range", () => {
+	const FLAT_DAMAGE_MODS = [
+		"physicalDamageFlat", "physicalDamageFlatGlobal",
+		"coldDamageToAttacksFlat", "fireDamageToAttacksFlat",
+		"lightningDamageToAttacksFlat", "voidDamageToAttacksFlat",
+		"coldDamageFlat", "fireDamageFlat", "lightningDamageFlat", "voidDamageFlat",
+	]
+
+	it("all flat damage mods have minValue and maxValue", () => {
+		const items = [
+			...generateMany(200, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 }),
+			...generateMany(200, { rarity: "epic", templateId: "apprentice_staff", itemLevel: 80 }),
+			...generateMany(200, { rarity: "epic", templateId: "cobalt_ring", itemLevel: 80 }),
+		]
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				if (FLAT_DAMAGE_MODS.includes(mod.modifierId)) {
+					expect(mod.minValue).toBeDefined()
+					expect(mod.maxValue).toBeDefined()
+				}
+			}
+		}
+	})
+
+	it("minValue is half of maxValue (rounded)", () => {
+		const items = [
+			...generateMany(200, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 }),
+			...generateMany(200, { rarity: "epic", templateId: "apprentice_staff", itemLevel: 80 }),
+		]
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				if (mod.minValue != null && mod.maxValue != null && FLAT_DAMAGE_MODS.includes(mod.modifierId)) {
+					expect(mod.minValue).toBe(Math.round(mod.maxValue / 2))
+				}
+			}
+		}
+	})
+
+	it("minValue and maxValue are integers", () => {
+		const items = [
+			...generateMany(200, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 }),
+			...generateMany(200, { rarity: "epic", templateId: "apprentice_staff", itemLevel: 80 }),
+		]
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				if (mod.minValue != null) expect(Number.isInteger(mod.minValue)).toBe(true)
+				if (mod.maxValue != null) expect(Number.isInteger(mod.maxValue)).toBe(true)
+			}
+		}
+	})
+
+	it("flat damage descriptions show min-max range", () => {
+		const items = [
+			...generateMany(200, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 }),
+			...generateMany(200, { rarity: "epic", templateId: "apprentice_staff", itemLevel: 80 }),
+		]
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				if (FLAT_DAMAGE_MODS.includes(mod.modifierId)) {
+					expect(mod.description).toMatch(/\d+-\d+/)
+				}
+			}
+		}
 	})
 })
 
