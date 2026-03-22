@@ -5,7 +5,6 @@ export const EQUIPMENT_TYPES = {
 	offhand: { id: "offhand", name: "Off-hand", slot: "offHand" },
 	helmet: { id: "helmet", name: "Helmet", slot: "head" },
 	chestplate: { id: "chestplate", name: "Chestplate", slot: "chest" },
-	leggings: { id: "leggings", name: "Leggings", slot: "legs" },
 	boots: { id: "boots", name: "Boots", slot: "feet" },
 	gloves: { id: "gloves", name: "Gloves", slot: "hands" },
 	ring: { id: "ring", name: "Ring", slot: "ring" },
@@ -38,9 +37,9 @@ export const ATTACK_WEAPON_TYPES = ["sword", "greatsword", "dagger", "bow", "axe
 // ── Armor subtypes ──
 
 export const ARMOR_TYPES = {
-	silk: { id: "silk", name: "Silk", baseDefense: "barrier", allowedSlots: ["helmet", "chestplate", "leggings", "boots", "gloves"] },
-	leather: { id: "leather", name: "Leather", baseDefense: "evasion", allowedSlots: ["helmet", "chestplate", "leggings", "boots", "gloves"] },
-	plate: { id: "plate", name: "Plate", baseDefense: "armor", allowedSlots: ["helmet", "chestplate", "leggings", "boots", "gloves"] },
+	silk: { id: "silk", name: "Silk", baseDefense: "barrier", allowedSlots: ["helmet", "chestplate", "boots", "gloves"] },
+	leather: { id: "leather", name: "Leather", baseDefense: "evasion", allowedSlots: ["helmet", "chestplate", "boots", "gloves"] },
+	plate: { id: "plate", name: "Plate", baseDefense: "armor", allowedSlots: ["helmet", "chestplate", "boots", "gloves"] },
 } as const
 
 export type ArmorType = keyof typeof ARMOR_TYPES
@@ -64,7 +63,7 @@ export type BaseStatKey = "minDamage" | "maxDamage" | "attackSpeed" | "criticalC
 // ── Equipment groups (single source of truth for applicableTo) ──
 
 export const EQUIPMENT_GROUPS = {
-	allArmor: ["helmet", "chestplate", "leggings", "boots", "gloves"] as const,
+	allArmor: ["helmet", "chestplate", "boots", "gloves"] as const,
 	allJewelry: ["ring", "amulet", "belt"] as const,
 	allAttackWeapons: ATTACK_WEAPON_TYPES,
 } as const

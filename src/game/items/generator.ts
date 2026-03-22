@@ -146,7 +146,7 @@ export function getSynergyWeight(
 }
 
 const SPELL_WEAPON_SET = new Set(["staff", "wand"])
-const ARMOR_SLOTS = new Set(["helmet", "chestplate", "leggings", "boots", "gloves"])
+const ARMOR_SLOTS = new Set(["helmet", "chestplate", "boots", "gloves"])
 
 // ── Deterministic epic mod patterns ──
 
@@ -558,5 +558,6 @@ export function generateItem(options: GenerateItemOptions): GeneratedItem {
 		explicits,
 		computedStats: computed,
 		computedDefenseStats: computedDefense,
+		requirements: template.requirements,
 	}
 }
