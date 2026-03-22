@@ -1,19 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { useQuery } from "convex/react"
-import { authClient } from "#/lib/auth-client"
-import { Button } from "#/components/ui/button"
-import { api } from "../../convex/_generated/api"
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "convex/react";
+import { Button } from "#/components/ui/button";
+import { authClient } from "#/lib/auth-client";
+import { api } from "../../convex/_generated/api";
 
-export const Route = createFileRoute("/")({ component: Home })
+export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
-	const { data: session } = authClient.useSession()
+	const { data: session } = authClient.useSession();
 
 	if (!session?.user) {
-		return <LandingPage />
+		return <LandingPage />;
 	}
 
-	return <WelcomeScreen />
+	return <WelcomeScreen />;
 }
 
 function LandingPage() {
@@ -33,14 +33,13 @@ function LandingPage() {
 				</div>
 			</div>
 		</main>
-	)
+	);
 }
 
 function WelcomeScreen() {
-	const { data: session } = authClient.useSession()
-	const userRole = useQuery(api.users.getUserRole)
-	const userName = session?.user?.name || session?.user?.email || "Adventurer"
-	const isAdmin = userRole?.role === "admin"
+	const userRole = useQuery(api.users.getUserRole);
+	const userName = userRole?.name || userRole?.email || "Adventurer";
+	const isAdmin = userRole?.role === "admin";
 
 	return (
 		<main className="flex min-h-[70vh] items-center justify-center px-4">
@@ -77,5 +76,5 @@ function WelcomeScreen() {
 				</div>
 			</div>
 		</main>
-	)
+	);
 }

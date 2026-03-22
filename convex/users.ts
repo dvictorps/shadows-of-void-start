@@ -1,6 +1,14 @@
 import { ConvexError, v } from "convex/values"
+import type { QueryCtx } from "./_generated/server"
 import { mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
+
+async function getRoleRecord(ctx: QueryCtx, authUserId: string) {
+	return ctx.db
+		.query("userRoles")
+		.withIndex("by_authUserId", (q) => q.eq("authUserId", authUserId))
+		.unique()
+}
 
 /**
  * Returns the current user's role. Defaults to "user" if no record exists.
@@ -11,10 +19,7 @@ export const getUserRole = query({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) return null
 
-		const roleRecord = await ctx.db
-			.query("userRoles")
-			.withIndex("by_authUserId", (q) => q.eq("authUserId", authUser._id))
-			.unique()
+		const roleRecord = await getRoleRecord(ctx, authUser._id)
 
 		return {
 			role: roleRecord?.role ?? "user",
@@ -33,10 +38,7 @@ export const isAdmin = query({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) return false
 
-		const roleRecord = await ctx.db
-			.query("userRoles")
-			.withIndex("by_authUserId", (q) => q.eq("authUserId", authUser._id))
-			.unique()
+		const roleRecord = await getRoleRecord(ctx, authUser._id)
 
 		return roleRecord?.role === "admin"
 	},
@@ -56,20 +58,14 @@ export const setUserRole = mutation({
 		const callerAuth = await authComponent.getAuthUser(ctx)
 		if (!callerAuth) throw new ConvexError("Not authenticated")
 
-		const callerRole = await ctx.db
-			.query("userRoles")
-			.withIndex("by_authUserId", (q) => q.eq("authUserId", callerAuth._id))
-			.unique()
+		const callerRole = await getRoleRecord(ctx, callerAuth._id)
 
 		if (callerRole?.role !== "admin") {
 			throw new ConvexError("Only admins can change roles")
 		}
 
 		// Upsert target user's role
-		const existing = await ctx.db
-			.query("userRoles")
-			.withIndex("by_authUserId", (q) => q.eq("authUserId", authUserId))
-			.unique()
+		const existing = await getRoleRecord(ctx, authUserId)
 
 		if (existing) {
 			await ctx.db.patch(existing._id, { role })
