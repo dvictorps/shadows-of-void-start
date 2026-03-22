@@ -9,7 +9,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
-		applicableTo: ["weapon", "allJewelry"],
+		applicableTo: ["allAttackWeapons", "allJewelry"],
 		displayFormat: "+{value}% Physical Damage",
 		isGlobalStat: true,
 		tiers: createStandardTiers(5, 8, 41, 45),

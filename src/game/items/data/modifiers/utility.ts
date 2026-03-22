@@ -20,7 +20,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		affixType: "suffix",
 		modifierType: "flat",
 		category: "utility",
-		applicableTo: ["weapon", "ring", "amulet", "gloves"],
+		applicableTo: ["allAttackWeapons", "ring", "amulet", "gloves"],
 		displayFormat: "+{value}% of Physical Attack Damage Leeched as Life",
 		isGlobalStat: true,
 		weight: 400,
