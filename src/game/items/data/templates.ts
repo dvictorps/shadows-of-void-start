@@ -144,16 +144,6 @@ export const EQUIPMENT_TEMPLATES: EquipmentTemplate[] = [
 		implicits: [],
 	},
 	{
-		id: "plate_leggings",
-		name: "Plate Leggings",
-		equipmentType: "leggings",
-		armorType: "plate",
-		dropLevel: 1,
-		requirements: { level: 1, str: 10 },
-		baseStats: { armor: 200 },
-		implicits: [],
-	},
-	{
 		id: "plate_boots",
 		name: "Plate Boots",
 		equipmentType: "boots",

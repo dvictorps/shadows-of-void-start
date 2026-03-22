@@ -94,7 +94,7 @@ Use groups instead of listing individual slots:
 
 | Group | Expands to |
 |---|---|
-| `"allArmor"` | helmet, chestplate, leggings, boots, gloves |
+| `"allArmor"` | helmet, chestplate, boots, gloves |
 | `"allJewelry"` | ring, amulet, belt |
 | `"allAttackWeapons"` | sword, greatsword, dagger, bow, axe, mace, twoHandedAxe |
 
