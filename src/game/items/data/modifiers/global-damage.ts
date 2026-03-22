@@ -25,6 +25,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Cold Damage",
 		isGlobalStat: true,
 		tags: ["cold", "elemental"],
+		weight: 600,
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalFireDamageIncrease: {
@@ -37,6 +38,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Fire Damage",
 		isGlobalStat: true,
 		tags: ["fire", "elemental"],
+		weight: 600,
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalLightningDamageIncrease: {
@@ -49,6 +51,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Lightning Damage",
 		isGlobalStat: true,
 		tags: ["lightning", "elemental"],
+		weight: 600,
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalVoidDamageIncrease: {
@@ -61,6 +64,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Void Damage",
 		isGlobalStat: true,
 		tags: ["void", "elemental"],
+		weight: 600,
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalSpellDamageIncrease: {
@@ -85,6 +89,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Elemental Damage with Attacks",
 		isGlobalStat: true,
 		tags: ["elemental", "attack"],
+		weight: 600,
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalElementalDamageIncrease: {
@@ -97,6 +102,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Elemental Damage",
 		isGlobalStat: true,
 		tags: ["elemental"],
+		weight: 600,
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalMeleeDamageIncrease: {
