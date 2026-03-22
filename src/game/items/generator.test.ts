@@ -513,6 +513,18 @@ describe("globalAttackSpeedIncrease not on weapons", () => {
 	})
 })
 
+// ── globalMeleeDamageIncrease not on weapons ──
+
+describe("globalMeleeDamageIncrease not on weapons", () => {
+	for (const templateId of ATTACK_WEAPON_IDS) {
+		it(`${templateId}: never rolls globalMeleeDamageIncrease`, () => {
+			const items = generateMany(100, { rarity: "legendary", templateId, itemLevel: 80 })
+			const rolledIds = allExplicitModIds(items)
+			expect(rolledIds.has("globalMeleeDamageIncrease")).toBe(false)
+		})
+	}
+})
+
 // ── Bad/filler mods can actually roll ──
 
 describe("filler mods exist in the pool", () => {

@@ -105,7 +105,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
-		applicableTo: ["sword", "greatsword", "dagger", "axe", "mace", "twoHandedAxe", "allJewelry", "gloves"],
+		applicableTo: ["allJewelry", "gloves"],
 		displayFormat: "+{value}% increased Melee Damage",
 		isGlobalStat: true,
 		tags: ["physical", "attack"],
