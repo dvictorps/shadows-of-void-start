@@ -265,6 +265,22 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 				</div>
 			)}
 
+			{/* Requirements */}
+			{item.requirements && (item.requirements.str || item.requirements.dex || item.requirements.int) && (
+				<>
+					<Separator />
+					<div className="px-4 py-1 text-xs text-[#7f7f7f]">
+						<span>Requires </span>
+						{[
+							item.requirements.level > 1 && `Level ${item.requirements.level}`,
+							item.requirements.str && `${item.requirements.str} Str`,
+							item.requirements.dex && `${item.requirements.dex} Dex`,
+							item.requirements.int && `${item.requirements.int} Int`,
+						].filter(Boolean).join(", ")}
+					</div>
+				</>
+			)}
+
 			{/* Item level */}
 			<Separator />
 			<div className="px-4 py-1 pb-2 text-xs text-[#7f7f7f]">

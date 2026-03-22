@@ -558,5 +558,6 @@ export function generateItem(options: GenerateItemOptions): GeneratedItem {
 		explicits,
 		computedStats: computed,
 		computedDefenseStats: computedDefense,
+		requirements: template.requirements,
 	}
 }

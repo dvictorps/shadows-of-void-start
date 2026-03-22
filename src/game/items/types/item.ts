@@ -81,4 +81,10 @@ export interface GeneratedItem {
 	explicits: RolledMod[]
 	computedStats?: ComputedWeaponStats
 	computedDefenseStats?: ComputedDefenseStats
+	requirements?: {
+		level: number
+		str?: number
+		dex?: number
+		int?: number
+	}
 }

@@ -1,0 +1,26 @@
+import type { EquipmentTemplate } from "./types"
+
+// Maces (1H, str) — AtkSpd: 1.15, Crit: 5.0, No implicit
+export const MACE_TEMPLATES: EquipmentTemplate[] = [
+	{ id: "mace_t1", name: "Iron Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 1, requirements: { level: 1, str: 15 }, baseStats: { minDamage: 18, maxDamage: 35, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t2", name: "Copper Flail", equipmentType: "weapon", weaponType: "mace", dropLevel: 8, requirements: { level: 8, str: 22 }, baseStats: { minDamage: 23, maxDamage: 44, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t3", name: "Bronze Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 12, requirements: { level: 12, str: 28 }, baseStats: { minDamage: 27, maxDamage: 52, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t4", name: "Steel Flail", equipmentType: "weapon", weaponType: "mace", dropLevel: 16, requirements: { level: 16, str: 34 }, baseStats: { minDamage: 32, maxDamage: 60, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t5", name: "War Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 20, requirements: { level: 20, str: 40 }, baseStats: { minDamage: 36, maxDamage: 70, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t6", name: "Soldier's Morning Star", equipmentType: "weapon", weaponType: "mace", dropLevel: 24, requirements: { level: 24, str: 48 }, baseStats: { minDamage: 41, maxDamage: 80, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t7", name: "Knight's Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 28, requirements: { level: 28, str: 54 }, baseStats: { minDamage: 46, maxDamage: 90, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t8", name: "Damascus Flail", equipmentType: "weapon", weaponType: "mace", dropLevel: 32, requirements: { level: 32, str: 60 }, baseStats: { minDamage: 51, maxDamage: 100, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t9", name: "Warden Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 36, requirements: { level: 36, str: 68 }, baseStats: { minDamage: 56, maxDamage: 112, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t10", name: "Champion Morning Star", equipmentType: "weapon", weaponType: "mace", dropLevel: 40, requirements: { level: 40, str: 74 }, baseStats: { minDamage: 62, maxDamage: 123, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t11", name: "Templar Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 44, requirements: { level: 44, str: 80 }, baseStats: { minDamage: 68, maxDamage: 134, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t12", name: "Relic Flail", equipmentType: "weapon", weaponType: "mace", dropLevel: 48, requirements: { level: 48, str: 88 }, baseStats: { minDamage: 74, maxDamage: 146, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t13", name: "Runed Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 52, requirements: { level: 52, str: 94 }, baseStats: { minDamage: 80, maxDamage: 158, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t14", name: "Hallowed Morning Star", equipmentType: "weapon", weaponType: "mace", dropLevel: 56, requirements: { level: 56, str: 100 }, baseStats: { minDamage: 86, maxDamage: 170, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t15", name: "Exalted Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 60, requirements: { level: 60, str: 108 }, baseStats: { minDamage: 92, maxDamage: 182, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t16", name: "Archon Flail", equipmentType: "weapon", weaponType: "mace", dropLevel: 64, requirements: { level: 64, str: 114 }, baseStats: { minDamage: 97, maxDamage: 192, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t17", name: "Sovereign Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 68, requirements: { level: 68, str: 120 }, baseStats: { minDamage: 103, maxDamage: 204, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t18", name: "Eternal Morning Star", equipmentType: "weapon", weaponType: "mace", dropLevel: 72, requirements: { level: 72, str: 128 }, baseStats: { minDamage: 108, maxDamage: 215, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t19", name: "Ascendant Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 76, requirements: { level: 76, str: 134 }, baseStats: { minDamage: 114, maxDamage: 226, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t20", name: "Celestial Flail", equipmentType: "weapon", weaponType: "mace", dropLevel: 80, requirements: { level: 80, str: 140 }, baseStats: { minDamage: 120, maxDamage: 238, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+	{ id: "mace_t21", name: "Void-Touched Mace", equipmentType: "weapon", weaponType: "mace", dropLevel: 83, requirements: { level: 83, str: 145 }, baseStats: { minDamage: 125, maxDamage: 248, attackSpeed: 1.15, criticalChance: 5 }, implicits: [] },
+]
