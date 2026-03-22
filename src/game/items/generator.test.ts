@@ -397,10 +397,10 @@ describe("jewelry mod eligibility", () => {
 		})
 	}
 
-	it("rings can roll physicalDamageFlat (global on jewelry)", () => {
+	it("rings can roll physicalDamageFlatGlobal (global on jewelry)", () => {
 		const items = generateMany(300, { rarity: "epic", templateId: "cobalt_ring", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
-		expect(rolledIds.has("physicalDamageFlat")).toBe(true)
+		expect(rolledIds.has("physicalDamageFlatGlobal")).toBe(true)
 	})
 
 	it("rings do not get localDefenseFlat or localDefenseIncrease", () => {

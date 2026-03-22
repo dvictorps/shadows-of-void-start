@@ -67,6 +67,10 @@ function formatDescription(displayFormat: string, value: number): string {
 	return displayFormat.replace("{value}", formatValue(value))
 }
 
+function formatRangeDescription(displayFormat: string, min: number, max: number): string {
+	return displayFormat.replace("{value}", `${formatValue(min)}-${formatValue(max)}`)
+}
+
 // ── Defense label resolution (local defense mods adapt to armor base type) ──
 
 const DEFENSE_LABELS: Record<string, { stat: BaseStatKey; flat: string; pct: string }> = {
@@ -178,6 +182,14 @@ function rollExplicits(
 		const value = randInt(tier.valueRange[0], tier.valueRange[1])
 		const displayFormat = resolveDefenseFormat(modId, mod.displayFormat, template.armorType)
 
+		const isElementalFlat = mod.statEffect?.target === "elementalDamage" && mod.statEffect?.operation === "flat"
+		let minValue: number | undefined
+		let maxValue: number | undefined
+		if (isElementalFlat) {
+			minValue = randInt(tier.valueRange[0], tier.valueRange[1])
+			maxValue = randInt(minValue, tier.valueRange[1])
+		}
+
 		mods.push({
 			modifierId: modId,
 			modifierName: mod.name,
@@ -186,7 +198,10 @@ function rollExplicits(
 			isGlobalStat: mod.isGlobalStat ?? false,
 			tier: tier.tier,
 			value,
-			description: formatDescription(displayFormat, value),
+			...(isElementalFlat && { minValue, maxValue }),
+			description: isElementalFlat
+				? formatRangeDescription(displayFormat, minValue!, maxValue!)
+				: formatDescription(displayFormat, value),
 		})
 		usedModIds.add(modId)
 		return true
@@ -251,7 +266,7 @@ function computeWeaponStats(
 				break
 			case "elementalDamage":
 				if (element) {
-					elementalDamage.push({ element, min: mod.value, max: mod.value })
+					elementalDamage.push({ element, min: mod.minValue ?? mod.value, max: mod.maxValue ?? mod.value })
 				}
 				break
 		}
@@ -344,7 +359,7 @@ export interface GenerateItemOptions {
 }
 
 export function generateItem(options: GenerateItemOptions): GeneratedItem {
-	const itemLevel = options.itemLevel ?? randInt(1, 100)
+	const itemLevel = Math.min(100, Math.max(1, options.itemLevel ?? randInt(1, 100)))
 
 	let template: EquipmentTemplate
 	if (options.templateId) {

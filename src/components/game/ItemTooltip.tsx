@@ -72,9 +72,6 @@ function getModifiedStats(item: GeneratedItem): Set<string> {
 	if (computed.criticalChance !== (stats.criticalChance ?? 5)) {
 		modified.add("criticalChance")
 	}
-	if (computed.elementalDamage.length > 0) {
-		modified.add("elementalDamage")
-	}
 
 	return modified
 }
@@ -252,7 +249,7 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 					{item.explicits.map((mod, i) => (
 						<div key={i} className="text-[#8888ff]">
 							{mod.description}
-							{mod.modifierType === "increased" && !mod.isGlobalStat && (
+							{!mod.isGlobalStat && (
 								<span className="text-[#5f5f7f]"> (Local)</span>
 							)}
 						</div>

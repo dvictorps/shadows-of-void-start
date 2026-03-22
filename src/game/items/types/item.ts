@@ -35,6 +35,8 @@ export interface RolledMod {
 	isGlobalStat: boolean
 	tier: number
 	value: number
+	minValue?: number
+	maxValue?: number
 	description: string
 }
 
