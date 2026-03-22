@@ -636,11 +636,11 @@ describe("synergy tags", () => {
 
 describe("deterministic epic patterns", () => {
 	const ATTACK_WEAPON_PATTERN_PREFIXES = new Set([
-		"physicalDamageFlat", "coldDamageToAttacksFlat", "fireDamageToAttacksFlat",
-		"lightningDamageToAttacksFlat", "voidDamageToAttacksFlat", "globalPhysicalDamageIncrease",
+		"physicalDamageFlat", "physicalDamageIncrease", "coldDamageToAttacksFlat",
+		"fireDamageToAttacksFlat", "lightningDamageToAttacksFlat", "voidDamageToAttacksFlat",
 	])
 	const ATTACK_WEAPON_PATTERN_SUFFIXES = new Set([
-		"physicalDamageIncrease", "attackSpeedIncrease", "criticalChanceIncrease",
+		"attackSpeedIncrease", "criticalChanceIncrease",
 		"criticalStrikeMultiplierFlat", "accuracyFlat",
 	])
 

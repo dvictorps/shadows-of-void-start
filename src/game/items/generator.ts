@@ -159,8 +159,8 @@ interface EpicModPattern {
 
 const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 	attackWeapon: {
-		prefixes: ["physicalDamageFlat", "coldDamageToAttacksFlat", "fireDamageToAttacksFlat", "lightningDamageToAttacksFlat", "voidDamageToAttacksFlat", "globalPhysicalDamageIncrease"] as ModifierId[],
-		suffixes: ["physicalDamageIncrease", "attackSpeedIncrease", "criticalChanceIncrease", "criticalStrikeMultiplierFlat", "accuracyFlat"] as ModifierId[],
+		prefixes: ["physicalDamageFlat", "physicalDamageIncrease", "coldDamageToAttacksFlat", "fireDamageToAttacksFlat", "lightningDamageToAttacksFlat", "voidDamageToAttacksFlat"] as ModifierId[],
+		suffixes: ["attackSpeedIncrease", "criticalChanceIncrease", "criticalStrikeMultiplierFlat", "accuracyFlat"] as ModifierId[],
 	},
 	spellWeapon: {
 		prefixes: ["coldDamageFlat", "fireDamageFlat", "lightningDamageFlat", "voidDamageFlat", "globalSpellDamageIncrease", "globalColdDamageIncrease", "globalFireDamageIncrease", "globalLightningDamageIncrease", "globalVoidDamageIncrease", "globalElementalDamageIncrease"] as ModifierId[],

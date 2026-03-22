@@ -39,7 +39,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Armor",
 		isGlobalStat: true,
 		tags: ["defense"],
-		tiers: createStandardTiers(12, 25, 120, 160),
+		tiers: createStandardTiers(8, 15, 90, 125),
 	},
 	evasionFlat: {
 		id: "evasionFlat",
@@ -51,7 +51,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Evasion Rating",
 		isGlobalStat: true,
 		tags: ["defense"],
-		tiers: createStandardTiers(12, 25, 120, 160),
+		tiers: createStandardTiers(8, 15, 90, 125),
 	},
 	barrierFlat: {
 		id: "barrierFlat",
@@ -63,7 +63,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Barrier",
 		isGlobalStat: true,
 		tags: ["defense"],
-		tiers: createStandardTiers(8, 16, 65, 85),
+		tiers: createStandardTiers(4, 8, 45, 63),
 	},
 
 	// ── Global defense % ──
