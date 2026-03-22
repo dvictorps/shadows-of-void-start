@@ -1,291 +1,120 @@
-Welcome to your new TanStack Start app! 
+# Shadows of Void
 
-# Getting Started
+An online Action RPG with automatic stat-check combat, deep itemization, and infinite endgame progression. Inspired by classic ARPGs like Path of Exile and Diablo, Shadows of Void focuses on the loot grind fantasy — where every item drop matters and builds are defined by gear choices.
 
-To run this application:
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18+)
+- npm
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/dvictorps/shadows-of-void.git
+cd shadows-of-void
+
+# Install dependencies
 npm install
+
+# Set up environment variables
+cp .env.local.example .env.local
+# Fill in your Convex and auth credentials (see below)
+```
+
+### Running the Project
+
+You need two terminals running simultaneously:
+
+```bash
+# Terminal 1 — Start the Convex backend
+npx convex dev
+
+# Terminal 2 — Start the dev server
 npm run dev
 ```
 
-# Building For Production
+The app will be available at `http://localhost:3000`.
 
-To build this application for production:
+### Environment Variables
+
+Create a `.env.local` file with:
+
+```
+VITE_CONVEX_URL=<your-convex-url>
+CONVEX_DEPLOYMENT=<your-convex-deployment>
+BETTER_AUTH_SECRET=<generate with: npx @better-auth/cli secret>
+```
+
+### Other Commands
 
 ```bash
-npm run build
+npm run build    # Production build
+npm run test     # Run tests (Vitest)
+npm run lint     # Lint with Biome
+npm run format   # Format with Biome
 ```
 
-## Testing
+## About the Project
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+Shadows of Void is a browser-based ARPG where combat is resolved automatically through stat checks — no manual aiming or clicking on enemies. Players focus entirely on build crafting: choosing their class, allocating passive skills, and hunting for powerful gear. The core loop is loot-driven: items are procedurally generated with randomized modifiers, rarity tiers, and base types that scale with content difficulty.
 
-```bash
-npm run test
-```
+The game draws heavy inspiration from the itemization depth of classic ARPGs. Equipment features a tiered modifier system with prefixes and suffixes, multiple rarity levels (Normal, Magic, Rare, Legendary, Epic), and local vs. global stat interactions. Weapons, armor, jewelry, and shields all have distinct base types that progress through level-gated tiers, ensuring upgrades remain meaningful throughout progression.
 
-## Styling
+Combat is presented as a node-based campaign map. Players select zones, and encounters are resolved by the stat engine comparing the player's build against enemy stats. Victory unlocks the next node, driving progression through a themed story campaign and into repeatable endgame content.
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+## Current State
 
-### Removing Tailwind CSS
+The project is in early development. Here's what's already built:
 
-If you prefer not to use Tailwind CSS:
+- **Procedural Item Generator** — Full item generation engine with 10 modifier tiers, 5 rarity levels, prefix/suffix system, local/global stat resolution, and weighted modifier rolling. Covers 9 weapon types, 4 armor slots (3 variants each), shields, and jewelry.
+- **Item Tooltip UI** — Rich tooltip display with color-coded stats, rarity-specific styling (glows, ornaments), and modifier formatting.
+- **Equipment Base Progression** — 21-tier base item progression for weapons and armor, 8 tiers for jewelry, all level-gated.
+- **Authentication System** — User registration and login via Better Auth + Convex.
+- **Admin Panel** — Admin interface for item generation testing and inspection.
+- **Internationalization** — i18n support via Paraglide (English/Portuguese).
+- **71+ Unit Tests** — Comprehensive test suite covering the item generation system.
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `npm install @tailwindcss/vite tailwindcss -D`
+## Roadmap
 
-## Linting & Formatting
+### Unique Items
+Hand-crafted item templates with fixed, curated modifiers — some exclusive to that item. Uniques sit above Epic rarity and define build-around fantasies: powerful but narrow. Each unique is a complete item definition, separate from the random generator.
 
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
+### Class System
+Multiple playable classes, each with distinct stat profiles and playstyle identities. Classes influence which weapon types and armor variants are most effective, encouraging diverse build paths.
 
+### Passive Skill Tree
+A branching passive tree where players allocate points to customize their character's strengths. Nodes grant stat bonuses, unlock build-defining keystones, and create meaningful choices between offensive, defensive, and utility paths.
 
-```bash
-npm run lint
-npm run format
-npm run check
-```
+### Auto-Combat System
+A stat-check combat engine where encounters are resolved automatically based on the player's build. The system compares offensive stats (damage, speed, crit) against enemy defenses, with results influenced by gear, passives, and class bonuses. No manual aiming — the depth comes from preparation, not execution.
 
+### Campaign Mode
+A node-based world map where players progress through themed zones. Each node represents a combat encounter; defeating all enemies in a zone unlocks the next node. The campaign tells the story of the Void through a sequence of increasingly challenging areas, serving as the introduction to the game's mechanics and lore.
 
-## Setting up Convex
+### Infinite Endgame
+After completing the campaign, players enter a theoretically infinite endgame loop designed for long-term grinding. Endgame content scales in difficulty and rewards, providing a reason to keep optimizing builds and hunting for better gear.
 
-- Set the `VITE_CONVEX_URL` and `CONVEX_DEPLOYMENT` environment variables in your `.env.local`. (Or run `npx -y convex init` to set them automatically.)
-- Run `npx -y convex dev` to start the Convex server.
+### Ranking Systems
+Competitive leaderboards tracking:
+- **Character Level** — Highest level reached
+- **Boss Eliminations** — Fastest kills and hardest bosses defeated
+- **Dungeon Depth** — Deepest floor reached in endgame dungeons
 
+### Player Trading
+A trade system allowing players to exchange items with each other, creating a player-driven economy. Trading adds a social layer to the loot hunt and enables build completion through commerce rather than pure RNG.
 
-# Paraglide i18n
+## Tech Stack
 
-This add-on wires up ParaglideJS for localized routing and message formatting.
+- **Frontend:** React 19 + TypeScript + Tailwind CSS 4 + TanStack Router/Start
+- **Backend:** Convex (database + serverless functions)
+- **Auth:** Better Auth
+- **Build:** Vite + Biome (lint/format) + Vitest (testing)
+- **i18n:** Paraglide
+- **Analytics:** PostHog
 
-- Messages live in `project.inlang/messages`.
-- URLs are localized through the Paraglide Vite plugin and router `rewrite` hooks.
-- Run the dev server or build to regenerate the `src/paraglide` outputs.
+## License
 
-
-## Shadcn
-
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
-
-```bash
-pnpm dlx shadcn@latest add button
-```
-
-
-## T3Env
-
-- You can use T3Env to add type safety to your environment variables.
-- Add Environment variables to the `src/env.mjs` file.
-- Use the environment variables in your code.
-
-### Usage
-
-```ts
-import { env } from "#/env";
-
-console.log(env.VITE_APP_TITLE);
-```
-
-
-
-
-
-## Setting up Better Auth
-
-1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:
-
-   ```bash
-   npx -y @better-auth/cli secret
-   ```
-
-2. Visit the [Better Auth documentation](https://www.better-auth.com) to unlock the full potential of authentication in your app.
-
-### Adding a Database (Optional)
-
-Better Auth can work in stateless mode, but to persist user data, add a database:
-
-```typescript
-// src/lib/auth.ts
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
-
-export const auth = betterAuth({
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-  // ... rest of config
-});
-```
-
-Then run migrations:
-
-```bash
-npx -y @better-auth/cli migrate
-```
-
-
-## Setting up PostHog
-
-1. Create a PostHog account at [posthog.com](https://posthog.com)
-2. Get your Project API Key from [Project Settings](https://app.posthog.com/project/settings)
-3. Set `VITE_POSTHOG_KEY` in your `.env.local`
-
-### Optional Configuration
-
-- `VITE_POSTHOG_HOST` - Set this if you're using PostHog Cloud EU (`https://eu.i.posthog.com`) or self-hosting
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+This project is proprietary. All rights reserved.
