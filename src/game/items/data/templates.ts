@@ -182,7 +182,7 @@ export const EQUIPMENT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 1,
 		requirements: { level: 1, str: 10 },
-		baseStats: { armor: 80, evasion: 40 },
+		baseStats: { armor: 80, evasion: 40, blockChance: 22 },
 		implicits: [{ displayFormat: "+{value}% Block Chance", minValue: 10, maxValue: 20 }],
 	},
 

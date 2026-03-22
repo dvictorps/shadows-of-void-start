@@ -371,10 +371,24 @@ describe("shield", () => {
 		}
 	})
 
-	it("shield can roll blockChanceFlat", () => {
+	it("shield can roll blockChanceIncrease", () => {
 		const items = generateMany(200, { rarity: "epic", templateId: "wooden_shield", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
-		expect(rolledIds.has("blockChanceFlat")).toBe(true)
+		expect(rolledIds.has("blockChanceIncrease")).toBe(true)
+	})
+
+	it("blockChanceIncrease applies to shield base block chance", () => {
+		let found = false
+		for (let i = 0; i < 500 && !found; i++) {
+			const item = generateItem({ rarity: "epic", templateId: "wooden_shield", itemLevel: 80 })
+			const hasBlockMod = item.explicits.some((m) => m.modifierId === "blockChanceIncrease")
+			if (hasBlockMod) {
+				expect(item.computedDefenseStats?.blockChance).toBeDefined()
+				expect(item.computedDefenseStats!.blockChance).toBeGreaterThan(22)
+				found = true
+			}
+		}
+		expect(found).toBe(true)
 	})
 })
 

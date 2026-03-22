@@ -29,6 +29,7 @@ export type LocalStatTarget =
 	| "criticalChance"
 	| "elementalDamage"  // requires element field
 	| "defense"          // resolved to armor/evasion/barrier based on armorType
+	| "blockChance"      // shields only — multiplies base block chance
 
 export interface StatEffect {
 	target: LocalStatTarget

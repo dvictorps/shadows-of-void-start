@@ -61,6 +61,7 @@ export interface ComputedDefenseStats {
 	armor?: number
 	evasion?: number
 	barrier?: number
+	blockChance?: number
 }
 
 // ── Generated item ──

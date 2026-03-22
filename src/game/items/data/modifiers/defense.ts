@@ -205,15 +205,16 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(1, 3, 15, 20),
 	},
 
-	// ── Block (shields) ──
-	blockChanceFlat: {
-		id: "blockChanceFlat",
+	// ── Block (shields only — multiplies base block chance) ──
+	blockChanceIncrease: {
+		id: "blockChanceIncrease",
 		name: "of Blocking",
 		affixType: "suffix",
-		modifierType: "flat",
+		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["offhand"],
 		displayFormat: "+{value}% Block Chance",
+		statEffect: { target: "blockChance", operation: "increased" },
 		tiers: createStandardTiers(1, 2, 4, 5),
 	},
 }

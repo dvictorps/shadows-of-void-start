@@ -304,28 +304,43 @@ function computeArmorStats(
 	explicits: RolledMod[],
 ): ComputedDefenseStats | undefined {
 	const defenseInfo = armorType ? DEFENSE_LABELS[armorType] : null
-	if (!defenseInfo) return undefined
 
 	let flatBonus = 0
-	let increase = 0
+	let defenseIncrease = 0
+	let blockIncrease = 0
 
 	for (const mod of explicits) {
 		const modifier = MODIFIERS[mod.modifierId as ModifierId]
 		if (!modifier?.statEffect || modifier.isGlobalStat) continue
-		if (modifier.statEffect.target !== "defense") continue
 
-		if (modifier.statEffect.operation === "flat") flatBonus += mod.value
-		else increase += mod.value
+		if (modifier.statEffect.target === "defense") {
+			if (modifier.statEffect.operation === "flat") flatBonus += mod.value
+			else defenseIncrease += mod.value
+		} else if (modifier.statEffect.target === "blockChance") {
+			if (modifier.statEffect.operation === "increased") blockIncrease += mod.value
+		}
 	}
 
-	if (flatBonus === 0 && increase === 0) return undefined
+	const hasDefenseMods = defenseInfo && (flatBonus !== 0 || defenseIncrease !== 0)
+	const hasBlockMods = blockIncrease > 0 && baseStats.blockChance != null
 
-	let value = (baseStats[defenseInfo.stat] ?? 0) + flatBonus
-	if (increase > 0) {
-		value = Math.round(value * (1 + increase / 100))
+	if (!hasDefenseMods && !hasBlockMods) return undefined
+
+	const result: ComputedDefenseStats = {}
+
+	if (hasDefenseMods) {
+		let value = (baseStats[defenseInfo!.stat] ?? 0) + flatBonus
+		if (defenseIncrease > 0) {
+			value = Math.round(value * (1 + defenseIncrease / 100))
+		}
+		result[defenseInfo!.stat] = value
 	}
 
-	return { [defenseInfo.stat]: value } as ComputedDefenseStats
+	if (hasBlockMods) {
+		result.blockChance = Math.round(baseStats.blockChance! * (1 + blockIncrease / 100))
+	}
+
+	return result
 }
 
 // ── Item naming ──

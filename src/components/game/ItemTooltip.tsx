@@ -92,7 +92,7 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 	const isSpellWeapon = SPELL_WEAPONS.has(item.weaponType ?? "")
 	const isAttackWeapon = isWeapon && !isSpellWeapon
 	const hasDefenses =
-		"armor" in stats || "evasion" in stats || "barrier" in stats
+		"armor" in stats || "evasion" in stats || "barrier" in stats || "blockChance" in stats
 
 	const borderColor = showGlow ? nameColor : "#3a2a1a"
 	const glowStyle = showGlow
@@ -221,6 +221,14 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 								<span className="text-[#7f7f7f]">Barrier:</span>
 								<span style={{ color: defense?.barrier != null ? MODIFIED_COLOR : "white" }}>
 									{defense?.barrier ?? stats.barrier}
+								</span>
+							</div>
+						)}
+						{"blockChance" in stats && (
+							<div className="flex justify-between">
+								<span className="text-[#7f7f7f]">Block Chance:</span>
+								<span style={{ color: defense?.blockChance != null ? MODIFIED_COLOR : "white" }}>
+									{defense?.blockChance ?? stats.blockChance}%
 								</span>
 							</div>
 						)}

@@ -59,7 +59,7 @@ export type DamageElement = (typeof DAMAGE_ELEMENTS)[keyof typeof DAMAGE_ELEMENT
 
 // ── Valid base stat keys ──
 
-export type BaseStatKey = "minDamage" | "maxDamage" | "attackSpeed" | "criticalChance" | "armor" | "evasion" | "barrier"
+export type BaseStatKey = "minDamage" | "maxDamage" | "attackSpeed" | "criticalChance" | "armor" | "evasion" | "barrier" | "blockChance"
 
 // ── Equipment groups (single source of truth for applicableTo) ──
 
