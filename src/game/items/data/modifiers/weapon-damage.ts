@@ -13,6 +13,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Physical Damage to Attacks",
 		statEffect: { target: "physicalDamage", operation: "flat" },
 		tags: ["physical", "attack"],
+		weight: 1400,
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	physicalDamageFlatGlobal: {
@@ -75,6 +76,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Cold Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Cold" },
 		tags: ["cold", "elemental", "attack"],
+		weight: 1200,
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	fireDamageToAttacksFlat: {
@@ -87,6 +89,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Fire Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Fire" },
 		tags: ["fire", "elemental", "attack"],
+		weight: 1200,
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	lightningDamageToAttacksFlat: {
@@ -99,6 +102,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Lightning Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Lightning" },
 		tags: ["lightning", "elemental", "attack"],
+		weight: 1200,
 		tiers: createStandardTiers(4, 12, 55, 140),
 	},
 	voidDamageToAttacksFlat: {
@@ -111,6 +115,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Void Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Void" },
 		tags: ["void", "elemental", "attack"],
+		weight: 1200,
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 
