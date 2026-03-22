@@ -15,8 +15,8 @@
     "check": "biome check"
   },
   "dependencies": {
+    "@convex-dev/better-auth": "0.11.3",
     "@convex-dev/react-query": "0.1.0",
-    "@faker-js/faker": "^10.3.0",
     "@posthog/react": "^1.7.0",
     "@t3-oss/env-core": "^0.13.10",
     "@tailwindcss/vite": "^4.1.18",
@@ -31,7 +31,7 @@
     "@tanstack/react-start": "latest",
     "@tanstack/react-table": "latest",
     "@tanstack/router-plugin": "^1.132.0",
-    "better-auth": "^1.5.3",
+    "better-auth": "^1.5.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.32.0",
