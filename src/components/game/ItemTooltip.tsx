@@ -257,7 +257,7 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 					{item.explicits.map((mod, i) => (
 						<div key={i} className="text-[#8888ff]">
 							{mod.description}
-							{!mod.isGlobalStat && (
+							{!mod.isGlobalStat && mod.modifierType === "increased" && (
 								<span className="text-[#5f5f7f]"> (Local)</span>
 							)}
 						</div>

@@ -10,6 +10,8 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 		category: "attribute",
 		applicableTo: ["weapon", "offhand", "allArmor", "allJewelry"],
 		displayFormat: "+{value} Strength",
+		isGlobalStat: true,
+		tags: ["attribute"],
 		tiers: createStandardTiers(5, 10, 51, 55),
 	},
 	dexterityFlat: {
@@ -20,6 +22,8 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 		category: "attribute",
 		applicableTo: ["weapon", "offhand", "allArmor", "allJewelry"],
 		displayFormat: "+{value} Dexterity",
+		isGlobalStat: true,
+		tags: ["attribute"],
 		tiers: createStandardTiers(5, 10, 51, 55),
 	},
 	intelligenceFlat: {
@@ -30,6 +34,8 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 		category: "attribute",
 		applicableTo: ["weapon", "offhand", "allArmor", "allJewelry"],
 		displayFormat: "+{value} Intelligence",
+		isGlobalStat: true,
+		tags: ["attribute"],
 		tiers: createStandardTiers(5, 10, 51, 55),
 	},
 }

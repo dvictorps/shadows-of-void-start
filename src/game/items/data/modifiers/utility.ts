@@ -9,8 +9,9 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "utility",
 		applicableTo: ["boots"],
-		displayFormat: "+{value}% Movement Speed",
+		displayFormat: "+{value}% increased Movement Speed",
 		isGlobalStat: true,
+		tags: ["speed"],
 		weight: 600,
 		tiers: createStandardTiers(5, 8, 41, 45),
 	},
@@ -23,11 +24,12 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["allAttackWeapons", "ring", "amulet", "gloves"],
 		displayFormat: "+{value}% of Physical Attack Damage Leeched as Life",
 		isGlobalStat: true,
+		tags: ["physical", "attack", "life"],
 		weight: 400,
 		tiers: createStandardTiers(1, 1, 2, 3),
 	},
 
-	// ── Niche / filler mods ──
+	// ── Niche / filler mods (no tags — no synergy pull) ──
 	stunDurationIncrease: {
 		id: "stunDurationIncrease",
 		name: "of Stunning",
@@ -35,7 +37,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "utility",
 		applicableTo: ["weapon", "ring", "amulet", "belt"],
-		displayFormat: "+{value}% Stun Duration",
+		displayFormat: "+{value}% increased Stun Duration",
 		isGlobalStat: true,
 		weight: 1500,
 		tiers: createStandardTiers(5, 10, 31, 35),
@@ -48,11 +50,12 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		category: "utility",
 		applicableTo: ["allArmor"],
 		displayFormat: "-{value}% Attribute Requirements",
+		isGlobalStat: true,
 		weight: 1500,
 		tiers: createStandardTiers(5, 10, 21, 25),
 	},
 
-	// ── Bad mods ──
+	// ── Bad mods (no tags) ──
 	lightRadius: {
 		id: "lightRadius",
 		name: "of Shining",
@@ -60,7 +63,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		modifierType: "increased",
 		category: "utility",
 		applicableTo: ["helmet", "ring"],
-		displayFormat: "+{value}% Light Radius",
+		displayFormat: "+{value}% increased Light Radius",
 		isGlobalStat: true,
 		weight: 2000,
 		tiers: createStandardTiers(5, 10, 21, 25),

@@ -109,6 +109,41 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 	})
 }
 
+// ── Synergy system (intelligent generation for epic/legendary) ──
+
+const SYNERGY_MULTIPLIERS: Partial<Record<ItemRarity, number>> = {
+	epic: 3,
+	legendary: 1.5,
+}
+
+export function getSynergyWeight(
+	baseWeight: number,
+	candidateTags: string[],
+	rolledTags: Set<string>,
+	synergyMultiplier: number,
+): number {
+	if (synergyMultiplier === 0 || rolledTags.size === 0 || candidateTags.length === 0) return baseWeight
+	let matches = 0
+	for (const tag of candidateTags) {
+		if (rolledTags.has(tag)) matches++
+	}
+	return baseWeight * (1 + synergyMultiplier * matches)
+}
+
+const SPELL_WEAPON_SET = new Set(["staff", "wand"])
+const ARMOR_SLOTS = new Set(["helmet", "chestplate", "leggings", "boots", "gloves"])
+
+function getItemSeedTags(template: EquipmentTemplate): string[] {
+	if (template.equipmentType === "weapon") {
+		if (SPELL_WEAPON_SET.has(template.weaponType ?? "")) return ["spell", "elemental"]
+		return ["attack", "physical", "critical"]
+	}
+	if (ARMOR_SLOTS.has(template.equipmentType) || template.equipmentType === "offhand") {
+		return ["defense", "life"]
+	}
+	return []
+}
+
 // ── Rolling logic ──
 
 function rollImplicits(template: EquipmentTemplate): RolledImplicit[] {
@@ -156,6 +191,12 @@ function rollExplicits(
 	const mods: RolledMod[] = []
 	const usedModIds = new Set<string>()
 
+	// Synergy: seed tags for epic, empty for legendary, unused for others
+	const synergyMultiplier = SYNERGY_MULTIPLIERS[rarity] ?? 0
+	const rolledTags = new Set<string>(
+		rarity === "epic" ? getItemSeedTags(template) : [],
+	)
+
 	// Pre-resolve tiers for all available modifiers at this item level
 	const tierCache = new Map<ModifierId, ReturnType<typeof getModifierTierForItemLevel>>()
 	for (const modId of availableModifiers) {
@@ -176,7 +217,10 @@ function rollExplicits(
 		const eligible = getEligible(affixType)
 		if (eligible.length === 0) return false
 
-		const modId = pickWeighted(eligible, (id) => MODIFIERS[id].weight ?? DEFAULT_MODIFIER_WEIGHT)
+		const modId = pickWeighted(eligible, (id) => {
+			const m = MODIFIERS[id]
+			return getSynergyWeight(m.weight ?? DEFAULT_MODIFIER_WEIGHT, m.tags ?? [], rolledTags, synergyMultiplier)
+		})
 		const mod = MODIFIERS[modId]
 		const tier = tierCache.get(modId)!
 		const displayFormat = resolveDefenseFormat(modId, mod.displayFormat, template.armorType)
@@ -210,6 +254,7 @@ function rollExplicits(
 				: formatDescription(displayFormat, value),
 		})
 		usedModIds.add(modId)
+		for (const tag of mod.tags ?? []) rolledTags.add(tag)
 		return true
 	}
 

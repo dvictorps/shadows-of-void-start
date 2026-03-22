@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { generateItem } from "./generator"
+import { generateItem, getSynergyWeight } from "./generator"
 import { MODIFIERS, type ModifierId } from "./data/modifiers"
 import type { GeneratedItem, ItemRarity } from "./types"
 
@@ -568,6 +568,125 @@ describe("flat damage mods roll as min-max range", () => {
 				}
 			}
 		}
+	})
+})
+
+// ── Synergy tag system (epic/legendary intelligent generation) ──
+
+describe("synergy tags", () => {
+	it("epic swords: majority of mods have attack or physical tags", () => {
+		const items = generateMany(200, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 })
+		let tagged = 0
+		let total = 0
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				total++
+				const def = MODIFIERS[mod.modifierId as ModifierId]
+				if (def.tags?.some((t) => t === "attack" || t === "physical")) tagged++
+			}
+		}
+		// With seed tags ["attack", "physical", "critical"] and multiplier 3, expect strong bias
+		expect(tagged / total).toBeGreaterThan(0.4)
+	})
+
+	it("epic staffs: majority of offensive mods have spell or elemental tags", () => {
+		const items = generateMany(200, { rarity: "epic", templateId: "apprentice_staff", itemLevel: 80 })
+		let tagged = 0
+		let total = 0
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				total++
+				const def = MODIFIERS[mod.modifierId as ModifierId]
+				if (def.tags?.some((t) => t === "spell" || t === "elemental")) tagged++
+			}
+		}
+		expect(tagged / total).toBeGreaterThan(0.4)
+	})
+
+	it("epic armor: majority of mods have defense or life tags", () => {
+		const items = generateMany(200, { rarity: "epic", templateId: "plate_chestplate", itemLevel: 80 })
+		let tagged = 0
+		let total = 0
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				total++
+				const def = MODIFIERS[mod.modifierId as ModifierId]
+				if (def.tags?.some((t) => t === "defense" || t === "life")) tagged++
+			}
+		}
+		expect(tagged / total).toBeGreaterThan(0.4)
+	})
+
+	it("epic items have higher tag overlap than rare items", () => {
+		const measureOverlap = (items: GeneratedItem[]) => {
+			let totalOverlap = 0
+			for (const item of items) {
+				const allTags = item.explicits.flatMap((m) => MODIFIERS[m.modifierId as ModifierId]?.tags ?? [])
+				const unique = new Set(allTags)
+				// overlap = how many duplicate tag appearances vs total
+				totalOverlap += unique.size > 0 ? (allTags.length - unique.size) / allTags.length : 0
+			}
+			return totalOverlap / items.length
+		}
+
+		const epicItems = generateMany(300, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 })
+		const rareItems = generateMany(300, { rarity: "rare", templateId: "iron_sword", itemLevel: 80 })
+
+		expect(measureOverlap(epicItems)).toBeGreaterThan(measureOverlap(rareItems))
+	})
+
+	it("legendary items show some synergy (more overlap than rare)", () => {
+		const measureOverlap = (items: GeneratedItem[]) => {
+			let totalOverlap = 0
+			for (const item of items) {
+				const allTags = item.explicits.flatMap((m) => MODIFIERS[m.modifierId as ModifierId]?.tags ?? [])
+				const unique = new Set(allTags)
+				totalOverlap += unique.size > 0 ? (allTags.length - unique.size) / allTags.length : 0
+			}
+			return totalOverlap / items.length
+		}
+
+		const legendaryItems = generateMany(300, { rarity: "legendary", templateId: "iron_sword", itemLevel: 80 })
+		const rareItems = generateMany(300, { rarity: "rare", templateId: "iron_sword", itemLevel: 80 })
+
+		expect(measureOverlap(legendaryItems)).toBeGreaterThan(measureOverlap(rareItems))
+	})
+
+	it("rare items have no synergy bias (same as before)", () => {
+		// Rare items should not use synergy — verify by checking that filler mods still appear frequently
+		const items = generateMany(300, { rarity: "rare", templateId: "plate_helmet", itemLevel: 80 })
+		const rolledIds = allExplicitModIds(items)
+		// lightRadius (weight 2000, no tags) should still appear often on rare
+		expect(rolledIds.has("lightRadius")).toBe(true)
+	})
+})
+
+// ── getSynergyWeight unit tests ──
+
+describe("getSynergyWeight", () => {
+	// Import the exported function
+	it("returns baseWeight when no rolled tags", () => {
+		expect(getSynergyWeight(1000, ["attack", "physical"], new Set(), 3)).toBe(1000)
+	})
+
+	it("returns baseWeight when multiplier is 0", () => {
+		expect(getSynergyWeight(1000, ["attack"], new Set(["attack"]), 0)).toBe(1000)
+	})
+
+	it("returns baseWeight when candidate has no tags", () => {
+		expect(getSynergyWeight(1000, [], new Set(["attack"]), 3)).toBe(1000)
+	})
+
+	it("boosts weight by multiplier per matching tag", () => {
+		// 1 match: 1000 * (1 + 3*1) = 4000
+		expect(getSynergyWeight(1000, ["attack", "cold"], new Set(["attack"]), 3)).toBe(4000)
+		// 2 matches: 1000 * (1 + 3*2) = 7000
+		expect(getSynergyWeight(1000, ["attack", "cold"], new Set(["attack", "cold"]), 3)).toBe(7000)
+	})
+
+	it("legendary multiplier is weaker", () => {
+		// 2 matches: 1000 * (1 + 1.5*2) = 4000
+		expect(getSynergyWeight(1000, ["attack", "cold"], new Set(["attack", "cold"]), 1.5)).toBe(4000)
 	})
 })
 
