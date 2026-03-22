@@ -21,9 +21,9 @@ function allExplicitModIds(items: GeneratedItem[]): Set<string> {
 const ATTACK_WEAPON_IDS = ["sword_t1", "greatsword_t1", "dagger_t1", "bow_t1", "axe_t1", "mace_t1", "twoHandedAxe_t1"]
 const SPELL_WEAPON_IDS = ["staff_t1", "wand_t1"]
 const JEWELRY_IDS = [
-	"cobalt_ring_t1", "garnet_ring_t1", "topaz_ring_t1", "obsidian_ring_t1", "coral_ring_t1", "lapis_ring_t1",
-	"gold_amulet_t1", "jade_amulet_t1", "amber_amulet_t1", "lapis_amulet_t1",
-	"leather_belt_t1", "chain_belt_t1", "studded_belt_t1", "cloth_belt_t1",
+	"cobalt_ring", "garnet_ring", "topaz_ring", "obsidian_ring", "coral_ring", "lapis_ring",
+	"gold_amulet", "jade_amulet", "amber_amulet", "lapis_amulet",
+	"leather_belt", "chain_belt", "studded_belt", "cloth_belt", "prismatic_belt", "silk_belt",
 ]
 
 // ── Basic generation ──
@@ -375,7 +375,7 @@ describe("global defense % mods respect armorType", () => {
 	})
 
 	it("jewelry can roll all three global defense % mods", () => {
-		const items = generateMany(500, { rarity: "legendary", templateId: "cobalt_ring_t1", itemLevel: 80 })
+		const items = generateMany(500, { rarity: "legendary", templateId: "cobalt_ring", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("globalArmorIncrease")).toBe(true)
 		expect(rolledIds.has("globalEvasionIncrease")).toBe(true)
@@ -450,13 +450,13 @@ describe("jewelry mod eligibility", () => {
 	}
 
 	it("rings can roll physicalDamageFlatGlobal (global on jewelry)", () => {
-		const items = generateMany(300, { rarity: "epic", templateId: "cobalt_ring_t1", itemLevel: 80 })
+		const items = generateMany(300, { rarity: "epic", templateId: "cobalt_ring", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("physicalDamageFlatGlobal")).toBe(true)
 	})
 
 	it("rings do not get localDefenseFlat or localDefenseIncrease", () => {
-		const items = generateMany(100, { rarity: "epic", templateId: "cobalt_ring_t1", itemLevel: 80 })
+		const items = generateMany(100, { rarity: "epic", templateId: "cobalt_ring", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("localDefenseFlat")).toBe(false)
 		expect(rolledIds.has("localDefenseIncrease")).toBe(false)
@@ -467,19 +467,19 @@ describe("jewelry mod eligibility", () => {
 
 describe("implicits", () => {
 	it("cobalt ring has cold resistance implicit", () => {
-		const item = generateItem({ rarity: "normal", templateId: "cobalt_ring_t1" })
+		const item = generateItem({ rarity: "normal", templateId: "cobalt_ring" })
 		expect(item.implicits).toHaveLength(1)
 		expect(item.implicits[0].description).toContain("Cold Resistance")
 	})
 
 	it("gold amulet has all attributes implicit", () => {
-		const item = generateItem({ rarity: "normal", templateId: "gold_amulet_t1" })
+		const item = generateItem({ rarity: "normal", templateId: "gold_amulet" })
 		expect(item.implicits).toHaveLength(1)
 		expect(item.implicits[0].description).toContain("all Attributes")
 	})
 
 	it("leather belt has max life implicit", () => {
-		const item = generateItem({ rarity: "normal", templateId: "leather_belt_t1" })
+		const item = generateItem({ rarity: "normal", templateId: "leather_belt" })
 		expect(item.implicits).toHaveLength(1)
 		expect(item.implicits[0].description).toContain("Maximum Life")
 	})
@@ -508,7 +508,7 @@ describe("globalAttackSpeedIncrease not on weapons", () => {
 	}
 
 	it("rings can roll globalAttackSpeedIncrease", () => {
-		const items = generateMany(300, { rarity: "legendary", templateId: "cobalt_ring_t1", itemLevel: 80 })
+		const items = generateMany(300, { rarity: "legendary", templateId: "cobalt_ring", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("globalAttackSpeedIncrease")).toBe(true)
 	})
@@ -575,7 +575,7 @@ describe("flat damage mods roll as min-max range", () => {
 		const items = [
 			...generateMany(200, { rarity: "epic", templateId: "sword_t1", itemLevel: 80 }),
 			...generateMany(200, { rarity: "epic", templateId: "staff_t1", itemLevel: 80 }),
-			...generateMany(200, { rarity: "epic", templateId: "cobalt_ring_t1", itemLevel: 80 }),
+			...generateMany(200, { rarity: "epic", templateId: "cobalt_ring", itemLevel: 80 }),
 		]
 		for (const item of items) {
 			for (const mod of item.explicits) {
@@ -737,7 +737,7 @@ describe("deterministic epic patterns", () => {
 	})
 
 	it("epic belt: prefixes are life/defense, suffixes are resistances/attributes", () => {
-		const items = generateMany(200, { rarity: "epic", templateId: "leather_belt_t1", itemLevel: 80 })
+		const items = generateMany(200, { rarity: "epic", templateId: "leather_belt", itemLevel: 80 })
 		for (const item of items) {
 			for (const mod of item.explicits) {
 				if (mod.affixType === "prefix") {
@@ -901,7 +901,7 @@ describe("attribute requirements", () => {
 	})
 
 	it("jewelry has no attribute requirements", () => {
-		const item = generateItem({ rarity: "normal", templateId: "cobalt_ring_t1" })
+		const item = generateItem({ rarity: "normal", templateId: "cobalt_ring" })
 		expect(item.requirements).toBeDefined()
 		expect(item.requirements!.str).toBeUndefined()
 		expect(item.requirements!.dex).toBeUndefined()
