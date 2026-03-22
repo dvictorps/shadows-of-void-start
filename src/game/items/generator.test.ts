@@ -525,6 +525,19 @@ describe("globalMeleeDamageIncrease not on weapons", () => {
 	}
 })
 
+// ── item rarity mods not on chestplates or boots ──
+
+describe("item rarity mods not on chestplates or boots", () => {
+	for (const templateId of ["plate_chestplate", "plate_boots"]) {
+		it(`${templateId}: never rolls item rarity mods`, () => {
+			const items = generateMany(200, { rarity: "legendary", templateId, itemLevel: 80 })
+			const rolledIds = allExplicitModIds(items)
+			expect(rolledIds.has("itemRarityIncreasePrefix")).toBe(false)
+			expect(rolledIds.has("itemRarityIncreaseSuffix")).toBe(false)
+		})
+	}
+})
+
 // ── Bad/filler mods can actually roll ──
 
 describe("filler mods exist in the pool", () => {
