@@ -57,6 +57,20 @@ export const DAMAGE_ELEMENTS = {
 
 export type DamageElement = (typeof DAMAGE_ELEMENTS)[keyof typeof DAMAGE_ELEMENTS]
 
-// ── Modifier target (union of equipment type + weapon subtype) ──
+// ── Valid base stat keys ──
 
-export type ModifierApplicableTo = EquipmentType | WeaponType
+export type BaseStatKey = "minDamage" | "maxDamage" | "attackSpeed" | "criticalChance" | "armor" | "evasion" | "barrier"
+
+// ── Equipment groups (single source of truth for applicableTo) ──
+
+export const EQUIPMENT_GROUPS = {
+	allArmor: ["helmet", "chestplate", "leggings", "boots", "gloves"] as const,
+	allJewelry: ["ring", "amulet", "belt"] as const,
+	allAttackWeapons: ATTACK_WEAPON_TYPES,
+} as const
+
+export type EquipmentGroup = keyof typeof EQUIPMENT_GROUPS
+
+// ── Modifier target (union of equipment type + weapon subtype + group) ──
+
+export type ModifierApplicableTo = EquipmentType | WeaponType | EquipmentGroup

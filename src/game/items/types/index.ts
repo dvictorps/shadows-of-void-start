@@ -4,6 +4,7 @@ export {
 	ARMOR_TYPES,
 	DAMAGE_ELEMENTS,
 	ATTACK_WEAPON_TYPES,
+	EQUIPMENT_GROUPS,
 } from "./base"
 
 export type {
@@ -12,9 +13,11 @@ export type {
 	ArmorType,
 	DamageElement,
 	ModifierApplicableTo,
+	EquipmentGroup,
+	BaseStatKey,
 } from "./base"
 
-export { MODIFIER_TYPES, createStandardTiers } from "./mods"
+export { MODIFIER_TYPES, DEFAULT_MODIFIER_WEIGHT, createStandardTiers } from "./mods"
 
 export type {
 	ModifierTypeId,
@@ -22,6 +25,8 @@ export type {
 	AffixType,
 	ModifierTier,
 	Modifier,
+	LocalStatTarget,
+	StatEffect,
 } from "./mods"
 
 export { MOD_LIMITS } from "./item"

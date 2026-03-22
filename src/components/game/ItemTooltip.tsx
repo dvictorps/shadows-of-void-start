@@ -167,7 +167,7 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 							<div className="flex justify-between">
 								<span className="text-[#7f7f7f]">Critical Strike Chance:</span>
 								<span style={{ color: modifiedStats.has("criticalChance") ? MODIFIED_COLOR : "white" }}>
-									{(computed?.criticalChance ?? stats.criticalChance).toFixed(1)}%
+									{(computed?.criticalChance ?? stats.criticalChance ?? 5).toFixed(1)}%
 								</span>
 							</div>
 						)}
@@ -175,7 +175,7 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 							<div className="flex justify-between">
 								<span className="text-[#7f7f7f]">Attacks per Second:</span>
 								<span style={{ color: modifiedStats.has("attackSpeed") ? MODIFIED_COLOR : "white" }}>
-									{(computed?.attackSpeed ?? stats.attackSpeed).toFixed(2)}
+									{(computed?.attackSpeed ?? stats.attackSpeed ?? 1).toFixed(2)}
 								</span>
 							</div>
 						)}

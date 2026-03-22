@@ -1,4 +1,4 @@
-import type { ArmorType, EquipmentType, WeaponType } from "./base"
+import type { ArmorType, BaseStatKey, EquipmentType, WeaponType } from "./base"
 import type { AffixType } from "./mods"
 
 // ── Rarity ──
@@ -73,7 +73,7 @@ export interface GeneratedItem {
 	rarity: ItemRarity
 	name: string
 	itemLevel: number
-	baseStats: Record<string, number>
+	baseStats: Partial<Record<BaseStatKey, number>>
 	implicits: RolledImplicit[]
 	explicits: RolledMod[]
 	computedStats?: ComputedWeaponStats

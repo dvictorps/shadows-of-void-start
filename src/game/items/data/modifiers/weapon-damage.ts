@@ -1,7 +1,5 @@
 import type { Modifier } from "../../types"
-import { ATTACK_WEAPON_TYPES, createStandardTiers } from "../../types"
-
-const ATTACK_WEAPONS_ARR = [...ATTACK_WEAPON_TYPES]
+import { createStandardTiers } from "../../types"
 
 export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 	// ── Local attack mods (affect weapon header, attack weapons only) ──
@@ -11,8 +9,9 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
-		applicableTo: [...ATTACK_WEAPONS_ARR, "ring", "amulet", "gloves"],
+		applicableTo: ["allAttackWeapons", "ring", "amulet", "gloves"],
 		displayFormat: "+{value} Physical Damage to Attacks",
+		statEffect: { target: "physicalDamage", operation: "flat" },
 		tiers: createStandardTiers(1, 2, 18, 28),
 	},
 	physicalDamageIncrease: {
@@ -21,8 +20,9 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "suffix",
 		modifierType: "increased",
 		category: "offensive",
-		applicableTo: ATTACK_WEAPONS_ARR,
+		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value}% Physical Damage with Attacks",
+		statEffect: { target: "physicalDamage", operation: "increased" },
 		tiers: createStandardTiers(5, 8, 41, 45),
 	},
 	attackSpeedIncrease: {
@@ -31,8 +31,10 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "suffix",
 		modifierType: "increased",
 		category: "offensive",
-		applicableTo: ATTACK_WEAPONS_ARR,
+		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value}% Attack Speed",
+		statEffect: { target: "attackSpeed", operation: "increased" },
+		weight: 500,
 		tiers: createStandardTiers(3, 5, 30, 33),
 	},
 	criticalChanceIncrease: {
@@ -41,8 +43,10 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "suffix",
 		modifierType: "increased",
 		category: "offensive",
-		applicableTo: ATTACK_WEAPONS_ARR,
+		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value}% Critical Strike Chance",
+		statEffect: { target: "criticalChance", operation: "increased" },
+		weight: 500,
 		tiers: createStandardTiers(15, 20, 35, 40),
 	},
 	coldDamageToAttacksFlat: {
@@ -51,8 +55,9 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
-		applicableTo: ATTACK_WEAPONS_ARR,
+		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Cold Damage to Attacks",
+		statEffect: { target: "elementalDamage", operation: "flat", element: "Cold" },
 		tiers: createStandardTiers(1, 2, 18, 28),
 	},
 	fireDamageToAttacksFlat: {
@@ -61,8 +66,9 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
-		applicableTo: ATTACK_WEAPONS_ARR,
+		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Fire Damage to Attacks",
+		statEffect: { target: "elementalDamage", operation: "flat", element: "Fire" },
 		tiers: createStandardTiers(1, 2, 18, 28),
 	},
 	lightningDamageToAttacksFlat: {
@@ -71,8 +77,9 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
-		applicableTo: ATTACK_WEAPONS_ARR,
+		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Lightning Damage to Attacks",
+		statEffect: { target: "elementalDamage", operation: "flat", element: "Lightning" },
 		tiers: createStandardTiers(1, 3, 35, 40),
 	},
 	voidDamageToAttacksFlat: {
@@ -81,8 +88,9 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
-		applicableTo: ATTACK_WEAPONS_ARR,
+		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Void Damage to Attacks",
+		statEffect: { target: "elementalDamage", operation: "flat", element: "Void" },
 		tiers: createStandardTiers(1, 2, 18, 28),
 	},
 
@@ -93,7 +101,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "suffix",
 		modifierType: "flat",
 		category: "offensive",
-		applicableTo: [...ATTACK_WEAPONS_ARR, "helmet", "gloves", "ring"],
+		applicableTo: ["allAttackWeapons", "helmet", "gloves", "ring"],
 		displayFormat: "+{value} Accuracy Rating",
 		isGlobalStat: true,
 		tiers: createStandardTiers(20, 40, 201, 250),

@@ -11,6 +11,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["boots"],
 		displayFormat: "+{value}% Movement Speed",
 		isGlobalStat: true,
+		weight: 600,
 		tiers: createStandardTiers(5, 8, 41, 45),
 	},
 	lifeLeechPercent: {
@@ -22,6 +23,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["weapon", "ring", "amulet", "gloves"],
 		displayFormat: "+{value}% of Physical Attack Damage Leeched as Life",
 		isGlobalStat: true,
+		weight: 400,
 		tiers: createStandardTiers(1, 1, 2, 3),
 	},
 
@@ -35,6 +37,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["weapon", "ring", "amulet", "belt"],
 		displayFormat: "+{value}% Stun Duration",
 		isGlobalStat: true,
+		weight: 1500,
 		tiers: createStandardTiers(5, 10, 31, 35),
 	},
 	reducedAttributeRequirements: {
@@ -43,8 +46,9 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		affixType: "suffix",
 		modifierType: "flat",
 		category: "utility",
-		applicableTo: ["helmet", "chestplate", "leggings", "boots", "gloves"],
+		applicableTo: ["allArmor"],
 		displayFormat: "-{value}% Attribute Requirements",
+		weight: 1500,
 		tiers: createStandardTiers(5, 10, 21, 25),
 	},
 
@@ -58,6 +62,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		applicableTo: ["helmet", "ring"],
 		displayFormat: "+{value}% Light Radius",
 		isGlobalStat: true,
+		weight: 2000,
 		tiers: createStandardTiers(5, 10, 21, 25),
 	},
 }

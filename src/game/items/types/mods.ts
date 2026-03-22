@@ -21,6 +21,21 @@ export interface ModifierTier {
 	valueRange: readonly [number, number]
 }
 
+// ── Declarative stat effect (how local mods affect the item header) ──
+
+export type LocalStatTarget =
+	| "physicalDamage"   // maps to minDamage + maxDamage
+	| "attackSpeed"
+	| "criticalChance"
+	| "elementalDamage"  // requires element field
+	| "defense"          // resolved to armor/evasion/barrier based on armorType
+
+export interface StatEffect {
+	target: LocalStatTarget
+	operation: "flat" | "increased"
+	element?: string // only for elementalDamage target (e.g. "Cold", "Fire")
+}
+
 // ── Modifier definition ──
 
 export interface Modifier {
@@ -32,8 +47,12 @@ export interface Modifier {
 	applicableTo: ModifierApplicableTo[]
 	displayFormat: string
 	isGlobalStat?: boolean
+	statEffect?: StatEffect
+	weight?: number // default DEFAULT_MODIFIER_WEIGHT. Higher = more common.
 	tiers: ModifierTier[]
 }
+
+export const DEFAULT_MODIFIER_WEIGHT = 1000
 
 // ── Tier factory helpers ──
 

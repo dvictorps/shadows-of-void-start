@@ -288,7 +288,7 @@ describe("attack weapon computed stats", () => {
 		if (withFlat) {
 			const flatMod = withFlat.explicits.find((m) => m.modifierId === "physicalDamageFlat")!
 			expect(withFlat.computedStats!.physicalDamage.min).toBeGreaterThanOrEqual(
-				withFlat.baseStats.minDamage + flatMod.value,
+				(withFlat.baseStats.minDamage ?? 0) + flatMod.value,
 			)
 		}
 	})
@@ -302,7 +302,7 @@ describe("attack weapon computed stats", () => {
 		)
 		if (withCrit) {
 			const critMod = withCrit.explicits.find((m) => m.modifierId === "criticalChanceIncrease")!
-			const base = withCrit.baseStats.criticalChance
+			const base = withCrit.baseStats.criticalChance ?? 5
 			const expected = Math.round(base * (1 + critMod.value / 100) * 10) / 10
 			expect(withCrit.computedStats!.criticalChance).toBe(expected)
 		}
@@ -347,7 +347,7 @@ describe("armor local defense", () => {
 			i.explicits.some((m) => m.modifierId === "localDefenseFlat") && i.computedDefenseStats,
 		)
 		if (withDef) {
-			expect(withDef.computedDefenseStats!.armor).toBeGreaterThan(withDef.baseStats.armor)
+			expect(withDef.computedDefenseStats!.armor).toBeGreaterThan(withDef.baseStats.armor ?? 0)
 		}
 	})
 })

@@ -6,6 +6,7 @@ import {
 import { EQUIPMENT_TEMPLATES, TEMPLATE_BY_ID } from "./data/templates"
 import type { EquipmentTemplate } from "./data/templates"
 import type {
+	BaseStatKey,
 	GeneratedItem,
 	ItemRarity,
 	RolledImplicit,
@@ -13,7 +14,8 @@ import type {
 	ComputedWeaponStats,
 	ComputedDefenseStats,
 } from "./types"
-import { MOD_LIMITS } from "./types"
+import { DEFAULT_MODIFIER_WEIGHT, EQUIPMENT_GROUPS, MOD_LIMITS } from "./types"
+import type { EquipmentGroup } from "./types"
 
 // ── RNG helpers ──
 
@@ -23,6 +25,16 @@ function randInt(min: number, max: number): number {
 
 function pickRandom<T>(arr: T[]): T {
 	return arr[Math.floor(Math.random() * arr.length)]
+}
+
+function pickWeighted<T>(items: T[], getWeight: (item: T) => number): T {
+	const totalWeight = items.reduce((sum, item) => sum + getWeight(item), 0)
+	let roll = Math.random() * totalWeight
+	for (const item of items) {
+		roll -= getWeight(item)
+		if (roll <= 0) return item
+	}
+	return items[items.length - 1]
 }
 
 // ── Name generation for rare/legendary/epic ──
@@ -57,7 +69,7 @@ function formatDescription(displayFormat: string, value: number): string {
 
 // ── Defense label resolution (local defense mods adapt to armor base type) ──
 
-const DEFENSE_LABELS: Record<string, { stat: string; flat: string; pct: string }> = {
+const DEFENSE_LABELS: Record<string, { stat: BaseStatKey; flat: string; pct: string }> = {
 	plate: { stat: "armor", flat: "Armor", pct: "Armor" },
 	leather: { stat: "evasion", flat: "Evasion Rating", pct: "Evasion" },
 	silk: { stat: "barrier", flat: "Barrier", pct: "Barrier" },
@@ -72,16 +84,24 @@ function resolveDefenseFormat(modId: string, displayFormat: string, armorType?: 
 	return displayFormat
 }
 
-// ── Modifier eligibility (derived from applicableTo) ──
+// ── Modifier eligibility (derived from applicableTo, resolves groups) ──
+
+function isGroupKey(target: string): target is EquipmentGroup {
+	return target in EQUIPMENT_GROUPS
+}
 
 function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 	return (Object.keys(MODIFIERS) as ModifierId[]).filter((modId) => {
 		const mod = MODIFIERS[modId]
-		return mod.applicableTo.some(
-			(target) =>
-				target === template.equipmentType ||
-				(template.weaponType != null && target === template.weaponType),
-		)
+		return mod.applicableTo.some((target) => {
+			if (isGroupKey(target)) {
+				const members = EQUIPMENT_GROUPS[target] as readonly string[]
+				return members.includes(template.equipmentType) ||
+					(template.weaponType != null && members.includes(template.weaponType))
+			}
+			return target === template.equipmentType ||
+				(template.weaponType != null && target === template.weaponType)
+		})
 	})
 }
 
@@ -152,7 +172,7 @@ function rollExplicits(
 		const eligible = getEligible(affixType)
 		if (eligible.length === 0) return false
 
-		const modId = pickRandom(eligible)
+		const modId = pickWeighted(eligible, (id) => MODIFIERS[id].weight ?? DEFAULT_MODIFIER_WEIGHT)
 		const mod = MODIFIERS[modId]
 		const tier = tierCache.get(modId)!
 		const value = randInt(tier.valueRange[0], tier.valueRange[1])
@@ -192,17 +212,10 @@ function rollExplicits(
 	return mods
 }
 
-// ── Compute weapon stats (base + local mods) ──
-
-const ELEMENTAL_FLAT_MODS: Record<string, string> = {
-	coldDamageToAttacksFlat: "Cold",
-	fireDamageToAttacksFlat: "Fire",
-	lightningDamageToAttacksFlat: "Lightning",
-	voidDamageToAttacksFlat: "Void",
-}
+// ── Compute weapon stats (base + local mods via statEffect) ──
 
 function computeWeaponStats(
-	baseStats: Record<string, number>,
+	baseStats: Partial<Record<BaseStatKey, number>>,
 	explicits: RolledMod[],
 ): ComputedWeaponStats {
 	let minPhys = baseStats.minDamage ?? 0
@@ -217,29 +230,30 @@ function computeWeaponStats(
 
 	for (const mod of explicits) {
 		const modifier = MODIFIERS[mod.modifierId as ModifierId]
-		if (!modifier || modifier.isGlobalStat) continue
+		if (!modifier?.statEffect || modifier.isGlobalStat) continue
 
-		switch (mod.modifierId) {
-			case "physicalDamageFlat":
-				minPhys += mod.value
-				maxPhys += mod.value
+		const { target, operation, element } = modifier.statEffect
+
+		switch (target) {
+			case "physicalDamage":
+				if (operation === "flat") {
+					minPhys += mod.value
+					maxPhys += mod.value
+				} else {
+					physIncrease += mod.value
+				}
 				break
-			case "physicalDamageIncrease":
-				physIncrease += mod.value
-				break
-			case "attackSpeedIncrease":
+			case "attackSpeed":
 				atkSpeedIncrease += mod.value
 				break
-			case "criticalChanceIncrease":
+			case "criticalChance":
 				critIncrease += mod.value
 				break
-			default: {
-				const element = ELEMENTAL_FLAT_MODS[mod.modifierId]
+			case "elementalDamage":
 				if (element) {
 					elementalDamage.push({ element, min: mod.value, max: mod.value })
 				}
 				break
-			}
 		}
 	}
 
@@ -267,10 +281,10 @@ function computeWeaponStats(
 	}
 }
 
-// ── Compute armor stats (base + local defense mods) ──
+// ── Compute armor stats (base + local defense mods via statEffect) ──
 
 function computeArmorStats(
-	baseStats: Record<string, number>,
+	baseStats: Partial<Record<BaseStatKey, number>>,
 	armorType: string | undefined,
 	explicits: RolledMod[],
 ): ComputedDefenseStats | undefined {
@@ -281,8 +295,12 @@ function computeArmorStats(
 	let increase = 0
 
 	for (const mod of explicits) {
-		if (mod.modifierId === "localDefenseFlat") flatBonus += mod.value
-		if (mod.modifierId === "localDefenseIncrease") increase += mod.value
+		const modifier = MODIFIERS[mod.modifierId as ModifierId]
+		if (!modifier?.statEffect || modifier.isGlobalStat) continue
+		if (modifier.statEffect.target !== "defense") continue
+
+		if (modifier.statEffect.operation === "flat") flatBonus += mod.value
+		else increase += mod.value
 	}
 
 	if (flatBonus === 0 && increase === 0) return undefined

@@ -1,4 +1,4 @@
-import type { ArmorType, EquipmentType, WeaponType } from "../types"
+import type { ArmorType, BaseStatKey, EquipmentType, WeaponType } from "../types"
 
 // ── Template types ──
 
@@ -21,7 +21,7 @@ export interface EquipmentTemplate {
 		dex?: number
 		int?: number
 	}
-	baseStats: Record<string, number>
+	baseStats: Partial<Record<BaseStatKey, number>>
 	implicits: ImplicitDefinition[]
 }
 
