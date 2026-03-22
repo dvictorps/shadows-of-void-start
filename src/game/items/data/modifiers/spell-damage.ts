@@ -12,7 +12,7 @@ export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Cold Damage to Spells",
 		isGlobalStat: true,
 		tags: ["cold", "elemental", "spell"],
-		tiers: createStandardTiers(1, 2, 18, 28),
+		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	fireDamageFlat: {
 		id: "fireDamageFlat",
@@ -24,7 +24,7 @@ export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Fire Damage to Spells",
 		isGlobalStat: true,
 		tags: ["fire", "elemental", "spell"],
-		tiers: createStandardTiers(1, 2, 18, 28),
+		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	lightningDamageFlat: {
 		id: "lightningDamageFlat",
@@ -36,7 +36,7 @@ export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Lightning Damage to Spells",
 		isGlobalStat: true,
 		tags: ["lightning", "elemental", "spell"],
-		tiers: createStandardTiers(1, 3, 35, 40),
+		tiers: createStandardTiers(4, 12, 55, 140),
 	},
 	voidDamageFlat: {
 		id: "voidDamageFlat",
@@ -48,6 +48,6 @@ export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Void Damage to Spells",
 		isGlobalStat: true,
 		tags: ["void", "elemental", "spell"],
-		tiers: createStandardTiers(1, 2, 18, 28),
+		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 }

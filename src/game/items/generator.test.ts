@@ -368,13 +368,13 @@ describe("global defense % mods respect armorType", () => {
 	})
 
 	it("plate armor can still roll globalArmorIncrease", () => {
-		const items = generateMany(300, { rarity: "epic", templateId: "plate_boots", itemLevel: 80 })
+		const items = generateMany(300, { rarity: "legendary", templateId: "plate_boots", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("globalArmorIncrease")).toBe(true)
 	})
 
 	it("jewelry can roll all three global defense % mods", () => {
-		const items = generateMany(500, { rarity: "epic", templateId: "cobalt_ring", itemLevel: 80 })
+		const items = generateMany(500, { rarity: "legendary", templateId: "cobalt_ring", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("globalArmorIncrease")).toBe(true)
 		expect(rolledIds.has("globalEvasionIncrease")).toBe(true)
@@ -507,7 +507,7 @@ describe("globalAttackSpeedIncrease not on weapons", () => {
 	}
 
 	it("rings can roll globalAttackSpeedIncrease", () => {
-		const items = generateMany(300, { rarity: "epic", templateId: "cobalt_ring", itemLevel: 80 })
+		const items = generateMany(300, { rarity: "legendary", templateId: "cobalt_ring", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("globalAttackSpeedIncrease")).toBe(true)
 	})
@@ -517,19 +517,19 @@ describe("globalAttackSpeedIncrease not on weapons", () => {
 
 describe("filler mods exist in the pool", () => {
 	it("lightRadius can roll on helmets", () => {
-		const items = generateMany(300, { rarity: "epic", templateId: "plate_helmet", itemLevel: 80 })
+		const items = generateMany(300, { rarity: "legendary", templateId: "plate_helmet", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("lightRadius")).toBe(true)
 	})
 
 	it("thornsDamageFlat can roll on armor", () => {
-		const items = generateMany(300, { rarity: "epic", templateId: "plate_chestplate", itemLevel: 80 })
+		const items = generateMany(300, { rarity: "legendary", templateId: "plate_chestplate", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("thornsDamageFlat")).toBe(true)
 	})
 
 	it("lifeOnKillFlat can roll on weapons", () => {
-		const items = generateMany(300, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 })
+		const items = generateMany(300, { rarity: "legendary", templateId: "iron_sword", itemLevel: 80 })
 		const rolledIds = allExplicitModIds(items)
 		expect(rolledIds.has("lifeOnKillFlat")).toBe(true)
 	})
@@ -603,70 +603,9 @@ describe("flat damage mods roll as min-max range", () => {
 	})
 })
 
-// ── Synergy tag system (epic/legendary intelligent generation) ──
+// ── Synergy tag system (legendary intelligent generation) ──
 
 describe("synergy tags", () => {
-	it("epic swords: majority of mods have attack or physical tags", () => {
-		const items = generateMany(200, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 })
-		let tagged = 0
-		let total = 0
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				total++
-				const def = MODIFIERS[mod.modifierId as ModifierId]
-				if (def.tags?.some((t) => t === "attack" || t === "physical")) tagged++
-			}
-		}
-		// With seed tags ["attack", "physical", "critical"] and multiplier 3, expect strong bias
-		expect(tagged / total).toBeGreaterThan(0.4)
-	})
-
-	it("epic staffs: majority of offensive mods have spell or elemental tags", () => {
-		const items = generateMany(200, { rarity: "epic", templateId: "apprentice_staff", itemLevel: 80 })
-		let tagged = 0
-		let total = 0
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				total++
-				const def = MODIFIERS[mod.modifierId as ModifierId]
-				if (def.tags?.some((t) => t === "spell" || t === "elemental")) tagged++
-			}
-		}
-		expect(tagged / total).toBeGreaterThan(0.4)
-	})
-
-	it("epic armor: majority of mods have defense or life tags", () => {
-		const items = generateMany(200, { rarity: "epic", templateId: "plate_chestplate", itemLevel: 80 })
-		let tagged = 0
-		let total = 0
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				total++
-				const def = MODIFIERS[mod.modifierId as ModifierId]
-				if (def.tags?.some((t) => t === "defense" || t === "life")) tagged++
-			}
-		}
-		expect(tagged / total).toBeGreaterThan(0.4)
-	})
-
-	it("epic items have higher tag overlap than rare items", () => {
-		const measureOverlap = (items: GeneratedItem[]) => {
-			let totalOverlap = 0
-			for (const item of items) {
-				const allTags = item.explicits.flatMap((m) => MODIFIERS[m.modifierId as ModifierId]?.tags ?? [])
-				const unique = new Set(allTags)
-				// overlap = how many duplicate tag appearances vs total
-				totalOverlap += unique.size > 0 ? (allTags.length - unique.size) / allTags.length : 0
-			}
-			return totalOverlap / items.length
-		}
-
-		const epicItems = generateMany(300, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 })
-		const rareItems = generateMany(300, { rarity: "rare", templateId: "iron_sword", itemLevel: 80 })
-
-		expect(measureOverlap(epicItems)).toBeGreaterThan(measureOverlap(rareItems))
-	})
-
 	it("legendary items show some synergy (more overlap than rare)", () => {
 		const measureOverlap = (items: GeneratedItem[]) => {
 			let totalOverlap = 0
@@ -690,6 +629,128 @@ describe("synergy tags", () => {
 		const rolledIds = allExplicitModIds(items)
 		// lightRadius (weight 2000, no tags) should still appear often on rare
 		expect(rolledIds.has("lightRadius")).toBe(true)
+	})
+})
+
+// ── Deterministic epic mod patterns ──
+
+describe("deterministic epic patterns", () => {
+	const ATTACK_WEAPON_PATTERN_PREFIXES = new Set([
+		"physicalDamageFlat", "coldDamageToAttacksFlat", "fireDamageToAttacksFlat",
+		"lightningDamageToAttacksFlat", "voidDamageToAttacksFlat", "globalPhysicalDamageIncrease",
+	])
+	const ATTACK_WEAPON_PATTERN_SUFFIXES = new Set([
+		"physicalDamageIncrease", "attackSpeedIncrease", "criticalChanceIncrease",
+		"criticalStrikeMultiplierFlat", "accuracyFlat",
+	])
+
+	const SPELL_WEAPON_PATTERN_PREFIXES = new Set([
+		"coldDamageFlat", "fireDamageFlat", "lightningDamageFlat", "voidDamageFlat",
+		"globalSpellDamageIncrease", "globalColdDamageIncrease", "globalFireDamageIncrease",
+		"globalLightningDamageIncrease", "globalVoidDamageIncrease", "globalElementalDamageIncrease",
+	])
+	const SPELL_WEAPON_PATTERN_SUFFIXES = new Set([
+		"globalCastSpeedIncrease", "globalCriticalChanceIncrease", "criticalStrikeMultiplierFlat", "manaRegenFlat",
+	])
+
+	const ARMOR_PATTERN_PREFIXES = new Set(["localDefenseFlat", "healthFlat", "manaFlat"])
+	const ARMOR_PATTERN_SUFFIXES = new Set([
+		"localDefenseIncrease", "coldResistance", "fireResistance",
+		"lightningResistance", "voidResistance", "healthRegenFlat",
+	])
+
+	const BELT_PATTERN_PREFIXES = new Set(["healthFlat", "armorFlat", "evasionFlat", "barrierFlat", "manaFlat"])
+	const BELT_PATTERN_SUFFIXES = new Set([
+		"coldResistance", "fireResistance", "lightningResistance", "voidResistance",
+		"strengthFlat", "dexterityFlat", "intelligenceFlat",
+	])
+
+	it("epic attack weapon: all mods from attack pattern pool", () => {
+		const items = generateMany(200, { rarity: "epic", templateId: "iron_sword", itemLevel: 80 })
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				if (mod.affixType === "prefix") {
+					expect(ATTACK_WEAPON_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true)
+				} else {
+					expect(ATTACK_WEAPON_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true)
+				}
+			}
+		}
+	})
+
+	it("epic spell weapon: all mods from spell pattern pool", () => {
+		const items = generateMany(200, { rarity: "epic", templateId: "apprentice_staff", itemLevel: 80 })
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				if (mod.affixType === "prefix") {
+					expect(SPELL_WEAPON_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true)
+				} else {
+					expect(SPELL_WEAPON_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true)
+				}
+			}
+		}
+	})
+
+	it("epic armor: all mods from defense/life/resistance pool", () => {
+		const items = generateMany(200, { rarity: "epic", templateId: "plate_chestplate", itemLevel: 80 })
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				if (mod.affixType === "prefix") {
+					expect(ARMOR_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true)
+				} else {
+					expect(ARMOR_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true)
+				}
+			}
+		}
+	})
+
+	it("epic boots: can roll movementSpeedIncrease (boots special)", () => {
+		const items = generateMany(300, { rarity: "epic", templateId: "plate_boots", itemLevel: 80 })
+		const rolledIds = allExplicitModIds(items)
+		expect(rolledIds.has("movementSpeedIncrease")).toBe(true)
+	})
+
+	it("epic belt: prefixes are life/defense, suffixes are resistances/attributes", () => {
+		const items = generateMany(200, { rarity: "epic", templateId: "leather_belt", itemLevel: 80 })
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				if (mod.affixType === "prefix") {
+					expect(BELT_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true)
+				} else {
+					expect(BELT_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true)
+				}
+			}
+		}
+	})
+
+	it("epic items always roll tier 4 or better", () => {
+		// Even at low ilvl, epic should clamp to tier 4 minimum
+		const items = generateMany(200, { rarity: "epic", templateId: "iron_sword", itemLevel: 10 })
+		for (const item of items) {
+			for (const mod of item.explicits) {
+				expect(mod.tier).toBeLessThanOrEqual(4)
+			}
+		}
+	})
+
+	it("epic items at high ilvl can roll tier 1", () => {
+		const items = generateMany(200, { rarity: "epic", templateId: "iron_sword", itemLevel: 95 })
+		const tiers = items.flatMap((i) => i.explicits.map((m) => m.tier))
+		expect(tiers.some((t) => t === 1)).toBe(true)
+	})
+
+	it("legendary items unchanged (still use synergy weight system, not patterns)", () => {
+		// Legendary can still roll mods outside any pattern pool (e.g., lifeOnKillFlat on sword)
+		const items = generateMany(300, { rarity: "legendary", templateId: "iron_sword", itemLevel: 80 })
+		const rolledIds = allExplicitModIds(items)
+		expect(rolledIds.has("lifeOnKillFlat")).toBe(true)
+	})
+
+	it("rare/magic items unchanged (standard random pool)", () => {
+		const items = generateMany(300, { rarity: "rare", templateId: "iron_sword", itemLevel: 80 })
+		const rolledIds = allExplicitModIds(items)
+		// Filler mods should still appear on non-epic items
+		expect(rolledIds.has("lifeOnKillFlat")).toBe(true)
 	})
 })
 

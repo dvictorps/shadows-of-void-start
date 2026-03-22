@@ -73,7 +73,9 @@ function formatRangeDescription(displayFormat: string, min: number, max: number)
 
 // ── Defense label resolution (local defense mods adapt to armor base type) ──
 
-const DEFENSE_LABELS: Record<string, { stat: BaseStatKey; flat: string; pct: string }> = {
+type DefenseStatKey = "armor" | "evasion" | "barrier"
+
+const DEFENSE_LABELS: Record<string, { stat: DefenseStatKey; flat: string; pct: string }> = {
 	plate: { stat: "armor", flat: "Armor", pct: "Armor" },
 	leather: { stat: "evasion", flat: "Evasion Rating", pct: "Evasion" },
 	silk: { stat: "barrier", flat: "Barrier", pct: "Barrier" },
@@ -146,16 +148,65 @@ export function getSynergyWeight(
 const SPELL_WEAPON_SET = new Set(["staff", "wand"])
 const ARMOR_SLOTS = new Set(["helmet", "chestplate", "leggings", "boots", "gloves"])
 
-function getItemSeedTags(template: EquipmentTemplate): string[] {
-	if (template.equipmentType === "weapon") {
-		if (SPELL_WEAPON_SET.has(template.weaponType ?? "")) return ["spell", "elemental"]
-		return ["attack", "physical", "critical"]
-	}
-	if (ARMOR_SLOTS.has(template.equipmentType) || template.equipmentType === "offhand") {
-		return ["defense", "life"]
-	}
-	return []
+// ── Deterministic epic mod patterns ──
+
+type EpicArchetype = "attackWeapon" | "spellWeapon" | "armor" | "boots" | "shield" | "belt" | "ring" | "amulet"
+
+interface EpicModPattern {
+	prefixes: ModifierId[]
+	suffixes: ModifierId[]
 }
+
+const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
+	attackWeapon: {
+		prefixes: ["physicalDamageFlat", "coldDamageToAttacksFlat", "fireDamageToAttacksFlat", "lightningDamageToAttacksFlat", "voidDamageToAttacksFlat", "globalPhysicalDamageIncrease"] as ModifierId[],
+		suffixes: ["physicalDamageIncrease", "attackSpeedIncrease", "criticalChanceIncrease", "criticalStrikeMultiplierFlat", "accuracyFlat"] as ModifierId[],
+	},
+	spellWeapon: {
+		prefixes: ["coldDamageFlat", "fireDamageFlat", "lightningDamageFlat", "voidDamageFlat", "globalSpellDamageIncrease", "globalColdDamageIncrease", "globalFireDamageIncrease", "globalLightningDamageIncrease", "globalVoidDamageIncrease", "globalElementalDamageIncrease"] as ModifierId[],
+		suffixes: ["globalCastSpeedIncrease", "globalCriticalChanceIncrease", "criticalStrikeMultiplierFlat", "manaRegenFlat"] as ModifierId[],
+	},
+	armor: {
+		prefixes: ["localDefenseFlat", "healthFlat", "manaFlat"] as ModifierId[],
+		suffixes: ["localDefenseIncrease", "coldResistance", "fireResistance", "lightningResistance", "voidResistance", "healthRegenFlat"] as ModifierId[],
+	},
+	boots: {
+		prefixes: ["localDefenseFlat", "healthFlat", "manaFlat"] as ModifierId[],
+		suffixes: ["localDefenseIncrease", "coldResistance", "fireResistance", "lightningResistance", "voidResistance", "healthRegenFlat", "movementSpeedIncrease"] as ModifierId[],
+	},
+	shield: {
+		prefixes: ["localDefenseFlat", "healthFlat", "manaFlat"] as ModifierId[],
+		suffixes: ["localDefenseIncrease", "blockChanceIncrease", "coldResistance", "fireResistance", "lightningResistance", "voidResistance"] as ModifierId[],
+	},
+	belt: {
+		prefixes: ["healthFlat", "armorFlat", "evasionFlat", "barrierFlat", "manaFlat"] as ModifierId[],
+		suffixes: ["coldResistance", "fireResistance", "lightningResistance", "voidResistance", "strengthFlat", "dexterityFlat", "intelligenceFlat"] as ModifierId[],
+	},
+	ring: {
+		prefixes: ["healthFlat", "physicalDamageFlatGlobal", "armorFlat", "evasionFlat", "barrierFlat", "lifeGainOnHitFlat"] as ModifierId[],
+		suffixes: ["coldResistance", "fireResistance", "lightningResistance", "voidResistance", "criticalStrikeMultiplierFlat", "accuracyFlat", "lifeLeechPercent"] as ModifierId[],
+	},
+	amulet: {
+		prefixes: ["healthFlat", "physicalDamageFlatGlobal", "globalPhysicalDamageIncrease", "globalSpellDamageIncrease", "lifeGainOnHitFlat"] as ModifierId[],
+		suffixes: ["coldResistance", "fireResistance", "lightningResistance", "voidResistance", "strengthFlat", "dexterityFlat", "intelligenceFlat", "criticalStrikeMultiplierFlat"] as ModifierId[],
+	},
+}
+
+function getEpicArchetype(template: EquipmentTemplate): EpicArchetype | null {
+	if (template.equipmentType === "weapon") {
+		if (SPELL_WEAPON_SET.has(template.weaponType ?? "")) return "spellWeapon"
+		return "attackWeapon"
+	}
+	if (template.equipmentType === "offhand") return "shield"
+	if (template.equipmentType === "boots") return "boots"
+	if (ARMOR_SLOTS.has(template.equipmentType)) return "armor"
+	if (template.equipmentType === "belt") return "belt"
+	if (template.equipmentType === "ring") return "ring"
+	if (template.equipmentType === "amulet") return "amulet"
+	return null
+}
+
+const EPIC_MIN_TIER = 4
 
 // ── Rolling logic ──
 
@@ -179,6 +230,11 @@ function rollExplicits(
 
 	const totalTarget = randInt(limits.totalMin, limits.totalMax)
 	const availableModifiers = getModifiersForTemplate(template)
+
+	// Epic: use deterministic mod patterns
+	const isEpic = rarity === "epic"
+	const epicArchetype = isEpic ? getEpicArchetype(template) : null
+	const epicPattern = epicArchetype ? EPIC_MOD_PATTERNS[epicArchetype] : null
 
 	let prefixTarget: number
 	let suffixTarget: number
@@ -204,11 +260,9 @@ function rollExplicits(
 	const mods: RolledMod[] = []
 	const usedModIds = new Set<string>()
 
-	// Synergy: seed tags for epic, empty for legendary, unused for others
-	const synergyMultiplier = SYNERGY_MULTIPLIERS[rarity] ?? 0
-	const rolledTags = new Set<string>(
-		rarity === "epic" ? getItemSeedTags(template) : [],
-	)
+	// Synergy: seed tags for legendary only now (epic uses deterministic patterns)
+	const synergyMultiplier = rarity === "legendary" ? (SYNERGY_MULTIPLIERS[rarity] ?? 0) : 0
+	const rolledTags = new Set<string>()
 
 	// Pre-resolve tiers for all available modifiers at this item level
 	const tierCache = new Map<ModifierId, ReturnType<typeof getModifierTierForItemLevel>>()
@@ -217,7 +271,25 @@ function rollExplicits(
 		if (tier) tierCache.set(modId, tier)
 	}
 
+	// For epic items, also cache tiers for pattern mods that may not be in availableModifiers
+	if (epicPattern) {
+		for (const modId of [...epicPattern.prefixes, ...epicPattern.suffixes]) {
+			if (!tierCache.has(modId)) {
+				const tier = getModifierTierForItemLevel(modId, itemLevel)
+				if (tier) tierCache.set(modId, tier)
+			}
+		}
+	}
+
 	const getEligible = (affixType: "prefix" | "suffix"): ModifierId[] => {
+		// Epic: draw from pattern pool
+		if (epicPattern) {
+			const pool = affixType === "prefix" ? epicPattern.prefixes : epicPattern.suffixes
+			return pool.filter((modId) => {
+				if (usedModIds.has(modId)) return false
+				return tierCache.has(modId)
+			})
+		}
 		return availableModifiers.filter((modId) => {
 			if (usedModIds.has(modId)) return false
 			const mod = MODIFIERS[modId]
@@ -235,7 +307,16 @@ function rollExplicits(
 			return getSynergyWeight(m.weight ?? DEFAULT_MODIFIER_WEIGHT, m.tags ?? [], rolledTags, synergyMultiplier)
 		})
 		const mod = MODIFIERS[modId]
-		const tier = tierCache.get(modId)!
+		let tier = tierCache.get(modId)!
+
+		// Epic: clamp to minimum tier 4 (lower number = better, so use Math.min)
+		if (isEpic && tier.tier > EPIC_MIN_TIER) {
+			// Find tier 4 for this modifier
+			const modDef = MODIFIERS[modId]
+			const tier4 = modDef.tiers.find((t) => t.tier === EPIC_MIN_TIER)
+			if (tier4) tier = tier4
+		}
+
 		const displayFormat = resolveDefenseFormat(modId, mod.displayFormat, template.armorType)
 
 		// All flat damage mods roll as min-max range (min = half of max)

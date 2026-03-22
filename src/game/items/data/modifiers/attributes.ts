@@ -12,7 +12,7 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Strength",
 		isGlobalStat: true,
 		tags: ["attribute"],
-		tiers: createStandardTiers(5, 10, 51, 55),
+		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 	dexterityFlat: {
 		id: "dexterityFlat",
@@ -24,7 +24,7 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Dexterity",
 		isGlobalStat: true,
 		tags: ["attribute"],
-		tiers: createStandardTiers(5, 10, 51, 55),
+		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 	intelligenceFlat: {
 		id: "intelligenceFlat",
@@ -36,6 +36,6 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Intelligence",
 		isGlobalStat: true,
 		tags: ["attribute"],
-		tiers: createStandardTiers(5, 10, 51, 55),
+		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 }

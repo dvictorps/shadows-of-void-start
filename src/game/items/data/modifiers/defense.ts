@@ -13,7 +13,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Defense",
 		statEffect: { target: "defense", operation: "flat" },
 		tags: ["defense"],
-		tiers: createStandardTiers(10, 20, 101, 110),
+		tiers: createStandardTiers(15, 30, 180, 250),
 	},
 	localDefenseIncrease: {
 		id: "localDefenseIncrease",
@@ -25,7 +25,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Defense",
 		statEffect: { target: "defense", operation: "increased" },
 		tags: ["defense"],
-		tiers: createStandardTiers(10, 15, 64, 70),
+		tiers: createStandardTiers(15, 25, 130, 180),
 	},
 
 	// ── Global defense flat (jewelry only) ──
@@ -39,7 +39,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Armor",
 		isGlobalStat: true,
 		tags: ["defense"],
-		tiers: createStandardTiers(10, 20, 101, 110),
+		tiers: createStandardTiers(12, 25, 120, 160),
 	},
 	evasionFlat: {
 		id: "evasionFlat",
@@ -51,7 +51,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Evasion Rating",
 		isGlobalStat: true,
 		tags: ["defense"],
-		tiers: createStandardTiers(10, 20, 101, 110),
+		tiers: createStandardTiers(12, 25, 120, 160),
 	},
 	barrierFlat: {
 		id: "barrierFlat",
@@ -63,7 +63,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Barrier",
 		isGlobalStat: true,
 		tags: ["defense"],
-		tiers: createStandardTiers(5, 10, 51, 55),
+		tiers: createStandardTiers(8, 16, 65, 85),
 	},
 
 	// ── Global defense % ──
@@ -77,7 +77,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Armor",
 		isGlobalStat: true,
 		tags: ["defense"],
-		tiers: createStandardTiers(10, 15, 64, 70),
+		tiers: createStandardTiers(12, 18, 80, 100),
 	},
 	globalEvasionIncrease: {
 		id: "globalEvasionIncrease",
@@ -89,7 +89,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Evasion",
 		isGlobalStat: true,
 		tags: ["defense"],
-		tiers: createStandardTiers(10, 15, 64, 70),
+		tiers: createStandardTiers(12, 18, 80, 100),
 	},
 	globalBarrierIncrease: {
 		id: "globalBarrierIncrease",
@@ -101,7 +101,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Barrier",
 		isGlobalStat: true,
 		tags: ["defense"],
-		tiers: createStandardTiers(10, 15, 64, 70),
+		tiers: createStandardTiers(12, 18, 80, 100),
 	},
 
 	// ── Life / Mana flat ──
@@ -116,7 +116,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		isGlobalStat: true,
 		tags: ["life"],
 		weight: 600,
-		tiers: createStandardTiers(10, 20, 101, 110),
+		tiers: createStandardTiers(15, 25, 120, 150),
 	},
 	manaFlat: {
 		id: "manaFlat",
@@ -128,7 +128,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Maximum Mana",
 		isGlobalStat: true,
 		tags: ["mana"],
-		tiers: createStandardTiers(10, 20, 101, 110),
+		tiers: createStandardTiers(12, 22, 100, 130),
 	},
 
 	// ── Regen ──
@@ -142,7 +142,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Life Regeneration per second",
 		isGlobalStat: true,
 		tags: ["life"],
-		tiers: createStandardTiers(1, 2, 8, 10),
+		tiers: createStandardTiers(2, 4, 15, 22),
 	},
 	manaRegenFlat: {
 		id: "manaRegenFlat",
@@ -154,7 +154,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Mana Regeneration per second",
 		isGlobalStat: true,
 		tags: ["mana"],
-		tiers: createStandardTiers(1, 1, 4, 6),
+		tiers: createStandardTiers(1, 2, 6, 10),
 	},
 
 	// ── On hit / On kill ──
@@ -168,7 +168,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Life gained on Hit",
 		isGlobalStat: true,
 		tags: ["life"],
-		tiers: createStandardTiers(1, 2, 10, 15),
+		tiers: createStandardTiers(2, 4, 15, 25),
 	},
 	manaGainOnHitFlat: {
 		id: "manaGainOnHitFlat",
@@ -180,7 +180,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Mana gained on Hit",
 		isGlobalStat: true,
 		tags: ["mana"],
-		tiers: createStandardTiers(1, 1, 5, 8),
+		tiers: createStandardTiers(1, 2, 8, 14),
 	},
 	lifeOnKillFlat: {
 		id: "lifeOnKillFlat",
@@ -192,7 +192,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Life on Kill",
 		isGlobalStat: true,
 		tags: ["life"],
-		tiers: createStandardTiers(1, 3, 15, 20),
+		tiers: createStandardTiers(2, 5, 20, 35),
 	},
 	manaOnKillFlat: {
 		id: "manaOnKillFlat",
@@ -204,7 +204,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Mana on Kill",
 		isGlobalStat: true,
 		tags: ["mana"],
-		tiers: createStandardTiers(1, 2, 8, 12),
+		tiers: createStandardTiers(2, 3, 12, 20),
 	},
 
 	// ── Thorns (bad mod — no tags, no synergy pull) ──
@@ -218,7 +218,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Thorns Damage",
 		isGlobalStat: true,
 		weight: 1800,
-		tiers: createStandardTiers(1, 3, 15, 20),
+		tiers: createStandardTiers(2, 5, 20, 35),
 	},
 
 	// ── Block (shields only — multiplies base block chance) ──
@@ -232,6 +232,6 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Block Chance",
 		statEffect: { target: "blockChance", operation: "increased" },
 		tags: ["defense"],
-		tiers: createStandardTiers(1, 2, 4, 5),
+		tiers: createStandardTiers(2, 3, 6, 8),
 	},
 }

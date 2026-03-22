@@ -13,7 +13,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		isGlobalStat: true,
 		tags: ["speed"],
 		weight: 600,
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(5, 8, 25, 30),
 	},
 	lifeLeechPercent: {
 		id: "lifeLeechPercent",
@@ -26,7 +26,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		isGlobalStat: true,
 		tags: ["physical", "attack", "life"],
 		weight: 400,
-		tiers: createStandardTiers(1, 1, 2, 3),
+		tiers: createStandardTiers(1, 1, 2, 4),
 	},
 
 	// ── Niche / filler mods (no tags — no synergy pull) ──
