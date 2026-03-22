@@ -9,11 +9,11 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
-		applicableTo: ["allAttackWeapons", "allJewelry"],
+		applicableTo: ["allJewelry"],
 		displayFormat: "+{value}% increased Physical Damage",
 		isGlobalStat: true,
 		tags: ["physical", "attack"],
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalColdDamageIncrease: {
 		id: "globalColdDamageIncrease",
@@ -25,7 +25,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Cold Damage",
 		isGlobalStat: true,
 		tags: ["cold", "elemental"],
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalFireDamageIncrease: {
 		id: "globalFireDamageIncrease",
@@ -37,7 +37,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Fire Damage",
 		isGlobalStat: true,
 		tags: ["fire", "elemental"],
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalLightningDamageIncrease: {
 		id: "globalLightningDamageIncrease",
@@ -49,7 +49,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Lightning Damage",
 		isGlobalStat: true,
 		tags: ["lightning", "elemental"],
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalVoidDamageIncrease: {
 		id: "globalVoidDamageIncrease",
@@ -61,7 +61,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Void Damage",
 		isGlobalStat: true,
 		tags: ["void", "elemental"],
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalSpellDamageIncrease: {
 		id: "globalSpellDamageIncrease",
@@ -73,7 +73,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Spell Damage",
 		isGlobalStat: true,
 		tags: ["spell"],
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalElementalDamageWithAttacksIncrease: {
 		id: "globalElementalDamageWithAttacksIncrease",
@@ -85,7 +85,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Elemental Damage with Attacks",
 		isGlobalStat: true,
 		tags: ["elemental", "attack"],
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalElementalDamageIncrease: {
 		id: "globalElementalDamageIncrease",
@@ -97,7 +97,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Elemental Damage",
 		isGlobalStat: true,
 		tags: ["elemental"],
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalMeleeDamageIncrease: {
 		id: "globalMeleeDamageIncrease",
@@ -109,7 +109,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Melee Damage",
 		isGlobalStat: true,
 		tags: ["physical", "attack"],
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 
 	// ── Global speed / crit (suffixes) ──
@@ -124,7 +124,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		isGlobalStat: true,
 		tags: ["attack", "speed"],
 		weight: 500,
-		tiers: createStandardTiers(3, 5, 30, 33),
+		tiers: createStandardTiers(2, 4, 18, 22),
 	},
 	globalCastSpeedIncrease: {
 		id: "globalCastSpeedIncrease",
@@ -137,7 +137,7 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		isGlobalStat: true,
 		tags: ["spell", "speed"],
 		weight: 500,
-		tiers: createStandardTiers(3, 5, 30, 33),
+		tiers: createStandardTiers(2, 4, 18, 22),
 	},
 	globalCriticalChanceIncrease: {
 		id: "globalCriticalChanceIncrease",
@@ -149,6 +149,6 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% increased Global Critical Strike Chance",
 		isGlobalStat: true,
 		tags: ["critical"],
-		tiers: createStandardTiers(10, 15, 25, 30),
+		tiers: createStandardTiers(10, 15, 40, 55),
 	},
 }

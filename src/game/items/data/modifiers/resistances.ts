@@ -12,7 +12,7 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% Cold Resistance",
 		isGlobalStat: true,
 		tags: ["resistance", "cold"],
-		tiers: createStandardTiers(5, 10, 51, 55),
+		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 	fireResistance: {
 		id: "fireResistance",
@@ -24,7 +24,7 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% Fire Resistance",
 		isGlobalStat: true,
 		tags: ["resistance", "fire"],
-		tiers: createStandardTiers(5, 10, 51, 55),
+		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 	lightningResistance: {
 		id: "lightningResistance",
@@ -36,7 +36,7 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% Lightning Resistance",
 		isGlobalStat: true,
 		tags: ["resistance", "lightning"],
-		tiers: createStandardTiers(5, 10, 51, 55),
+		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 	voidResistance: {
 		id: "voidResistance",
@@ -48,6 +48,6 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% Void Resistance",
 		isGlobalStat: true,
 		tags: ["resistance", "void"],
-		tiers: createStandardTiers(5, 10, 51, 55),
+		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 }

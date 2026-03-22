@@ -13,7 +13,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Physical Damage to Attacks",
 		statEffect: { target: "physicalDamage", operation: "flat" },
 		tags: ["physical", "attack"],
-		tiers: createStandardTiers(1, 2, 18, 28),
+		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	physicalDamageFlatGlobal: {
 		id: "physicalDamageFlatGlobal",
@@ -25,19 +25,19 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Physical Damage to Attacks",
 		isGlobalStat: true,
 		tags: ["physical", "attack"],
-		tiers: createStandardTiers(1, 2, 18, 28),
+		tiers: createStandardTiers(2, 4, 24, 50),
 	},
 	physicalDamageIncrease: {
 		id: "physicalDamageIncrease",
-		name: "of Slaying",
-		affixType: "suffix",
+		name: "Cruel",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value}% increased Physical Damage with Attacks",
 		statEffect: { target: "physicalDamage", operation: "increased" },
 		tags: ["physical", "attack"],
-		tiers: createStandardTiers(5, 8, 41, 45),
+		tiers: createStandardTiers(15, 25, 170, 211),
 	},
 	attackSpeedIncrease: {
 		id: "attackSpeedIncrease",
@@ -50,7 +50,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		statEffect: { target: "attackSpeed", operation: "increased" },
 		tags: ["attack", "speed"],
 		weight: 500,
-		tiers: createStandardTiers(3, 5, 30, 33),
+		tiers: createStandardTiers(3, 5, 28, 31),
 	},
 	criticalChanceIncrease: {
 		id: "criticalChanceIncrease",
@@ -63,7 +63,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		statEffect: { target: "criticalChance", operation: "increased" },
 		tags: ["critical", "attack"],
 		weight: 500,
-		tiers: createStandardTiers(15, 20, 35, 40),
+		tiers: createStandardTiers(15, 20, 55, 70),
 	},
 	coldDamageToAttacksFlat: {
 		id: "coldDamageToAttacksFlat",
@@ -75,7 +75,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Cold Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Cold" },
 		tags: ["cold", "elemental", "attack"],
-		tiers: createStandardTiers(1, 2, 18, 28),
+		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	fireDamageToAttacksFlat: {
 		id: "fireDamageToAttacksFlat",
@@ -87,7 +87,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Fire Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Fire" },
 		tags: ["fire", "elemental", "attack"],
-		tiers: createStandardTiers(1, 2, 18, 28),
+		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	lightningDamageToAttacksFlat: {
 		id: "lightningDamageToAttacksFlat",
@@ -99,7 +99,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Lightning Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Lightning" },
 		tags: ["lightning", "elemental", "attack"],
-		tiers: createStandardTiers(1, 3, 35, 40),
+		tiers: createStandardTiers(4, 12, 55, 140),
 	},
 	voidDamageToAttacksFlat: {
 		id: "voidDamageToAttacksFlat",
@@ -111,7 +111,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Void Damage to Attacks",
 		statEffect: { target: "elementalDamage", operation: "flat", element: "Void" },
 		tags: ["void", "elemental", "attack"],
-		tiers: createStandardTiers(1, 2, 18, 28),
+		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 
 	// ── Global offensive mods (can roll on weapons + armor + jewelry) ──
@@ -125,7 +125,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Accuracy Rating",
 		isGlobalStat: true,
 		tags: ["attack"],
-		tiers: createStandardTiers(20, 40, 201, 250),
+		tiers: createStandardTiers(30, 60, 300, 400),
 	},
 	criticalStrikeMultiplierFlat: {
 		id: "criticalStrikeMultiplierFlat",
@@ -137,6 +137,6 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value}% Critical Strike Multiplier",
 		isGlobalStat: true,
 		tags: ["critical"],
-		tiers: createStandardTiers(5, 10, 41, 45),
+		tiers: createStandardTiers(8, 15, 45, 60),
 	},
 }
