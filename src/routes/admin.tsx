@@ -1,8 +1,37 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router"
+import {
+	createFileRoute,
+	Link,
+	Outlet,
+	redirect,
+} from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { fetchAuthQuery } from "#/lib/auth-server";
+import { api } from "../../convex/_generated/api";
+
+const checkIsAdmin = createServerFn({ method: "GET" }).handler(async () => {
+	return await fetchAuthQuery(api.users.isAdmin);
+});
 
 export const Route = createFileRoute("/admin")({
+	beforeLoad: async ({ context }) => {
+		if (!context.isAuthenticated) {
+			throw redirect({ to: "/sign-in" });
+		}
+
+		try {
+			const isAdmin = await checkIsAdmin();
+			if (!isAdmin) {
+				throw redirect({ to: "/" });
+			}
+		} catch (err) {
+			if (err instanceof Response) throw err;
+			if (typeof err === "object" && err !== null && "isRedirect" in err)
+				throw err;
+			throw redirect({ to: "/" });
+		}
+	},
 	component: AdminLayout,
-})
+});
 
 function AdminLayout() {
 	return (
@@ -28,5 +57,5 @@ function AdminLayout() {
 				<Outlet />
 			</main>
 		</div>
-	)
+	);
 }
