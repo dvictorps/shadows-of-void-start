@@ -357,6 +357,38 @@ describe("armor local defense", () => {
 	})
 })
 
+// ── Global defense % armorType filtering ──
+
+describe("global defense % mods respect armorType", () => {
+	it("plate armor never rolls globalEvasionIncrease or globalBarrierIncrease", () => {
+		const items = generateMany(300, { rarity: "epic", templateId: "plate_boots", itemLevel: 80 })
+		const rolledIds = allExplicitModIds(items)
+		expect(rolledIds.has("globalEvasionIncrease")).toBe(false)
+		expect(rolledIds.has("globalBarrierIncrease")).toBe(false)
+	})
+
+	it("plate armor can still roll globalArmorIncrease", () => {
+		const items = generateMany(300, { rarity: "epic", templateId: "plate_boots", itemLevel: 80 })
+		const rolledIds = allExplicitModIds(items)
+		expect(rolledIds.has("globalArmorIncrease")).toBe(true)
+	})
+
+	it("jewelry can roll all three global defense % mods", () => {
+		const items = generateMany(500, { rarity: "epic", templateId: "cobalt_ring", itemLevel: 80 })
+		const rolledIds = allExplicitModIds(items)
+		expect(rolledIds.has("globalArmorIncrease")).toBe(true)
+		expect(rolledIds.has("globalEvasionIncrease")).toBe(true)
+		expect(rolledIds.has("globalBarrierIncrease")).toBe(true)
+	})
+
+	it("plate shield (offhand) only rolls globalArmorIncrease, not evasion/barrier", () => {
+		const items = generateMany(300, { rarity: "epic", templateId: "wooden_shield", itemLevel: 80 })
+		const rolledIds = allExplicitModIds(items)
+		expect(rolledIds.has("globalEvasionIncrease")).toBe(false)
+		expect(rolledIds.has("globalBarrierIncrease")).toBe(false)
+	})
+})
+
 // ── Shield ──
 
 describe("shield", () => {

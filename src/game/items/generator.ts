@@ -15,7 +15,7 @@ import type {
 	ComputedDefenseStats,
 } from "./types"
 import { DEFAULT_MODIFIER_WEIGHT, EQUIPMENT_GROUPS, MOD_LIMITS } from "./types"
-import type { EquipmentGroup } from "./types"
+import type { ArmorType, EquipmentGroup } from "./types"
 
 // ── RNG helpers ──
 
@@ -94,9 +94,22 @@ function isGroupKey(target: string): target is EquipmentGroup {
 	return target in EQUIPMENT_GROUPS
 }
 
+const DEFENSE_MOD_ARMOR_TYPE: Record<string, ArmorType> = {
+	globalArmorIncrease: "plate",
+	globalEvasionIncrease: "leather",
+	globalBarrierIncrease: "silk",
+}
+
 function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 	return (Object.keys(MODIFIERS) as ModifierId[]).filter((modId) => {
 		const mod = MODIFIERS[modId]
+
+		// Filter global defense % mods by armorType (jewelry is always allowed)
+		const requiredArmorType = DEFENSE_MOD_ARMOR_TYPE[modId]
+		if (requiredArmorType && template.armorType && template.armorType !== requiredArmorType) {
+			return false
+		}
+
 		return mod.applicableTo.some((target) => {
 			if (isGroupKey(target)) {
 				const members = EQUIPMENT_GROUPS[target] as readonly string[]
