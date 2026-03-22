@@ -498,7 +498,7 @@ describe("global defense % mods respect armorType", () => {
 		expect(rolledIds.has("globalBarrierIncrease")).toBe(true);
 	});
 
-	it("plate shield (offhand) only rolls globalArmorIncrease, not evasion/barrier", () => {
+	it("plate shield never rolls mismatched global defense % mods", () => {
 		const items = generateMany(300, {
 			rarity: "epic",
 			templateId: "plate_shield_t1",
@@ -509,7 +509,7 @@ describe("global defense % mods respect armorType", () => {
 		expect(rolledIds.has("globalBarrierIncrease")).toBe(false);
 	});
 
-	it("leather shield only rolls globalEvasionIncrease, not armor/barrier", () => {
+	it("leather shield never rolls mismatched global defense % mods", () => {
 		const items = generateMany(300, {
 			rarity: "epic",
 			templateId: "leather_shield_t1",
@@ -520,7 +520,7 @@ describe("global defense % mods respect armorType", () => {
 		expect(rolledIds.has("globalBarrierIncrease")).toBe(false);
 	});
 
-	it("silk shield only rolls globalBarrierIncrease, not armor/evasion", () => {
+	it("silk shield never rolls mismatched global defense % mods", () => {
 		const items = generateMany(300, {
 			rarity: "epic",
 			templateId: "silk_shield_t1",
