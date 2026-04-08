@@ -1,5 +1,5 @@
-import type { Modifier } from "../../types"
-import { createStandardTiers } from "../../types"
+import type { Modifier } from "../../types";
+import { createStandardTiers } from "../../types";
 
 export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 	movementSpeedIncrease: {
@@ -68,4 +68,4 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		weight: 2000,
 		tiers: createStandardTiers(5, 10, 21, 25),
 	},
-}
+};

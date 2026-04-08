@@ -1,5 +1,5 @@
-import type { Modifier } from "../../types"
-import { createStandardTiers } from "../../types"
+import type { Modifier } from "../../types";
+import { createStandardTiers } from "../../types";
 
 export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 	coldDamageFlat: {
@@ -50,4 +50,4 @@ export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tags: ["void", "elemental", "spell"],
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
-}
+};

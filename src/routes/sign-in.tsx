@@ -1,27 +1,27 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
-import { authClient } from "#/lib/auth-client"
-import { Button } from "#/components/ui/button"
-import { Input } from "#/components/ui/input"
-import { Label } from "#/components/ui/label"
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
+import { authClient } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/sign-in")({
 	component: SignInPage,
-})
+});
 
 function SignInPage() {
-	const navigate = useNavigate()
-	const [isSignUp, setIsSignUp] = useState(false)
-	const [email, setEmail] = useState("")
-	const [password, setPassword] = useState("")
-	const [name, setName] = useState("")
-	const [error, setError] = useState("")
-	const [loading, setLoading] = useState(false)
+	const navigate = useNavigate();
+	const [isSignUp, setIsSignUp] = useState(false);
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [name, setName] = useState("");
+	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(false);
 
 	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault()
-		setError("")
-		setLoading(true)
+		e.preventDefault();
+		setError("");
+		setLoading(true);
 
 		try {
 			if (isSignUp) {
@@ -29,30 +29,30 @@ function SignInPage() {
 					{ email, password, name },
 					{
 						onSuccess: () => {
-							void navigate({ to: "/" })
+							void navigate({ to: "/" });
 						},
 						onError: (ctx) => {
-							setError(ctx.error.message)
+							setError(ctx.error.message);
 						},
 					},
-				)
+				);
 			} else {
 				await authClient.signIn.email(
 					{ email, password },
 					{
 						onSuccess: () => {
-							void navigate({ to: "/" })
+							void navigate({ to: "/" });
 						},
 						onError: (ctx) => {
-							setError(ctx.error.message)
+							setError(ctx.error.message);
 						},
 					},
-				)
+				);
 			}
 		} finally {
-			setLoading(false)
+			setLoading(false);
 		}
-	}
+	};
 
 	return (
 		<div className="flex min-h-[60vh] items-center justify-center px-4">
@@ -113,11 +113,7 @@ function SignInPage() {
 					)}
 
 					<Button type="submit" className="w-full" disabled={loading}>
-						{loading
-							? "Loading..."
-							: isSignUp
-								? "Create account"
-								: "Sign in"}
+						{loading ? "Loading..." : isSignUp ? "Create account" : "Sign in"}
 					</Button>
 				</form>
 
@@ -126,8 +122,8 @@ function SignInPage() {
 					<button
 						type="button"
 						onClick={() => {
-							setIsSignUp(!isSignUp)
-							setError("")
+							setIsSignUp(!isSignUp);
+							setError("");
 						}}
 						className="font-medium text-neutral-900 underline dark:text-neutral-100"
 					>
@@ -136,5 +132,5 @@ function SignInPage() {
 				</p>
 			</div>
 		</div>
-	)
+	);
 }

@@ -1,5 +1,5 @@
-import type { Modifier } from "../../types"
-import { createStandardTiers } from "../../types"
+import type { Modifier } from "../../types";
+import { createStandardTiers } from "../../types";
 
 export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 	// ── Local attack mods (affect weapon header, attack weapons only) ──
@@ -74,7 +74,11 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Cold Damage to Attacks",
-		statEffect: { target: "elementalDamage", operation: "flat", element: "Cold" },
+		statEffect: {
+			target: "elementalDamage",
+			operation: "flat",
+			element: "Cold",
+		},
 		tags: ["cold", "elemental", "attack"],
 		weight: 1200,
 		tiers: createStandardTiers(3, 8, 48, 100),
@@ -87,7 +91,11 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Fire Damage to Attacks",
-		statEffect: { target: "elementalDamage", operation: "flat", element: "Fire" },
+		statEffect: {
+			target: "elementalDamage",
+			operation: "flat",
+			element: "Fire",
+		},
 		tags: ["fire", "elemental", "attack"],
 		weight: 1200,
 		tiers: createStandardTiers(3, 8, 48, 100),
@@ -100,7 +108,11 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Lightning Damage to Attacks",
-		statEffect: { target: "elementalDamage", operation: "flat", element: "Lightning" },
+		statEffect: {
+			target: "elementalDamage",
+			operation: "flat",
+			element: "Lightning",
+		},
 		tags: ["lightning", "elemental", "attack"],
 		weight: 1200,
 		tiers: createStandardTiers(4, 12, 55, 140),
@@ -113,7 +125,11 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
 		displayFormat: "+{value} Void Damage to Attacks",
-		statEffect: { target: "elementalDamage", operation: "flat", element: "Void" },
+		statEffect: {
+			target: "elementalDamage",
+			operation: "flat",
+			element: "Void",
+		},
 		tags: ["void", "elemental", "attack"],
 		weight: 1200,
 		tiers: createStandardTiers(3, 8, 48, 100),
@@ -144,4 +160,4 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tags: ["critical"],
 		tiers: createStandardTiers(8, 15, 45, 60),
 	},
-}
+};

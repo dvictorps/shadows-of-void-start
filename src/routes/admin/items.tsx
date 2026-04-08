@@ -1,13 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { useState } from "react"
-import { Button } from "#/components/ui/button"
-import ItemTooltip from "#/components/game/ItemTooltip"
-import { generateItem } from "#/game/items/generator"
-import type { GeneratedItem, ItemRarity } from "#/game/items/types"
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import ItemTooltip from "#/components/game/ItemTooltip";
+import { Button } from "#/components/ui/button";
+import { generateItem } from "#/game/items/generator";
+import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 
 export const Route = createFileRoute("/admin/items")({
 	component: ItemGeneratorPage,
-})
+});
 
 const RARITIES: { value: ItemRarity; label: string }[] = [
 	{ value: "normal", label: "Normal" },
@@ -15,19 +15,19 @@ const RARITIES: { value: ItemRarity; label: string }[] = [
 	{ value: "rare", label: "Rare" },
 	{ value: "legendary", label: "Legendary" },
 	{ value: "epic", label: "Epic" },
-]
+];
 
 function ItemGeneratorPage() {
-	const [items, setItems] = useState<GeneratedItem[]>([])
-	const [rarity, setRarity] = useState<ItemRarity>("rare")
-	const [itemLevel, setItemLevel] = useState(50)
+	const [items, setItems] = useState<GeneratedItem[]>([]);
+	const [rarity, setRarity] = useState<ItemRarity>("rare");
+	const [itemLevel, setItemLevel] = useState(50);
 
 	const handleGenerate = () => {
-		const item = generateItem({ rarity, itemLevel })
-		setItems((prev) => [item, ...prev])
-	}
+		const item = generateItem({ rarity, itemLevel });
+		setItems((prev) => [item, ...prev]);
+	};
 
-	const handleClear = () => setItems([])
+	const handleClear = () => setItems([]);
 
 	return (
 		<div>
@@ -95,5 +95,5 @@ function ItemGeneratorPage() {
 				))}
 			</div>
 		</div>
-	)
+	);
 }

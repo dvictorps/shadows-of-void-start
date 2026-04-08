@@ -1,7 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { generateItem, getSynergyWeight } from "./generator";
+import { describe, expect, it } from "vitest";
 import { MODIFIERS, type ModifierId } from "./data/modifiers";
 import { EQUIPMENT_TEMPLATES } from "./data/templates";
+import { generateItem, getSynergyWeight } from "./generator";
 import type { GeneratedItem, ItemRarity } from "./types";
 
 // ── Helpers ──

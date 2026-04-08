@@ -1,5 +1,5 @@
-import type { Modifier } from "../../types"
-import { createStandardTiers } from "../../types"
+import type { Modifier } from "../../types";
+import { createStandardTiers } from "../../types";
 
 export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 	// ── Global damage % (prefixes) ──
@@ -157,4 +157,4 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tags: ["critical"],
 		tiers: createStandardTiers(10, 15, 40, 55),
 	},
-}
+};

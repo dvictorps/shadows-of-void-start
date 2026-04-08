@@ -1,4 +1,4 @@
-import type { CharacterClassDefinition, CharacterClassId } from "./types"
+import type { CharacterClassDefinition, CharacterClassId } from "./types";
 
 export const CLASS_DEFINITIONS = {
 	warrior: {
@@ -37,8 +37,10 @@ export const CLASS_DEFINITIONS = {
 			attributes: { strength: 5, dexterity: 5, intelligence: 10 },
 		},
 	},
-} as const satisfies Record<CharacterClassId, CharacterClassDefinition>
+} as const satisfies Record<CharacterClassId, CharacterClassDefinition>;
 
-export function getClassDefinition(id: CharacterClassId): CharacterClassDefinition {
-	return CLASS_DEFINITIONS[id]
+export function getClassDefinition(
+	id: CharacterClassId,
+): CharacterClassDefinition {
+	return CLASS_DEFINITIONS[id];
 }

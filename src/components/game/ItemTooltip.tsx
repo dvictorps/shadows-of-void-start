@@ -1,4 +1,4 @@
-import type { GeneratedItem, ItemRarity } from "#/game/items/types"
+import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 
 const RARITY_COLORS: Record<ItemRarity, string> = {
 	normal: "#c8c8c8",
@@ -6,7 +6,7 @@ const RARITY_COLORS: Record<ItemRarity, string> = {
 	rare: "#ffff77",
 	legendary: "#dc143c",
 	epic: "#1eff00",
-}
+};
 
 const RARITY_HEADER_BG: Record<ItemRarity, string> = {
 	normal: "transparent",
@@ -14,14 +14,14 @@ const RARITY_HEADER_BG: Record<ItemRarity, string> = {
 	rare: "rgba(120, 110, 30, 0.35)",
 	legendary: "rgba(140, 10, 30, 0.3)",
 	epic: "rgba(15, 130, 0, 0.3)",
-}
+};
 
-const HAS_GENERATED_NAME = new Set<ItemRarity>(["rare", "legendary", "epic"])
-const HAS_GLOW = new Set<ItemRarity>(["legendary", "epic"])
-const HAS_ORNAMENTS = new Set<ItemRarity>(["rare", "legendary", "epic"])
-const SPELL_WEAPONS = new Set(["staff", "wand"])
+const HAS_GENERATED_NAME = new Set<ItemRarity>(["rare", "legendary", "epic"]);
+const HAS_GLOW = new Set<ItemRarity>(["legendary", "epic"]);
+const HAS_ORNAMENTS = new Set<ItemRarity>(["rare", "legendary", "epic"]);
+const SPELL_WEAPONS = new Set(["staff", "wand"]);
 
-const MODIFIED_COLOR = "#8888ff"
+const MODIFIED_COLOR = "#8888ff";
 
 function Separator() {
 	return (
@@ -30,7 +30,7 @@ function Separator() {
 			<div className="h-1 w-1 rotate-45 bg-[#776655]" />
 			<div className="h-px flex-1 bg-[#554433]" />
 		</div>
-	)
+	);
 }
 
 function ImplicitSeparator() {
@@ -38,69 +38,86 @@ function ImplicitSeparator() {
 		<div className="my-1 px-2">
 			<div className="border-t border-[#554433]" />
 		</div>
-	)
+	);
 }
 
 function CornerOrnaments({ color }: { color: string }) {
-	const style = { borderColor: color }
-	const base = "absolute h-2 w-2 pointer-events-none"
+	const style = { borderColor: color };
+	const base = "absolute h-2 w-2 pointer-events-none";
 	return (
 		<>
-			<div className={`${base} top-0 left-0 border-t-2 border-l-2`} style={style} />
-			<div className={`${base} top-0 right-0 border-t-2 border-r-2`} style={style} />
-			<div className={`${base} bottom-0 left-0 border-b-2 border-l-2`} style={style} />
-			<div className={`${base} bottom-0 right-0 border-b-2 border-r-2`} style={style} />
+			<div
+				className={`${base} top-0 left-0 border-t-2 border-l-2`}
+				style={style}
+			/>
+			<div
+				className={`${base} top-0 right-0 border-t-2 border-r-2`}
+				style={style}
+			/>
+			<div
+				className={`${base} bottom-0 left-0 border-b-2 border-l-2`}
+				style={style}
+			/>
+			<div
+				className={`${base} bottom-0 right-0 border-b-2 border-r-2`}
+				style={style}
+			/>
 		</>
-	)
+	);
 }
 
 // Identify which base stats are modified by local mods
 function getModifiedStats(item: GeneratedItem): Set<string> {
-	const modified = new Set<string>()
-	if (!item.computedStats) return modified
+	const modified = new Set<string>();
+	if (!item.computedStats) return modified;
 
-	const stats = item.baseStats
-	const computed = item.computedStats
+	const stats = item.baseStats;
+	const computed = item.computedStats;
 
-	if (computed.physicalDamage.min !== (stats.minDamage ?? 0) ||
-		computed.physicalDamage.max !== (stats.maxDamage ?? 0)) {
-		modified.add("physicalDamage")
+	if (
+		computed.physicalDamage.min !== (stats.minDamage ?? 0) ||
+		computed.physicalDamage.max !== (stats.maxDamage ?? 0)
+	) {
+		modified.add("physicalDamage");
 	}
 	if (computed.attackSpeed !== (stats.attackSpeed ?? 1)) {
-		modified.add("attackSpeed")
+		modified.add("attackSpeed");
 	}
 	if (computed.criticalChance !== (stats.criticalChance ?? 5)) {
-		modified.add("criticalChance")
+		modified.add("criticalChance");
 	}
 
-	return modified
+	return modified;
 }
 
 export default function ItemTooltip({ item }: { item: GeneratedItem }) {
-	const nameColor = RARITY_COLORS[item.rarity]
-	const headerBg = RARITY_HEADER_BG[item.rarity]
-	const showGeneratedName = HAS_GENERATED_NAME.has(item.rarity)
-	const showGlow = HAS_GLOW.has(item.rarity)
-	const showOrnaments = HAS_ORNAMENTS.has(item.rarity)
+	const nameColor = RARITY_COLORS[item.rarity];
+	const headerBg = RARITY_HEADER_BG[item.rarity];
+	const showGeneratedName = HAS_GENERATED_NAME.has(item.rarity);
+	const showGlow = HAS_GLOW.has(item.rarity);
+	const showOrnaments = HAS_ORNAMENTS.has(item.rarity);
 
-	const stats = item.baseStats
-	const computed = item.computedStats
-	const defense = item.computedDefenseStats
-	const modifiedStats = getModifiedStats(item)
+	const stats = item.baseStats;
+	const computed = item.computedStats;
+	const defense = item.computedDefenseStats;
+	const modifiedStats = getModifiedStats(item);
 
-	const isWeapon = "minDamage" in stats
-	const isSpellWeapon = SPELL_WEAPONS.has(item.weaponType ?? "")
-	const isAttackWeapon = isWeapon && !isSpellWeapon
+	const isWeapon = "minDamage" in stats;
+	const isSpellWeapon = SPELL_WEAPONS.has(item.weaponType ?? "");
+	const isAttackWeapon = isWeapon && !isSpellWeapon;
 	const hasDefenses =
-		"armor" in stats || "evasion" in stats || "barrier" in stats || "blockChance" in stats
+		"armor" in stats ||
+		"evasion" in stats ||
+		"barrier" in stats ||
+		"blockChance" in stats;
 
-	const borderColor = showGlow ? nameColor : "#3a2a1a"
+	const borderColor = showGlow ? nameColor : "#3a2a1a";
 	const glowStyle = showGlow
 		? {
 				borderColor,
 				boxShadow: `0 0 12px ${nameColor}66, inset 0 0 8px ${nameColor}22, 0 0 20px rgba(0,0,0,0.8)`,
 			}
-		: { boxShadow: "0 0 20px rgba(0,0,0,0.8)" }
+		: { boxShadow: "0 0 20px rgba(0,0,0,0.8)" };
 
 	return (
 		<div
@@ -146,7 +163,13 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 					<div className="space-y-0.5 px-4 py-1">
 						<div className="flex justify-between">
 							<span className="text-[#7f7f7f]">Physical Damage:</span>
-							<span style={{ color: modifiedStats.has("physicalDamage") ? MODIFIED_COLOR : "white" }}>
+							<span
+								style={{
+									color: modifiedStats.has("physicalDamage")
+										? MODIFIED_COLOR
+										: "white",
+								}}
+							>
 								{computed
 									? `${computed.physicalDamage.min}-${computed.physicalDamage.max}`
 									: `${stats.minDamage}-${stats.maxDamage}`}
@@ -163,15 +186,32 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 						{(computed?.criticalChance ?? stats.criticalChance) != null && (
 							<div className="flex justify-between">
 								<span className="text-[#7f7f7f]">Critical Strike Chance:</span>
-								<span style={{ color: modifiedStats.has("criticalChance") ? MODIFIED_COLOR : "white" }}>
-									{(computed?.criticalChance ?? stats.criticalChance ?? 5).toFixed(1)}%
+								<span
+									style={{
+										color: modifiedStats.has("criticalChance")
+											? MODIFIED_COLOR
+											: "white",
+									}}
+								>
+									{(
+										computed?.criticalChance ??
+										stats.criticalChance ??
+										5
+									).toFixed(1)}
+									%
 								</span>
 							</div>
 						)}
 						{(computed?.attackSpeed ?? stats.attackSpeed) != null && (
 							<div className="flex justify-between">
 								<span className="text-[#7f7f7f]">Attacks per Second:</span>
-								<span style={{ color: modifiedStats.has("attackSpeed") ? MODIFIED_COLOR : "white" }}>
+								<span
+									style={{
+										color: modifiedStats.has("attackSpeed")
+											? MODIFIED_COLOR
+											: "white",
+									}}
+								>
 									{(computed?.attackSpeed ?? stats.attackSpeed ?? 1).toFixed(2)}
 								</span>
 							</div>
@@ -203,7 +243,11 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 						{"armor" in stats && (
 							<div className="flex justify-between">
 								<span className="text-[#7f7f7f]">Armour:</span>
-								<span style={{ color: defense?.armor != null ? MODIFIED_COLOR : "white" }}>
+								<span
+									style={{
+										color: defense?.armor != null ? MODIFIED_COLOR : "white",
+									}}
+								>
 									{defense?.armor ?? stats.armor}
 								</span>
 							</div>
@@ -211,7 +255,11 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 						{"evasion" in stats && (
 							<div className="flex justify-between">
 								<span className="text-[#7f7f7f]">Evasion Rating:</span>
-								<span style={{ color: defense?.evasion != null ? MODIFIED_COLOR : "white" }}>
+								<span
+									style={{
+										color: defense?.evasion != null ? MODIFIED_COLOR : "white",
+									}}
+								>
 									{defense?.evasion ?? stats.evasion}
 								</span>
 							</div>
@@ -219,7 +267,11 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 						{"barrier" in stats && (
 							<div className="flex justify-between">
 								<span className="text-[#7f7f7f]">Barrier:</span>
-								<span style={{ color: defense?.barrier != null ? MODIFIED_COLOR : "white" }}>
+								<span
+									style={{
+										color: defense?.barrier != null ? MODIFIED_COLOR : "white",
+									}}
+								>
 									{defense?.barrier ?? stats.barrier}
 								</span>
 							</div>
@@ -227,7 +279,12 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 						{"blockChance" in stats && (
 							<div className="flex justify-between">
 								<span className="text-[#7f7f7f]">Block Chance:</span>
-								<span style={{ color: defense?.blockChance != null ? MODIFIED_COLOR : "white" }}>
+								<span
+									style={{
+										color:
+											defense?.blockChance != null ? MODIFIED_COLOR : "white",
+									}}
+								>
 									{defense?.blockChance ?? stats.blockChance}%
 								</span>
 							</div>
@@ -266,20 +323,26 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 			)}
 
 			{/* Requirements */}
-			{item.requirements && (item.requirements.str || item.requirements.dex || item.requirements.int) && (
-				<>
-					<Separator />
-					<div className="px-4 py-1 text-xs text-[#7f7f7f]">
-						<span>Requires </span>
-						{[
-							item.requirements.level > 1 && `Level ${item.requirements.level}`,
-							item.requirements.str && `${item.requirements.str} Str`,
-							item.requirements.dex && `${item.requirements.dex} Dex`,
-							item.requirements.int && `${item.requirements.int} Int`,
-						].filter(Boolean).join(", ")}
-					</div>
-				</>
-			)}
+			{item.requirements &&
+				(item.requirements.str ||
+					item.requirements.dex ||
+					item.requirements.int) && (
+					<>
+						<Separator />
+						<div className="px-4 py-1 text-xs text-[#7f7f7f]">
+							<span>Requires </span>
+							{[
+								item.requirements.level > 1 &&
+									`Level ${item.requirements.level}`,
+								item.requirements.str && `${item.requirements.str} Str`,
+								item.requirements.dex && `${item.requirements.dex} Dex`,
+								item.requirements.int && `${item.requirements.int} Int`,
+							]
+								.filter(Boolean)
+								.join(", ")}
+						</div>
+					</>
+				)}
 
 			{/* Item level */}
 			<Separator />
@@ -287,5 +350,5 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 				Item Level: <span className="text-white">{item.itemLevel}</span>
 			</div>
 		</div>
-	)
+	);
 }

@@ -1,58 +1,52 @@
+import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
+import type { ConvexQueryClient } from "@convex-dev/react-query";
+import { TanStackDevtools } from "@tanstack/react-devtools";
+import type { QueryClient } from "@tanstack/react-query";
 import {
+	createRootRouteWithContext,
 	HeadContent,
 	Outlet,
 	Scripts,
-	createRootRouteWithContext,
 	useRouteContext,
-} from "@tanstack/react-router"
-import { createServerFn } from "@tanstack/react-start"
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
-import { TanStackDevtools } from "@tanstack/react-devtools"
-import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react"
-import Footer from "../components/Footer"
-import Header from "../components/Header"
-
-import PostHogProvider from "../integrations/posthog/provider"
-
-import TanStackQueryProvider from "../integrations/tanstack-query/root-provider"
-
-import TanStackQueryDevtools from "../integrations/tanstack-query/devtools"
-
-import { getLocale } from "#/paraglide/runtime"
-import { authClient } from "#/lib/auth-client"
-import { getToken } from "#/lib/auth-server"
-
-import appCss from "../styles.css?url"
-
-import type { QueryClient } from "@tanstack/react-query"
-import type { ConvexQueryClient } from "@convex-dev/react-query"
+} from "@tanstack/react-router";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { createServerFn } from "@tanstack/react-start";
+import { authClient } from "#/lib/auth-client";
+import { getToken } from "#/lib/auth-server";
+import { getLocale } from "#/paraglide/runtime";
+import Footer from "../components/Footer";
+import Header from "../components/Header";
+import PostHogProvider from "../integrations/posthog/provider";
+import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
+import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
+import appCss from "../styles.css?url";
 
 interface MyRouterContext {
-	queryClient: QueryClient
-	convexQueryClient: ConvexQueryClient
+	queryClient: QueryClient;
+	convexQueryClient: ConvexQueryClient;
 }
 
-const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`
+const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`;
 
 const getAuth = createServerFn({ method: "GET" }).handler(async () => {
-	return await getToken()
-})
+	return await getToken();
+});
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	beforeLoad: async (ctx) => {
 		if (typeof document !== "undefined") {
-			document.documentElement.setAttribute("lang", getLocale())
+			document.documentElement.setAttribute("lang", getLocale());
 		}
 
-		const token = await getAuth()
+		const token = await getAuth();
 		if (token) {
-			ctx.context.convexQueryClient.serverHttpClient?.setAuth(token)
+			ctx.context.convexQueryClient.serverHttpClient?.setAuth(token);
 		}
 
 		return {
 			isAuthenticated: !!token,
 			token,
-		}
+		};
 	},
 
 	head: () => ({
@@ -76,10 +70,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		],
 	}),
 	component: RootComponent,
-})
+});
 
 function RootComponent() {
-	const context = useRouteContext({ from: Route.id })
+	const context = useRouteContext({ from: Route.id });
 
 	return (
 		<ConvexBetterAuthProvider
@@ -91,7 +85,7 @@ function RootComponent() {
 				<Outlet />
 			</RootDocument>
 		</ConvexBetterAuthProvider>
-	)
+	);
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -124,5 +118,5 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<Scripts />
 			</body>
 		</html>
-	)
+	);
 }

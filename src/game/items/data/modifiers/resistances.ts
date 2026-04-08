@@ -1,5 +1,5 @@
-import type { Modifier } from "../../types"
-import { createStandardTiers } from "../../types"
+import type { Modifier } from "../../types";
+import { createStandardTiers } from "../../types";
 
 export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 	coldResistance: {
@@ -50,4 +50,4 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		tags: ["resistance", "void"],
 		tiers: createStandardTiers(8, 12, 48, 50),
 	},
-}
+};
