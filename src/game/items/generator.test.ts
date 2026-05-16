@@ -811,34 +811,52 @@ describe("globalMeleeDamageIncrease not on weapons", () => {
 	}
 });
 
-// ── item rarity mods not on chestplates or boots ──
+// ── item rarity mods roll on every equipment slot ──
 
-describe("item rarity mods not on chestplates or boots", () => {
-	for (const templateId of ["plate_chestplate_t1", "plate_boots_t1"]) {
-		it(`${templateId}: never rolls item rarity mods`, () => {
-			const items = generateMany(200, {
+describe("item rarity mods roll on every non-weapon slot", () => {
+	for (const templateId of [
+		"plate_helmet_t1",
+		"plate_chestplate_t1",
+		"plate_boots_t1",
+		"plate_gloves_t1",
+	]) {
+		it(`${templateId}: can roll item rarity mods`, () => {
+			const items = generateMany(300, {
 				rarity: "legendary",
 				templateId,
 				itemLevel: 80,
 			});
 			const rolledIds = allExplicitModIds(items);
-			expect(rolledIds.has("itemRarityIncreasePrefix")).toBe(false);
-			expect(rolledIds.has("itemRarityIncreaseSuffix")).toBe(false);
+			expect(
+				rolledIds.has("itemRarityIncreasePrefix") ||
+					rolledIds.has("itemRarityIncreaseSuffix"),
+			).toBe(true);
 		});
 	}
+
+	it("sword_t1: never rolls item rarity mods", () => {
+		const items = generateMany(300, {
+			rarity: "legendary",
+			templateId: "sword_t1",
+			itemLevel: 80,
+		});
+		const rolledIds = allExplicitModIds(items);
+		expect(rolledIds.has("itemRarityIncreasePrefix")).toBe(false);
+		expect(rolledIds.has("itemRarityIncreaseSuffix")).toBe(false);
+	});
 });
 
 // ── Bad/filler mods can actually roll ──
 
 describe("filler mods exist in the pool", () => {
-	it("lightRadius can roll on helmets", () => {
+	it("thornsDamageFlat can roll on helmets", () => {
 		const items = generateMany(300, {
 			rarity: "legendary",
 			templateId: "plate_helmet_t1",
 			itemLevel: 80,
 		});
 		const rolledIds = allExplicitModIds(items);
-		expect(rolledIds.has("lightRadius")).toBe(true);
+		expect(rolledIds.has("thornsDamageFlat")).toBe(true);
 	});
 
 	it("thornsDamageFlat can roll on armor", () => {
@@ -1019,8 +1037,8 @@ describe("synergy tags", () => {
 			itemLevel: 80,
 		});
 		const rolledIds = allExplicitModIds(items);
-		// lightRadius (weight 2000, no tags) should still appear often on rare
-		expect(rolledIds.has("lightRadius")).toBe(true);
+		// thornsDamageFlat (weight 1800, no tags) should still appear often on rare
+		expect(rolledIds.has("thornsDamageFlat")).toBe(true);
 	});
 });
 

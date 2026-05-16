@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
@@ -10,7 +10,6 @@ export const Route = createFileRoute("/sign-in")({
 });
 
 function SignInPage() {
-	const navigate = useNavigate();
 	const [isSignUp, setIsSignUp] = useState(false);
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -29,7 +28,7 @@ function SignInPage() {
 					{ email, password, name },
 					{
 						onSuccess: () => {
-							void navigate({ to: "/" });
+							window.location.href = "/";
 						},
 						onError: (ctx) => {
 							setError(ctx.error.message);
@@ -41,7 +40,7 @@ function SignInPage() {
 					{ email, password },
 					{
 						onSuccess: () => {
-							void navigate({ to: "/" });
+							window.location.href = "/";
 						},
 						onError: (ctx) => {
 							setError(ctx.error.message);

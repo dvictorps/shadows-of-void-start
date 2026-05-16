@@ -165,18 +165,20 @@ function isGroupKey(target: string): target is EquipmentGroup {
 	return target in EQUIPMENT_GROUPS;
 }
 
-const DEFENSE_MOD_ARMOR_TYPE: Record<string, ArmorType> = {
+const MOD_REQUIRED_ARMOR_TYPE: Record<string, ArmorType> = {
 	globalArmorIncrease: "plate",
 	globalEvasionIncrease: "leather",
 	globalBarrierIncrease: "silk",
+	globalSpellDamageIncrease: "silk",
 };
 
 function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 	return (Object.keys(MODIFIERS) as ModifierId[]).filter((modId) => {
 		const mod = MODIFIERS[modId];
 
-		// Filter global defense % mods by armorType (jewelry is always allowed)
-		const requiredArmorType = DEFENSE_MOD_ARMOR_TYPE[modId];
+		// On armor pieces, gate mods to a specific base type. Non-armor templates
+		// (jewelry, weapons) pass through — template.armorType is undefined.
+		const requiredArmorType = MOD_REQUIRED_ARMOR_TYPE[modId];
 		if (
 			requiredArmorType &&
 			template.armorType &&

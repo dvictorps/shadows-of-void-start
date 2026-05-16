@@ -158,6 +158,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 	},
 
 	// ── On hit / On kill ──
+	// On-hit = combat slots (gloves yes, belt no). On-kill = sustain slots (belt yes, gloves no).
+	// Weight controls fillerness — these are mid-tier filler, not premium.
 	lifeGainOnHitFlat: {
 		id: "lifeGainOnHitFlat",
 		name: "Siphoning",
@@ -168,6 +170,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Life gained on Hit",
 		isGlobalStat: true,
 		tags: ["life"],
+		weight: 1200,
 		tiers: createStandardTiers(2, 4, 15, 25),
 	},
 	manaGainOnHitFlat: {
@@ -176,10 +179,11 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		affixType: "prefix",
 		modifierType: "flat",
 		category: "defensive",
-		applicableTo: ["weapon", "ring", "amulet"],
+		applicableTo: ["weapon", "ring", "amulet", "gloves"],
 		displayFormat: "+{value} Mana gained on Hit",
 		isGlobalStat: true,
 		tags: ["mana"],
+		weight: 1200,
 		tiers: createStandardTiers(1, 2, 8, 14),
 	},
 	lifeOnKillFlat: {
@@ -192,6 +196,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Life on Kill",
 		isGlobalStat: true,
 		tags: ["life"],
+		weight: 1500,
 		tiers: createStandardTiers(2, 5, 20, 35),
 	},
 	manaOnKillFlat: {
@@ -204,6 +209,7 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		displayFormat: "+{value} Mana on Kill",
 		isGlobalStat: true,
 		tags: ["mana"],
+		weight: 1500,
 		tiers: createStandardTiers(2, 3, 12, 20),
 	},
 
