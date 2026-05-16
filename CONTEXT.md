@@ -214,6 +214,15 @@ Conditions that must always hold. If you find code that violates these, file it 
 
 ---
 
+## UI Invariants
+
+- **Main screens never scroll.** Splash (`/`), character select, and world view must fit the viewport. Use `h-screen overflow-hidden` on the page root and constrain inner content (e.g., `max-h-[88vh]` for cards, `flex-1` for stretchy regions). Internal modals and side panels are allowed to scroll.
+- **Single theme: dark/black.** No theme switcher. `<html>` has `class="dark"` permanently. Background is pure `#000000`.
+- **Font: Jersey 25** (pixel display font) globally via `--font-sans`. Imported once in `styles.css`.
+- **Buttons: black bg + white border + white text.** Hover lightens via `bg-white/10`. Purple is reserved for the title glow effect, not interactive elements.
+
+---
+
 ## Out of Scope (for now)
 
 - **Unique items** — hand-crafted rarity above Epic, planned. See `docs/plans/roadmap.md`.

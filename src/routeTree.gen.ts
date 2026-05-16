@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as CharacterSelectRouteImport } from './routes/character-select'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -19,6 +20,11 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CharacterSelectRoute = CharacterSelectRouteImport.update({
+  id: '/character-select',
+  path: '/character-select',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -50,6 +56,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/character-select': typeof CharacterSelectRoute
   '/sign-in': typeof SignInRoute
   '/admin/items': typeof AdminItemsRoute
   '/admin/': typeof AdminIndexRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/character-select': typeof CharacterSelectRoute
   '/sign-in': typeof SignInRoute
   '/admin/items': typeof AdminItemsRoute
   '/admin': typeof AdminIndexRoute
@@ -66,6 +74,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/character-select': typeof CharacterSelectRoute
   '/sign-in': typeof SignInRoute
   '/admin/items': typeof AdminItemsRoute
   '/admin/': typeof AdminIndexRoute
@@ -76,16 +85,24 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/character-select'
     | '/sign-in'
     | '/admin/items'
     | '/admin/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sign-in' | '/admin/items' | '/admin' | '/api/auth/$'
+  to:
+    | '/'
+    | '/character-select'
+    | '/sign-in'
+    | '/admin/items'
+    | '/admin'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/character-select'
     | '/sign-in'
     | '/admin/items'
     | '/admin/'
@@ -95,6 +112,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  CharacterSelectRoute: typeof CharacterSelectRoute
   SignInRoute: typeof SignInRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -106,6 +124,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/character-select': {
+      id: '/character-select'
+      path: '/character-select'
+      fullPath: '/character-select'
+      preLoaderRoute: typeof CharacterSelectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -161,6 +186,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  CharacterSelectRoute: CharacterSelectRoute,
   SignInRoute: SignInRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

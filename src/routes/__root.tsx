@@ -7,6 +7,7 @@ import {
 	HeadContent,
 	Outlet,
 	Scripts,
+	useLocation,
 	useRouteContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
@@ -26,7 +27,7 @@ interface MyRouterContext {
 	convexQueryClient: ConvexQueryClient;
 }
 
-const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`;
+const CHROMELESS_ROUTES = new Set(["/", "/sign-in", "/character-select"]);
 
 const getAuth = createServerFn({ method: "GET" }).handler(async () => {
 	return await getToken();
@@ -89,18 +90,20 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	const { pathname } = useLocation();
+	const chromeless = CHROMELESS_ROUTES.has(pathname);
+
 	return (
-		<html lang={getLocale()} suppressHydrationWarning>
+		<html lang={getLocale()} className="dark" suppressHydrationWarning>
 			<head>
-				<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 				<HeadContent />
 			</head>
-			<body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
+			<body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(168,85,247,0.32)]">
 				<PostHogProvider>
 					<TanStackQueryProvider>
-						<Header />
+						{!chromeless && <Header />}
 						{children}
-						<Footer />
+						{!chromeless && <Footer />}
 						<TanStackDevtools
 							config={{
 								position: "bottom-right",
