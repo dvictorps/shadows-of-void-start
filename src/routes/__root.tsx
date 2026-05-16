@@ -13,6 +13,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect } from "react";
+import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
 import { authClient } from "#/lib/auth-client";
 import { getToken } from "#/lib/auth-server";
 import { consumeFlashToast } from "#/lib/flash-toast";
@@ -30,7 +31,12 @@ interface MyRouterContext {
 	convexQueryClient: ConvexQueryClient;
 }
 
-const CHROMELESS_ROUTES = new Set(["/", "/sign-in", "/character-select"]);
+const CHROMELESS_ROUTES = new Set([
+	"/",
+	"/sign-in",
+	"/character-select",
+	"/world",
+]);
 
 const getAuth = createServerFn({ method: "GET" }).handler(async () => {
 	return await getToken();
@@ -108,9 +114,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(168,85,247,0.32)]">
 				<PostHogProvider>
 					<TanStackQueryProvider>
-						{!chromeless && <Header />}
-						{children}
-						{!chromeless && <Footer />}
+						<ConfirmationProvider>
+							{!chromeless && <Header />}
+							{children}
+							{!chromeless && <Footer />}
+						</ConfirmationProvider>
 						<Toaster />
 						<TanStackDevtools
 							config={{

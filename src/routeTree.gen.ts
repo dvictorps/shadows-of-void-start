@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorldRouteImport } from './routes/world'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as CharacterSelectRouteImport } from './routes/character-select'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -17,6 +18,11 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminItemsRouteImport } from './routes/admin/items'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const WorldRoute = WorldRouteImport.update({
+  id: '/world',
+  path: '/world',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/character-select': typeof CharacterSelectRoute
   '/sign-in': typeof SignInRoute
+  '/world': typeof WorldRoute
   '/admin/items': typeof AdminItemsRoute
   '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/character-select': typeof CharacterSelectRoute
   '/sign-in': typeof SignInRoute
+  '/world': typeof WorldRoute
   '/admin/items': typeof AdminItemsRoute
   '/admin': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/character-select': typeof CharacterSelectRoute
   '/sign-in': typeof SignInRoute
+  '/world': typeof WorldRoute
   '/admin/items': typeof AdminItemsRoute
   '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/character-select'
     | '/sign-in'
+    | '/world'
     | '/admin/items'
     | '/admin/'
     | '/api/auth/$'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/character-select'
     | '/sign-in'
+    | '/world'
     | '/admin/items'
     | '/admin'
     | '/api/auth/$'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/character-select'
     | '/sign-in'
+    | '/world'
     | '/admin/items'
     | '/admin/'
     | '/api/auth/$'
@@ -114,11 +126,19 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   CharacterSelectRoute: typeof CharacterSelectRoute
   SignInRoute: typeof SignInRoute
+  WorldRoute: typeof WorldRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/world': {
+      id: '/world'
+      path: '/world'
+      fullPath: '/world'
+      preLoaderRoute: typeof WorldRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-in': {
       id: '/sign-in'
       path: '/sign-in'
@@ -188,6 +208,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   CharacterSelectRoute: CharacterSelectRoute,
   SignInRoute: SignInRoute,
+  WorldRoute: WorldRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
