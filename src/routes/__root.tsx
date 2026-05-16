@@ -12,11 +12,14 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
+import { useEffect } from "react";
 import { authClient } from "#/lib/auth-client";
 import { getToken } from "#/lib/auth-server";
+import { consumeFlashToast } from "#/lib/flash-toast";
 import { getLocale } from "#/paraglide/runtime";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import Toaster from "../components/Toaster";
 import PostHogProvider from "../integrations/posthog/provider";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
@@ -93,6 +96,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	const { pathname } = useLocation();
 	const chromeless = CHROMELESS_ROUTES.has(pathname);
 
+	useEffect(() => {
+		consumeFlashToast();
+	}, []);
+
 	return (
 		<html lang={getLocale()} className="dark" suppressHydrationWarning>
 			<head>
@@ -104,6 +111,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 						{!chromeless && <Header />}
 						{children}
 						{!chromeless && <Footer />}
+						<Toaster />
 						<TanStackDevtools
 							config={{
 								position: "bottom-right",

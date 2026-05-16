@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { authClient } from "#/lib/auth-client";
+import { queueFlashToast } from "#/lib/flash-toast";
 
 export const Route = createFileRoute("/sign-in")({
 	component: SignInPage,
@@ -28,10 +30,12 @@ function SignInPage() {
 					{ email, password, name },
 					{
 						onSuccess: () => {
+							queueFlashToast("success", "Account created");
 							window.location.href = "/character-select";
 						},
 						onError: (ctx) => {
 							setError(ctx.error.message);
+							toast.error(ctx.error.message);
 						},
 					},
 				);
@@ -40,10 +44,12 @@ function SignInPage() {
 					{ email, password },
 					{
 						onSuccess: () => {
+							queueFlashToast("success", "Signed in");
 							window.location.href = "/character-select";
 						},
 						onError: (ctx) => {
 							setError(ctx.error.message);
+							toast.error(ctx.error.message);
 						},
 					},
 				);
