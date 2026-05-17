@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as characters from "../characters.js";
 import type * as http from "../http.js";
+import type * as itemValidator from "../itemValidator.js";
 import type * as users from "../users.js";
 
 import type {
@@ -23,6 +24,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   characters: typeof characters;
   http: typeof http;
+  itemValidator: typeof itemValidator;
   users: typeof users;
 }>;
 

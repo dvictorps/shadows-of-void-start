@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
+import { generatedItemValidator } from "./itemValidator"
 
 export default defineSchema({
 	userRoles: defineTable({
@@ -20,8 +21,50 @@ export default defineSchema({
 		hpCurrent: v.optional(v.number()),
 		potions: v.optional(v.number()),
 		hardcore: v.optional(v.boolean()),
-		// Equipped gear references a starter-item id (e.g. "starter:rusty_sword") or, later,
-		// a generated-item document id. Per-slot fields keep updates targeted.
+		// LEGACY: pre-loot starter-item string id. New code reads equippedWeaponId.
+		// Kept optional so existing dev characters don't fail validation.
 		equippedWeapon: v.optional(v.string()),
+		// New canonical reference into the items table.
+		equippedWeaponId: v.optional(v.id("items")),
+		// Active zone session id (nanoid). Set on enterZone, cleared on exitZone or death.
+		// Items in items table with location.zoneSession === this value belong to the bag.
+		currentZoneSession: v.optional(v.string()),
 	}).index("by_authUserId", ["authUserId"]),
+
+	// All items live here — drops, inventory, equipped, stash. Location is
+	// expressed via the `locationKind` discriminator plus a handful of optional
+	// denormalized fields (Convex doesn't index into union-object members).
+	// Item ids stay stable across the lifecycle (drop → bag → inventory →
+	// equipped → stash → future trade), which is the foundation for ranking
+	// and trade integrity.
+	items: defineTable({
+		authUserId: v.string(),
+		locationKind: v.union(
+			v.literal("zoneBag"),
+			v.literal("inventory"),
+			v.literal("equipped"),
+			v.literal("stash"),
+		),
+		// zoneBag / inventory / equipped: which character owns this item right now
+		characterId: v.optional(v.id("characters")),
+		// zoneBag only: which session of which zone — used to wipe on death/commit
+		zoneSession: v.optional(v.string()),
+		// equipped only: which slot the item occupies
+		equippedSlot: v.optional(v.string()),
+		// stash only: which mode-scoped stash the item lives in
+		stashMode: v.optional(
+			v.union(v.literal("softcore"), v.literal("hardcore")),
+		),
+		data: generatedItemValidator,
+		droppedAt: v.number(),
+		// Where the drop came from — monster id, "starter", "vendor". Telemetry / future audit.
+		droppedFrom: v.optional(v.string()),
+		droppedFromLevel: v.optional(v.number()),
+		// Inventory grid position (0..59) when locationKind === "inventory".
+		// Player can drag-reorder. Empty slots are just absence of an item.
+		inventorySlot: v.optional(v.number()),
+	})
+		.index("by_character_kind", ["characterId", "locationKind"])
+		.index("by_zoneSession", ["zoneSession"])
+		.index("by_stash", ["authUserId", "stashMode"]),
 })

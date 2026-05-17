@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
@@ -18,6 +18,8 @@ type Props = {
 	canUsePotion: boolean;
 	onUsePotion: () => void;
 	onRetreat: () => void;
+	bagCount: number;
+	onOpenBag: () => void;
 };
 
 export default function CombatScene({
@@ -34,6 +36,8 @@ export default function CombatScene({
 	canUsePotion,
 	onUsePotion,
 	onRetreat,
+	bagCount,
+	onOpenBag,
 }: Props) {
 	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
 	const enemyEvents = useMemo(
@@ -52,16 +56,32 @@ export default function CombatScene({
 				{zoneName}
 			</div>
 
-			{/* Retreat button */}
-			<button
-				type="button"
-				onClick={onRetreat}
-				aria-label={m.retreat_to_map()}
-				className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
-			>
-				<ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
-				{m.retreat()}
-			</button>
+			{/* Top-right action cluster: loot button then Retreat */}
+			<div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+				<button
+					type="button"
+					onClick={onOpenBag}
+					disabled={bagCount === 0}
+					aria-label={`Loot bag (${bagCount} items)`}
+					className="relative inline-flex items-center justify-center border border-white/40 bg-black p-1.5 text-white/80 transition hover:border-white hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+				>
+					<Sparkles className="h-4 w-4" strokeWidth={2} />
+					{bagCount > 0 && (
+						<span className="absolute -top-1.5 -right-1.5 min-w-[1.1rem] border border-white bg-black px-1 text-center font-bold text-[10px] text-white leading-tight">
+							{bagCount}
+						</span>
+					)}
+				</button>
+				<button
+					type="button"
+					onClick={onRetreat}
+					aria-label={m.retreat_to_map()}
+					className="inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+				>
+					<ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
+					{m.retreat()}
+				</button>
+			</div>
 
 			{/* Enemy nameplate + HP bar */}
 			<div className="flex flex-col items-center gap-2 px-6 pt-12">

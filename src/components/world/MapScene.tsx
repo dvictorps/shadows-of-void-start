@@ -1,4 +1,4 @@
-import { Home, type LucideIcon, Skull, Trees } from "lucide-react";
+import { Home, type LucideIcon, Settings, Skull, Trees } from "lucide-react";
 import { useMemo } from "react";
 import type { Act, WorldNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
@@ -9,6 +9,7 @@ type Props = {
 	onEnterNode: (nodeId: string) => void;
 	onHoverNode: (nodeId: string | null) => void;
 	hoveredNodeId: string | null;
+	onOpenSettings: () => void;
 };
 
 const NODE_ICONS: Record<WorldNode["kind"], LucideIcon> = {
@@ -22,11 +23,20 @@ export default function MapScene({
 	onEnterNode,
 	onHoverNode,
 	hoveredNodeId,
+	onOpenSettings,
 }: Props) {
 	const edges = useMemo(() => buildEdges(act.nodes), [act.nodes]);
 
 	return (
 		<section className="relative overflow-hidden rounded-md border border-white/40 bg-black">
+			<button
+				type="button"
+				onClick={onOpenSettings}
+				aria-label={m.open_settings()}
+				className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center border border-white/40 bg-black text-white/80 transition hover:border-white hover:bg-white/10 hover:text-white"
+			>
+				<Settings className="h-4 w-4" strokeWidth={2} />
+			</button>
 			<svg
 				aria-hidden
 				className="absolute inset-0 h-full w-full"

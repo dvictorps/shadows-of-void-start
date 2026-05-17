@@ -16,7 +16,10 @@ const config = defineConfig({
     paraglideVitePlugin({
       project: './project.inlang',
       outdir: './src/paraglide',
-      strategy: ['url', 'baseLocale'],
+      // SPA without locale-prefixed routes (no /en/world etc.) — use a
+      // localStorage-backed strategy so language is a user preference, not a
+      // URL segment. preferredLanguage seeds from the browser the first time.
+      strategy: ['localStorage', 'preferredLanguage', 'baseLocale'],
     }),
     tailwindcss(),
     tanstackStart(),

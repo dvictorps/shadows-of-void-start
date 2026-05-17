@@ -1,0 +1,141 @@
+import { pickRandom, pickWeighted, randInt } from "../../lib/rng";
+import type { EquipmentTemplate } from "../items/data/templates";
+import { EQUIPMENT_TEMPLATES } from "../items/data/templates";
+import { generateItem } from "../items/generator";
+import type { GeneratedItem, ItemRarity } from "../items/types";
+import type { EquipmentType } from "../items/types/base";
+import type { MonsterRarity } from "../monsters/types";
+
+const JEWELRY_LEVEL_THRESHOLD = 5;
+
+// Drop probabilities & rarity distributions per mob rarity, mirroring the
+// CONTEXT.md Act 1 baseline table.
+const DROP_TABLE: Record<
+	MonsterRarity,
+	{
+		dropChance: number;
+		rarity: Array<{ rarity: ItemRarity; weight: number }>;
+	}
+> = {
+	normal: {
+		dropChance: 0.3,
+		rarity: [
+			{ rarity: "normal", weight: 70 },
+			{ rarity: "magic", weight: 25 },
+			{ rarity: "rare", weight: 5 },
+		],
+	},
+	magic: {
+		dropChance: 0.6,
+		rarity: [
+			{ rarity: "normal", weight: 40 },
+			{ rarity: "magic", weight: 50 },
+			{ rarity: "rare", weight: 10 },
+		],
+	},
+	rare: {
+		// Minibosses always drop; the guarantee handling lives on the caller.
+		dropChance: 1,
+		rarity: [
+			{ rarity: "normal", weight: 30 },
+			{ rarity: "magic", weight: 55 },
+			{ rarity: "rare", weight: 15 },
+		],
+	},
+};
+
+function eligibleEquipmentTypes(monsterLevel: number): EquipmentType[] {
+	const base: EquipmentType[] = [
+		"weapon",
+		"helmet",
+		"chestplate",
+		"boots",
+		"gloves",
+		"offhand",
+	];
+	if (monsterLevel >= JEWELRY_LEVEL_THRESHOLD) {
+		base.push("ring", "amulet", "belt");
+	}
+	return base;
+}
+
+function pickRarity(distribution: { rarity: ItemRarity; weight: number }[]) {
+	return (
+		pickWeighted(distribution, (e) => e.weight)?.rarity ??
+		distribution[distribution.length - 1].rarity
+	);
+}
+
+function templatesForType(
+	equipmentType: EquipmentType,
+	itemLevel: number,
+): EquipmentTemplate[] {
+	return EQUIPMENT_TEMPLATES.filter(
+		(t) => t.equipmentType === equipmentType && t.dropLevel <= itemLevel,
+	);
+}
+
+export interface RollDropParams {
+	monsterRarity: MonsterRarity;
+	monsterLevel: number;
+}
+
+/**
+ * Rolls a single drop for a monster kill. Returns null when nothing drops.
+ * For mobs that drop multiple items (minibosses, act bosses), call multiple
+ * times and apply guaranteed-rarity overrides at the call site.
+ */
+export function rollDrop(params: RollDropParams): GeneratedItem | null {
+	const table = DROP_TABLE[params.monsterRarity];
+	if (Math.random() > table.dropChance) return null;
+
+	const rarity = pickRarity(table.rarity);
+	const types = eligibleEquipmentTypes(params.monsterLevel);
+	const equipmentType = pickRandom(types);
+	if (!equipmentType) return null;
+
+	// Hand control of weapon-subtype and armor-base to the template list: pick
+	// any template of the right equipment type whose dropLevel allows it at
+	// this ilvl. Weapon subtype variety and armor-base diversity emerge for
+	// free from the existing template pool.
+	const candidates = templatesForType(equipmentType, params.monsterLevel);
+	if (candidates.length === 0) {
+		// Fallback — no template eligible at this level for this type. Try any
+		// template of the same type ignoring dropLevel; if still none, bail.
+		const anyOfType = EQUIPMENT_TEMPLATES.filter(
+			(t) => t.equipmentType === equipmentType,
+		);
+		if (anyOfType.length === 0) return null;
+		const pick = pickRandom(anyOfType);
+		if (!pick) return null;
+		return generateItem({
+			rarity,
+			itemLevel: params.monsterLevel,
+			templateId: pick.id,
+		});
+	}
+
+	const template = pickRandom(candidates);
+	if (!template) return null;
+	return generateItem({
+		rarity,
+		itemLevel: params.monsterLevel,
+		templateId: template.id,
+	});
+}
+
+/**
+ * Resolves a monster's instance level from the zone level — uniformly rolls
+ * one of zoneLevel-1, zoneLevel, zoneLevel+1, floored at 1.
+ */
+export function rollMonsterLevel(zoneLevel: number): number {
+	return Math.max(1, zoneLevel + randInt(-1, 1));
+}
+
+/**
+ * Re-export for callers that want the threshold as a constant.
+ */
+export const JEWELRY_MONSTER_LEVEL_THRESHOLD = JEWELRY_LEVEL_THRESHOLD;
+
+// Suppress unused-export linter for the EquipmentType import when only used in types.
+export type { EquipmentType };
