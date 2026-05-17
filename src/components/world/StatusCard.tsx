@@ -1,21 +1,39 @@
 import { Button } from "#/components/ui/button";
 import type { CharacterClassDefinition } from "#/game/classes/types";
+import { computeMaxHp, xpToNextLevel } from "#/game/progression/levels";
 import type { Doc } from "../../../convex/_generated/dataModel";
+import HealthGlobe from "./HealthGlobe";
 
 type Props = {
 	character: Doc<"characters">;
 	classDef: CharacterClassDefinition | null;
+	hpOverride?: number;
+	potionsOverride?: number;
+	onUsePotion?: () => void;
 };
 
-export default function StatusCard({ character, classDef }: Props) {
+export default function StatusCard({
+	character,
+	classDef,
+	hpOverride,
+	potionsOverride,
+	onUsePotion,
+}: Props) {
 	const className = classDef?.name ?? "Unknown";
 	const attrs = classDef?.baseStats.attributes ?? {
 		strength: 0,
 		dexterity: 0,
 		intelligence: 0,
 	};
-	const hp = classDef?.baseStats.hp ?? 0;
+	const maxHp = computeMaxHp(classDef, character.level);
+	const hpServer = character.hpCurrent ?? maxHp;
+	const hp = hpOverride ?? hpServer;
+	const potions = potionsOverride ?? character.potions ?? 0;
+	const xp = character.xp ?? 0;
+	const xpNeeded = xpToNextLevel(character.level);
+	const xpPct = Math.min(100, (xp / xpNeeded) * 100);
 	const barrier = classDef?.baseStats.barrier ?? 0;
+	const canUsePotion = !!onUsePotion && potions > 0 && hp < maxHp;
 
 	return (
 		<section className="rounded-md border border-white/40 p-4">
@@ -49,20 +67,37 @@ export default function StatusCard({ character, classDef }: Props) {
 					</div>
 				</div>
 
-				<div className="space-y-1">
-					<div className="text-[10px] uppercase tracking-wider text-yellow-300/80">
-						XP: 0 / 100
+				<div className="flex items-center gap-3">
+					<div className="flex-1 space-y-1">
+						<div className="text-[10px] uppercase tracking-wider text-yellow-300/80">
+							XP: {xp} / {xpNeeded}
+						</div>
+						<div
+							role="progressbar"
+							aria-label="Experience"
+							aria-valuenow={xp}
+							aria-valuemin={0}
+							aria-valuemax={xpNeeded}
+							className="h-2 w-full overflow-hidden rounded-full bg-white/10"
+						>
+							<div
+								className="h-full bg-yellow-300 transition-[width] duration-200"
+								style={{ width: `${xpPct}%` }}
+							/>
+						</div>
 					</div>
-					<div
-						role="progressbar"
-						aria-label="Experience"
-						aria-valuenow={0}
-						aria-valuemin={0}
-						aria-valuemax={100}
-						className="h-2 w-full overflow-hidden rounded-full bg-white/10"
+					<button
+						type="button"
+						onClick={onUsePotion}
+						disabled={!canUsePotion}
+						aria-label="Use potion"
+						className="relative flex h-10 w-10 shrink-0 items-center justify-center border border-white/40 bg-black text-base transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
 					>
-						<div className="h-full bg-yellow-300" style={{ width: "0%" }} />
-					</div>
+						🧪
+						<span className="absolute -bottom-1 -right-1 min-w-[1rem] border border-white/40 bg-black px-1 text-center text-[9px] leading-tight text-white">
+							{potions}
+						</span>
+					</button>
 				</div>
 
 				<hr className="border-white/15" />
@@ -82,12 +117,12 @@ export default function StatusCard({ character, classDef }: Props) {
 					</div>
 
 					<div className="flex justify-center gap-2">
-						<ConsumableSlot label="P" count={0} />
-						<ConsumableSlot label="S" count={0} />
+						<ConsumableSlot label="?" count={0} />
+						<ConsumableSlot label="?" count={0} />
 						<ConsumableSlot label="?" count={0} />
 					</div>
 
-					<HealthGlobe hp={hp} barrier={barrier} />
+					<HealthGlobe hp={hp} maxHp={maxHp} barrier={barrier} />
 				</div>
 			</div>
 		</section>
@@ -100,23 +135,6 @@ function ConsumableSlot({ label, count }: { label: string; count: number }) {
 			{label}
 			<span className="absolute -bottom-1 -right-1 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
 				×{count}
-			</span>
-		</div>
-	);
-}
-
-function HealthGlobe({ hp, barrier }: { hp: number; barrier: number }) {
-	return (
-		<div
-			role="img"
-			aria-label="Health and barrier"
-			className="relative flex h-16 w-16 shrink-0 flex-col items-center justify-center overflow-hidden rounded-full border-2 border-red-900/70 bg-gradient-to-b from-red-600 to-red-950 text-center shadow-[inset_0_-10px_18px_rgba(0,0,0,0.45),0_0_18px_rgba(220,38,38,0.4)]"
-		>
-			<span className="text-[10px] font-bold leading-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-				{hp}/{hp}
-			</span>
-			<span className="text-[9px] leading-tight text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-				{barrier}/{barrier}
 			</span>
 		</div>
 	);

@@ -1,0 +1,33 @@
+type Props = {
+	hp: number;
+	maxHp: number;
+	barrier?: number;
+	size?: "sm" | "lg";
+};
+
+export default function HealthGlobe({
+	hp,
+	maxHp,
+	barrier = 0,
+	size = "sm",
+}: Props) {
+	const dimensions =
+		size === "lg" ? "h-28 w-28 text-sm" : "h-16 w-16 text-[10px]";
+
+	return (
+		<div
+			role="img"
+			aria-label="Health and barrier"
+			className={`relative flex shrink-0 flex-col items-center justify-center overflow-hidden rounded-full border-2 border-red-900/70 bg-gradient-to-b from-red-600 to-red-950 text-center shadow-[inset_0_-10px_18px_rgba(0,0,0,0.45),0_0_18px_rgba(220,38,38,0.4)] ${dimensions}`}
+		>
+			<span className="font-bold leading-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+				{Math.ceil(hp)}/{maxHp}
+			</span>
+			{barrier > 0 && (
+				<span className="text-[0.85em] leading-tight text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+					{barrier}/{barrier}
+				</span>
+			)}
+		</div>
+	);
+}

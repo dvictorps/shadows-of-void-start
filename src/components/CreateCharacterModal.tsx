@@ -29,11 +29,13 @@ export default function CreateCharacterModal({
 	const createCharacter = useMutation(api.characters.create);
 	const [name, setName] = useState("");
 	const [classId, setClassId] = useState<CharacterClassId>("warrior");
+	const [hardcore, setHardcore] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 
 	const reset = () => {
 		setName("");
 		setClassId("warrior");
+		setHardcore(false);
 		setSubmitting(false);
 	};
 
@@ -52,7 +54,7 @@ export default function CreateCharacterModal({
 		}
 		setSubmitting(true);
 		try {
-			const id = await createCharacter({ name: trimmed, classId });
+			const id = await createCharacter({ name: trimmed, classId, hardcore });
 			toast.success(`${trimmed} created`);
 			reset();
 			onCreated(id);
@@ -126,6 +128,24 @@ export default function CreateCharacterModal({
 						{CLASS_DEFINITIONS[classId].description}
 					</p>
 				</div>
+
+				<label className="flex cursor-pointer items-start gap-2 border border-red-500/30 bg-red-950/10 p-3 transition hover:border-red-500/50">
+					<input
+						type="checkbox"
+						checked={hardcore}
+						onChange={(e) => setHardcore(e.target.checked)}
+						className="mt-0.5 accent-red-500"
+					/>
+					<div>
+						<div className="text-xs font-medium uppercase tracking-wider text-red-300">
+							Hardcore
+						</div>
+						<div className="mt-0.5 text-[11px] leading-snug text-white/60">
+							Death is permanent. Cannot be toggled after creation. Hardcore
+							characters use a separate stash.
+						</div>
+					</div>
+				</label>
 
 				<div className="flex justify-end gap-3 pt-2">
 					<Button
