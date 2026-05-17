@@ -1,6 +1,300 @@
 # Shadows of Void — Context
 
-Canonical glossary for the item domain. Defines what each term **means** in the game, not how the code implements it. When the code disagrees with this document, fix the code.
+Canonical glossary for the game domain. Defines what each term **means** in the game, not how the code implements it. When the code disagrees with this document, fix the code.
+
+---
+
+## World Progression
+
+### Act
+A chapter of the game. Contains a directed acyclic graph (DAG) of **zones** that the player progresses through. **Act 1** is the only built act today; the system is designed to host more.
+
+### Hub
+A central screen that lets the player switch between unlocked acts to farm them in any order. Acts are unlocked **linearly** (you finish act N to unlock act N+1), but past acts remain re-enterable through the hub.
+
+### Node
+A point in the act's DAG. Two kinds exist today:
+
+- **Zone node** — a combat location. The player enters, fights enemies (see Threshold Bar / Zone Boss), leaves, returns later. May be a regular zone, the act-boss node, or future variants.
+- **City node** — a safe location with no mobs. Houses the act's **vendor** and gives access to the **stash**. Always one city per act, unlocked at act entry (the player starts the act with both the city node and the first zone node visible on the map).
+
+### Zone
+Synonym for a Zone node. Used in the rest of this document when the distinction from a city is contextual.
+
+A zone has three persistent states per character:
+- **Incomplete** — never finished. Threshold bar resets every time the player leaves.
+- **Boss pending** — the player reached the threshold but deferred the boss fight. The "summon boss" button persists across exits until the boss is killed.
+- **Complete** — the player killed the zone boss at least once. Stays this way forever. Re-entering the zone is allowed for farming; the boss can be summoned again by refilling the threshold.
+
+### Threshold Bar
+The progress bar shown over the zone view that fills as the player kills mobs. The exact kill count is hidden; only the bar is visible. The threshold is **30 kills**. When it fills, the **zone boss** spawns (or becomes summonable, see "Boss Deferral"). The fill resets to 0 every time the player leaves the zone with the boss unsummoned.
+
+### Boss Deferral
+When the threshold bar fills, a pause modal asks if the player wants to fight the boss now. If they decline, a persistent **"Invoke Boss"** button appears in the zone UI. This button survives leaving and re-entering the zone — the boss stays "pending" until killed.
+
+### Zone Boss (Miniboss)
+The strong enemy that appears at the threshold of a normal zone. Drops better loot than mobs. Respawns every time the threshold is refilled, including after the zone is complete (so completed zones remain meaningful for loot farming).
+
+### Act Boss
+A distinct, more powerful enemy that gates progression to the next act. Lives in the **final node** of the act (a dedicated boss node, not a regular zone). For Act 1, the boss node follows **Model B**:
+
+1. Bar 1 fills (mobs) → a miniboss appears
+2. Player kills the miniboss → Bar 2 starts
+3. Bar 2 fills (harder mobs) → the **act boss** appears
+4. Player kills the act boss → the act is complete; next act unlocks
+
+The act boss is **farmable** — it does not despawn permanently after the first kill. The challenge comes from having to clear both bars and the miniboss every attempt; the player can't just walk in and re-kill it.
+
+Future acts may use different boss-node mechanics (gauntlets, multi-boss, scripted sequences). The system must accommodate this without hardcoding Act 1's pattern.
+
+---
+
+## Viewport Modes
+
+The `/world` route shares a single shell (equipment panel + status card + log) and swaps the central viewport between three modes depending on which node the player has entered:
+
+- **Map** — the act's node DAG. Default state when the player isn't inside any node. Equipment panel and status card (small HP globe, consumables, character info) remain visible on the right.
+- **City** — replaces the viewport with the city scene when the player enters a city node. No mobs. Surface includes buttons to open the **vendor** (modal) and the **stash** (modal). The status card and equipment panel are unchanged.
+- **Combat** — replaces the viewport with the active combat scene when the player enters a zone node. Enemy in center, enemy HP/name on top. The HP globe migrates from bottom-right (passive) to bottom-left (large, focal). Consumables remain usable.
+
+This is component-state inside `/world`, not three different routes. Entering a node sets the view mode; the "Back to map" affordance returns to **Map**.
+
+## Stash and Vendor
+
+### Stash
+Persistent item storage. **Shared across all characters in the account, scoped by mode.**
+
+- The **softcore stash** is shared across all softcore characters on the account.
+- The **hardcore stash** is shared across all hardcore characters on the account.
+- The two stashes are **isolated** from each other — a hardcore character's drops cannot reach softcore via the stash, preserving the integrity of hardcore risk.
+
+Storage model:
+- **One slot, one item.** No grid-tetris sizing — every item occupies exactly one slot, regardless of type or rarity.
+- Default capacity: **60 slots** in a single tab.
+- Additional **tabs are purchasable with Rubys** (see below). No fixed cap on tab count.
+
+### Inventory
+The character's personal carry capacity. Distinct from the stash — what travels with the character.
+
+- **60 slots**, same one-item-per-slot rule as the stash.
+- This is the destination for items kept after a zone (see Loot Pipeline) and the source for items deposited into the stash.
+
+### Vendor
+Per-act NPC inside the act's city. Uses **Rubys** in both directions.
+
+- **Sells**: initially **consumables only** (life potions today, more types in future). Does not sell gear in MVP.
+- **Buys**: the player can sell items (gear) to the vendor for Rubys. The vendor does **not** buy back consumables — once bought, they're committed.
+
+Vendor stock and accepted goods are scoped to the act — Act 2's vendor doesn't share state with Act 1's vendor.
+
+### Ruby (currency)
+The game's only currency. **Monsters never drop Rubys.** The full ruby loop is:
+
+1. Player kills monsters → drops items
+2. Player sells unwanted items at a vendor → receives Rubys
+3. Player spends Rubys at a vendor (gear, consumables) or on stash tabs
+
+This forces engagement with the vendor as the only ruby source and keeps drops as the central reward — Rubys are downstream of the loot loop, not parallel to it.
+
+---
+
+## Loot Pipeline
+
+Loot is **staged**, not instantly added to the inventory. The flow inside a zone:
+
+1. As the player kills monsters in a zone, drops accumulate into a **zone bag** (ephemeral, not persisted; capacity is unlimited — filtering happens on exit).
+2. A notification button in the upper area of the combat view shows the bag's running count and lets the player open a preview modal at any time to see what dropped so far.
+3. When the player chooses to **leave the zone**, a modal appears listing every item in the bag. The player picks which items to keep (transfer to inventory) and which to discard (gone forever). Only the kept items reach the inventory.
+4. If the player **dies in the zone**, the entire bag is lost — no preview, no recovery.
+
+The zone-bag-then-pick model rewards exploration (you can see everything before committing), penalizes greed (dying late in a long run loses the haul), and lets the player walk out with only what fits the build.
+
+---
+
+## Combat Resolution
+
+Combat is automatic and **status-machine driven**: both sides have stats, attack rates, and mitigation, and damage is applied tick-by-tick by the formulas below. The player has no per-hit input in MVP combat; skills with cooldowns are a later layer that will plug into this same machine.
+
+### Per-tick attack
+- Each side has an **attack rate** (attacks per second). Example: a 1.8 attack-speed weapon resolves 1.8 hits/sec.
+- Each hit's damage is the sum of the side's offensive stats (flat damage, multipliers, crit chance × crit multi, elemental contributions, etc.) — i.e., every global damage modifier in the pool applies.
+- The defending side mitigates with its **armor / evasion / barrier / resistances** before the hit lands. Whatever remains is subtracted from life (and barrier, where applicable).
+- Life leech, regen, on-hit, on-kill effects fire per their own triggers as part of the same machine.
+
+### Tick order
+The **player acts first** on each tick. Within a tick: player's hit resolves → effects trigger → enemy's hit resolves. This gives the player a slight advantage equivalent to one free swing per combat and keeps simulations deterministic.
+
+### Stat caps
+Hard ceilings applied after all modifiers stack:
+
+- **Critical strike chance: 100%.** Excess crit chance from gear is wasted.
+- **Resistances (cold, fire, lightning, void): 75%.** Stacking past 75% is wasted in normal content.
+- **Attack speed and cast speed: no cap.** These scale freely. Used as primary scaling vectors in the late game.
+
+### Monster rarities
+Mobs use the same rarity ladder as items, with reduced reach:
+
+- **Normal mob** — baseline stats, no modifiers.
+- **Magic mob** — 1-2 modifiers rolled from the monster modifier pool. Slightly tougher than normal.
+- **Rare** — used exclusively for **minibosses** (the threshold spawn). Higher-tier modifier rolls. Drops better loot.
+- **Legendary / Epic mobs do not exist** — those tiers are reserved for items.
+
+### Between-zone state
+HP **persists across zones**. Leaving a zone at low HP means re-entering at low HP — there is no automatic full-heal between fights. Recovery options:
+
+- **Passive HP regen** ticks out of combat in real time, governed by the same regen stats used in combat. The map is "on the clock" — standing still in the map view actually heals.
+- **Consumables** can be used freely from the status card on the map.
+- **Entering a city node fully restores HP and all per-fight stats to 100%.** This is the cheap, always-available reset; the trade-off is the time/distance to walk back.
+
+When the player leaves a zone, all **damage-over-time (DoT) effects are removed**. The player doesn't bleed out on the map.
+
+### Equipment swap during combat
+Allowed. The player can re-equip gear inside a zone — useful for swapping in resist-heavy gear before a hard fight, or weapon variations. There is no equip cooldown in the MVP.
+
+### Active player input
+Combat is otherwise automatic, but the player has **one active control today**: using a **life potion**.
+
+- Potions heal **20% of maximum HP** on use.
+- The character can carry a **maximum of 10 potions** at any time.
+- Potions are bought from the city vendor.
+- The potion button lives on the bottom-right of the combat view (next to the health globe) and on the map's status card (so the player can also use one out-of-combat).
+
+Future skills will plug in as additional active controls; the potion is the only one in the MVP.
+
+---
+
+## Experience and Levels
+
+- The level cap is **100**. Linear XP curve (the cost to gain a level scales linearly with level number).
+- **Act 1 carries the character to roughly level 15.** Balance will be refined as later acts come online.
+- See **Death** for the XP-loss-on-death rule.
+
+---
+
+## Classes
+
+In the MVP, classes differ along two axes only:
+
+- **Starting attribute distribution** — each class has its own baseline (Warrior favors Strength, Rogue favors Dexterity, Mage favors Intelligence). Lives in `src/game/classes/data.ts`.
+- **Starting equipment** — each class enters Act 1 with one class-flavored weapon:
+  - **Warrior** → Sword
+  - **Rogue** → Dagger
+  - **Mage** → Wand
+
+The current classes are **Warrior**, **Rogue**, **Mage**.
+
+Deep class identity — active skills, passive tree branches — is **future work**, layered in this order:
+
+1. MVP combat works for all classes
+2. **Passive tree** is added (shared system, class branches into it)
+3. **Active skills** per class are added on top of the passive tree
+
+Until passive tree + skills exist, classes effectively play the same way; they just start in different stat positions.
+
+---
+
+## Item Identification and Loot Tiers per Act
+
+- **All items drop pre-identified.** No identification scrolls, no fog of war on stats.
+- **Act 1 drop pool:** Normal, Magic, Rare. Legendary has a **low chance** to drop only from the **act boss**. Epic items do not exist in Act 1.
+- **Act 2 onward (planned):** introduces Epic drops and continues to ramp Legendary frequency.
+
+### Drop rates (Act 1 baseline)
+
+| Source | Drop chance | If drops |
+|---|---|---|
+| Normal mob | 30% | 70% Normal · 25% Magic · 5% Rare |
+| Magic mob | 60% | 40% Normal · 50% Magic · 10% Rare |
+| Miniboss (Rare) | 100% | **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare |
+| Act boss | 100% | **2-3 items** · 1 **guaranteed Rare** · remaining slots: 75% Rare · 25% Magic (no Normals from boss) |
+
+**Magic Find** (item rarity %) shifts every drop's distribution toward higher rarity, including the **guaranteed Rare slots** from minibosses and the act boss. Every drop — including the guaranteed slots — can be promoted upward by enough MF:
+
+- Normal → Magic → Rare → **Legendary**
+
+Legendaries are reachable in Act 1 from any source, but the baseline chance is **very low**. The act boss has the highest baseline Legendary chance (a few %); regular mobs need significant MF stacking to see one. Epic drops are not available in Act 1.
+
+### Vendor price formula
+
+```
+price = base_rarity × (1 + ilvl / 10) × (1 + mod_quality_total / 10)
+```
+
+- `base_rarity` — fixed per rarity:
+  - Normal: 5
+  - Magic: 20
+  - Rare: 80
+  - Legendary: 400
+  - Epic: 2000 (Act 2+)
+- `mod_quality_total` — sum of `(11 - tier_index)` across all explicit mods on the item. T1 (best) contributes 10, T10 (worst) contributes 1. Items with no explicit mods (Normal items) contribute 0 here.
+
+Example: Rare item, `ilvl 80`, three mods rolled at tiers T3 / T4 / T2:
+```
+80 × (1 + 80/10) × (1 + (8 + 7 + 9) / 10)
+= 80 × 9 × 3.4
+≈ 2448 rubys
+```
+
+---
+
+## Monster Modifier Pool
+
+Magic and Rare monsters roll modifiers from a small, generic pool (separate from the item modifier pool — different domain). Counts:
+
+- **Magic mob: 1 modifier**
+- **Rare / Miniboss: 3 modifiers**
+- **Normal mob: 0 modifiers**
+
+The pool is intentionally short and broad — granular per-monster tuning happens through base stats, not the modifier pool.
+
+Starter pool (Act 1):
+
+- **Increased Life** — wider HP bar.
+- **Increased Damage** — bigger hits.
+- **Increased Attack Speed** — more hits per second.
+- **Increased Cold Resistance** — mitigates cold damage.
+- **Increased Fire Resistance** — mitigates fire damage.
+- **Increased Lightning Resistance** — mitigates lightning damage.
+- **Increased Void Resistance** — mitigates void damage.
+- **Additional Barrier** — flat barrier pool above HP.
+- **More Armor** — increased physical mitigation.
+
+The pool will grow with later acts (on-hit effects, summons, auras), but Act 1 stays minimal.
+
+---
+
+## Death
+
+When a character's life reaches zero:
+
+- **Softcore (default)**: the character loses **5% of current XP** (in Act 1; the penalty may scale up in later acts), the entire zone-bag is discarded, and the player respawns at the act's city node. The character itself persists. XP loss is **floored at the level's baseline** — death never demotes the character to a lower level. (`max(0, current_xp - 0.05 × current_xp)`.)
+- **Hardcore (opt-in at character creation)**: the character is permanently deleted on death. Stash items remain (the stash is account-wide), but the character record and all its equipped gear are lost.
+
+Hardcore is a **per-character flag** chosen at creation and cannot be toggled afterward. A hardcore character's death is unrecoverable.
+
+### Enemy classes
+- **Normal mobs** — baseline stats from game data. Equivalent to an item of `normal` rarity: no extra modifiers.
+- **Minibosses / Zone bosses** — carry **modifiers** drawn from a pool, just like rare/legendary items. Modifiers may increase attack speed, damage, defense, or grant on-hit effects. This is how difficulty scales without rewriting enemies.
+- **Act bosses** — handcrafted; their modifiers and behavior are specified per boss, not rolled.
+
+### Mob configuration
+Mobs live in **game data**, not the database. Each zone declares a **pool of eligible mobs**; combat sessions roll spawns from that pool. Mob templates include base stats (HP, attack speed, damage, defenses) and any flavor-specific behavior; modifiers are layered on top for minibosses.
+
+---
+
+## Navigation and Logout
+
+### From character-select → world
+Picking a character routes to `/world`. The world view starts in **Map** mode for the character's current act.
+
+### From world → character-select
+A back button in the top-left corner of the world view opens a **confirmation modal** ("Leave the world?"). Confirming returns the player to `/character-select`. There is no other way out of `/world` — chromeless routes don't render the Header.
+
+### Sign-out
+Only reachable from `/character-select`. A dedicated sign-out control lives there so the player must consciously leave the character context before signing out.
+
+### Hub
+A separate `/hub` route exists for switching between unlocked acts. It is **locked** until the player completes Act 1. Until then, character-select routes directly to `/world?act=1`. After completing Act 1, character-select routes to `/hub`, which lets the player pick which act to enter.
 
 ---
 
@@ -226,6 +520,10 @@ Conditions that must always hold. If you find code that violates these, file it 
 ## Out of Scope (for now)
 
 - **Unique items** — hand-crafted rarity above Epic, planned. See `docs/plans/roadmap.md`.
+- **Epic items in Act 1** — Epic drops are reserved for Act 2+.
+- **Active skills with cooldowns** — planned, but only after all classes are implemented and the passive tree exists. The MVP combat loop has exactly one active control: the life potion.
+- **Passive tree** — planned, between MVP combat and active skills.
+- **Hub city** — the hub gets its own city (with vendor/stash/NPCs) only in late-game planning. For now the hub is pure navigation between acts.
 - **Dual wielding** — two attack weapons instead of weapon+shield. Slot model TBD.
 - **% max life / % max mana mods** — intentionally removed, reserved for future power creep.
 - **Light radius** — removed. The game is an auto-battler resolved by stats; there is no perception/sight mechanic for light radius to modify.
