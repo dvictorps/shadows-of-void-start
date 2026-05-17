@@ -1,4 +1,5 @@
 import type { EquipmentType } from "#/game/items/types/base";
+import InventoryButton from "./InventoryButton";
 
 type SlotArea =
 	| "helmet"
@@ -25,7 +26,7 @@ const SLOT_GRID_STYLE = {
 
 export default function EquipmentPanel() {
 	return (
-		<section className="rounded-md border border-white/40 p-3">
+		<section className="relative rounded-md border border-white/40 p-3">
 			<div className="flex h-full items-center justify-center">
 				<div className="grid gap-2" style={SLOT_GRID_STYLE}>
 					<EquipmentSlot type="helmet" label="HELM" area="helmet" />
@@ -46,6 +47,7 @@ export default function EquipmentPanel() {
 					<EquipmentSlot type="boots" label="BTS" area="boots" />
 				</div>
 			</div>
+			<InventoryButton />
 		</section>
 	);
 }

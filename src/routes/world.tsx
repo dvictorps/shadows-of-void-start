@@ -3,7 +3,6 @@ import { useQuery } from "convex/react";
 import { useEffect } from "react";
 import { z } from "zod";
 import EquipmentPanel from "#/components/world/EquipmentPanel";
-import InventoryButton from "#/components/world/InventoryButton";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import Viewport from "#/components/world/Viewport";
@@ -65,8 +64,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				<EquipmentPanel />
 				<StatusCard character={character} classDef={classDef} />
 			</aside>
-
-			<InventoryButton />
 		</main>
 	);
 }
