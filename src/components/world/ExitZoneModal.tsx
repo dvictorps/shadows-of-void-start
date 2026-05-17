@@ -42,6 +42,13 @@ export default function ExitZoneModal({
 		setSelected(new Set());
 	}, [isOpen]);
 
+	// Auto-close after a partial pick/discard empties the bag. The modal only
+	// opens with items > 0, so an empty bagItems here always means the user
+	// just cleared it via a selection action.
+	useEffect(() => {
+		if (isOpen && bagItems.length === 0) onClose();
+	}, [isOpen, bagItems.length, onClose]);
+
 	const toggle = (id: string) => {
 		setSelected((prev) => {
 			const next = new Set(prev);

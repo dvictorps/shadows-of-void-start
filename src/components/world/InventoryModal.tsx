@@ -2,6 +2,8 @@ import {
 	closestCenter,
 	DndContext,
 	type DragEndEvent,
+	DragOverlay,
+	type DragStartEvent,
 	PointerSensor,
 	useDraggable,
 	useDroppable,
@@ -9,6 +11,7 @@ import {
 	useSensors,
 } from "@dnd-kit/core";
 import { useMutation, useQuery } from "convex/react";
+import { useState } from "react";
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
@@ -92,6 +95,8 @@ export default function InventoryModal({
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
 	);
 
+	const [activeId, setActiveId] = useState<Id<"items"> | null>(null);
+
 	const equippedBySlot = new Map<string, Doc<"items">>();
 	for (const item of equippedItems ?? []) {
 		if (item.equippedSlot) equippedBySlot.set(item.equippedSlot, item);
@@ -99,7 +104,6 @@ export default function InventoryModal({
 
 	const inventory = inventoryItems ?? [];
 
-	// Build a slot → item map honoring inventorySlot.
 	const inventoryBySlot = new Map<number, Doc<"items">>();
 	for (const item of inventory) {
 		if (typeof item.inventorySlot === "number") {
@@ -108,8 +112,16 @@ export default function InventoryModal({
 	}
 	const usedSlots = inventory.length;
 	const freeSlots = Math.max(0, INVENTORY_MAX_SLOTS - usedSlots);
+	const activeItem = activeId
+		? inventory.find((it) => it._id === activeId)
+		: null;
+
+	const handleDragStart = (event: DragStartEvent) => {
+		setActiveId(event.active.id as Id<"items">);
+	};
 
 	const handleDragEnd = (event: DragEndEvent) => {
+		setActiveId(null);
 		const { active, over } = event;
 		if (!over) return;
 		const itemId = active.id as Id<"items">;
@@ -121,6 +133,8 @@ export default function InventoryModal({
 		if (!source || source.inventorySlot === targetSlot) return;
 		void reorder({ characterId, itemId, targetSlot });
 	};
+
+	const handleDragCancel = () => setActiveId(null);
 
 	return (
 		<Modal
@@ -185,7 +199,9 @@ export default function InventoryModal({
 					<DndContext
 						sensors={sensors}
 						collisionDetection={closestCenter}
+						onDragStart={handleDragStart}
 						onDragEnd={handleDragEnd}
+						onDragCancel={handleDragCancel}
 					>
 						<div className="fancy-scroll max-h-[60vh] overflow-y-auto pr-3">
 							<div
@@ -200,10 +216,23 @@ export default function InventoryModal({
 										key={`slot-${slot}`}
 										slot={slot}
 										item={inventoryBySlot.get(slot) ?? null}
+										isDraggingThis={
+											activeId !== null &&
+											inventoryBySlot.get(slot)?._id === activeId
+										}
 									/>
 								))}
 							</div>
 						</div>
+						<DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
+							{activeItem ? (
+								<ItemCard
+									item={activeItem.data}
+									size={INVENTORY_SLOT_SIZE}
+									suppressTooltip
+								/>
+							) : null}
+						</DragOverlay>
 					</DndContext>
 				</section>
 			</div>
@@ -214,44 +243,52 @@ export default function InventoryModal({
 function DroppableSlot({
 	slot,
 	item,
+	isDraggingThis,
 }: {
 	slot: number;
 	item: Doc<"items"> | null;
+	isDraggingThis: boolean;
 }) {
 	const { setNodeRef, isOver } = useDroppable({ id: `slot-${slot}` });
-	const highlight = isOver ? "ring-2 ring-white/80" : "";
+	const highlight = isOver ? "ring-2 ring-yellow-300/80" : "";
 	return (
 		<div
 			ref={setNodeRef}
 			style={{ width: INVENTORY_SLOT_SIZE, height: INVENTORY_SLOT_SIZE }}
-			className={`relative rounded-md ${highlight}`}
+			className={`relative rounded-md transition-shadow ${highlight}`}
 		>
-			{item ? (
-				<DraggableItem item={item} />
-			) : (
-				<div
-					style={{ width: INVENTORY_SLOT_SIZE, height: INVENTORY_SLOT_SIZE }}
-					className={`rounded-md ${SLOT_EMPTY}`}
-				/>
-			)}
+			{/* Empty-slot frame always rendered behind, so when the source item is
+			    being dragged (rendered invisibly above) the slot still looks proper. */}
+			<div className={`absolute inset-0 rounded-md ${SLOT_EMPTY}`} />
+			{item && <DraggableItem item={item} hidden={isDraggingThis} />}
 		</div>
 	);
 }
 
-function DraggableItem({ item }: { item: Doc<"items"> }) {
-	const { attributes, listeners, setNodeRef, transform, isDragging } =
-		useDraggable({ id: item._id });
-	const style: React.CSSProperties = {
-		transform: transform
-			? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-			: undefined,
-		zIndex: isDragging ? 100 : undefined,
-		opacity: isDragging ? 0.85 : 1,
-		cursor: isDragging ? "grabbing" : "grab",
-	};
+function DraggableItem({
+	item,
+	hidden,
+}: {
+	item: Doc<"items">;
+	hidden: boolean;
+}) {
+	const { attributes, listeners, setNodeRef } = useDraggable({ id: item._id });
 	return (
-		<div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-			<ItemCard item={item.data} size={INVENTORY_SLOT_SIZE} />
+		<div
+			ref={setNodeRef}
+			className="absolute inset-0"
+			style={{
+				opacity: hidden ? 0 : 1,
+				cursor: hidden ? "grabbing" : "grab",
+			}}
+			{...listeners}
+			{...attributes}
+		>
+			<ItemCard
+				item={item.data}
+				size={INVENTORY_SLOT_SIZE}
+				suppressTooltip={hidden}
+			/>
 		</div>
 	);
 }

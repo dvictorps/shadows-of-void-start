@@ -62,6 +62,7 @@ type Props = {
 	item?: GeneratedItem | null;
 	size?: number;
 	dimmed?: boolean;
+	suppressTooltip?: boolean;
 	onClick?: () => void;
 };
 
@@ -70,12 +71,20 @@ const TOOLTIP_OFFSET_PX = 12;
 // left side when the card is too close to the right edge of the viewport.
 const TOOLTIP_ESTIMATED_WIDTH = 280;
 
-export default function ItemCard({ item, size = 64, dimmed, onClick }: Props) {
+export default function ItemCard({
+	item,
+	size = 64,
+	dimmed,
+	suppressTooltip,
+	onClick,
+}: Props) {
 	const cardRef = useRef<HTMLButtonElement>(null);
 	const [tooltipPos, setTooltipPos] = useState<{
 		left: number;
 		top: number;
 	} | null>(null);
+	// Drop the tooltip the instant suppression kicks in (e.g. a drag starts).
+	if (suppressTooltip && tooltipPos) setTooltipPos(null);
 
 	if (!item) {
 		return (
@@ -87,6 +96,7 @@ export default function ItemCard({ item, size = 64, dimmed, onClick }: Props) {
 	}
 
 	const handleEnter = () => {
+		if (suppressTooltip) return;
 		const rect = cardRef.current?.getBoundingClientRect();
 		if (!rect) return;
 		const viewportWidth = window.innerWidth;
