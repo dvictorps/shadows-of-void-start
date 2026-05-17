@@ -181,7 +181,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				<TextLog message={logMessage} />
 			</div>
 
-			<aside className="grid grid-rows-[1fr_auto] gap-3 overflow-hidden">
+			<aside className="grid grid-rows-[1fr_auto] gap-3">
 				<EquipmentPanel weapon={weapon} />
 				<StatusCard
 					character={character}

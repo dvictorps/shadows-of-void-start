@@ -57,9 +57,12 @@ export function useCombatLoop({
 	const { events, push: pushEvent } = useDamageEvents();
 
 	// Refs the interval callbacks read directly for mid-tick state visibility
-	// (state changes inside a tick aren't visible via closure until next render).
+	// (React state updates inside a tick aren't visible via closure or even via
+	// a functional setter's flag-capture until the next render commit).
 	const stateRef = useRef(state);
 	stateRef.current = state;
+	const enemyRef = useRef<Enemy | null>(enemy);
+	enemyRef.current = enemy;
 	const playerProgressRef = useRef(0);
 	const enemyProgressRef = useRef(0);
 	const deadRef = useRef(false);
@@ -84,10 +87,17 @@ export function useCombatLoop({
 	useEffect(() => {
 		const wasActive = activeRef.current;
 		if (active && !wasActive) {
+			// Fresh combat session: pull server state, clear any leftover enemy.
+			playerHpRef.current = initialHpRef.current;
 			setPlayerHp(initialHpRef.current);
 			setPotions(initialPotionsRef.current);
 			lastSyncedHpRef.current = initialHpRef.current;
 			deadRef.current = false;
+			enemyRef.current = null;
+			setEnemy(null);
+			setLastXpGain(null);
+			stateRef.current = "searching";
+			setState("searching");
 		} else if (!active && wasActive) {
 			syncHp({ characterId, hpCurrent: playerHpRef.current }).catch(() => {});
 			lastSyncedHpRef.current = playerHpRef.current;
@@ -101,7 +111,9 @@ export function useCombatLoop({
 		if (!pick) return;
 		const def = findMonster(pick);
 		if (!def) return;
-		setEnemy({ def, currentHp: def.baseStats.hp });
+		const newEnemy = { def, currentHp: def.baseStats.hp };
+		enemyRef.current = newEnemy;
+		setEnemy(newEnemy);
 		playerProgressRef.current = 0;
 		enemyProgressRef.current = 0;
 		setState("engaged");
@@ -109,6 +121,7 @@ export function useCombatLoop({
 
 	// ── Victory pause → back to searching
 	useDelay(active && state === "victory", VICTORY_DELAY_MS, () => {
+		enemyRef.current = null;
 		setEnemy(null);
 		setLastXpGain(null);
 		setState("searching");
@@ -123,8 +136,9 @@ export function useCombatLoop({
 		active && state === "engaged" && enemyDef !== null,
 		TICK_INTERVAL_MS,
 		() => {
-			if (stateRef.current !== "engaged" || deadRef.current || !enemyDef)
-				return;
+			if (stateRef.current !== "engaged" || deadRef.current) return;
+			const currentEnemy = enemyRef.current;
+			if (!currentEnemy || currentEnemy.currentHp <= 0) return;
 
 			const dt = TICK_INTERVAL_MS / 1000;
 			playerProgressRef.current += dt * playerAttackSpeed;
@@ -135,45 +149,41 @@ export function useCombatLoop({
 			const enemySwing = enemyProgressRef.current >= 1;
 			if (enemySwing) enemyProgressRef.current -= 1;
 
-			// Player acts first. Detect kill via flag set in updater, fire side
-			// effects (XP, state transition, server record) afterwards so StrictMode
-			// double-invocation of the updater doesn't double-trigger them.
+			// Player acts first. Work synchronously through the ref so kill
+			// detection doesn't depend on React batching.
 			if (playerSwing) {
 				const dmg = rollPlayerDamage(weapon);
-				let killed = false;
-				setEnemy((prev) => {
-					if (!prev) return prev;
-					if (prev.currentHp <= 0) return prev; // already dead, ignore extra swings
-					const newHp = Math.max(0, prev.currentHp - dmg.amount);
-					if (newHp <= 0) killed = true;
-					return { ...prev, currentHp: newHp };
-				});
+				const newHp = Math.max(0, currentEnemy.currentHp - dmg.amount);
+				const updated = { ...currentEnemy, currentHp: newHp };
+				enemyRef.current = updated;
+				setEnemy(updated);
 				pushEvent({ amount: dmg.amount, target: "enemy", isCrit: dmg.isCrit });
 
-				if (killed && enemyDef && stateRef.current === "engaged") {
+				if (newHp <= 0) {
 					stateRef.current = "victory";
-					setLastXpGain(enemyDef.xpReward);
+					setLastXpGain(currentEnemy.def.xpReward);
 					setState("victory");
 					recordKill({
 						characterId,
-						monsterId: enemyDef.id,
+						monsterId: currentEnemy.def.id,
 					}).catch(() => {});
 					return;
 				}
 			}
 
 			// Enemy only swings if still engaged after player's hit.
-			if (enemySwing && stateRef.current === "engaged") {
-				const dmg = rollEnemyDamage(enemyDef);
-				setPlayerHp((prev) => {
-					const newHp = Math.max(0, prev - dmg);
-					if (newHp <= 0 && !deadRef.current) {
-						deadRef.current = true;
-						queueMicrotask(() => onPlayerDeath());
-					}
-					return newHp;
-				});
+			if (enemySwing) {
+				const dmg = rollEnemyDamage(currentEnemy.def);
+				const prevHp = playerHpRef.current;
+				const newHp = Math.max(0, prevHp - dmg);
+				playerHpRef.current = newHp;
+				setPlayerHp(newHp);
 				pushEvent({ amount: dmg, target: "player" });
+
+				if (newHp <= 0 && !deadRef.current) {
+					deadRef.current = true;
+					queueMicrotask(() => onPlayerDeath());
+				}
 			}
 		},
 	);
@@ -194,6 +204,7 @@ export function useCombatLoop({
 		if (potions <= 0 || playerHp >= maxHp) return;
 		try {
 			const result = await consumePotion({ characterId });
+			playerHpRef.current = result.hpCurrent;
 			setPlayerHp(result.hpCurrent);
 			setPotions(result.potions);
 			lastSyncedHpRef.current = result.hpCurrent;

@@ -122,7 +122,7 @@ function EquipmentSlot({
 				</span>
 			)}
 			{hasItem && item && (
-				<div className="pointer-events-none absolute right-full top-0 z-20 mr-2 hidden group-hover:block">
+				<div className="pointer-events-none absolute top-0 right-full z-50 mr-2 hidden group-hover:block">
 					<ItemTooltip item={item} />
 				</div>
 			)}
