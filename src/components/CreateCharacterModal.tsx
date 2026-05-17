@@ -15,6 +15,15 @@ const MAX_NAME_LENGTH = 20;
 
 const CLASS_LIST: CharacterClassId[] = ["warrior", "rogue", "mage"];
 
+const ATTRIBUTE_LABEL: Record<
+	"strength" | "dexterity" | "intelligence",
+	string
+> = {
+	strength: "Força",
+	dexterity: "Destreza",
+	intelligence: "Inteligência",
+};
+
 type Props = {
 	isOpen: boolean;
 	onClose: () => void;
@@ -49,17 +58,17 @@ export default function CreateCharacterModal({
 		e.preventDefault();
 		const trimmed = name.trim();
 		if (trimmed.length === 0) {
-			toast.error("Name cannot be empty");
+			toast.error("Nome não pode estar vazio");
 			return;
 		}
 		setSubmitting(true);
 		try {
 			const id = await createCharacter({ name: trimmed, classId, hardcore });
-			toast.success(`${trimmed} created`);
+			toast.success(`${trimmed} criado`);
 			reset();
 			onCreated(id);
 		} catch (err) {
-			toast.error(convexErrorMessage(err, "Failed to create"));
+			toast.error(convexErrorMessage(err, "Falha ao criar personagem"));
 			setSubmitting(false);
 		}
 	};
@@ -68,7 +77,7 @@ export default function CreateCharacterModal({
 		<Modal
 			isOpen={isOpen}
 			onClose={handleClose}
-			title="Create Character"
+			title="Criar Personagem"
 			className="max-w-lg"
 		>
 			<form onSubmit={handleSubmit} className="space-y-5">
@@ -77,7 +86,7 @@ export default function CreateCharacterModal({
 						htmlFor="char-name"
 						className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60"
 					>
-						Name
+						Nome
 					</Label>
 					<Input
 						id="char-name"
@@ -87,7 +96,7 @@ export default function CreateCharacterModal({
 						maxLength={MAX_NAME_LENGTH}
 						required
 						autoFocus
-						placeholder="Enter name"
+						placeholder="Digite o nome"
 						className="border-white/40 bg-black text-white placeholder:text-white/30 focus:border-white"
 					/>
 					<p className="mt-1 text-right text-xs text-white/40">
@@ -97,7 +106,7 @@ export default function CreateCharacterModal({
 
 				<div>
 					<span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">
-						Class
+						Classe
 					</span>
 					<div className="grid grid-cols-3 gap-2">
 						{CLASS_LIST.map((id) => {
@@ -118,7 +127,7 @@ export default function CreateCharacterModal({
 										{def.name}
 									</div>
 									<div className="mt-1 text-[10px] uppercase tracking-wider text-white/50">
-										{def.primaryAttribute}
+										{ATTRIBUTE_LABEL[def.primaryAttribute]}
 									</div>
 								</button>
 							);
@@ -141,8 +150,8 @@ export default function CreateCharacterModal({
 							Hardcore
 						</div>
 						<div className="mt-0.5 text-[11px] leading-snug text-white/60">
-							Death is permanent. Cannot be toggled after creation. Hardcore
-							characters use a separate stash.
+							Morte é permanente. Não pode ser alterado após criação.
+							Personagens hardcore usam um stash separado.
 						</div>
 					</div>
 				</label>
@@ -155,7 +164,7 @@ export default function CreateCharacterModal({
 						disabled={submitting}
 						className="px-5 py-2 uppercase tracking-wider"
 					>
-						Cancel
+						Cancelar
 					</Button>
 					<Button
 						type="submit"
@@ -163,7 +172,7 @@ export default function CreateCharacterModal({
 						disabled={submitting}
 						className="px-5 py-2 uppercase tracking-wider"
 					>
-						{submitting ? "Creating..." : "Create"}
+						{submitting ? "Criando..." : "Criar"}
 					</Button>
 				</div>
 			</form>

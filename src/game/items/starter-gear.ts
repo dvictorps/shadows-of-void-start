@@ -66,14 +66,17 @@ const crackedWand: GeneratedItem = {
 	name: "Cracked Wand",
 	itemLevel: 1,
 	baseStats: {
+		minDamage: 1,
+		maxDamage: 3,
+		attackSpeed: 1.4,
 		criticalChance: 6,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 0, max: 0 },
+		physicalDamage: { min: 1, max: 3 },
 		elementalDamage: [],
-		attackSpeed: 0,
+		attackSpeed: 1.4,
 		criticalChance: 6,
 	},
 };

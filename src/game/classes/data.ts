@@ -3,9 +3,9 @@ import type { CharacterClassDefinition, CharacterClassId } from "./types";
 export const CLASS_DEFINITIONS = {
 	warrior: {
 		id: "warrior",
-		name: "Warrior",
+		name: "Guerreiro",
 		description:
-			"A battle-hardened fighter who relies on raw strength and heavy armor to overpower enemies.",
+			"Lutador endurecido em batalha que conta com força bruta e armadura pesada para subjugar inimigos.",
 		primaryAttribute: "strength",
 		baseStats: {
 			hp: 100,
@@ -15,9 +15,9 @@ export const CLASS_DEFINITIONS = {
 	},
 	rogue: {
 		id: "rogue",
-		name: "Rogue",
+		name: "Ladino",
 		description:
-			"A swift and cunning combatant who exploits precision and agility to strike where it hurts most.",
+			"Combatente ágil e astuto que explora precisão e agilidade para acertar onde mais dói.",
 		primaryAttribute: "dexterity",
 		baseStats: {
 			hp: 60,
@@ -27,9 +27,9 @@ export const CLASS_DEFINITIONS = {
 	},
 	mage: {
 		id: "mage",
-		name: "Mage",
+		name: "Mago",
 		description:
-			"A wielder of arcane power who sacrifices physical resilience for devastating magical potential and a natural energy barrier.",
+			"Conjurador arcano que troca resiliência física por potencial mágico devastador e uma barreira de energia natural.",
 		primaryAttribute: "intelligence",
 		baseStats: {
 			hp: 40,

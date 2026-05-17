@@ -48,7 +48,7 @@ function WorldView() {
 		return (
 			<main className="flex h-screen items-center justify-center bg-black text-white">
 				<p className="text-xs uppercase tracking-[0.2em] text-neutral-600">
-					Loading...
+					Carregando...
 				</p>
 			</main>
 		);
@@ -101,7 +101,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				window.location.href = "/character-select";
 			}
 		} catch {
-			toast.error("Failed to handle death");
+			toast.error("Falha ao processar morte");
 		}
 	}, [respawnDead, character._id]);
 
@@ -139,9 +139,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		(view === "map" && hoveredNode
 			? hoveredNode.name
 			: view === "combat" && currentNode
-				? `Inside: ${currentNode.name}`
+				? `Em: ${currentNode.name}`
 				: view === "city" && currentNode
-					? `Inside: ${currentNode.name}`
+					? `Em: ${currentNode.name}`
 					: undefined);
 
 	const hpOverride = view === "combat" ? combat.playerHp : undefined;

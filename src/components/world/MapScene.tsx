@@ -101,7 +101,7 @@ function MapNode({
 			onMouseLeave={onLeave}
 			onFocus={onHover}
 			onBlur={onLeave}
-			aria-label={`Enter ${node.name}`}
+			aria-label={`Entrar em ${node.name}`}
 			style={{
 				left: `${node.position.x * 100}%`,
 				top: `${node.position.y * 100}%`,

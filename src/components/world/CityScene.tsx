@@ -15,8 +15,8 @@ export default function CityScene({ cityName, onLeave }: Props) {
 				Zona Segura
 			</p>
 			<p className="mt-1 max-w-sm text-center text-xs text-white/40">
-				Your HP has been fully restored. Visit the vendor and stash here when
-				they're available.
+				Sua vida foi totalmente restaurada. O vendor e o stash ficarão
+				disponíveis aqui em breve.
 			</p>
 			<div className="mt-6">
 				<Button
