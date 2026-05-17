@@ -1,5 +1,6 @@
 import { useMutation } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { POTION_HEAL_FRACTION } from "#/game/combat/constants";
 import { rollEnemyDamage, rollPlayerDamage } from "#/game/combat/damage";
 import type { GeneratedItem } from "#/game/items/types";
 import {
@@ -209,11 +210,10 @@ export function useCombatLoop({
 		if (potions <= 0 || playerHp >= maxHp) return;
 
 		// Optimistic: apply the heal locally first so the UI snaps immediately.
-		// Server is still authoritative (POTION_HEAL_FRACTION matches characters.ts);
-		// on failure we revert.
+		// Server is still authoritative; on failure we revert.
 		const prevHp = playerHpRef.current;
 		const prevPotions = potions;
-		const heal = Math.floor(maxHp * 0.2);
+		const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
 		const optimisticHp = Math.min(maxHp, prevHp + heal);
 		playerHpRef.current = optimisticHp;
 		setPlayerHp(optimisticHp);

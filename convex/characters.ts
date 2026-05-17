@@ -4,6 +4,7 @@ import {
 	findClassDefinition,
 } from "../src/game/classes/data"
 import type { CharacterClassId } from "../src/game/classes/types"
+import { POTION_HEAL_FRACTION } from "../src/game/combat/constants"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
 import { findStarterItem, STARTER_WEAPON_BY_CLASS } from "../src/game/items/starter-gear"
 import { rollDrop, rollMonsterLevel } from "../src/game/loot/drops"
@@ -21,7 +22,6 @@ import { ACT_1, findNode } from "../src/game/world"
 const MAX_CHARACTERS_PER_USER = 8
 const MAX_NAME_LENGTH = 20
 const STARTING_POTIONS = 5
-const POTION_HEAL_FRACTION = 0.2
 
 function isKnownClassId(id: string): id is CharacterClassId {
 	return Object.hasOwn(CLASS_DEFINITIONS, id)
@@ -69,9 +69,7 @@ async function deleteZoneBag(
 		.query("items")
 		.withIndex("by_zoneSession", (q) => q.eq("zoneSession", zoneSession))
 		.collect()
-	for (const item of bagItems) {
-		await ctx.db.delete(item._id)
-	}
+	await Promise.all(bagItems.map((item) => ctx.db.delete(item._id)))
 }
 
 // Fetches the inventory in one pass and returns a slot allocator. The allocator
@@ -213,7 +211,7 @@ export const remove = mutation({
 			.query("items")
 			.withIndex("by_character_kind", (q) => q.eq("characterId", args.id))
 			.collect()
-		for (const item of ownedItems) await ctx.db.delete(item._id)
+		await Promise.all(ownedItems.map((item) => ctx.db.delete(item._id)))
 
 		await ctx.db.delete(args.id)
 	},
@@ -374,7 +372,7 @@ export const respawnDead = mutation({
 					q.eq("characterId", args.characterId),
 				)
 				.collect()
-			for (const item of ownedItems) await ctx.db.delete(item._id)
+			await Promise.all(ownedItems.map((item) => ctx.db.delete(item._id)))
 			await ctx.db.delete(args.characterId)
 			return { mode: "hardcore" as const, xpLost: 0 }
 		}
