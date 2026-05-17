@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
-import { ConvexError } from "convex/values";
 import { useState } from "react";
 import { toast } from "sonner";
 import CreateCharacterModal from "#/components/CreateCharacterModal";
@@ -8,6 +7,7 @@ import { Button } from "#/components/ui/button";
 import { findClassDefinition } from "#/game/classes/data";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useModal } from "#/hooks/useModal";
+import { convexErrorMessage } from "#/lib/convex-errors";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 
@@ -48,9 +48,7 @@ function CharacterSelectPage() {
 			toast.success(`${char.name} deleted`);
 			if (selectedId === char._id) setSelectedId(null);
 		} catch (err) {
-			const message =
-				err instanceof ConvexError ? String(err.data) : "Failed to delete";
-			toast.error(message);
+			toast.error(convexErrorMessage(err, "Failed to delete"));
 		}
 	};
 
@@ -64,12 +62,7 @@ function CharacterSelectPage() {
 			{isAdmin && (
 				<div className="absolute right-6 top-6 z-10">
 					<Link to="/admin" className="no-underline">
-						<Button
-							variant="outline"
-							className="border border-white bg-black text-white hover:bg-white/10 hover:text-white"
-						>
-							Admin Dashboard
-						</Button>
+						<Button variant="stark">Admin Dashboard</Button>
 					</Link>
 				</div>
 			)}
@@ -108,28 +101,31 @@ function CharacterSelectPage() {
 
 					{/* Action buttons */}
 					<div className="grid grid-cols-3 gap-3">
-						<button
+						<Button
 							type="button"
+							variant="stark"
 							onClick={createModal.open}
-							className="rounded-md border border-white bg-black px-3 py-2.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-white/10"
+							className="px-3 py-2.5 uppercase tracking-wider"
 						>
 							Criar
-						</button>
-						<button
+						</Button>
+						<Button
 							type="button"
+							variant="stark"
 							onClick={handlePlay}
 							disabled={!selected}
-							className="rounded-md border border-white bg-black px-3 py-2.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+							className="px-3 py-2.5 uppercase tracking-wider"
 						>
 							Jogar
-						</button>
+						</Button>
 						<Link to="/" className="no-underline">
-							<button
+							<Button
 								type="button"
-								className="w-full rounded-md border border-white bg-black px-3 py-2.5 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-white/10"
+								variant="stark"
+								className="w-full px-3 py-2.5 uppercase tracking-wider"
 							>
 								Voltar
-							</button>
+							</Button>
 						</Link>
 					</div>
 				</div>

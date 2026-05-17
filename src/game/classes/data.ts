@@ -45,6 +45,10 @@ export function getClassDefinition(
 	return CLASS_DEFINITIONS[id];
 }
 
+function isClassId(id: string): id is CharacterClassId {
+	return Object.hasOwn(CLASS_DEFINITIONS, id);
+}
+
 /**
  * Safe lookup for a class id that may have come from persisted data.
  * Returns null if the id is unknown (e.g., a class was removed from game data
@@ -53,7 +57,5 @@ export function getClassDefinition(
 export function findClassDefinition(
 	id: string,
 ): CharacterClassDefinition | null {
-	return Object.hasOwn(CLASS_DEFINITIONS, id)
-		? CLASS_DEFINITIONS[id as CharacterClassId]
-		: null;
+	return isClassId(id) ? CLASS_DEFINITIONS[id] : null;
 }

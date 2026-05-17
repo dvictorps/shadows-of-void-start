@@ -8,6 +8,8 @@ export const Route = createFileRoute("/admin/items")({
 	component: ItemGeneratorPage,
 });
 
+const MAX_DISPLAYED_ITEMS = 50;
+
 const RARITIES: { value: ItemRarity; label: string }[] = [
 	{ value: "normal", label: "Normal" },
 	{ value: "magic", label: "Magic" },
@@ -23,7 +25,7 @@ function ItemGeneratorPage() {
 
 	const handleGenerate = () => {
 		const item = generateItem({ rarity, itemLevel });
-		setItems((prev) => [item, ...prev]);
+		setItems((prev) => [item, ...prev].slice(0, MAX_DISPLAYED_ITEMS));
 	};
 
 	const handleClear = () => setItems([]);

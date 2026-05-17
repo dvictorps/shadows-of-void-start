@@ -1,9 +1,16 @@
 import { toast } from "sonner";
+import { z } from "zod";
 
-type FlashType = "success" | "error" | "info";
+const FlashSchema = z.object({
+	type: z.enum(["success", "error", "info"]),
+	message: z.string(),
+});
+
+type Flash = z.infer<typeof FlashSchema>;
+
 const KEY = "sov-flash-toast";
 
-export function queueFlashToast(type: FlashType, message: string) {
+export function queueFlashToast(type: Flash["type"], message: string) {
 	if (typeof window === "undefined") return;
 	sessionStorage.setItem(KEY, JSON.stringify({ type, message }));
 }
@@ -13,10 +20,13 @@ export function consumeFlashToast() {
 	const raw = sessionStorage.getItem(KEY);
 	if (!raw) return;
 	sessionStorage.removeItem(KEY);
+
 	try {
-		const parsed = JSON.parse(raw) as { type: FlashType; message: string };
-		toast[parsed.type](parsed.message);
+		const parsed = FlashSchema.safeParse(JSON.parse(raw));
+		if (parsed.success) {
+			toast[parsed.data.type](parsed.data.message);
+		}
 	} catch {
-		// malformed entry — ignore
+		// malformed JSON — ignore
 	}
 }

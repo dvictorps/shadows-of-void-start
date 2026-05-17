@@ -11,6 +11,10 @@ export const Route = createFileRoute("/sign-in")({
 	component: SignInPage,
 });
 
+const INPUT_CLASS =
+	"border-neutral-700 bg-neutral-900 text-white placeholder:text-neutral-500";
+const LABEL_CLASS = "text-neutral-300";
+
 function SignInPage() {
 	const [isSignUp, setIsSignUp] = useState(false);
 	const [email, setEmail] = useState("");
@@ -24,35 +28,22 @@ function SignInPage() {
 		setError("");
 		setLoading(true);
 
+		const callbacks = {
+			onSuccess: () => {
+				queueFlashToast("success", isSignUp ? "Account created" : "Signed in");
+				window.location.href = "/character-select";
+			},
+			onError: (ctx: { error: { message: string } }) => {
+				setError(ctx.error.message);
+				toast.error(ctx.error.message);
+			},
+		};
+
 		try {
 			if (isSignUp) {
-				await authClient.signUp.email(
-					{ email, password, name },
-					{
-						onSuccess: () => {
-							queueFlashToast("success", "Account created");
-							window.location.href = "/character-select";
-						},
-						onError: (ctx) => {
-							setError(ctx.error.message);
-							toast.error(ctx.error.message);
-						},
-					},
-				);
+				await authClient.signUp.email({ email, password, name }, callbacks);
 			} else {
-				await authClient.signIn.email(
-					{ email, password },
-					{
-						onSuccess: () => {
-							queueFlashToast("success", "Signed in");
-							window.location.href = "/character-select";
-						},
-						onError: (ctx) => {
-							setError(ctx.error.message);
-							toast.error(ctx.error.message);
-						},
-					},
-				);
+				await authClient.signIn.email({ email, password }, callbacks);
 			}
 		} finally {
 			setLoading(false);
@@ -62,7 +53,6 @@ function SignInPage() {
 	return (
 		<main className="min-h-screen bg-black text-white">
 			<div className="mx-auto flex min-h-screen max-w-[1400px] flex-col items-center justify-center gap-16 px-6 py-12 md:flex-row md:justify-between md:gap-32 md:px-20">
-				{/* Title — left */}
 				<div className="flex w-full items-center justify-center md:flex-1 md:justify-start">
 					<h1 className="display-title text-glow-purple text-center text-6xl uppercase leading-[0.95] md:text-left md:text-8xl">
 						Shadows
@@ -71,7 +61,6 @@ function SignInPage() {
 					</h1>
 				</div>
 
-				{/* Form — right */}
 				<div className="w-full max-w-sm">
 					<div className="space-y-6">
 						<div>
@@ -88,7 +77,7 @@ function SignInPage() {
 						<form onSubmit={handleSubmit} className="space-y-4">
 							{isSignUp && (
 								<div className="space-y-2">
-									<Label htmlFor="name" className="text-neutral-300">
+									<Label htmlFor="name" className={LABEL_CLASS}>
 										Name
 									</Label>
 									<Input
@@ -98,13 +87,13 @@ function SignInPage() {
 										onChange={(e) => setName(e.target.value)}
 										placeholder="Your name"
 										required
-										className="border-neutral-700 bg-neutral-900 text-white placeholder:text-neutral-500"
+										className={INPUT_CLASS}
 									/>
 								</div>
 							)}
 
 							<div className="space-y-2">
-								<Label htmlFor="email" className="text-neutral-300">
+								<Label htmlFor="email" className={LABEL_CLASS}>
 									Email
 								</Label>
 								<Input
@@ -114,12 +103,12 @@ function SignInPage() {
 									onChange={(e) => setEmail(e.target.value)}
 									placeholder="you@example.com"
 									required
-									className="border-neutral-700 bg-neutral-900 text-white placeholder:text-neutral-500"
+									className={INPUT_CLASS}
 								/>
 							</div>
 
 							<div className="space-y-2">
-								<Label htmlFor="password" className="text-neutral-300">
+								<Label htmlFor="password" className={LABEL_CLASS}>
 									Password
 								</Label>
 								<Input
@@ -130,7 +119,7 @@ function SignInPage() {
 									placeholder="Password"
 									required
 									minLength={8}
-									className="border-neutral-700 bg-neutral-900 text-white placeholder:text-neutral-500"
+									className={INPUT_CLASS}
 								/>
 							</div>
 
@@ -138,7 +127,8 @@ function SignInPage() {
 
 							<Button
 								type="submit"
-								className="w-full border border-white bg-black text-white hover:bg-white/10 hover:text-white"
+								variant="stark"
+								className="w-full"
 								disabled={loading}
 							>
 								{loading

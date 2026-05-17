@@ -1,10 +1,13 @@
 import { useMutation } from "convex/react";
-import { ConvexError } from "convex/values";
 import { useState } from "react";
 import { toast } from "sonner";
 import Modal from "#/components/Modal";
+import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
 import { CLASS_DEFINITIONS } from "#/game/classes/data";
 import type { CharacterClassId } from "#/game/classes/types";
+import { convexErrorMessage } from "#/lib/convex-errors";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 
@@ -54,9 +57,7 @@ export default function CreateCharacterModal({
 			reset();
 			onCreated(id);
 		} catch (err) {
-			const message =
-				err instanceof ConvexError ? String(err.data) : "Failed to create";
-			toast.error(message);
+			toast.error(convexErrorMessage(err, "Failed to create"));
 			setSubmitting(false);
 		}
 	};
@@ -70,13 +71,13 @@ export default function CreateCharacterModal({
 		>
 			<form onSubmit={handleSubmit} className="space-y-5">
 				<div>
-					<label
+					<Label
 						htmlFor="char-name"
 						className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60"
 					>
 						Name
-					</label>
-					<input
+					</Label>
+					<Input
 						id="char-name"
 						type="text"
 						value={name}
@@ -84,8 +85,8 @@ export default function CreateCharacterModal({
 						maxLength={MAX_NAME_LENGTH}
 						required
 						autoFocus
-						className="w-full border border-white/40 bg-black px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-white"
 						placeholder="Enter name"
+						className="border-white/40 bg-black text-white placeholder:text-white/30 focus:border-white"
 					/>
 					<p className="mt-1 text-right text-xs text-white/40">
 						{name.length}/{MAX_NAME_LENGTH}
@@ -127,21 +128,23 @@ export default function CreateCharacterModal({
 				</div>
 
 				<div className="flex justify-end gap-3 pt-2">
-					<button
+					<Button
 						type="button"
+						variant="starkMuted"
 						onClick={handleClose}
 						disabled={submitting}
-						className="border border-white/40 bg-black px-5 py-2 text-sm font-medium uppercase tracking-wider text-white/80 transition hover:bg-white/10 hover:text-white disabled:opacity-50"
+						className="px-5 py-2 uppercase tracking-wider"
 					>
 						Cancel
-					</button>
-					<button
+					</Button>
+					<Button
 						type="submit"
+						variant="stark"
 						disabled={submitting}
-						className="border border-white bg-black px-5 py-2 text-sm font-medium uppercase tracking-wider text-white transition hover:bg-white/10 disabled:opacity-50"
+						className="px-5 py-2 uppercase tracking-wider"
 					>
 						{submitting ? "Creating..." : "Create"}
-					</button>
+					</Button>
 				</div>
 			</form>
 		</Modal>

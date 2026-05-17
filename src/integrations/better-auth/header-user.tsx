@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
 import { queueFlashToast } from "#/lib/flash-toast";
 
@@ -15,8 +16,9 @@ export default function BetterAuthHeader() {
 				<span className="text-sm text-white/80">
 					{session.user.name || session.user.email}
 				</span>
-				<button
+				<Button
 					type="button"
+					variant="stark"
 					onClick={() => {
 						void authClient.signOut({
 							fetchOptions: {
@@ -27,20 +29,19 @@ export default function BetterAuthHeader() {
 							},
 						});
 					}}
-					className="inline-flex h-9 items-center border border-white bg-black px-4 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-white/10"
+					className="uppercase tracking-wider"
 				>
 					Sign out
-				</button>
+				</Button>
 			</div>
 		);
 	}
 
 	return (
-		<Link
-			to="/sign-in"
-			className="inline-flex h-9 items-center border border-white bg-black px-4 text-sm font-medium uppercase tracking-wider text-white no-underline transition-colors hover:bg-white/10"
-		>
-			Sign in
+		<Link to="/sign-in" className="no-underline">
+			<Button variant="stark" className="uppercase tracking-wider">
+				Sign in
+			</Button>
 		</Link>
 	);
 }
