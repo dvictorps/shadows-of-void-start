@@ -13,7 +13,9 @@ import { findClassDefinition } from "#/game/classes/data";
 import { findStarterItem } from "#/game/items/starter-gear";
 import { computeMaxHp, xpToNextLevel } from "#/game/progression/levels";
 import { ACT_1, findNode } from "#/game/world";
+import { translateNodeName } from "#/game/world/i18n";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
+import { m } from "#/paraglide/messages";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 
@@ -48,7 +50,7 @@ function WorldView() {
 		return (
 			<main className="flex h-screen items-center justify-center bg-black text-white">
 				<p className="text-xs uppercase tracking-[0.2em] text-neutral-600">
-					Carregando...
+					{m.loading()}
 				</p>
 			</main>
 		);
@@ -89,19 +91,19 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		try {
 			const result = await respawnDead({ characterId: character._id });
 			if (result.mode === "softcore") {
-				setDeathLog(`Você morreu! -${result.xpLost} XP`);
+				const message = m.you_died_softcore({ xp: result.xpLost });
+				setDeathLog(message);
 				// Respawn in the city node — view changes deactivate the combat hook;
 				// the hook skips the HP flush when dead so the server-side heal sticks.
 				setView("city");
 				setCurrentNodeId("city");
-				toast.error(`Você morreu! -${result.xpLost} XP`);
+				toast.error(message);
 			} else {
-				// Hardcore handling — for MVP, just toast and bounce to character-select.
-				toast.error("Você morreu (hardcore). Personagem apagado.");
+				toast.error(m.you_died_hardcore());
 				window.location.href = "/character-select";
 			}
 		} catch {
-			toast.error("Falha ao processar morte");
+			toast.error(m.failed_handle_death());
 		}
 	}, [respawnDead, character._id]);
 
@@ -137,12 +139,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const logMessage =
 		deathLog ??
 		(view === "map" && hoveredNode
-			? hoveredNode.name
-			: view === "combat" && currentNode
-				? `Em: ${currentNode.name}`
-				: view === "city" && currentNode
-					? `Em: ${currentNode.name}`
-					: undefined);
+			? translateNodeName(hoveredNode)
+			: view !== "map" && currentNode
+				? m.inside_zone({ zone: translateNodeName(currentNode) })
+				: undefined);
 
 	const hpOverride = view === "combat" ? combat.playerHp : undefined;
 	const potionsOverride = view === "combat" ? combat.potions : undefined;
@@ -161,11 +161,14 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					/>
 				)}
 				{view === "city" && currentNode && (
-					<CityScene cityName={currentNode.name} onLeave={handleBackToMap} />
+					<CityScene
+						cityName={translateNodeName(currentNode)}
+						onLeave={handleBackToMap}
+					/>
 				)}
 				{view === "combat" && currentNode && (
 					<CombatScene
-						zoneName={currentNode.name}
+						zoneName={translateNodeName(currentNode)}
 						state={combat.state}
 						enemy={combat.enemy}
 						events={combat.events}

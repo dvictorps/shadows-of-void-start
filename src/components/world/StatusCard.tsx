@@ -1,8 +1,18 @@
 import { Button } from "#/components/ui/button";
-import type { CharacterClassDefinition } from "#/game/classes/types";
+import type {
+	CharacterClassDefinition,
+	CharacterClassId,
+} from "#/game/classes/types";
 import { computeMaxHp, xpToNextLevel } from "#/game/progression/levels";
+import { m } from "#/paraglide/messages";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import HealthGlobe from "./HealthGlobe";
+
+const CLASS_NAME: Record<CharacterClassId, () => string> = {
+	warrior: m.class_warrior_name,
+	rogue: m.class_rogue_name,
+	mage: m.class_mage_name,
+};
 
 type Props = {
 	character: Doc<"characters">;
@@ -19,7 +29,9 @@ export default function StatusCard({
 	potionsOverride,
 	onUsePotion,
 }: Props) {
-	const className = classDef?.name ?? "Unknown";
+	const classResolved = classDef
+		? CLASS_NAME[classDef.id as CharacterClassId]()
+		: "Unknown";
 	const attrs = classDef?.baseStats.attributes ?? {
 		strength: 0,
 		dexterity: 0,
@@ -44,24 +56,32 @@ export default function StatusCard({
 							{character.name}
 						</h3>
 						<p className="mt-1 text-sm text-white/80">
-							<span className="text-white/50">Classe:</span> {className}
+							<span className="text-white/50">{m.status_class_label()}</span>{" "}
+							{classResolved}
 						</p>
 						<p className="text-sm text-white/80">
-							<span className="text-white/50">Nível:</span> {character.level}
+							<span className="text-white/50">{m.status_level_label()}</span>{" "}
+							{character.level}
 						</p>
 						<p className="text-sm text-white/80">
-							<span className="text-white/50">DPS:</span> —
+							<span className="text-white/50">{m.status_dps_label()}</span> —
 						</p>
 					</div>
 					<div className="text-right text-sm">
 						<p className="text-white">
-							<span className="text-white/50">Força:</span> {attrs.strength}
+							<span className="text-white/50">{m.status_strength_label()}</span>{" "}
+							{attrs.strength}
 						</p>
 						<p className="text-white">
-							<span className="text-white/50">Destreza:</span> {attrs.dexterity}
+							<span className="text-white/50">
+								{m.status_dexterity_label()}
+							</span>{" "}
+							{attrs.dexterity}
 						</p>
 						<p className="text-white">
-							<span className="text-white/50">Inteligência:</span>{" "}
+							<span className="text-white/50">
+								{m.status_intelligence_label()}
+							</span>{" "}
 							{attrs.intelligence}
 						</p>
 					</div>
@@ -70,7 +90,7 @@ export default function StatusCard({
 				<div className="flex items-center gap-3">
 					<div className="flex-1 space-y-1">
 						<div className="text-[10px] uppercase tracking-wider text-yellow-300/80">
-							XP: {xp} / {xpNeeded}
+							{m.status_xp_label({ current: xp, needed: xpNeeded })}
 						</div>
 						<div
 							role="progressbar"
@@ -105,14 +125,14 @@ export default function StatusCard({
 				<div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
 					<div className="flex flex-col items-center gap-1">
 						<span className="text-[10px] uppercase tracking-wider text-white/50">
-							Status
+							{m.status_header()}
 						</span>
 						<Button
 							type="button"
 							variant="stark"
 							className="px-3 py-1.5 text-xs uppercase tracking-wider"
 						>
-							Exibir
+							{m.show_action()}
 						</Button>
 					</div>
 

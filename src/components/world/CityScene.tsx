@@ -1,4 +1,5 @@
 import { Button } from "#/components/ui/button";
+import { m } from "#/paraglide/messages";
 
 type Props = {
 	cityName: string;
@@ -12,11 +13,10 @@ export default function CityScene({ cityName, onLeave }: Props) {
 				{cityName}
 			</div>
 			<p className="mt-3 text-sm uppercase tracking-wider text-white/50">
-				Zona Segura
+				{m.city_safe_zone()}
 			</p>
 			<p className="mt-1 max-w-sm text-center text-xs text-white/40">
-				Sua vida foi totalmente restaurada. O vendor e o stash ficarão
-				disponíveis aqui em breve.
+				{m.city_description()}
 			</p>
 			<div className="mt-6">
 				<Button
@@ -24,7 +24,7 @@ export default function CityScene({ cityName, onLeave }: Props) {
 					onClick={onLeave}
 					className="uppercase tracking-wider"
 				>
-					Voltar ao mapa
+					{m.back_to_map()}
 				</Button>
 			</div>
 		</section>

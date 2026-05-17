@@ -1,6 +1,8 @@
 import { Home, type LucideIcon, Skull, Trees } from "lucide-react";
 import { useMemo } from "react";
 import type { Act, WorldNode } from "#/game/world";
+import { translateNodeName } from "#/game/world/i18n";
+import { m } from "#/paraglide/messages";
 
 type Props = {
 	act: Act;
@@ -101,7 +103,7 @@ function MapNode({
 			onMouseLeave={onLeave}
 			onFocus={onHover}
 			onBlur={onLeave}
-			aria-label={`Entrar em ${node.name}`}
+			aria-label={m.enter_node({ name: translateNodeName(node) })}
 			style={{
 				left: `${node.position.x * 100}%`,
 				top: `${node.position.y * 100}%`,

@@ -1,9 +1,59 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "home_page": "Home page",
-  "about_page": "About page",
-  "example_message": "Welcome to your i18n app.",
-  "language_label": "Language",
-  "current_locale": "Current locale: {locale}",
-  "learn_router": "Learn Paraglide JS"
+  "loading": "Loading...",
+  "cancel": "Cancel",
+  "back_to_map": "Back to map",
+
+  "create_character_title": "Create Character",
+  "name_label": "Name",
+  "name_placeholder": "Enter name",
+  "class_label": "Class",
+  "hardcore_label": "Hardcore",
+  "hardcore_description": "Death is permanent. Cannot be toggled after creation. Hardcore characters use a separate stash.",
+  "create_action": "Create",
+  "creating": "Creating...",
+  "name_cannot_be_empty": "Name cannot be empty",
+  "character_created": "{name} created",
+  "failed_to_create_character": "Failed to create character",
+
+  "class_warrior_name": "Warrior",
+  "class_warrior_description": "A battle-hardened fighter who relies on raw strength and heavy armor to overpower enemies.",
+  "class_rogue_name": "Rogue",
+  "class_rogue_description": "A swift and cunning combatant who exploits precision and agility to strike where it hurts most.",
+  "class_mage_name": "Mage",
+  "class_mage_description": "A wielder of arcane power who sacrifices physical resilience for devastating magical potential and a natural energy barrier.",
+
+  "attribute_strength": "Strength",
+  "attribute_dexterity": "Dexterity",
+  "attribute_intelligence": "Intelligence",
+
+  "city_safe_zone": "Safe Zone",
+  "city_description": "Your HP has been fully restored. The vendor and stash will be available here soon.",
+
+  "searching_enemy": "Searching for enemy...",
+  "retreat": "Retreat",
+  "retreat_to_map": "Retreat to map",
+  "inside_zone": "Inside: {zone}",
+
+  "status_class_label": "Class:",
+  "status_level_label": "Level:",
+  "status_dps_label": "DPS:",
+  "status_strength_label": "Strength:",
+  "status_dexterity_label": "Dexterity:",
+  "status_intelligence_label": "Intelligence:",
+  "status_xp_label": "XP: {current} / {needed}",
+  "status_header": "Status",
+  "show_action": "Show",
+
+  "open_inventory": "Open inventory",
+  "enter_node": "Enter {name}",
+  "status_location_log": "Status / Location",
+
+  "you_died_softcore": "You died! -{xp} XP",
+  "you_died_hardcore": "You died (hardcore). Character deleted.",
+  "failed_handle_death": "Failed to handle death",
+
+  "zone_city": "City",
+  "zone_forest_starter": "Starter Forest",
+  "monster_goblin": "Goblin"
 }

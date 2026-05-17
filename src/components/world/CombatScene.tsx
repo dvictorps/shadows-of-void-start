@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useMemo } from "react";
 import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
+import { m } from "#/paraglide/messages";
 import HealthGlobe from "./HealthGlobe";
 
 type Props = {
@@ -55,11 +56,11 @@ export default function CombatScene({
 			<button
 				type="button"
 				onClick={onRetreat}
-				aria-label="Recuar para o mapa"
+				aria-label={m.retreat_to_map()}
 				className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
 			>
 				<ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
-				Recuar
+				{m.retreat()}
 			</button>
 
 			{/* Enemy nameplate + HP bar */}
@@ -83,7 +84,7 @@ export default function CombatScene({
 			<div className="relative flex flex-1 items-center justify-center">
 				{state === "searching" && (
 					<p className="animate-pulse text-xs uppercase tracking-[0.25em] text-white/40">
-						Procurando inimigo...
+						{m.searching_enemy()}
 					</p>
 				)}
 				{enemy && state !== "searching" && (

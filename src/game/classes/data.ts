@@ -1,11 +1,14 @@
 import type { CharacterClassDefinition, CharacterClassId } from "./types";
 
 export const CLASS_DEFINITIONS = {
+	// `name` and `description` are canonical English fallbacks. UI components
+	// translate via paraglide messages keyed by class id (see ATTRIBUTE_LABEL /
+	// CLASS_NAME / CLASS_DESCRIPTION maps in the consumers).
 	warrior: {
 		id: "warrior",
-		name: "Guerreiro",
+		name: "Warrior",
 		description:
-			"Lutador endurecido em batalha que conta com força bruta e armadura pesada para subjugar inimigos.",
+			"A battle-hardened fighter who relies on raw strength and heavy armor to overpower enemies.",
 		primaryAttribute: "strength",
 		baseStats: {
 			hp: 100,
@@ -15,9 +18,9 @@ export const CLASS_DEFINITIONS = {
 	},
 	rogue: {
 		id: "rogue",
-		name: "Ladino",
+		name: "Rogue",
 		description:
-			"Combatente ágil e astuto que explora precisão e agilidade para acertar onde mais dói.",
+			"A swift and cunning combatant who exploits precision and agility to strike where it hurts most.",
 		primaryAttribute: "dexterity",
 		baseStats: {
 			hp: 60,
@@ -27,9 +30,9 @@ export const CLASS_DEFINITIONS = {
 	},
 	mage: {
 		id: "mage",
-		name: "Mago",
+		name: "Mage",
 		description:
-			"Conjurador arcano que troca resiliência física por potencial mágico devastador e uma barreira de energia natural.",
+			"A wielder of arcane power who sacrifices physical resilience for devastating magical potential and a natural energy barrier.",
 		primaryAttribute: "intelligence",
 		baseStats: {
 			hp: 40,

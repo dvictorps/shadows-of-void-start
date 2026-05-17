@@ -1,0 +1,59 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "loading": "Carregando...",
+  "cancel": "Cancelar",
+  "back_to_map": "Voltar ao mapa",
+
+  "create_character_title": "Criar Personagem",
+  "name_label": "Nome",
+  "name_placeholder": "Digite o nome",
+  "class_label": "Classe",
+  "hardcore_label": "Hardcore",
+  "hardcore_description": "Morte é permanente. Não pode ser alterado após criação. Personagens hardcore usam um stash separado.",
+  "create_action": "Criar",
+  "creating": "Criando...",
+  "name_cannot_be_empty": "Nome não pode estar vazio",
+  "character_created": "{name} criado",
+  "failed_to_create_character": "Falha ao criar personagem",
+
+  "class_warrior_name": "Guerreiro",
+  "class_warrior_description": "Lutador endurecido em batalha que conta com força bruta e armadura pesada para subjugar inimigos.",
+  "class_rogue_name": "Ladino",
+  "class_rogue_description": "Combatente ágil e astuto que explora precisão e agilidade para acertar onde mais dói.",
+  "class_mage_name": "Mago",
+  "class_mage_description": "Conjurador arcano que troca resiliência física por potencial mágico devastador e uma barreira de energia natural.",
+
+  "attribute_strength": "Força",
+  "attribute_dexterity": "Destreza",
+  "attribute_intelligence": "Inteligência",
+
+  "city_safe_zone": "Zona Segura",
+  "city_description": "Sua vida foi totalmente restaurada. O vendor e o stash ficarão disponíveis aqui em breve.",
+
+  "searching_enemy": "Procurando inimigo...",
+  "retreat": "Recuar",
+  "retreat_to_map": "Recuar para o mapa",
+  "inside_zone": "Em: {zone}",
+
+  "status_class_label": "Classe:",
+  "status_level_label": "Nível:",
+  "status_dps_label": "DPS:",
+  "status_strength_label": "Força:",
+  "status_dexterity_label": "Destreza:",
+  "status_intelligence_label": "Inteligência:",
+  "status_xp_label": "XP: {current} / {needed}",
+  "status_header": "Status",
+  "show_action": "Exibir",
+
+  "open_inventory": "Abrir inventário",
+  "enter_node": "Entrar em {name}",
+  "status_location_log": "Status / Localização",
+
+  "you_died_softcore": "Você morreu! -{xp} XP",
+  "you_died_hardcore": "Você morreu (hardcore). Personagem apagado.",
+  "failed_handle_death": "Falha ao processar morte",
+
+  "zone_city": "Cidade",
+  "zone_forest_starter": "Floresta Inicial",
+  "monster_goblin": "Goblin"
+}
