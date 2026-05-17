@@ -98,7 +98,9 @@ export function useCombatLoop({
 			setLastXpGain(null);
 			stateRef.current = "searching";
 			setState("searching");
-		} else if (!active && wasActive) {
+		} else if (!active && wasActive && !deadRef.current) {
+			// Don't flush HP if the player died — the server's respawn mutation
+			// already set HP to max, and a stale 0 from the client would clobber it.
 			syncHp({ characterId, hpCurrent: playerHpRef.current }).catch(() => {});
 			lastSyncedHpRef.current = playerHpRef.current;
 		}
@@ -189,8 +191,11 @@ export function useCombatLoop({
 	);
 
 	// ── Periodic HP sync. Skip the round-trip when the value hasn't changed
-	// since the last successful sync — saves ~30 no-op mutations/min.
+	// since the last successful sync — saves ~30 no-op mutations/min. Also
+	// skip while dead: respawn is server-authoritative and stale 0 would
+	// race with it.
 	useTicker(active, HP_SYNC_INTERVAL_MS, () => {
+		if (deadRef.current) return;
 		const hp = playerHpRef.current;
 		if (hp === lastSyncedHpRef.current) return;
 		lastSyncedHpRef.current = hp;

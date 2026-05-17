@@ -90,8 +90,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			const result = await respawnDead({ characterId: character._id });
 			if (result.mode === "softcore") {
 				setDeathLog(`Você morreu! -${result.xpLost} XP`);
-				setView("map");
-				setCurrentNodeId(null);
+				// Respawn in the city node — view changes deactivate the combat hook;
+				// the hook skips the HP flush when dead so the server-side heal sticks.
+				setView("city");
+				setCurrentNodeId("city");
 				toast.error(`Você morreu! -${result.xpLost} XP`);
 			} else {
 				// Hardcore handling — for MVP, just toast and bounce to character-select.
