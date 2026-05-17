@@ -1,12 +1,21 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
-import { useEffect } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
+import CityScene from "#/components/world/CityScene";
+import CombatScene from "#/components/world/CombatScene";
 import EquipmentPanel from "#/components/world/EquipmentPanel";
+import MapScene from "#/components/world/MapScene";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
-import Viewport from "#/components/world/Viewport";
 import { findClassDefinition } from "#/game/classes/data";
+import { findStarterItem } from "#/game/items/starter-gear";
+import { computeMaxHp, xpToNextLevel } from "#/game/progression/levels";
+import { ACT_1, findNode } from "#/game/world";
+import { translateNodeName } from "#/game/world/i18n";
+import { useCombatLoop } from "#/hooks/useCombatLoop";
+import { m } from "#/paraglide/messages";
 import { api } from "../../convex/_generated/api";
 import type { Doc } from "../../convex/_generated/dataModel";
 
@@ -41,7 +50,7 @@ function WorldView() {
 		return (
 			<main className="flex h-screen items-center justify-center bg-black text-white">
 				<p className="text-xs uppercase tracking-[0.2em] text-neutral-600">
-					Loading...
+					{m.loading()}
 				</p>
 			</main>
 		);
@@ -50,19 +59,142 @@ function WorldView() {
 	return <WorldLayout character={character} />;
 }
 
+type ViewMode = "map" | "city" | "combat";
+
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const classDef = findClassDefinition(character.classId);
+	const enterCity = useMutation(api.characters.enterCity);
+	const respawnDead = useMutation(api.characters.respawnDead);
+
+	const [view, setView] = useState<ViewMode>("map");
+	const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
+	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+	const [deathLog, setDeathLog] = useState<string | null>(null);
+
+	const currentNode = currentNodeId ? findNode(ACT_1, currentNodeId) : null;
+	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
+
+	const maxHp = computeMaxHp(classDef, character.level);
+	const weapon = useMemo(
+		() =>
+			character.equippedWeapon
+				? findStarterItem(character.equippedWeapon)
+				: null,
+		[character.equippedWeapon],
+	);
+	const monsterPool = useMemo(
+		() => currentNode?.monsterPool ?? [],
+		[currentNode],
+	);
+
+	const handlePlayerDeath = useCallback(async () => {
+		try {
+			const result = await respawnDead({ characterId: character._id });
+			if (result.mode === "softcore") {
+				const message = m.you_died_softcore({ xp: result.xpLost });
+				setDeathLog(message);
+				// Respawn in the city node — view changes deactivate the combat hook;
+				// the hook skips the HP flush when dead so the server-side heal sticks.
+				setView("city");
+				setCurrentNodeId("city");
+				toast.error(message);
+			} else {
+				toast.error(m.you_died_hardcore());
+				window.location.href = "/character-select";
+			}
+		} catch {
+			toast.error(m.failed_handle_death());
+		}
+	}, [respawnDead, character._id]);
+
+	const combat = useCombatLoop({
+		characterId: character._id,
+		maxHp,
+		initialHp: character.hpCurrent ?? maxHp,
+		initialPotions: character.potions ?? 0,
+		weapon,
+		monsterPool,
+		active: view === "combat",
+		onPlayerDeath: handlePlayerDeath,
+	});
+
+	const handleEnterNode = (nodeId: string) => {
+		const node = findNode(ACT_1, nodeId);
+		if (!node) return;
+		setCurrentNodeId(nodeId);
+		setDeathLog(null);
+		if (node.kind === "city") {
+			setView("city");
+			void enterCity({ characterId: character._id });
+		} else if (node.kind === "combat" || node.kind === "boss") {
+			setView("combat");
+		}
+	};
+
+	const handleBackToMap = () => {
+		setView("map");
+		setCurrentNodeId(null);
+	};
+
+	const logMessage =
+		deathLog ??
+		(view === "map" && hoveredNode
+			? translateNodeName(hoveredNode)
+			: view !== "map" && currentNode
+				? m.inside_zone({ zone: translateNodeName(currentNode) })
+				: undefined);
+
+	const hpOverride = view === "combat" ? combat.playerHp : undefined;
+	const potionsOverride = view === "combat" ? combat.potions : undefined;
+	const onUsePotion =
+		view === "combat" || view === "map" ? combat.usePotion : undefined;
 
 	return (
 		<main className="relative grid h-screen grid-cols-[1fr_640px] gap-3 overflow-hidden bg-black p-3 text-white">
 			<div className="grid grid-rows-[1fr_160px] gap-3 overflow-hidden">
-				<Viewport />
-				<TextLog />
+				{view === "map" && (
+					<MapScene
+						act={ACT_1}
+						onEnterNode={handleEnterNode}
+						onHoverNode={setHoveredNodeId}
+						hoveredNodeId={hoveredNodeId}
+					/>
+				)}
+				{view === "city" && currentNode && (
+					<CityScene
+						cityName={translateNodeName(currentNode)}
+						onLeave={handleBackToMap}
+					/>
+				)}
+				{view === "combat" && currentNode && (
+					<CombatScene
+						zoneName={translateNodeName(currentNode)}
+						state={combat.state}
+						enemy={combat.enemy}
+						events={combat.events}
+						lastXpGain={combat.lastXpGain}
+						playerHp={combat.playerHp}
+						maxHp={maxHp}
+						xp={character.xp ?? 0}
+						xpNeeded={xpToNextLevel(character.level)}
+						potions={combat.potions}
+						canUsePotion={combat.potions > 0 && combat.playerHp < maxHp}
+						onUsePotion={combat.usePotion}
+						onRetreat={handleBackToMap}
+					/>
+				)}
+				<TextLog message={logMessage} />
 			</div>
 
-			<aside className="grid grid-rows-[1fr_auto] gap-3 overflow-hidden">
-				<EquipmentPanel />
-				<StatusCard character={character} classDef={classDef} />
+			<aside className="grid grid-rows-[1fr_auto] gap-3">
+				<EquipmentPanel weapon={weapon} />
+				<StatusCard
+					character={character}
+					classDef={classDef}
+					hpOverride={hpOverride}
+					potionsOverride={potionsOverride}
+					onUsePotion={onUsePotion}
+				/>
 			</aside>
 		</main>
 	);

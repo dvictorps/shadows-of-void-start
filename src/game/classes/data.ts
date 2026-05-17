@@ -1,6 +1,9 @@
 import type { CharacterClassDefinition, CharacterClassId } from "./types";
 
 export const CLASS_DEFINITIONS = {
+	// `name` and `description` are canonical English fallbacks. UI components
+	// translate via paraglide messages keyed by class id (see ATTRIBUTE_LABEL /
+	// CLASS_NAME / CLASS_DESCRIPTION maps in the consumers).
 	warrior: {
 		id: "warrior",
 		name: "Warrior",
