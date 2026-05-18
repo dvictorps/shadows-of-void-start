@@ -30,7 +30,7 @@ export default function MapScene({
 	const edges = useMemo(() => buildEdges(act.nodes), [act.nodes]);
 
 	return (
-		<section className="relative overflow-hidden rounded-md border border-white/40 bg-black">
+		<section className="relative h-full overflow-hidden rounded-md border border-white/40 bg-black">
 			<button
 				type="button"
 				onClick={onOpenSettings}
