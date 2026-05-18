@@ -45,7 +45,7 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 | `items/` | Item generator, modifier data, equip helpers | See below — the biggest subdir |
 | `loot/` | Drop tables | `drops.ts` (rollDrop, rollMonsterLevel) |
 | `monsters/` | Monster definitions | `data.ts`, `types.ts` |
-| `progression/` | XP curves, HP scaling | `levels.ts` (xpToNextLevel, computeMaxHp, death penalty) |
+| `progression/` | XP curves, death penalty | `levels.ts` (xpToNextLevel, applyXpGain, applyDeathXpPenalty) |
 | `stats/` | The stat engine | `compute.ts` (computeCharacterStats), `types.ts` (EquippedSlot, narrowEquippedSlot, ComputedCharacterStats) |
 | `world/` | Acts, zones, node graph, zone-name i18n | `act-1.ts`, `index.ts`, `types.ts`, `i18n.ts` |
 

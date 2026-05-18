@@ -80,19 +80,19 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const navigate = useNavigate();
 	const confirm = useConfirmationModal();
 	const classDef = findClassDefinition(character.classId);
-	const enterCity = useMutation(api.characters.enterCity);
-	const enterZone = useMutation(api.characters.enterZone);
-	const exitZone = useMutation(api.characters.exitZone).withOptimisticUpdate(
+	const enterCity = useMutation(api.combat.enterCity);
+	const enterZone = useMutation(api.combat.enterZone);
+	const exitZone = useMutation(api.items.exitZone).withOptimisticUpdate(
 		(localStore, args) => {
 			// On commit, the bag goes to zero and `keepIds` items become inventory
 			// docs. Mirror that locally so the modal can auto-close immediately.
 			const bagKey = { characterId: args.characterId };
-			const bag = localStore.getQuery(api.characters.zoneBag, bagKey);
-			if (bag) localStore.setQuery(api.characters.zoneBag, bagKey, []);
+			const bag = localStore.getQuery(api.items.zoneBag, bagKey);
+			if (bag) localStore.setQuery(api.items.zoneBag, bagKey, []);
 			const keep = new Set(args.keepIds.map((id) => id.toString()));
 			const keptDocs = (bag ?? []).filter((it) => keep.has(it._id.toString()));
 			if (keptDocs.length === 0) return;
-			const inv = localStore.getQuery(api.characters.inventory, bagKey) ?? [];
+			const inv = localStore.getQuery(api.items.inventory, bagKey) ?? [];
 			const occupied = new Set<number>();
 			for (const it of inv) {
 				if (typeof it.inventorySlot === "number")
@@ -113,24 +113,24 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				inventorySlot: nextFreeSlot(),
 			}));
 			localStore.setQuery(
-				api.characters.inventory,
+				api.items.inventory,
 				bagKey,
 				[...inv, ...moved].sort(bySlotAsc),
 			);
 		},
 	);
 	const pickFromBag = useMutation(
-		api.characters.pickFromBag,
+		api.items.pickFromBag,
 	).withOptimisticUpdate((localStore, args) => {
 		const bagKey = { characterId: args.characterId };
-		const bag = localStore.getQuery(api.characters.zoneBag, bagKey);
+		const bag = localStore.getQuery(api.items.zoneBag, bagKey);
 		if (!bag) return;
 		const idSet = new Set(args.itemIds.map((id) => id.toString()));
 		const picked = bag.filter((it) => idSet.has(it._id.toString()));
 		if (picked.length === 0) return;
 		const remaining = bag.filter((it) => !idSet.has(it._id.toString()));
-		localStore.setQuery(api.characters.zoneBag, bagKey, remaining);
-		const inv = localStore.getQuery(api.characters.inventory, bagKey) ?? [];
+		localStore.setQuery(api.items.zoneBag, bagKey, remaining);
+		const inv = localStore.getQuery(api.items.inventory, bagKey) ?? [];
 		const occupied = new Set<number>();
 		for (const it of inv) {
 			if (typeof it.inventorySlot === "number") occupied.add(it.inventorySlot);
@@ -150,25 +150,25 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			inventorySlot: nextFreeSlot(),
 		}));
 		localStore.setQuery(
-			api.characters.inventory,
+			api.items.inventory,
 			bagKey,
 			[...inv, ...moved].sort(bySlotAsc),
 		);
 	});
 	const discardFromBag = useMutation(
-		api.characters.discardFromBag,
+		api.items.discardFromBag,
 	).withOptimisticUpdate((localStore, args) => {
 		const bagKey = { characterId: args.characterId };
-		const bag = localStore.getQuery(api.characters.zoneBag, bagKey);
+		const bag = localStore.getQuery(api.items.zoneBag, bagKey);
 		if (!bag) return;
 		const idSet = new Set(args.itemIds.map((id) => id.toString()));
 		localStore.setQuery(
-			api.characters.zoneBag,
+			api.items.zoneBag,
 			bagKey,
 			bag.filter((it) => !idSet.has(it._id.toString())),
 		);
 	});
-	const respawnDead = useMutation(api.characters.respawnDead);
+	const respawnDead = useMutation(api.combat.respawnDead);
 
 	const [view, setView] = useState<ViewMode>("map");
 	const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
@@ -182,7 +182,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const statsModal = useModal();
 	const wantsBag = view === "combat" || exitModal.isOpen;
 	const zoneBag = useQuery(
-		api.characters.zoneBag,
+		api.items.zoneBag,
 		wantsBag ? { characterId: character._id } : "skip",
 	);
 	const currentNode = currentNodeId ? findNode(ACT_1, currentNodeId) : null;
@@ -192,10 +192,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// warm whenever the modal opens — no flicker on first open). Combined with
 	// the localStorage cache below, cold reloads also render last-known data
 	// instantly.
-	const liveEquipped = useQuery(api.characters.equipped, {
+	const liveEquipped = useQuery(api.items.equipped, {
 		characterId: character._id,
 	});
-	const liveInventory = useQuery(api.characters.inventory, {
+	const liveInventory = useQuery(api.items.inventory, {
 		characterId: character._id,
 	});
 	const equippedItems = useCachedQuery(

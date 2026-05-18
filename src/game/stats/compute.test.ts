@@ -111,7 +111,7 @@ describe("computeCharacterStats — base", () => {
 		expect(stats.swings).toHaveLength(0);
 	});
 
-	it("scales max life with level via computeMaxHp", () => {
+	it("scales max life linearly with level", () => {
 		const stats = computeCharacterStats({
 			classDef: warrior,
 			level: 10,

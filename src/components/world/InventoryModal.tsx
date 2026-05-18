@@ -80,9 +80,9 @@ export default function InventoryModal({
 	inventoryItems,
 }: Props) {
 	const reorder = useMutation(
-		api.characters.reorderInventory,
+		api.items.reorderInventory,
 	).withOptimisticUpdate((localStore, args) => {
-		const inv = localStore.getQuery(api.characters.inventory, {
+		const inv = localStore.getQuery(api.items.inventory, {
 			characterId: args.characterId,
 		});
 		if (!inv) return;
@@ -102,17 +102,17 @@ export default function InventoryModal({
 			})
 			.sort(bySlotAsc);
 		localStore.setQuery(
-			api.characters.inventory,
+			api.items.inventory,
 			{ characterId: args.characterId },
 			next,
 		);
 	});
-	const equipItem = useMutation(api.characters.equipItem).withOptimisticUpdate(
+	const equipItem = useMutation(api.items.equipItem).withOptimisticUpdate(
 		(localStore, args) => {
-			const inv = localStore.getQuery(api.characters.inventory, {
+			const inv = localStore.getQuery(api.items.inventory, {
 				characterId: args.characterId,
 			});
-			const equipped = localStore.getQuery(api.characters.equipped, {
+			const equipped = localStore.getQuery(api.items.equipped, {
 				characterId: args.characterId,
 			});
 			if (!inv || !equipped) return;
@@ -175,24 +175,24 @@ export default function InventoryModal({
 			];
 
 			localStore.setQuery(
-				api.characters.inventory,
+				api.items.inventory,
 				{ characterId: args.characterId },
 				newInventory,
 			);
 			localStore.setQuery(
-				api.characters.equipped,
+				api.items.equipped,
 				{ characterId: args.characterId },
 				newEquipped,
 			);
 		},
 	);
 	const unequipItem = useMutation(
-		api.characters.unequipItem,
+		api.items.unequipItem,
 	).withOptimisticUpdate((localStore, args) => {
-		const inv = localStore.getQuery(api.characters.inventory, {
+		const inv = localStore.getQuery(api.items.inventory, {
 			characterId: args.characterId,
 		});
-		const equipped = localStore.getQuery(api.characters.equipped, {
+		const equipped = localStore.getQuery(api.items.equipped, {
 			characterId: args.characterId,
 		});
 		if (!inv || !equipped) return;
@@ -224,12 +224,12 @@ export default function InventoryModal({
 		const newEquipped = equipped.filter((it) => it._id !== item._id);
 
 		localStore.setQuery(
-			api.characters.inventory,
+			api.items.inventory,
 			{ characterId: args.characterId },
 			newInventory,
 		);
 		localStore.setQuery(
-			api.characters.equipped,
+			api.items.equipped,
 			{ characterId: args.characterId },
 			newEquipped,
 		);

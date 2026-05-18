@@ -1,0 +1,96 @@
+import { ConvexError, v } from "convex/values"
+import { INVENTORY_MAX_SLOTS } from "../../src/game/inventory/constants"
+import {
+	EQUIPPED_SLOTS,
+	type EquippedItem,
+	narrowEquippedSlot,
+} from "../../src/game/stats/types"
+import type { Doc, Id } from "../_generated/dataModel"
+import type { MutationCtx } from "../_generated/server"
+
+export async function loadOwnedCharacter(
+	ctx: MutationCtx,
+	authUserId: string,
+	id: Id<"characters">,
+): Promise<Doc<"characters">> {
+	const char = await ctx.db.get(id)
+	if (!char) throw new ConvexError("Character not found")
+	if (char.authUserId !== authUserId) throw new ConvexError("Not your character")
+	return char
+}
+
+export async function loadEquippedSet(
+	ctx: MutationCtx,
+	characterId: Id<"characters">,
+): Promise<EquippedItem[]> {
+	const equipped = await ctx.db
+		.query("items")
+		.withIndex("by_character_kind", (q) =>
+			q.eq("characterId", characterId).eq("locationKind", "equipped"),
+		)
+		.collect()
+	return equipped.flatMap((it) => {
+		const slot = narrowEquippedSlot(it.equippedSlot)
+		return slot ? [{ slot, item: it.data }] : []
+	})
+}
+
+export async function deleteZoneBag(
+	ctx: MutationCtx,
+	zoneSession: string,
+): Promise<void> {
+	const bagItems = await ctx.db
+		.query("items")
+		.withIndex("by_zoneSession", (q) => q.eq("zoneSession", zoneSession))
+		.collect()
+	await Promise.all(bagItems.map((item) => ctx.db.delete(item._id)))
+}
+
+// Fetches the inventory in one pass and returns a slot allocator. The allocator
+// mutates an internal occupied-set as it hands out slots — callers reuse the
+// returned `inventory.length` for overflow checks instead of refetching.
+export async function fetchInventoryAllocator(
+	ctx: MutationCtx,
+	characterId: Id<"characters">,
+): Promise<{ used: number; nextFreeSlot: () => number }> {
+	const inventory = await ctx.db
+		.query("items")
+		.withIndex("by_character_kind", (q) =>
+			q.eq("characterId", characterId).eq("locationKind", "inventory"),
+		)
+		.collect()
+	const occupied = new Set(
+		inventory
+			.map((it) => it.inventorySlot)
+			.filter((s): s is number => typeof s === "number"),
+	)
+	function nextFreeSlot(): number {
+		for (let i = 0; i < INVENTORY_MAX_SLOTS; i++) {
+			if (!occupied.has(i)) {
+				occupied.add(i)
+				return i
+			}
+		}
+		return -1
+	}
+	return { used: inventory.length, nextFreeSlot }
+}
+
+export function newZoneSession(): string {
+	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+// Derived from the single source of truth in src/game/stats/types so the
+// validator and the EquippedSlot type can never drift.
+export const equippedSlotValidator = v.union(
+	v.literal(EQUIPPED_SLOTS[0]),
+	v.literal(EQUIPPED_SLOTS[1]),
+	v.literal(EQUIPPED_SLOTS[2]),
+	v.literal(EQUIPPED_SLOTS[3]),
+	v.literal(EQUIPPED_SLOTS[4]),
+	v.literal(EQUIPPED_SLOTS[5]),
+	v.literal(EQUIPPED_SLOTS[6]),
+	v.literal(EQUIPPED_SLOTS[7]),
+	v.literal(EQUIPPED_SLOTS[8]),
+	v.literal(EQUIPPED_SLOTS[9]),
+)
