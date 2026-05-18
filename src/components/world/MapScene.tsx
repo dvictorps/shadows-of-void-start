@@ -1,4 +1,4 @@
-import { Home, type LucideIcon, Settings, Skull, Trees } from "lucide-react";
+import { Home, type LucideIcon, MapPin, Settings, Skull, Trees } from "lucide-react";
 import { useMemo } from "react";
 import type { Act, WorldNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
@@ -9,6 +9,7 @@ type Props = {
 	onEnterNode: (nodeId: string) => void;
 	onHoverNode: (nodeId: string | null) => void;
 	hoveredNodeId: string | null;
+	currentLocationNodeId: string;
 	onOpenSettings: () => void;
 };
 
@@ -23,6 +24,7 @@ export default function MapScene({
 	onEnterNode,
 	onHoverNode,
 	hoveredNodeId,
+	currentLocationNodeId,
 	onOpenSettings,
 }: Props) {
 	const edges = useMemo(() => buildEdges(act.nodes), [act.nodes]);
@@ -51,6 +53,7 @@ export default function MapScene({
 					key={node.id}
 					node={node}
 					hovered={hoveredNodeId === node.id}
+					isCurrent={node.id === currentLocationNodeId}
 					onEnter={() => onEnterNode(node.id)}
 					onHover={() => onHoverNode(node.id)}
 					onLeave={() => onHoverNode(null)}
@@ -66,7 +69,8 @@ function buildEdges(nodes: WorldNode[]) {
 	const edges: React.ReactElement[] = [];
 
 	for (const node of nodes) {
-		for (const otherId of node.connections) {
+		for (const conn of node.connections) {
+			const otherId = conn.id;
 			const key = [node.id, otherId].sort().join("|");
 			if (drawn.has(key)) continue;
 			drawn.add(key);
@@ -94,37 +98,50 @@ function buildEdges(nodes: WorldNode[]) {
 function MapNode({
 	node,
 	hovered,
+	isCurrent,
 	onEnter,
 	onHover,
 	onLeave,
 }: {
 	node: WorldNode;
 	hovered: boolean;
+	isCurrent: boolean;
 	onEnter: () => void;
 	onHover: () => void;
 	onLeave: () => void;
 }) {
 	const Icon = NODE_ICONS[node.kind];
 	return (
-		<button
-			type="button"
-			onClick={onEnter}
-			onMouseEnter={onHover}
-			onMouseLeave={onLeave}
-			onFocus={onHover}
-			onBlur={onLeave}
-			aria-label={m.enter_node({ name: translateNodeName(node) })}
+		<div
 			style={{
 				left: `${node.position.x * 100}%`,
 				top: `${node.position.y * 100}%`,
 			}}
-			className={`-translate-x-1/2 -translate-y-1/2 absolute flex h-20 w-20 items-center justify-center rounded-full border-2 bg-black transition ${
-				hovered
-					? "border-white text-white shadow-[0_0_20px_rgba(255,255,255,0.4)]"
-					: "border-white/40 text-white/70 hover:border-white/80"
-			}`}
+			className="-translate-x-1/2 -translate-y-1/2 absolute"
 		>
-			<Icon className="h-9 w-9" strokeWidth={1.5} />
-		</button>
+			<button
+				type="button"
+				onClick={onEnter}
+				onMouseEnter={onHover}
+				onMouseLeave={onLeave}
+				onFocus={onHover}
+				onBlur={onLeave}
+				aria-label={m.enter_node({ name: translateNodeName(node) })}
+				className={`flex h-7 w-7 items-center justify-center rounded-full border-2 bg-black transition ${
+					hovered
+						? "border-white text-white shadow-[0_0_12px_rgba(255,255,255,0.5)]"
+						: "border-white/40 text-white/70 hover:border-white/80"
+				}`}
+			>
+				<Icon className="h-4 w-4" strokeWidth={1.5} />
+			</button>
+			{isCurrent && (
+				<MapPin
+					aria-hidden
+					className="-top-4 -right-2 pointer-events-none absolute h-5 w-5 fill-yellow-300 text-yellow-300 drop-shadow-[0_0_4px_rgba(253,224,71,0.7)]"
+					strokeWidth={1.5}
+				/>
+			)}
+		</div>
 	);
 }

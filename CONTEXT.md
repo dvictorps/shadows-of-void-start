@@ -407,6 +407,38 @@ Each combat **zone node** declares its `level: number`. When a mob spawns, the s
 
 ---
 
+## Travel system
+
+Movement between nodes on the act map is **time-gated**. A character is always "at" a node (`currentLocation`). To get to a different node they must **travel** — the trip takes seconds in real time, during which the player can't enter zones but can still browse stats, inventory, settings, etc. When the trip completes, the player automatically arrives at the destination and (for zone / city nodes) the view transitions into that area.
+
+### Travel time
+Each `NodeConnection` carries a **distance** in abstract units. The travel time formula lives in `src/game/world/travel.ts`:
+
+```
+time_seconds = max(0.5, distance / (1 + 2 × movementSpeed/100))
+```
+
+The 2× coefficient on movement speed is intentional — boots can roll up to ~30% MS in early game and we want the player to *feel* that gear choice on the world map, not see a barely-perceptible improvement. The 0.5s floor keeps travel always visible.
+
+### State on the character document
+Three fields capture the player's location on the act map:
+
+- `currentLocation` — the node id the character is at. Defaults to `"city"` on character creation and on respawn.
+- `travelDestination` — set to the target node id at travel start; cleared on arrival. Mutually exclusive with `currentLocation` (during travel the character is "in transit", not at either node).
+- `travelArrivesAt` — Unix ms timestamp. The client uses this to schedule the auto-arrival mutation and to render the progress bar. Server validates it before allowing `arriveAtTravel` to complete.
+
+### Behaviour rules
+- **Re-entering the same node is instant.** If the player retreats from a zone and clicks the same node again, no travel — they're already there.
+- **Disconnected nodes can't be travelled to directly** (today). Wind crystals will unlock that path later; for now, clicking an unconnected node surfaces a "no route" toast.
+- **Travel survives refresh.** `travelArrivesAt` lives in the DB. On reload the client recomputes remaining time and schedules `arriveAtTravel` accordingly. Tab closed for longer than the travel? The next load arrives immediately.
+- **No mid-travel actions.** Combat doesn't tick (the character isn't in any zone), `enterZone` rejects while travelling, and there's no cancel button. Future: teleport stones interrupt travel and snap to the city.
+- **Death resets to the city** and clears any in-flight travel.
+
+### UI
+The map view's nodes carry a yellow `MapPin` icon over the node matching `currentLocation`. During travel, a thin progress bar pins to the bottom of the world view (above the bottom of the section) showing the from/to and seconds remaining. The map's nodes are intentionally small (`h-7 w-7` ≈ 28px) so the icon overlay reads as a separate decoration rather than competing with the node itself.
+
+---
+
 ## Navigation and Logout
 
 ### From character-select → world

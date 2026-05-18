@@ -15,6 +15,7 @@ import SettingsModal from "#/components/world/SettingsModal";
 import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
+import TravelProgressBar from "#/components/world/TravelProgressBar";
 import { findClassDefinition } from "#/game/classes/data";
 import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
@@ -172,11 +173,20 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		);
 	});
 	const respawnDead = useMutation(api.combat.respawnDead);
+	const startTravel = useMutation(api.combat.startTravel);
+	const arriveAtTravel = useMutation(api.combat.arriveAtTravel);
 
 	const [view, setView] = useState<ViewMode>("map");
-	const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const [deathLog, setDeathLog] = useState<string | null>(null);
+	// Set when the player clicks a node that requires travel — the auto-arrival
+	// effect transitions the view to this node's area when travel completes.
+	// Also reseeded from `travelDestination` on mount so a refresh mid-travel
+	// still arrives in the right view.
+	const [pendingArrival, setPendingArrival] = useState<string | null>(null);
+	// Tracks the timestamp the current travel started, so the progress bar can
+	// render a duration even after a refresh (server only stores arrivesAt).
+	const [travelStartedAt, setTravelStartedAt] = useState<number | null>(null);
 
 	const bagModal = useModal();
 	const exitModal = useModal();
@@ -188,8 +198,13 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		api.items.zoneBag,
 		wantsBag ? { characterId: character._id } : "skip",
 	);
-	const currentNode = currentNodeId ? findNode(ACT_1, currentNodeId) : null;
+	const currentLocation = character.currentLocation ?? "city";
+	const currentNode = findNode(ACT_1, currentLocation);
 	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
+	const travelDestination = character.travelDestination;
+	const travelArrivesAt = character.travelArrivesAt;
+	const isTraveling =
+		travelDestination !== undefined && travelArrivesAt !== undefined;
 
 	// Always-on subscriptions (lifted from InventoryModal so the queries are
 	// warm whenever the modal opens — no flicker on first open). Combined with
@@ -255,10 +270,11 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			if (result.mode === "softcore") {
 				const message = m.you_died_softcore({ xp: result.xpLost });
 				setDeathLog(message);
-				// Respawn in the city node — view changes deactivate the combat hook;
-				// the hook skips the HP flush when dead so the server-side heal sticks.
+				// Respawn in the city — server resets currentLocation to "city" and
+				// clears travel state. View follows.
 				setView("city");
-				setCurrentNodeId("city");
+				setPendingArrival(null);
+				setTravelStartedAt(null);
 				toast.error(message);
 			} else {
 				toast.error(m.you_died_hardcore());
@@ -282,23 +298,93 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		onPlayerDeath: handlePlayerDeath,
 	});
 
-	const handleEnterNode = (nodeId: string) => {
-		const node = findNode(ACT_1, nodeId);
-		if (!node) return;
-		setCurrentNodeId(nodeId);
-		setDeathLog(null);
-		if (node.kind === "city") {
-			setView("city");
-			void enterCity({ characterId: character._id });
-		} else if (node.kind === "combat" || node.kind === "boss") {
-			setView("combat");
-			void enterZone({ characterId: character._id, zoneId: nodeId });
+	// Enter a node's area directly (no travel). Caller has already verified
+	// the player is "at" the node either by arrival or by clicking the
+	// already-current node.
+	const enterDestination = useCallback(
+		(nodeId: string) => {
+			const node = findNode(ACT_1, nodeId);
+			if (!node) return;
+			setDeathLog(null);
+			if (node.kind === "city") {
+				setView("city");
+				void enterCity({ characterId: character._id });
+			} else if (node.kind === "combat" || node.kind === "boss") {
+				setView("combat");
+				void enterZone({ characterId: character._id, zoneId: nodeId });
+			}
+		},
+		[character._id, enterCity, enterZone],
+	);
+
+	// Refresh resilience: if we land on this view mid-travel (no client-side
+	// pendingArrival yet), seed it from the server so the auto-arrival effect
+	// triggers the correct view transition when the timer fires.
+	useEffect(() => {
+		if (travelDestination && !pendingArrival) {
+			setPendingArrival(travelDestination);
+		}
+	}, [travelDestination, pendingArrival]);
+
+	// Auto-arrival: schedule arriveAtTravel at travelArrivesAt. If we're already
+	// past the arrival time (long-tab-closed case), fire immediately.
+	useEffect(() => {
+		if (!isTraveling || travelArrivesAt === undefined) return;
+		const remaining = travelArrivesAt - Date.now();
+		if (remaining <= 0) {
+			void arriveAtTravel({ characterId: character._id });
+			return;
+		}
+		const timer = window.setTimeout(() => {
+			void arriveAtTravel({ characterId: character._id });
+		}, remaining);
+		return () => window.clearTimeout(timer);
+	}, [isTraveling, travelArrivesAt, arriveAtTravel, character._id]);
+
+	// Auto-enter destination after the server confirms arrival. Detects the
+	// transition "was traveling → not traveling AND now at the pendingArrival".
+	useEffect(() => {
+		if (!pendingArrival || isTraveling) return;
+		if (currentLocation !== pendingArrival) return;
+		enterDestination(pendingArrival);
+		setPendingArrival(null);
+		setTravelStartedAt(null);
+	}, [pendingArrival, isTraveling, currentLocation, enterDestination]);
+
+	const handleEnterNode = async (nodeId: string) => {
+		if (isTraveling) return;
+		// Re-entering the current node skips travel — the player is already there.
+		if (nodeId === currentLocation) {
+			enterDestination(nodeId);
+			return;
+		}
+		// Otherwise the click intent is "travel there and enter on arrival".
+		const fromNode = findNode(ACT_1, currentLocation);
+		const conn = fromNode?.connections.find((c) => c.id === nodeId);
+		if (!conn) {
+			const destNode = findNode(ACT_1, nodeId);
+			toast.error(
+				m.travel_no_route({
+					destination: destNode ? translateNodeName(destNode) : nodeId,
+				}),
+			);
+			return;
+		}
+		setPendingArrival(nodeId);
+		try {
+			const result = await startTravel({
+				characterId: character._id,
+				destinationNodeId: nodeId,
+			});
+			setTravelStartedAt(result.startedAt);
+		} catch {
+			setPendingArrival(null);
+			setTravelStartedAt(null);
 		}
 	};
 
 	const handleBackToMap = () => {
 		setView("map");
-		setCurrentNodeId(null);
 	};
 
 	const handleRetreat = () => {
@@ -392,9 +478,29 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		void navigate({ to: "/character-select" });
 	};
 
+	// Pre-compute the travel overlay so the JSX stays readable. Renders only
+	// when both source + destination nodes resolve (defensive — they should
+	// always exist since the server validated the route on `startTravel`).
+	const travelFromNode = currentNode;
+	const travelToNode = travelDestination
+		? findNode(ACT_1, travelDestination)
+		: null;
+	const travelOverlay =
+		isTraveling &&
+		travelArrivesAt !== undefined &&
+		travelFromNode &&
+		travelToNode ? (
+			<TravelProgressBar
+				fromName={translateNodeName(travelFromNode)}
+				toName={translateNodeName(travelToNode)}
+				startedAtMs={travelStartedAt ?? travelArrivesAt - 1000}
+				arrivesAtMs={travelArrivesAt}
+			/>
+		) : null;
+
 	return (
 		<main className="relative grid h-screen grid-cols-[1fr_640px] gap-3 overflow-hidden bg-black p-3 text-white">
-			{view !== "combat" && (
+			{view === "map" && (
 				<button
 					type="button"
 					onClick={handleLeaveWorld}
@@ -407,13 +513,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			)}
 			<div className="grid grid-rows-[1fr_160px] gap-3 overflow-hidden">
 				{view === "map" && (
-					<MapScene
-						act={ACT_1}
-						onEnterNode={handleEnterNode}
-						onHoverNode={setHoveredNodeId}
-						hoveredNodeId={hoveredNodeId}
-						onOpenSettings={settingsModal.open}
-					/>
+					<div className="relative overflow-hidden">
+						<MapScene
+							act={ACT_1}
+							onEnterNode={handleEnterNode}
+							onHoverNode={setHoveredNodeId}
+							hoveredNodeId={hoveredNodeId}
+							currentLocationNodeId={currentLocation}
+							onOpenSettings={settingsModal.open}
+						/>
+						{travelOverlay}
+					</div>
 				)}
 				{view === "city" && currentNode && (
 					<CityScene

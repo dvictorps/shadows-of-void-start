@@ -13,6 +13,7 @@ import {
 } from "../src/game/progression/levels"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { ACT_1, findNode } from "../src/game/world"
+import { computeTravelTime } from "../src/game/world/travel"
 import {
 	deleteZoneBag,
 	loadEquippedSet,
@@ -217,6 +218,10 @@ export const respawnDead = mutation({
 			hpCurrent: maxHp,
 			xp,
 			currentZoneSession: undefined,
+			// Respawn resets you to the city and clears any in-flight travel.
+			currentLocation: "city",
+			travelDestination: undefined,
+			travelArrivesAt: undefined,
 		})
 		return { mode: "softcore" as const, xpLost }
 	},
@@ -236,6 +241,16 @@ export const enterZone = mutation({
 		if (!zone || zone.kind !== "combat")
 			throw new ConvexError(`Unknown combat zone: ${args.zoneId}`)
 
+		// Travel guard — the character must be at this zone (already arrived) and
+		// not actively in transit.
+		const currentLocation = char.currentLocation ?? "city"
+		if (char.travelDestination !== undefined)
+			throw new ConvexError("Cannot enter — travel in progress")
+		if (currentLocation !== args.zoneId)
+			throw new ConvexError(
+				`Cannot enter ${args.zoneId} from ${currentLocation}`,
+			)
+
 		// Wipe any leftover bag from a previous session (player closed tab mid-fight
 		// last time, etc.). Combat scope is "what dropped in THIS visit only".
 		if (char.currentZoneSession) {
@@ -245,5 +260,81 @@ export const enterZone = mutation({
 		const zoneSession = newZoneSession()
 		await ctx.db.patch(args.characterId, { currentZoneSession: zoneSession })
 		return { zoneSession }
+	},
+})
+
+export const startTravel = mutation({
+	args: {
+		characterId: v.id("characters"),
+		destinationNodeId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		if (char.travelDestination !== undefined)
+			throw new ConvexError("Already traveling")
+
+		const fromId = char.currentLocation ?? "city"
+		if (fromId === args.destinationNodeId)
+			throw new ConvexError("Already at destination")
+
+		const fromNode = findNode(ACT_1, fromId)
+		if (!fromNode) throw new ConvexError(`Unknown current location: ${fromId}`)
+
+		const connection = fromNode.connections.find(
+			(c) => c.id === args.destinationNodeId,
+		)
+		if (!connection)
+			throw new ConvexError(
+				`No route from ${fromId} to ${args.destinationNodeId}`,
+			)
+
+		const destNode = findNode(ACT_1, args.destinationNodeId)
+		if (!destNode)
+			throw new ConvexError(
+				`Unknown destination node: ${args.destinationNodeId}`,
+			)
+
+		const classDef = findClassDefinition(char.classId)
+		const equippedItems = await loadEquippedSet(ctx, args.characterId)
+		const stats = computeCharacterStats({
+			classDef,
+			level: char.level,
+			equippedItems,
+		})
+		const seconds = computeTravelTime(connection.distance, stats.movementSpeed)
+		const startedAt = Date.now()
+		const arrivesAt = startedAt + Math.round(seconds * 1000)
+
+		await ctx.db.patch(args.characterId, {
+			travelDestination: args.destinationNodeId,
+			travelArrivesAt: arrivesAt,
+		})
+		return { startedAt, arrivesAt, durationMs: arrivesAt - startedAt }
+	},
+})
+
+export const arriveAtTravel = mutation({
+	args: { characterId: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		if (!char.travelDestination || !char.travelArrivesAt) {
+			throw new ConvexError("Not traveling")
+		}
+		if (Date.now() < char.travelArrivesAt) {
+			throw new ConvexError("Travel not complete")
+		}
+
+		await ctx.db.patch(args.characterId, {
+			currentLocation: char.travelDestination,
+			travelDestination: undefined,
+			travelArrivesAt: undefined,
+		})
+		return { arrivedAt: char.travelDestination }
 	},
 })

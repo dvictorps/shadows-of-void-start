@@ -28,6 +28,14 @@ export default defineSchema({
 		// Active zone session id (nanoid). Set on enterZone, cleared on exitZone or death.
 		// Items in items table with location.zoneSession === this value belong to the bag.
 		currentZoneSession: v.optional(v.string()),
+		// Travel state — see CONTEXT.md → Travel system.
+		// `currentLocation` is the node the character is "at". Defaults to "city"
+		// at character creation; set on travel arrival; reset to "city" on respawn.
+		currentLocation: v.optional(v.string()),
+		// `travelDestination` and `travelArrivesAt` are set together when a travel
+		// starts and cleared together on arrival. Both undefined = not traveling.
+		travelDestination: v.optional(v.string()),
+		travelArrivesAt: v.optional(v.number()),
 	}).index("by_authUserId", ["authUserId"]),
 
 	// All items live here — drops, inventory, equipped, stash. Location is
