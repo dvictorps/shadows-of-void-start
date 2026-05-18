@@ -20,6 +20,7 @@ type Props = {
 	hpOverride?: number;
 	potionsOverride?: number;
 	onUsePotion?: () => void;
+	onShowStats?: () => void;
 };
 
 export default function StatusCard({
@@ -27,6 +28,7 @@ export default function StatusCard({
 	classDef,
 	hpOverride,
 	potionsOverride,
+	onShowStats,
 	onUsePotion,
 }: Props) {
 	const classResolved = classDef
@@ -123,6 +125,8 @@ export default function StatusCard({
 						<Button
 							type="button"
 							variant="stark"
+							onClick={onShowStats}
+							disabled={!onShowStats}
 							className="px-3 py-1.5 text-xs uppercase tracking-wider"
 						>
 							{m.show_action()}

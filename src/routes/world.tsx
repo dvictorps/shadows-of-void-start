@@ -11,6 +11,7 @@ import ExitZoneModal from "#/components/world/ExitZoneModal";
 import InventoryModal from "#/components/world/InventoryModal";
 import MapScene from "#/components/world/MapScene";
 import SettingsModal from "#/components/world/SettingsModal";
+import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import { findClassDefinition } from "#/game/classes/data";
@@ -86,6 +87,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const exitModal = useModal();
 	const inventoryModal = useModal();
 	const settingsModal = useModal();
+	const statsModal = useModal();
 	const wantsBag = view === "combat" || exitModal.isOpen;
 	const zoneBag = useQuery(
 		api.characters.zoneBag,
@@ -296,6 +298,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					hpOverride={hpOverride}
 					potionsOverride={potionsOverride}
 					onUsePotion={onUsePotion}
+					onShowStats={statsModal.open}
 				/>
 			</aside>
 
@@ -312,6 +315,14 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				onPickAll={handlePickAll}
 				onDiscardAll={handleDiscardAll}
 				bagItems={zoneBag ?? []}
+			/>
+			<ShowStatsModal
+				isOpen={statsModal.isOpen}
+				onClose={statsModal.close}
+				stats={stats}
+				referenceEnemyLevel={zoneLevel}
+				currentBarrier={combat.barrier.current}
+				currentLife={combat.playerHp}
 			/>
 			<InventoryModal
 				isOpen={inventoryModal.isOpen}
