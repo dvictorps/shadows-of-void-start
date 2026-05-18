@@ -10,7 +10,7 @@ import {
 	useSensor,
 	useSensors,
 } from "@dnd-kit/core";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
@@ -55,6 +55,8 @@ type Props = {
 	characterId: Id<"characters">;
 	stats: ComputedCharacterStats;
 	characterLevel: number;
+	equippedItems: Doc<"items">[];
+	inventoryItems: Doc<"items">[];
 };
 
 export default function InventoryModal({
@@ -63,15 +65,9 @@ export default function InventoryModal({
 	characterId,
 	stats,
 	characterLevel,
+	equippedItems,
+	inventoryItems,
 }: Props) {
-	const equippedItems = useQuery(
-		api.characters.equipped,
-		isOpen ? { characterId } : "skip",
-	);
-	const inventoryItems = useQuery(
-		api.characters.inventory,
-		isOpen ? { characterId } : "skip",
-	);
 	const reorder = useMutation(
 		api.characters.reorderInventory,
 	).withOptimisticUpdate((localStore, args) => {
@@ -115,13 +111,13 @@ export default function InventoryModal({
 
 	const equippedBySlot = useMemo(() => {
 		const map = new Map<EquippedSlot, Doc<"items">>();
-		for (const item of equippedItems ?? []) {
+		for (const item of equippedItems) {
 			if (item.equippedSlot) map.set(item.equippedSlot as EquippedSlot, item);
 		}
 		return map;
 	}, [equippedItems]);
 
-	const inventory = inventoryItems ?? [];
+	const inventory = inventoryItems;
 
 	const inventoryBySlot = useMemo(() => {
 		const map = new Map<number, Doc<"items">>();

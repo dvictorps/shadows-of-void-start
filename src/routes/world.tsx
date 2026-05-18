@@ -21,6 +21,7 @@ import { computeCharacterStats } from "#/game/stats/compute";
 import type { EquippedItem, EquippedSlot } from "#/game/stats/types";
 import { ACT_1, findNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
+import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useModal } from "#/hooks/useModal";
 import { m } from "#/paraglide/messages";
@@ -96,9 +97,24 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const currentNode = currentNodeId ? findNode(ACT_1, currentNodeId) : null;
 	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
 
-	const equippedItems = useQuery(api.characters.equipped, {
+	// Always-on subscriptions (lifted from InventoryModal so the queries are
+	// warm whenever the modal opens — no flicker on first open). Combined with
+	// the localStorage cache below, cold reloads also render last-known data
+	// instantly.
+	const liveEquipped = useQuery(api.characters.equipped, {
 		characterId: character._id,
 	});
+	const liveInventory = useQuery(api.characters.inventory, {
+		characterId: character._id,
+	});
+	const equippedItems = useCachedQuery(
+		`equipped:${character._id}`,
+		liveEquipped,
+	);
+	const inventoryItems = useCachedQuery(
+		`inventory:${character._id}`,
+		liveInventory,
+	);
 
 	// Compose the equipped-item set the stat engine consumes. Starter weapons
 	// (string-id `character.equippedWeapon`) get folded in as a synthetic
@@ -330,6 +346,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				characterId={character._id}
 				stats={stats}
 				characterLevel={character.level}
+				equippedItems={equippedItems ?? []}
+				inventoryItems={inventoryItems ?? []}
 			/>
 			<SettingsModal
 				isOpen={settingsModal.isOpen}
