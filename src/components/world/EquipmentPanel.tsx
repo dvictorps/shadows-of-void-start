@@ -6,6 +6,7 @@ import ItemCard, {
 } from "#/components/game/ItemCard";
 import { describeBrokenReasons } from "#/game/stats/compute";
 import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
+import { m } from "#/paraglide/messages";
 import InventoryButton from "./InventoryButton";
 
 type Props = {
@@ -21,26 +22,71 @@ type Props = {
 type SlotConfig = {
 	slot: EquippedSlot;
 	area: string;
-	label: string;
+	label: () => string;
 	size: { w: number; h: number };
 };
 
 const SLOT_CONFIG: SlotConfig[] = [
-	{ slot: "helmet", area: "helmet", label: "ELMO", size: { w: 120, h: 120 } },
-	{ slot: "amulet", area: "amulet", label: "AMU", size: { w: 80, h: 80 } },
-	{ slot: "weapon", area: "weapon", label: "ARMA", size: { w: 120, h: 170 } },
+	{
+		slot: "helmet",
+		area: "helmet",
+		label: m.slot_label_helmet,
+		size: { w: 120, h: 120 },
+	},
+	{
+		slot: "amulet",
+		area: "amulet",
+		label: m.slot_label_amulet,
+		size: { w: 80, h: 80 },
+	},
+	{
+		slot: "weapon",
+		area: "weapon",
+		label: m.slot_label_weapon,
+		size: { w: 120, h: 170 },
+	},
 	{
 		slot: "chestplate",
 		area: "body",
-		label: "PEITO",
+		label: m.slot_label_chestplate,
 		size: { w: 120, h: 170 },
 	},
-	{ slot: "offhand", area: "offhand", label: "OFF", size: { w: 120, h: 170 } },
-	{ slot: "ring1", area: "ring1", label: "ANEL", size: { w: 80, h: 80 } },
-	{ slot: "belt", area: "belt", label: "CINTO", size: { w: 120, h: 50 } },
-	{ slot: "ring2", area: "ring2", label: "ANEL", size: { w: 80, h: 80 } },
-	{ slot: "gloves", area: "gloves", label: "LUVA", size: { w: 120, h: 120 } },
-	{ slot: "boots", area: "boots", label: "BOTA", size: { w: 120, h: 120 } },
+	{
+		slot: "offhand",
+		area: "offhand",
+		label: m.slot_label_offhand,
+		size: { w: 120, h: 170 },
+	},
+	{
+		slot: "ring1",
+		area: "ring1",
+		label: m.slot_label_ring,
+		size: { w: 80, h: 80 },
+	},
+	{
+		slot: "belt",
+		area: "belt",
+		label: m.slot_label_belt,
+		size: { w: 120, h: 50 },
+	},
+	{
+		slot: "ring2",
+		area: "ring2",
+		label: m.slot_label_ring,
+		size: { w: 80, h: 80 },
+	},
+	{
+		slot: "gloves",
+		area: "gloves",
+		label: m.slot_label_gloves,
+		size: { w: 120, h: 120 },
+	},
+	{
+		slot: "boots",
+		area: "boots",
+		label: m.slot_label_boots,
+		size: { w: 120, h: 120 },
+	},
 ];
 
 const SLOT_GRID_STYLE = {
@@ -128,7 +174,7 @@ function EquipmentSlot({
 				/>
 			) : (
 				<span className="text-[10px] uppercase tracking-wider text-white/40">
-					{cfg.label}
+					{cfg.label()}
 				</span>
 			)}
 		</div>

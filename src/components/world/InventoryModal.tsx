@@ -23,21 +23,25 @@ import { isWeapon, planEquip, validSlotsForItem } from "#/game/items/equipment";
 import type { GeneratedItem } from "#/game/items/types";
 import { describeBrokenReasons } from "#/game/stats/compute";
 import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
+import { convexErrorMessage } from "#/lib/convex-errors";
 import { m } from "#/paraglide/messages";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
-const EQUIPMENT_SLOT_LAYOUT: Array<{ slot: EquippedSlot; label: string }> = [
-	{ slot: "helmet", label: "HELM" },
-	{ slot: "amulet", label: "AMU" },
-	{ slot: "weapon", label: "WPN" },
-	{ slot: "offhand", label: "OFF" },
-	{ slot: "chestplate", label: "BODY" },
-	{ slot: "belt", label: "BELT" },
-	{ slot: "gloves", label: "GLV" },
-	{ slot: "boots", label: "BTS" },
-	{ slot: "ring1", label: "RNG" },
-	{ slot: "ring2", label: "RNG" },
+const EQUIPMENT_SLOT_LAYOUT: Array<{
+	slot: EquippedSlot;
+	label: () => string;
+}> = [
+	{ slot: "helmet", label: m.slot_label_helmet },
+	{ slot: "amulet", label: m.slot_label_amulet },
+	{ slot: "weapon", label: m.slot_label_weapon },
+	{ slot: "offhand", label: m.slot_label_offhand },
+	{ slot: "chestplate", label: m.slot_label_chestplate },
+	{ slot: "belt", label: m.slot_label_belt },
+	{ slot: "gloves", label: m.slot_label_gloves },
+	{ slot: "boots", label: m.slot_label_boots },
+	{ slot: "ring1", label: m.slot_label_ring },
+	{ slot: "ring2", label: m.slot_label_ring },
 ];
 
 const EQUIPMENT_SLOT_SIZE = 96;
@@ -327,7 +331,7 @@ export default function InventoryModal({
 					targetSlot: target.slot,
 				});
 			} catch (err) {
-				toast.error(equipErrorMessage(err));
+				toast.error(convexErrorMessage(err, m.error_equip_failed()));
 			}
 			return;
 		}
@@ -338,7 +342,7 @@ export default function InventoryModal({
 			try {
 				await unequipItem({ characterId, slot: source.slot });
 			} catch (err) {
-				toast.error(equipErrorMessage(err));
+				toast.error(convexErrorMessage(err, m.error_equip_failed()));
 			}
 			return;
 		}
@@ -354,7 +358,7 @@ export default function InventoryModal({
 		try {
 			await equipItem({ characterId, itemId, targetSlot });
 		} catch (err) {
-			toast.error(equipErrorMessage(err));
+			toast.error(convexErrorMessage(err, m.error_equip_failed()));
 		}
 	};
 
@@ -362,7 +366,7 @@ export default function InventoryModal({
 		try {
 			await unequipItem({ characterId, slot });
 		} catch (err) {
-			toast.error(equipErrorMessage(err));
+			toast.error(convexErrorMessage(err, m.error_unequip_failed()));
 		}
 	};
 
@@ -427,7 +431,7 @@ export default function InventoryModal({
 									<EquipmentDroppable
 										key={slot}
 										slot={slot}
-										label={label}
+										label={label()}
 										item={item ?? null}
 										eligible={validEquipSlots.has(slot)}
 										dragging={active}
@@ -520,45 +524,6 @@ function equipActionLabel(slot: EquippedSlot, item: GeneratedItem): string {
 		default:
 			return m.equip_generic();
 	}
-}
-
-const REQUIREMENT_LABEL: Record<string, string> = {
-	Level: "Nível",
-	Strength: "Força",
-	Dexterity: "Destreza",
-	Intelligence: "Inteligência",
-};
-
-function equipErrorMessage(err: unknown): string {
-	const raw = err instanceof Error ? err.message : String(err);
-	// Strip Convex's stack/prefix decorations so the toast reads as plain text.
-	const msg = raw
-		.replace(/^\[CONVEX [^\]]+\]\s*/, "")
-		.replace(/^Uncaught (?:Convex)?Error:\s*/i, "")
-		.replace(/\bConvexError:\s*/, "")
-		.replace(/\s+at handler[\s\S]*$/, "")
-		.trim();
-
-	if (msg.includes("wrong-slot")) return "Slot incompatível";
-	if (msg.includes("mixed-archetype"))
-		return "Não pode misturar arquétipos no dual-wield";
-	if (msg.includes("needs-main-hand"))
-		return "Equipe uma arma principal primeiro";
-	if (msg.includes("offhand-not-weapon"))
-		return "Slot off-hand aceita só armas ou escudos";
-	if (msg.toLowerCase().includes("inventory") || msg.includes("Inventário"))
-		return "Inventário cheio — libere espaço primeiro";
-
-	// "Level 12 required", "Strength 18 required", etc.
-	const reqMatch = msg.match(
-		/(Level|Strength|Dexterity|Intelligence)\s+(\d+)\s+required/,
-	);
-	if (reqMatch) {
-		const [, attr, value] = reqMatch;
-		return `Precisa de ${value} de ${REQUIREMENT_LABEL[attr] ?? attr}`;
-	}
-
-	return msg;
 }
 
 function InventoryDroppable({
