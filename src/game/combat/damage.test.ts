@@ -270,6 +270,67 @@ describe("rollEnemyAttack", () => {
 		expect(result.breakdown.physical).toBe(20);
 		expect(result.breakdown.cold).toBe(30);
 	});
+
+	it("rolls block when defender carries blockChance — blocked hit deals zero damage", () => {
+		const result = rollEnemyAttack({
+			def: {
+				id: "test",
+				name: "test",
+				emoji: "x",
+				baseStats: {
+					hp: 1,
+					attackSpeed: 1,
+					physicalDamage: { min: 50, max: 50 },
+					elementalDamage: [],
+				},
+				xpReward: 0,
+				allowedRarities: ["normal"],
+			},
+			enemyLevel: 1,
+			defender: { ...dummyDefender, blockChance: 75 },
+			// First call (hit check) succeeds; second call (block roll: 0 < 75) blocks.
+			random: (() => {
+				let calls = 0;
+				return () => {
+					calls += 1;
+					return calls === 1 ? 0.0 : 0.0;
+				};
+			})(),
+		});
+		expect(result.isBlocked).toBe(true);
+		expect(result.isMiss).toBe(false);
+		expect(result.amount).toBe(0);
+	});
+
+	it("does not block when block roll exceeds blockChance", () => {
+		const result = rollEnemyAttack({
+			def: {
+				id: "test",
+				name: "test",
+				emoji: "x",
+				baseStats: {
+					hp: 1,
+					attackSpeed: 1,
+					physicalDamage: { min: 50, max: 50 },
+					elementalDamage: [],
+				},
+				xpReward: 0,
+				allowedRarities: ["normal"],
+			},
+			enemyLevel: 1,
+			defender: { ...dummyDefender, blockChance: 25 },
+			// Hit succeeds; block roll: 0.99 * 100 = 99 ≥ 25 → no block.
+			random: (() => {
+				let calls = 0;
+				return () => {
+					calls += 1;
+					return calls === 1 ? 0.0 : 0.99;
+				};
+			})(),
+		});
+		expect(result.isBlocked).toBe(false);
+		expect(result.amount).toBe(50);
+	});
 });
 
 describe("applyDamageToBarrierThenLife", () => {

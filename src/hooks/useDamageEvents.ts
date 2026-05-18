@@ -6,6 +6,8 @@ export type DamageEvent = {
 	target: "player" | "enemy";
 	isCrit?: boolean;
 	isMiss?: boolean;
+	isBlocked?: boolean;
+	isThorns?: boolean;
 };
 
 const EVENT_LIFETIME_MS = 900;

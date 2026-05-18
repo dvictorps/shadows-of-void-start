@@ -317,11 +317,16 @@ export function useCombatLoop({
 						accuracy: stats.accuracy,
 						level: currentEnemy.level,
 						resistances: stats.resistances,
+						blockChance: stats.blockChance,
 					},
 				});
-				if (attack.isMiss || attack.amount <= 0) {
+				if (attack.isMiss) {
 					pushEvent({ amount: 0, target: "player", isMiss: true });
-				} else {
+				} else if (attack.isBlocked) {
+					// Block → no damage to barrier/life, but the hit still "lands" for
+					// thorns purposes (handled below).
+					pushEvent({ amount: 0, target: "player", isBlocked: true });
+				} else if (attack.amount > 0) {
 					// Apply to barrier first, then life.
 					const { state: nextBarrier, lifeOverflow } = damageBarrier(
 						barrierRef.current,
@@ -342,6 +347,40 @@ export function useCombatLoop({
 					if (result.newLife <= 0 && !deadRef.current) {
 						deadRef.current = true;
 						queueMicrotask(() => onPlayerDeath());
+					}
+				}
+
+				// Thorns — reflects on any landed hit (block included), not on miss.
+				// Per CONTEXT.md → Defenses → Block: "Thorns still reflect to the
+				// attacker on block." If reflection kills the enemy, fall through to
+				// the same victory branch the player-swing uses.
+				if (!attack.isMiss && stats.thorns > 0 && !deadRef.current) {
+					const reflected = Math.max(1, Math.floor(stats.thorns));
+					const enemyAfter = Math.max(0, currentEnemy.currentHp - reflected);
+					const updated = { ...currentEnemy, currentHp: enemyAfter };
+					enemyRef.current = updated;
+					setEnemy(updated);
+					pushEvent({
+						amount: reflected,
+						target: "enemy",
+						isThorns: true,
+					});
+					if (enemyAfter <= 0) {
+						stateRef.current = "victory";
+						const xpGained = currentEnemy.def.xpReward;
+						setLastKill({ xp: xpGained, potion: false });
+						setState("victory");
+						recordKill({
+							characterId,
+							monsterId: currentEnemy.def.id,
+						})
+							.then((result) => {
+								if (result.potionDropped) {
+									setLastKill({ xp: xpGained, potion: true });
+									setPotions((p) => p + 1);
+								}
+							})
+							.catch(() => {});
 					}
 				}
 			}

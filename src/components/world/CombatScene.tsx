@@ -222,6 +222,9 @@ function FloatingDamage({
 }) {
 	const seed = hashSeed(event.id);
 	const isCrit = event.isCrit && !event.isMiss;
+	const isBlocked = event.isBlocked && !event.isMiss;
+	const isThorns = event.isThorns;
+	const isLabel = event.isMiss || isBlocked;
 
 	// Single direction angle biased upward for normal hits and crits alike —
 	// the crit signal is the red color + "!!!" suffix, not a special arc.
@@ -235,17 +238,23 @@ function FloatingDamage({
 
 	const color = event.isMiss
 		? "text-white/60"
-		: isCrit
-			? "text-red-500"
-			: variant === "player"
-				? "text-red-400"
-				: "text-white";
+		: isBlocked
+			? "text-blue-300"
+			: isThorns
+				? "text-purple-300"
+				: isCrit
+					? "text-red-500"
+					: variant === "player"
+						? "text-red-400"
+						: "text-white";
 
 	const display = event.isMiss
 		? "MISS"
-		: isCrit
-			? `${event.amount}!!!`
-			: `${event.amount}`;
+		: isBlocked
+			? "BLOCK"
+			: isCrit
+				? `${event.amount}!!!`
+				: `${event.amount}`;
 
 	return (
 		<motion.div
@@ -257,7 +266,7 @@ function FloatingDamage({
 			transition={{ duration: 0.6, ease: "easeOut" }}
 		>
 			<span
-				className={`block font-bold ${event.isMiss ? "text-xl uppercase tracking-wider" : "text-3xl"} ${color}`}
+				className={`block font-bold ${isLabel ? "text-xl uppercase tracking-wider" : "text-3xl"} ${color}`}
 			>
 				{display}
 			</span>

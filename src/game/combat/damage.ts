@@ -27,6 +27,7 @@ export interface RolledSwing {
 	amount: number;
 	isCrit: boolean;
 	isMiss: boolean;
+	isBlocked: boolean;
 	breakdown: DamageBreakdown;
 }
 
@@ -36,6 +37,7 @@ interface DefenderProfile {
 	accuracy: number;
 	level: number;
 	resistances: { cold: number; fire: number; lightning: number; void: number };
+	blockChance?: number;
 }
 
 // ── Helpers ──
@@ -96,6 +98,7 @@ export function rollPlayerSwing({
 				amount: 0,
 				isCrit: false,
 				isMiss: true,
+				isBlocked: false,
 				breakdown: { physical: 0, cold: 0, fire: 0, lightning: 0, void: 0 },
 			};
 		}
@@ -173,6 +176,7 @@ export function rollPlayerSwing({
 		amount: Math.max(1, total),
 		isCrit,
 		isMiss: false,
+		isBlocked: false,
 		breakdown,
 	};
 }
@@ -205,6 +209,22 @@ export function rollEnemyAttack({
 			amount: 0,
 			isCrit: false,
 			isMiss: true,
+			isBlocked: false,
+			breakdown: { physical: 0, cold: 0, fire: 0, lightning: 0, void: 0 },
+		};
+	}
+
+	// Block roll — only the player carries a shield in MVP, so blockChance on
+	// the defender profile is non-zero only when defending. A blocked hit lands
+	// as a "hit" for the attacker's bookkeeping (per CONTEXT.md: triggers
+	// thorns reflection, on-hit, etc) but deals zero damage.
+	const blockChance = defender.blockChance ?? 0;
+	if (blockChance > 0 && random() * 100 < blockChance) {
+		return {
+			amount: 0,
+			isCrit: false,
+			isMiss: false,
+			isBlocked: true,
 			breakdown: { physical: 0, cold: 0, fire: 0, lightning: 0, void: 0 },
 		};
 	}
@@ -254,6 +274,7 @@ export function rollEnemyAttack({
 		amount: Math.max(1, total),
 		isCrit: false,
 		isMiss: false,
+		isBlocked: false,
 		breakdown,
 	};
 }
