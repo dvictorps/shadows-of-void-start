@@ -30,11 +30,12 @@ export default function MapScene({
 	onOpenSettings,
 }: Props) {
 	const edges = useMemo(() => buildEdges(act.nodes), [act.nodes]);
-	const currentNode = act.nodes.find((n) => n.id === currentLocationNodeId);
-	const connectedIds = new Set(
-		currentNode?.connections.map((c) => c.id) ?? [],
-	);
-	connectedIds.add(currentLocationNodeId);
+	const connectedIds = useMemo(() => {
+		const currentNode = act.nodes.find((n) => n.id === currentLocationNodeId);
+		const ids = new Set(currentNode?.connections.map((c) => c.id) ?? []);
+		ids.add(currentLocationNodeId);
+		return ids;
+	}, [act.nodes, currentLocationNodeId]);
 
 	return (
 		<section className="relative h-full overflow-hidden rounded-md border border-white/40 bg-black">

@@ -4,11 +4,6 @@ import { toast } from "sonner";
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
-import {
-	MAX_POTIONS,
-	MAX_TELEPORT_STONES,
-	MAX_WIND_CRYSTALS,
-} from "#/game/combat/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { m } from "#/paraglide/messages";
@@ -186,20 +181,19 @@ function BuyTab({
 	onBuy: (productId: VendorProductId) => Promise<void>;
 }) {
 	const products = Object.values(VENDOR_PRODUCTS);
-	const isAtCap = (id: VendorProductId): boolean => {
-		switch (id) {
-			case "potion":
-				return potions >= MAX_POTIONS;
-			case "teleport_stone":
-				return teleportStones >= MAX_TELEPORT_STONES;
-			case "wind_crystal":
-				return windCrystals >= MAX_WIND_CRYSTALS;
-		}
+	// Map a product's counterField to the corresponding live count from props.
+	// Lets `isAtCap` walk the same metadata the server uses, without a switch.
+	const counts: Record<string, number> = {
+		potions,
+		teleportStones,
+		windCrystals,
 	};
+	const isAtCap = (p: (typeof products)[number]): boolean =>
+		(counts[p.counterField] ?? 0) >= p.cap;
 	return (
 		<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
 			{products.map((p) => {
-				const atCap = isAtCap(p.id);
+				const atCap = isAtCap(p);
 				const canAfford = rubys >= p.priceRubys;
 				const disabled = !canAfford || atCap;
 				const buttonLabel = atCap

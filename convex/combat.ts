@@ -16,6 +16,7 @@ import { WIND_CRYSTAL_TRAVEL_SECONDS } from "../src/game/combat/constants"
 import { ACT_1, findNode } from "../src/game/world"
 import { computeTravelTime } from "../src/game/world/travel"
 import {
+	appendUnique,
 	deleteZoneBag,
 	loadEquippedSet,
 	loadOwnedCharacter,
@@ -348,9 +349,7 @@ export const arriveAtTravel = mutation({
 		// Append destination to the unlocked set on first arrival. Wind crystals
 		// later read this list to validate jump targets.
 		const unlocked = char.unlockedNodes ?? ["city"]
-		const nextUnlocked = unlocked.includes(char.travelDestination)
-			? unlocked
-			: [...unlocked, char.travelDestination]
+		const nextUnlocked = appendUnique(unlocked, char.travelDestination)
 
 		await ctx.db.patch(args.characterId, {
 			currentLocation: char.travelDestination,
@@ -380,11 +379,8 @@ export const useTeleportStone = mutation({
 			await deleteZoneBag(ctx, char.currentZoneSession)
 		}
 
-		const unlocked = char.unlockedNodes ?? ["city"]
-		const nextUnlocked = unlocked.includes("city")
-			? unlocked
-			: [...unlocked, "city"]
-
+		// "city" is in `unlockedNodes` by invariant (seeded on character
+		// create), so no append needed.
 		await ctx.db.patch(args.characterId, {
 			teleportStones: stones - 1,
 			currentLocation: "city",
@@ -392,7 +388,6 @@ export const useTeleportStone = mutation({
 			travelDestination: undefined,
 			travelStartedAt: undefined,
 			travelArrivesAt: undefined,
-			unlockedNodes: nextUnlocked,
 		})
 		return { teleportStones: stones - 1 }
 	},

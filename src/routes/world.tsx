@@ -1,4 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -26,12 +27,7 @@ import {
 	type EquippedSlot,
 	narrowEquippedSlot,
 } from "#/game/stats/types";
-import {
-	MAX_POTIONS,
-	MAX_TELEPORT_STONES,
-	MAX_WIND_CRYSTALS,
-	WIND_CRYSTAL_TRAVEL_SECONDS,
-} from "#/game/combat/constants";
+import { WIND_CRYSTAL_TRAVEL_SECONDS } from "#/game/combat/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { ACT_1, findNode } from "#/game/world";
 import {
@@ -92,6 +88,35 @@ function WorldView() {
 }
 
 type ViewMode = "map" | "city" | "combat";
+
+// Helpers for the optimistic-update closures below. `findCharacter` reads the
+// current `api.characters.list` cache and locates the active character;
+// `applyCharacterDelta` writes a shallow patch on top of that character.
+// Both are no-ops when the query hasn't resolved yet — same defensive shape
+// every Convex optimistic closure uses.
+function findCharacter(
+	localStore: OptimisticLocalStore,
+	characterId: Id<"characters">,
+): Doc<"characters"> | undefined {
+	const characters = localStore.getQuery(api.characters.list, {});
+	return characters?.find((c) => c._id === characterId);
+}
+
+function applyCharacterDelta(
+	localStore: OptimisticLocalStore,
+	characterId: Id<"characters">,
+	delta: Partial<Doc<"characters">>,
+): void {
+	const characters = localStore.getQuery(api.characters.list, {});
+	if (!characters) return;
+	localStore.setQuery(
+		api.characters.list,
+		{},
+		characters.map((c) =>
+			c._id === characterId ? { ...c, ...delta } : c,
+		),
+	);
+}
 
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const navigate = useNavigate();
@@ -196,9 +221,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const startTravel = useMutation(
 		api.combat.startTravel,
 	).withOptimisticUpdate((localStore, args) => {
-		const characters = localStore.getQuery(api.characters.list, {});
-		if (!characters) return;
-		const char = characters.find((c) => c._id === args.characterId);
+		const char = findCharacter(localStore, args.characterId);
 		if (!char) return;
 		const fromId = char.currentLocation ?? "city";
 		const fromNode = findNode(ACT_1, fromId);
@@ -212,20 +235,11 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		);
 		const startedAt = Date.now();
 		const arrivesAt = startedAt + Math.round(seconds * 1000);
-		localStore.setQuery(
-			api.characters.list,
-			{},
-			characters.map((c) =>
-				c._id === args.characterId
-					? {
-							...c,
-							travelDestination: args.destinationNodeId,
-							travelStartedAt: startedAt,
-							travelArrivesAt: arrivesAt,
-						}
-					: c,
-			),
-		);
+		applyCharacterDelta(localStore, args.characterId, {
+			travelDestination: args.destinationNodeId,
+			travelStartedAt: startedAt,
+			travelArrivesAt: arrivesAt,
+		});
 	});
 	const arriveAtTravel = useMutation(api.combat.arriveAtTravel);
 	// Vendor mutations with optimistic updates so fast/repeat clicks don't
@@ -233,99 +247,51 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// errors from a stale client view.
 	const vendorBuy = useMutation(api.vendor.vendorBuy).withOptimisticUpdate(
 		(localStore, args) => {
-			const characters = localStore.getQuery(api.characters.list, {});
-			if (!characters) return;
-			const char = characters.find((c) => c._id === args.characterId);
+			const char = findCharacter(localStore, args.characterId);
 			if (!char) return;
 			const product = VENDOR_PRODUCTS[args.productId as VendorProductId];
 			if (!product) return;
 			const rubys = char.rubys ?? 0;
 			if (rubys < product.priceRubys) return;
-			// Per-product accumulator + cap. Optimistic increments the matching
-			// counter so the disable conditions kick in immediately and fast
-			// clicks don't outrun the reactive query.
-			const delta: Partial<{
-				potions: number;
-				teleportStones: number;
-				windCrystals: number;
-			}> = {};
-			if (product.id === "potion") {
-				const cur = char.potions ?? 0;
-				if (cur >= MAX_POTIONS) return;
-				delta.potions = cur + 1;
-			} else if (product.id === "teleport_stone") {
-				const cur = char.teleportStones ?? 0;
-				if (cur >= MAX_TELEPORT_STONES) return;
-				delta.teleportStones = cur + 1;
-			} else if (product.id === "wind_crystal") {
-				const cur = char.windCrystals ?? 0;
-				if (cur >= MAX_WIND_CRYSTALS) return;
-				delta.windCrystals = cur + 1;
-			}
-			localStore.setQuery(
-				api.characters.list,
-				{},
-				characters.map((c) =>
-					c._id === args.characterId
-						? { ...c, rubys: rubys - product.priceRubys, ...delta }
-						: c,
-				),
-			);
+			const currentCount = char[product.counterField] ?? 0;
+			if (currentCount >= product.cap) return;
+			applyCharacterDelta(localStore, args.characterId, {
+				rubys: rubys - product.priceRubys,
+				[product.counterField]: currentCount + 1,
+			});
 		},
 	);
 	const useTeleportStone = useMutation(
 		api.combat.useTeleportStone,
 	).withOptimisticUpdate((localStore, args) => {
-		const characters = localStore.getQuery(api.characters.list, {});
-		if (!characters) return;
-		const char = characters.find((c) => c._id === args.characterId);
+		const char = findCharacter(localStore, args.characterId);
 		if (!char) return;
 		const stones = char.teleportStones ?? 0;
 		if (stones <= 0) return;
-		localStore.setQuery(
-			api.characters.list,
-			{},
-			characters.map((c) =>
-				c._id === args.characterId
-					? {
-							...c,
-							teleportStones: stones - 1,
-							currentLocation: "city",
-							currentZoneSession: undefined,
-							travelDestination: undefined,
-							travelStartedAt: undefined,
-							travelArrivesAt: undefined,
-						}
-					: c,
-			),
-		);
+		applyCharacterDelta(localStore, args.characterId, {
+			teleportStones: stones - 1,
+			currentLocation: "city",
+			currentZoneSession: undefined,
+			travelDestination: undefined,
+			travelStartedAt: undefined,
+			travelArrivesAt: undefined,
+		});
 	});
 	const useWindCrystal = useMutation(
 		api.combat.useWindCrystal,
 	).withOptimisticUpdate((localStore, args) => {
-		const characters = localStore.getQuery(api.characters.list, {});
-		if (!characters) return;
-		const char = characters.find((c) => c._id === args.characterId);
+		const char = findCharacter(localStore, args.characterId);
 		if (!char) return;
 		const crystals = char.windCrystals ?? 0;
 		if (crystals <= 0) return;
 		const startedAt = Date.now();
 		const arrivesAt = startedAt + WIND_CRYSTAL_TRAVEL_SECONDS * 1000;
-		localStore.setQuery(
-			api.characters.list,
-			{},
-			characters.map((c) =>
-				c._id === args.characterId
-					? {
-							...c,
-							windCrystals: crystals - 1,
-							travelDestination: args.destinationNodeId,
-							travelStartedAt: startedAt,
-							travelArrivesAt: arrivesAt,
-						}
-					: c,
-			),
-		);
+		applyCharacterDelta(localStore, args.characterId, {
+			windCrystals: crystals - 1,
+			travelDestination: args.destinationNodeId,
+			travelStartedAt: startedAt,
+			travelArrivesAt: arrivesAt,
+		});
 	});
 	const vendorSellMany = useMutation(
 		api.vendor.vendorSellMany,
