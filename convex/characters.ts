@@ -19,7 +19,6 @@ import {
 import {
 	applyDeathXpPenalty,
 	applyXpGain,
-	computeMaxHp,
 } from "../src/game/progression/levels"
 import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
@@ -40,11 +39,9 @@ function defaultStarterWeapon(classId: string): string | undefined {
 
 function normalize(char: Doc<"characters">) {
 	const classDef = findClassDefinition(char.classId)
-	const maxHp = computeMaxHp(classDef, char.level)
 	return {
 		xp: char.xp ?? 0,
-		hpCurrent: char.hpCurrent ?? maxHp,
-		maxHp,
+		hpCurrent: char.hpCurrent ?? (classDef?.baseStats.hp ?? 50),
 		potions: char.potions ?? 0,
 		hardcore: char.hardcore ?? false,
 		equippedWeaponId: char.equippedWeaponId,
@@ -65,6 +62,22 @@ async function loadOwnedCharacter(
 	if (!char) throw new ConvexError("Character not found")
 	if (char.authUserId !== authUserId) throw new ConvexError("Not your character")
 	return char
+}
+
+async function loadEquippedSet(
+	ctx: MutationCtx,
+	characterId: Id<"characters">,
+): Promise<EquippedItem[]> {
+	const equipped = await ctx.db
+		.query("items")
+		.withIndex("by_character_kind", (q) =>
+			q.eq("characterId", characterId).eq("locationKind", "equipped"),
+		)
+		.collect()
+	return equipped.flatMap((it) => {
+		const slot = narrowEquippedSlot(it.equippedSlot)
+		return slot ? [{ slot, item: it.data }] : []
+	})
 }
 
 async function deleteZoneBag(
@@ -162,7 +175,12 @@ export const create = mutation({
 		}
 
 		const classDef = findClassDefinition(args.classId)
-		const maxHp = computeMaxHp(classDef, 1)
+		const baseStats = computeCharacterStats({
+			classDef,
+			level: 1,
+			equippedItems: [],
+		})
+		const maxHp = baseStats.maxLife
 		const starterWeaponId = defaultStarterWeapon(args.classId)
 
 		const characterId = await ctx.db.insert("characters", {
@@ -259,7 +277,13 @@ export const recordKill = mutation({
 
 		if (levelsGained > 0) {
 			const classDef = findClassDefinition(char.classId)
-			updates.hpCurrent = computeMaxHp(classDef, level)
+			const equippedItems = await loadEquippedSet(ctx, args.characterId)
+			const stats = computeCharacterStats({
+				classDef,
+				level,
+				equippedItems,
+			})
+			updates.hpCurrent = stats.maxLife
 		}
 		await ctx.db.patch(args.characterId, updates)
 
@@ -302,7 +326,13 @@ export const usePotion = mutation({
 		if (potions <= 0) throw new ConvexError("No potions to use")
 
 		const classDef = findClassDefinition(char.classId)
-		const maxHp = computeMaxHp(classDef, char.level)
+		const equippedItems = await loadEquippedSet(ctx, args.characterId)
+		const stats = computeCharacterStats({
+			classDef,
+			level: char.level,
+			equippedItems,
+		})
+		const maxHp = stats.maxLife
 		const currentHp = char.hpCurrent ?? maxHp
 		if (currentHp >= maxHp) throw new ConvexError("Already at full HP")
 
@@ -329,7 +359,13 @@ export const syncHp = mutation({
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
 
 		const classDef = findClassDefinition(char.classId)
-		const maxHp = computeMaxHp(classDef, char.level)
+		const equippedItems = await loadEquippedSet(ctx, args.characterId)
+		const stats = computeCharacterStats({
+			classDef,
+			level: char.level,
+			equippedItems,
+		})
+		const maxHp = stats.maxLife
 		const clamped = Math.max(0, Math.min(maxHp, Math.floor(args.hpCurrent)))
 
 		await ctx.db.patch(args.characterId, { hpCurrent: clamped })
@@ -345,7 +381,13 @@ export const enterCity = mutation({
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
 
 		const classDef = findClassDefinition(char.classId)
-		const maxHp = computeMaxHp(classDef, char.level)
+		const equippedItems = await loadEquippedSet(ctx, args.characterId)
+		const stats = computeCharacterStats({
+			classDef,
+			level: char.level,
+			equippedItems,
+		})
+		const maxHp = stats.maxLife
 		const potions = char.potions ?? 0
 		const refilledPotions = potions === 0 ? 1 : potions
 
@@ -384,7 +426,13 @@ export const respawnDead = mutation({
 
 		const { xp, xpLost } = applyDeathXpPenalty(char.xp ?? 0)
 		const classDef = findClassDefinition(char.classId)
-		const maxHp = computeMaxHp(classDef, char.level)
+		const equippedItems = await loadEquippedSet(ctx, args.characterId)
+		const stats = computeCharacterStats({
+			classDef,
+			level: char.level,
+			equippedItems,
+		})
+		const maxHp = stats.maxLife
 
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxHp,

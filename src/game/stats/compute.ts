@@ -1,7 +1,6 @@
 import type { CharacterClassDefinition } from "../classes/types";
 import { BASE_CAST_SPEED } from "../combat/constants";
 import type { GeneratedItem, RolledMod } from "../items/types";
-import { computeMaxHp } from "../progression/levels";
 import type {
 	ComputedCharacterStats,
 	EquippedItem,
@@ -424,7 +423,8 @@ function applyBase(
 		stats.attributes.intelligence += classDef.baseStats.attributes.intelligence;
 		stats.maxBarrier += classDef.baseStats.barrier;
 	}
-	stats.maxLife += computeMaxHp(classDef, level);
+	const baseHp = classDef?.baseStats.hp ?? 50;
+	stats.maxLife += baseHp + Math.max(0, level - 1) * 10;
 }
 
 // ── Apply caps and floors after all sums ──

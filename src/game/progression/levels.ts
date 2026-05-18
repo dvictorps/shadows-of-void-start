@@ -1,24 +1,9 @@
-import type { CharacterClassDefinition } from "../classes/types";
-
 /**
  * XP required to advance from `level` to `level + 1`. Linear curve.
  * Level 1→2 costs 100 XP; level 2→3 costs 200; etc.
  */
 export function xpToNextLevel(level: number): number {
 	return Math.max(1, level) * 100;
-}
-
-/**
- * Maximum HP for a character at a given level. For MVP: class base HP
- * plus a flat +10 per level beyond 1. No gear contribution yet.
- */
-export function computeMaxHp(
-	classDef: CharacterClassDefinition | null,
-	level: number,
-): number {
-	const baseHp = classDef?.baseStats.hp ?? 50;
-	const levelBonus = Math.max(0, level - 1) * 10;
-	return baseHp + levelBonus;
 }
 
 /**
