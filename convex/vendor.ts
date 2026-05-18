@@ -3,8 +3,22 @@ import { MAX_POTIONS } from "../src/game/combat/constants"
 import { computeSellPrice } from "../src/game/items/sell-price"
 import { findVendorProduct } from "../src/game/vendor/products"
 import { loadOwnedCharacter } from "./_shared/character"
+import type { Doc } from "./_generated/dataModel"
 import { mutation } from "./_generated/server"
 import { authComponent } from "./auth"
+
+// Per CONTEXT.md → Stash and Vendor, the vendor lives inside the city node.
+// All vendor mutations require the character to be physically there: at the
+// city, with no in-flight travel and no active zone session. The UI only
+// shows the vendor button inside the city scene, so this guard exists to
+// reject direct mutation calls that bypass the UI.
+function assertInCity(char: Doc<"characters">) {
+	const location = char.currentLocation ?? "city"
+	if (location !== "city")
+		throw new ConvexError("Must be in the city to use the vendor")
+	if (char.travelDestination !== undefined)
+		throw new ConvexError("Cannot use the vendor while travelling")
+}
 
 // Vendor purchases. The catalog lives in src/game/vendor/products.ts. For
 // MVP this only sells potions; teleport stones / wind crystals join later
@@ -18,6 +32,7 @@ export const vendorBuy = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		assertInCity(char)
 
 		const product = findVendorProduct(args.productId)
 		if (!product) throw new ConvexError(`Unknown product: ${args.productId}`)
@@ -55,6 +70,7 @@ export const vendorSell = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		assertInCity(char)
 
 		const item = await ctx.db.get(args.itemId)
 		if (!item) throw new ConvexError("Item not found")
@@ -84,6 +100,7 @@ export const vendorSellMany = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		assertInCity(char)
 
 		if (args.itemIds.length === 0) return { rubys: char.rubys ?? 0, priceGained: 0, sold: 0 }
 
