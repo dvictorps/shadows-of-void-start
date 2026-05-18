@@ -67,6 +67,13 @@ type Props = {
 	item?: GeneratedItem | null;
 	size?: number;
 	dimmed?: boolean;
+	/**
+	 * Selected-for-action overlay. Renders a glowing white ring on top of the
+	 * card's normal rarity frame. Used by selection-grid modals (pickup loot,
+	 * vendor sell, etc) to indicate which items the action will apply to,
+	 * without graying-out the unselected items.
+	 */
+	selected?: boolean;
 	suppressTooltip?: boolean;
 	/** Equipped-but-requirements-unmet state. Renders red border + warn icon. */
 	broken?: boolean;
@@ -90,6 +97,7 @@ export default function ItemCard({
 	item,
 	size = 64,
 	dimmed,
+	selected,
 	suppressTooltip,
 	broken,
 	brokenReasons,
@@ -139,6 +147,11 @@ export default function ItemCard({
 					broken ? BROKEN_GLOW : RARITY_GLOW[item.rarity],
 				].join(" "),
 		dimmed ? "opacity-40 grayscale" : "",
+		// Selection overlay — sits on top of the rarity frame as a white halo
+		// so the underlying rarity color stays visible.
+		selected
+			? "ring-2 ring-white ring-offset-2 ring-offset-black shadow-[0_0_14px_rgba(255,255,255,0.7)]"
+			: "",
 		onClick ? "cursor-pointer" : "cursor-default",
 	]
 		.filter(Boolean)

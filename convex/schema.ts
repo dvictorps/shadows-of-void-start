@@ -40,6 +40,9 @@ export default defineSchema({
 		travelDestination: v.optional(v.string()),
 		travelStartedAt: v.optional(v.number()),
 		travelArrivesAt: v.optional(v.number()),
+		// Currency — see CONTEXT.md → Ruby. Earned by selling gear at the vendor;
+		// spent on consumables and (future) stash tabs. Monsters never drop Rubys.
+		rubys: v.optional(v.number()),
 	}).index("by_authUserId", ["authUserId"]),
 
 	// All items live here — drops, inventory, equipped, stash. Location is

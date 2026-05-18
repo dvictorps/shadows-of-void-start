@@ -16,6 +16,7 @@ import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
+import VendorModal from "#/components/world/VendorModal";
 import { findClassDefinition } from "#/game/classes/data";
 import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
@@ -216,6 +217,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		);
 	});
 	const arriveAtTravel = useMutation(api.combat.arriveAtTravel);
+	const vendorBuy = useMutation(api.vendor.vendorBuy);
+	const vendorSell = useMutation(api.vendor.vendorSell);
 
 	const [view, setView] = useState<ViewMode>("map");
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -234,6 +237,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const inventoryModal = useModal();
 	const settingsModal = useModal();
 	const statsModal = useModal();
+	const vendorModal = useModal();
 	const wantsBag = view === "combat" || exitModal.isOpen;
 	const zoneBag = useQuery(
 		api.items.zoneBag,
@@ -577,6 +581,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					<CityScene
 						cityName={translateNodeName(currentNode)}
 						onLeave={handleBackToMap}
+						onOpenVendor={vendorModal.open}
 					/>
 				)}
 				{view === "combat" && currentNode && (
@@ -606,6 +611,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					equippedBySlot={equippedBySlot}
 					stats={stats}
 					characterLevel={character.level}
+					rubys={character.rubys ?? 0}
 					onOpenInventory={inventoryModal.open}
 				/>
 				<StatusCard
@@ -649,6 +655,18 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				characterLevel={character.level}
 				equippedItems={equippedItems ?? []}
 				inventoryItems={inventoryItems ?? []}
+			/>
+			<VendorModal
+				isOpen={vendorModal.isOpen}
+				onClose={vendorModal.close}
+				rubys={character.rubys ?? 0}
+				inventoryItems={inventoryItems ?? []}
+				onBuy={async (productId) => {
+					await vendorBuy({ characterId: character._id, productId });
+				}}
+				onSell={async (itemId) => {
+					await vendorSell({ characterId: character._id, itemId });
+				}}
 			/>
 			<SettingsModal
 				isOpen={settingsModal.isOpen}

@@ -36,6 +36,7 @@ function normalize(char: Doc<"characters">) {
 		travelDestination: char.travelDestination,
 		travelStartedAt: char.travelStartedAt,
 		travelArrivesAt: char.travelArrivesAt,
+		rubys: char.rubys ?? 0,
 	}
 }
 
@@ -110,6 +111,7 @@ export const create = mutation({
 			hardcore: args.hardcore ?? false,
 			createdAt: Date.now(),
 			currentLocation: "city",
+			rubys: 0,
 		})
 
 		// Create the starter item entry in the items table so equip lifecycle is

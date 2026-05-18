@@ -121,7 +121,7 @@ export default function ExitZoneModal({
 									key={item._id}
 									item={item.data}
 									size={ITEM_SLOT_SIZE}
-									dimmed={!isSelected}
+									selected={isSelected}
 									onClick={() => toggle(item._id.toString())}
 								/>
 							);

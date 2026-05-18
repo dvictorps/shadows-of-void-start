@@ -1,14 +1,26 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Store } from "lucide-react";
 import { m } from "#/paraglide/messages";
 
 type Props = {
 	cityName: string;
 	onLeave: () => void;
+	onOpenVendor: () => void;
 };
 
-export default function CityScene({ cityName, onLeave }: Props) {
+export default function CityScene({ cityName, onLeave, onOpenVendor }: Props) {
 	return (
 		<section className="relative flex flex-col items-center justify-center rounded-md border border-white/40 bg-black p-8">
+			{/* Top-left vendor button — opens the merchant modal. */}
+			<button
+				type="button"
+				onClick={onOpenVendor}
+				aria-label={m.city_open_vendor()}
+				className="absolute top-3 left-3 inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+			>
+				<Store className="h-3.5 w-3.5" strokeWidth={2} />
+				{m.city_vendor_label()}
+			</button>
+
 			{/* Top-right back button — mirrors the combat-view retreat affordance so
 			 * the player has a consistent "leave area" pattern across views. */}
 			<button
