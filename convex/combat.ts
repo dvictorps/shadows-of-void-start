@@ -316,6 +316,14 @@ export const startTravel = mutation({
 	},
 })
 
+// Tolerance for client/server clock skew on travel arrival. The client
+// schedules `arriveAtTravel` based on its own `Date.now()`; the server
+// validates against its own. A small grace window prevents legitimate
+// arrivals from being rejected just because the server clock trails the
+// client by a few ms. Negligible exploit surface: travel is a UX delay,
+// not a gating mechanism.
+const TRAVEL_ARRIVAL_GRACE_MS = 1000
+
 export const arriveAtTravel = mutation({
 	args: { characterId: v.id("characters") },
 	handler: async (ctx, args) => {
@@ -323,10 +331,14 @@ export const arriveAtTravel = mutation({
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
 
+		// Idempotent: if there's no active travel, the caller is either retrying
+		// a successful arrival or hitting a stale timer. Either way, succeed
+		// silently with the current location — surfacing an error here makes
+		// the client log noise without helping the user.
 		if (!char.travelDestination || !char.travelArrivesAt) {
-			throw new ConvexError("Not traveling")
+			return { arrivedAt: char.currentLocation ?? "city" }
 		}
-		if (Date.now() < char.travelArrivesAt) {
+		if (Date.now() < char.travelArrivesAt - TRAVEL_ARRIVAL_GRACE_MS) {
 			throw new ConvexError("Travel not complete")
 		}
 
