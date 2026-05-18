@@ -223,69 +223,73 @@ function FloatingDamage({
 	variant?: "enemy" | "player";
 }) {
 	const seed = hashSeed(event.id);
-	// Horizontal spread: ±48px for crits (more impact), ±32px otherwise.
-	const xSpread = event.isCrit ? 48 : 32;
-	const xOffset = (seed * 2 - 1) * xSpread;
-	// Slight rotation so multiple crits don't all tilt the same way.
-	const rotate = (hashSeed(event.id + ":r") * 2 - 1) * (event.isCrit ? 10 : 4);
+	const isCrit = event.isCrit && !event.isMiss;
+
+	// Random direction angle, biased upward. A normal hit picks any vector in
+	// roughly the top hemisphere (slightly outside the emoji); crits stay
+	// dramatic with a near-vertical arc.
+	const angle = isCrit
+		? -Math.PI / 2 + (seed - 0.5) * 0.4 // ±0.2 rad off straight up
+		: -Math.PI / 2 + (seed - 0.5) * 1.8; // wider spread for normal hits
+	const distance = isCrit ? 90 : 70;
+	const endX = Math.cos(angle) * distance;
+	const endY = Math.sin(angle) * distance;
+	// Start the popup just outside the emoji center so it's visible immediately.
+	const startOffset = isCrit ? 12 : 24;
+	const startX = Math.cos(angle) * startOffset;
+	const startY = Math.sin(angle) * startOffset;
 
 	const color = event.isMiss
 		? "text-white/60"
-		: event.isCrit
+		: isCrit
 			? "text-yellow-200"
 			: variant === "player"
 				? "text-red-400"
 				: "text-white";
 
-	// Crits get an overshoot scale, a longer travel, and a "CRIT!" label.
-	const isCrit = event.isCrit && !event.isMiss;
-	const distance = isCrit ? 80 : 50;
-	const duration = isCrit ? 1.1 : 0.9;
-	const initialScale = isCrit ? 0.5 : 0.8;
+	if (isCrit) {
+		return (
+			<motion.div
+				className="pointer-events-none absolute select-none"
+				style={{ textShadow: "0 2px 4px rgba(0,0,0,0.9)" }}
+				initial={{ opacity: 0, x: startX, y: startY, scale: 0.5 }}
+				animate={{
+					opacity: [0, 1, 1, 0],
+					x: [startX, startX + (endX - startX) * 0.3, endX],
+					y: [startY, startY + (endY - startY) * 0.3, endY],
+					scale: [0.5, 1.5, 1.2, 1.0],
+				}}
+				exit={{ opacity: 0 }}
+				transition={{
+					duration: 1.1,
+					times: [0, 0.2, 0.6, 1],
+					ease: "easeOut",
+				}}
+			>
+				<div className="-translate-x-1/2 -top-5 absolute left-1/2 whitespace-nowrap text-center font-bold text-[10px] uppercase tracking-[0.25em] text-yellow-300">
+					CRIT
+				</div>
+				<span className={`block font-bold text-5xl ${color}`}>
+					{event.amount}!
+				</span>
+			</motion.div>
+		);
+	}
 
+	// Normal hit / miss — single direction, fade out quickly, no scaling.
 	return (
 		<motion.div
 			className="pointer-events-none absolute select-none"
 			style={{ textShadow: "0 2px 4px rgba(0,0,0,0.9)" }}
-			initial={{
-				opacity: 0,
-				y: 0,
-				x: xOffset,
-				scale: initialScale,
-				rotate: 0,
-			}}
-			animate={
-				isCrit
-					? {
-							opacity: [0, 1, 1, 0],
-							y: [0, -10, -distance / 2, -distance],
-							scale: [initialScale, 1.5, 1.2, 1.0],
-							rotate: [0, rotate, rotate, rotate],
-						}
-					: {
-							opacity: [0, 1, 1, 0],
-							y: [0, -distance / 3, -distance],
-							scale: [initialScale, 1, 0.95],
-							rotate: [0, rotate, rotate],
-						}
-			}
+			initial={{ opacity: 1, x: startX, y: startY }}
+			animate={{ opacity: 0, x: endX, y: endY }}
 			exit={{ opacity: 0 }}
-			transition={{
-				duration,
-				times: isCrit ? [0, 0.15, 0.6, 1] : [0, 0.3, 1],
-				ease: "easeOut",
-			}}
+			transition={{ duration: 0.6, ease: "easeOut" }}
 		>
-			{isCrit && (
-				<div className="-translate-x-1/2 -top-5 absolute left-1/2 whitespace-nowrap text-center font-bold text-[10px] uppercase tracking-[0.25em] text-yellow-300">
-					CRIT
-				</div>
-			)}
 			<span
-				className={`block font-bold ${event.isMiss ? "text-xl uppercase tracking-wider" : isCrit ? "text-5xl" : "text-3xl"} ${color}`}
+				className={`block font-bold ${event.isMiss ? "text-xl uppercase tracking-wider" : "text-3xl"} ${color}`}
 			>
 				{event.isMiss ? "MISS" : event.amount}
-				{isCrit && "!"}
 			</span>
 		</motion.div>
 	);
