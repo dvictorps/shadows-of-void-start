@@ -127,18 +127,18 @@ function MapNode({
 				onFocus={onHover}
 				onBlur={onLeave}
 				aria-label={m.enter_node({ name: translateNodeName(node) })}
-				className={`flex h-7 w-7 items-center justify-center rounded-full border-2 bg-black transition ${
+				className={`flex h-11 w-11 items-center justify-center rounded-full border-2 bg-black transition ${
 					hovered
 						? "border-white text-white shadow-[0_0_12px_rgba(255,255,255,0.5)]"
 						: "border-white/40 text-white/70 hover:border-white/80"
 				}`}
 			>
-				<Icon className="h-4 w-4" strokeWidth={1.5} />
+				<Icon className="h-6 w-6" strokeWidth={1.5} />
 			</button>
 			{isCurrent && (
 				<MapPin
 					aria-hidden
-					className="-top-4 -right-2 pointer-events-none absolute h-5 w-5 fill-yellow-300 text-yellow-300 drop-shadow-[0_0_4px_rgba(253,224,71,0.7)]"
+					className="-top-4 -translate-x-1/2 pointer-events-none absolute left-1/2 h-5 w-5 fill-yellow-300 text-yellow-300 drop-shadow-[0_0_4px_rgba(253,224,71,0.7)]"
 					strokeWidth={1.5}
 				/>
 			)}
