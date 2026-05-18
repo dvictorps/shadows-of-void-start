@@ -54,9 +54,9 @@ export default function CombatScene({
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
 			{/* Zone label + static zone level (the area's intrinsic difficulty;
 			 * the per-spawn monster level is shown separately on the nameplate). */}
-			<div className="absolute left-3 top-3 flex flex-col gap-0.5 text-[10px] uppercase tracking-[0.2em] text-white/40">
+			<div className="absolute left-3 top-3 flex flex-col gap-0.5 text-sm uppercase tracking-[0.2em] text-white/60">
 				<span>{zoneName}</span>
-				<span className="text-white/30">LV {zoneLevel}</span>
+				<span className="text-xs text-white/40">LV {zoneLevel}</span>
 			</div>
 
 			{/* Top-right action cluster: loot button then Retreat */}
