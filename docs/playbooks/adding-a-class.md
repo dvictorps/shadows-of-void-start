@@ -41,7 +41,13 @@ const blessedHammer: GeneratedItem = {
     baseStats: { minDamage: 2, maxDamage: 6, attackSpeed: 1.1, criticalChance: 5 },
     implicits: [],
     explicits: [],
-    computedStats: { ... },  // mirror baseStats for the computedStats shape
+    // computedStats mirrors baseStats since starters have no rolled mods.
+    computedStats: {
+        physicalDamage: { min: 2, max: 6 },
+        elementalDamage: [],
+        attackSpeed: 1.1,
+        criticalChance: 5,
+    },
 };
 ```
 

@@ -183,7 +183,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 - **`messages/pt.json`** + **`messages/en.json`** are the source — edit these, paraglide regenerates `src/paraglide/messages.js` on the next dev run.
 - Import with `import { m } from "#/paraglide/messages"`. Call as `m.key_name({ param })`.
 - Strategy: localStorage → preferredLanguage → baseLocale (pt). No URL prefix.
-- `src/paraglide/` is generated — don't hand-edit, don't commit changes biome makes to it.
+- `src/paraglide/` is generated — don't hand-edit. `biome.json` excludes the directory from lint/format so it never appears in diffs.
 
 ---
 

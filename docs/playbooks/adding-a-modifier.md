@@ -25,23 +25,28 @@ Open the right file under `src/game/items/data/modifiers/`:
 - Movement speed, leech, stun, on-kill, reduced reqs → `utility.ts`
 - Item Rarity (Magic Find) → `magic-find.ts`
 
-Add an entry:
+Add an entry. The example below is a complete, copy-pasteable `increased`
+prefix; swap `Increase` for `Flat` (and `modifierType: "flat"`) for an
+additive mod, or `Suffix Name` + `affixType: "suffix"` for a suffix.
 
 ```ts
-myNewMod: {
-    id: "myNewMod",
-    name: "Prefix Name" | "of Suffix Name",
-    affixType: "prefix" | "suffix",
-    modifierType: "flat" | "increased",
-    category: "offensive" | "defensive" | "attribute" | "utility",
-    applicableTo: ["allArmor", "ring"],  // groups + specifics, see EQUIPMENT_GROUPS
-    displayFormat: "+{value} Some Stat",
-    isGlobalStat: true,           // omit for local mods
-    statEffect: { ... },          // REQUIRED for local mods — see CLAUDE.md
-    weight: 800,                  // omit for default (1000)
-    tiers: createStandardTiers(t10Min, t10Max, t1Min, t1Max),
+myNewStatIncrease: {
+    id: "myNewStatIncrease",           // id must end in Flat / Increase / More
+    name: "Prefix Name",                // shown in the magic-item generated name
+    affixType: "prefix",                // or "suffix" — flips name to "of Suffix Name"
+    modifierType: "increased",          // or "flat" — must match the id's suffix
+    category: "offensive",              // offensive | defensive | attribute | utility
+    applicableTo: ["allArmor", "ring"], // groups + specific slots, see EQUIPMENT_GROUPS
+    displayFormat: "+{value}% Some Stat",
+    isGlobalStat: true,                 // omit for local mods (statEffect required instead)
+    weight: 800,                        // omit for default (1000)
+    tiers: createStandardTiers(5, 10, 30, 45), // (t10Min, t10Max, t1Min, t1Max)
 },
 ```
+
+Local mods (the ones that mutate a weapon's `computedStats`) need a
+`statEffect` declaration instead of `isGlobalStat: true`. See CLAUDE.md
+"statEffect" for the target/operation table.
 
 The modifier id ends in `Flat` / `Increase` / `More` — the suffix and `modifierType` must agree. See `CONTEXT.md` → Modifier ID Naming Convention.
 
