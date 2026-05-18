@@ -670,6 +670,38 @@ Derivations the engine does itself: armor mitigation %, evasion-vs-typical-enemy
 
 The function is pure, deterministic, and dependency-free (no React, no Convex). Same inputs → same outputs. Recomputed wherever needed; not cached on the character document. The reactive Convex queries that feed it keep the UI in sync automatically.
 
+## Equipment UX
+
+Two parallel ways to equip an inventory item, both validated by the same `planEquip()` helper and committed by the same `equipItem` mutation. The UX has to handle a fundamental tension: most items have one obvious target slot, but rings and dual-wieldable 1H weapons have two valid targets.
+
+### Drag-and-drop (primary)
+The player drags an item out of the inventory grid and drops it onto a specific paper-doll slot. The target is explicit — the player aims at the slot they want. While dragging:
+- Every *structurally* compatible slot (per `validSlotsForItem`) gets a soft yellow glow.
+- The slot under the cursor brightens to a solid yellow ring.
+- Incompatible slots under the cursor go red.
+- Dropping on a yellow slot fires the mutation; dropping anywhere else cancels.
+
+Drag-and-drop also works in reverse: dragging an equipped item back to the inventory grid unequips it.
+
+### Click → dropdown menu (alternative)
+Clicking an inventory item opens a small context menu next to it. Each valid slot appears as a separate action:
+- Ring → "Equipar no Anel 1", "Equipar no Anel 2".
+- 1H attack weapon / wand → "Equipar como Mão Principal", "Equipar como Mão Secundária".
+- Anything with a single valid slot → "Equipar".
+
+Equipped items get a single-action menu — "Desequipar".
+
+The dropdown exists to disambiguate the case where drag-and-drop ambiguous targets would force the player to aim. It's never *required*, but it's the natural path when the player knows exactly which ring slot they want without aiming.
+
+### Same-archetype rule for dual-wield
+The off-hand slot accepts a weapon only if it matches the main-hand archetype. Attack 1H + attack 1H is allowed; wand + wand is allowed; sword + wand is rejected with a localized toast. This is enforced by `planEquip()` and surfaced to the player in three ways:
+- Drag-and-drop: incompatible slot pulses red.
+- Click dropdown: the off-hand entry doesn't appear at all when the archetype would conflict.
+- Server: the mutation rejects with `mixed-archetype`, translated to "Não pode misturar arquétipos no dual-wield".
+
+### Reactive feedback contract
+All four equip-flow mutations (`equipItem`, `unequipItem`, `pickFromBag`, `discardFromBag`) carry `withOptimisticUpdate` — the UI must reflect the change *before* the server round-trips. The loot picker auto-closes the moment the bag goes to zero, regardless of whether that happened via "pegar tudo", "descartar tudo", or partial picks that incidentally emptied it. See ADR-0001 (Optimistic Mutations) for the architectural rationale.
+
 ## Show Stats panel
 
 A modal opened from the "Show" button in the status card. Layout: `max-w-3xl`, four sections:
