@@ -8,10 +8,10 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 1,
-		requirements: { level: 1, dex: 15 },
+		requirements: { level: 1, dex: 10 },
 		baseStats: {
-			minDamage: 15,
-			maxDamage: 45,
+			minDamage: 5,
+			maxDamage: 11,
 			attackSpeed: 1.3,
 			criticalChance: 5,
 		},

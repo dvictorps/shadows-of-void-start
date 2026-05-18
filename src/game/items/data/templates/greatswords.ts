@@ -8,10 +8,10 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 1,
-		requirements: { level: 1, str: 20 },
+		requirements: { level: 1, str: 12 },
 		baseStats: {
-			minDamage: 25,
-			maxDamage: 55,
+			minDamage: 7,
+			maxDamage: 13,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},

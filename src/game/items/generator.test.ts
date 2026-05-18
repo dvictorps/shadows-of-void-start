@@ -1393,7 +1393,9 @@ describe("attribute requirements", () => {
 		expect(item.requirements).toBeDefined();
 		expect(item.requirements!.level).toBe(1);
 		expect(item.requirements!.str).toBe(10);
-		expect(item.requirements!.dex).toBe(10);
+		// T1 sword dropped the dex requirement during the level-1 rebalance —
+		// 1H weapons are equippable from the matching class's base attribute.
+		expect(item.requirements!.dex).toBeUndefined();
 	});
 
 	it("high-tier weapon has higher attribute requirements", () => {

@@ -10,8 +10,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 1,
 		requirements: { level: 1, dex: 10 },
 		baseStats: {
-			minDamage: 8,
-			maxDamage: 18,
+			minDamage: 2,
+			maxDamage: 5,
 			attackSpeed: 1.7,
 			criticalChance: 6.5,
 		},

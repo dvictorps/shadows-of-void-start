@@ -10,8 +10,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 1,
 		requirements: { level: 1, int: 10 },
 		baseStats: {
-			minDamage: 8,
-			maxDamage: 22,
+			minDamage: 2,
+			maxDamage: 6,
 			attackSpeed: 1.4,
 			criticalChance: 7,
 		},

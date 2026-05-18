@@ -8,10 +8,10 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 1,
-		requirements: { level: 1, str: 10, dex: 10 },
+		requirements: { level: 1, str: 10 },
 		baseStats: {
-			minDamage: 12,
-			maxDamage: 28,
+			minDamage: 3,
+			maxDamage: 7,
 			attackSpeed: 1.5,
 			criticalChance: 5,
 		},

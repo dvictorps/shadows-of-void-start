@@ -8,10 +8,10 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 1,
-		requirements: { level: 1, int: 15 },
+		requirements: { level: 1, int: 12 },
 		baseStats: {
-			minDamage: 10,
-			maxDamage: 30,
+			minDamage: 4,
+			maxDamage: 9,
 			attackSpeed: 1.2,
 			criticalChance: 6,
 		},

@@ -8,10 +8,10 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 1,
-		requirements: { level: 1, str: 25 },
+		requirements: { level: 1, str: 12 },
 		baseStats: {
-			minDamage: 30,
-			maxDamage: 60,
+			minDamage: 8,
+			maxDamage: 15,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
