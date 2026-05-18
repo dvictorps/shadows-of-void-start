@@ -435,7 +435,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 1,
 		requirements: { level: 1, int: 8 },
-		baseStats: { barrier: 2 },
+		baseStats: { barrier: 4 },
 		implicits: [],
 	},
 	{
@@ -445,7 +445,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 8,
 		requirements: { level: 8, int: 14 },
-		baseStats: { barrier: 4 },
+		baseStats: { barrier: 8 },
 		implicits: [],
 	},
 	{
@@ -455,7 +455,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 12,
 		requirements: { level: 12, int: 18 },
-		baseStats: { barrier: 5 },
+		baseStats: { barrier: 11 },
 		implicits: [],
 	},
 	{
@@ -465,7 +465,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 16,
 		requirements: { level: 16, int: 22 },
-		baseStats: { barrier: 8 },
+		baseStats: { barrier: 16 },
 		implicits: [],
 	},
 	{
@@ -475,7 +475,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 20,
 		requirements: { level: 20, int: 28 },
-		baseStats: { barrier: 10 },
+		baseStats: { barrier: 20 },
 		implicits: [],
 	},
 	{
@@ -485,7 +485,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 24,
 		requirements: { level: 24, int: 33 },
-		baseStats: { barrier: 14 },
+		baseStats: { barrier: 26 },
 		implicits: [],
 	},
 	{
@@ -495,7 +495,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 28,
 		requirements: { level: 28, int: 38 },
-		baseStats: { barrier: 17 },
+		baseStats: { barrier: 31 },
 		implicits: [],
 	},
 	{
@@ -505,7 +505,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 32,
 		requirements: { level: 32, int: 44 },
-		baseStats: { barrier: 21 },
+		baseStats: { barrier: 37 },
 		implicits: [],
 	},
 	{
@@ -515,7 +515,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 36,
 		requirements: { level: 36, int: 48 },
-		baseStats: { barrier: 25 },
+		baseStats: { barrier: 44 },
 		implicits: [],
 	},
 	{
@@ -525,7 +525,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 40,
 		requirements: { level: 40, int: 53 },
-		baseStats: { barrier: 30 },
+		baseStats: { barrier: 50 },
 		implicits: [],
 	},
 	{
@@ -535,7 +535,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 44,
 		requirements: { level: 44, int: 58 },
-		baseStats: { barrier: 35 },
+		baseStats: { barrier: 57 },
 		implicits: [],
 	},
 	{
@@ -545,7 +545,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 48,
 		requirements: { level: 48, int: 63 },
-		baseStats: { barrier: 42 },
+		baseStats: { barrier: 65 },
 		implicits: [],
 	},
 	{
@@ -555,7 +555,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 52,
 		requirements: { level: 52, int: 68 },
-		baseStats: { barrier: 48 },
+		baseStats: { barrier: 72 },
 		implicits: [],
 	},
 	{
@@ -565,7 +565,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 56,
 		requirements: { level: 56, int: 74 },
-		baseStats: { barrier: 56 },
+		baseStats: { barrier: 80 },
 		implicits: [],
 	},
 	{
@@ -575,7 +575,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 60,
 		requirements: { level: 60, int: 78 },
-		baseStats: { barrier: 64 },
+		baseStats: { barrier: 87 },
 		implicits: [],
 	},
 	{
@@ -585,7 +585,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 64,
 		requirements: { level: 64, int: 83 },
-		baseStats: { barrier: 72 },
+		baseStats: { barrier: 95 },
 		implicits: [],
 	},
 	{
@@ -595,7 +595,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 68,
 		requirements: { level: 68, int: 88 },
-		baseStats: { barrier: 82 },
+		baseStats: { barrier: 102 },
 		implicits: [],
 	},
 	{
@@ -605,7 +605,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 72,
 		requirements: { level: 72, int: 93 },
-		baseStats: { barrier: 92 },
+		baseStats: { barrier: 109 },
 		implicits: [],
 	},
 	{
@@ -615,7 +615,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 76,
 		requirements: { level: 76, int: 98 },
-		baseStats: { barrier: 103 },
+		baseStats: { barrier: 116 },
 		implicits: [],
 	},
 	{
@@ -625,7 +625,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 80,
 		requirements: { level: 80, int: 104 },
-		baseStats: { barrier: 113 },
+		baseStats: { barrier: 121 },
 		implicits: [],
 	},
 	{
