@@ -1,5 +1,9 @@
 import { ConvexError, v } from "convex/values"
-import { MAX_POTIONS } from "../src/game/combat/constants"
+import {
+	MAX_POTIONS,
+	MAX_TELEPORT_STONES,
+	MAX_WIND_CRYSTALS,
+} from "../src/game/combat/constants"
 import { computeSellPrice } from "../src/game/items/sell-price"
 import { findVendorProduct } from "../src/game/vendor/products"
 import { assertInCity, loadOwnedCharacter } from "./_shared/character"
@@ -27,19 +31,38 @@ export const vendorBuy = mutation({
 		if (rubys < product.priceRubys)
 			throw new ConvexError("Not enough rubys")
 
+		const newRubys = rubys - product.priceRubys
 		if (product.id === "potion") {
 			const potions = char.potions ?? 0
 			if (potions >= MAX_POTIONS)
 				throw new ConvexError("Potion cap reached")
 			await ctx.db.patch(args.characterId, {
-				rubys: rubys - product.priceRubys,
+				rubys: newRubys,
 				potions: potions + 1,
 			})
-			return { rubys: rubys - product.priceRubys, potions: potions + 1 }
+			return { rubys: newRubys, potions: potions + 1 }
+		}
+		if (product.id === "teleport_stone") {
+			const stones = char.teleportStones ?? 0
+			if (stones >= MAX_TELEPORT_STONES)
+				throw new ConvexError("Teleport stone cap reached")
+			await ctx.db.patch(args.characterId, {
+				rubys: newRubys,
+				teleportStones: stones + 1,
+			})
+			return { rubys: newRubys, teleportStones: stones + 1 }
+		}
+		if (product.id === "wind_crystal") {
+			const crystals = char.windCrystals ?? 0
+			if (crystals >= MAX_WIND_CRYSTALS)
+				throw new ConvexError("Wind crystal cap reached")
+			await ctx.db.patch(args.characterId, {
+				rubys: newRubys,
+				windCrystals: crystals + 1,
+			})
+			return { rubys: newRubys, windCrystals: crystals + 1 }
 		}
 
-		// Future product ids fall through; throw so client doesn't silently keep
-		// rubys on an unhandled buy.
 		throw new ConvexError(`Buy not implemented for: ${args.productId}`)
 	},
 })

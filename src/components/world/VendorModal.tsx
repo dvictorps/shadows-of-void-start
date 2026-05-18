@@ -4,7 +4,11 @@ import { toast } from "sonner";
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
-import { MAX_POTIONS } from "#/game/combat/constants";
+import {
+	MAX_POTIONS,
+	MAX_TELEPORT_STONES,
+	MAX_WIND_CRYSTALS,
+} from "#/game/combat/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { m } from "#/paraglide/messages";
@@ -19,6 +23,8 @@ type Props = {
 	onClose: () => void;
 	rubys: number;
 	potions: number;
+	teleportStones: number;
+	windCrystals: number;
 	inventoryItems: Doc<"items">[];
 	onBuy: (productId: VendorProductId) => Promise<void>;
 	onSellMany: (itemIds: Id<"items">[]) => Promise<void>;
@@ -29,6 +35,8 @@ export default function VendorModal({
 	onClose,
 	rubys,
 	potions,
+	teleportStones,
+	windCrystals,
 	inventoryItems,
 	onBuy,
 	onSellMany,
@@ -113,7 +121,13 @@ export default function VendorModal({
 				 * modal jump around vertically. */}
 				<div className="flex min-h-[460px] flex-col">
 					{tab === "buy" ? (
-						<BuyTab rubys={rubys} potions={potions} onBuy={handleBuy} />
+						<BuyTab
+							rubys={rubys}
+							potions={potions}
+							teleportStones={teleportStones}
+							windCrystals={windCrystals}
+							onBuy={handleBuy}
+						/>
 					) : (
 						<SellTab
 							inventoryItems={inventoryItems}
@@ -161,17 +175,31 @@ function TabButton({
 function BuyTab({
 	rubys,
 	potions,
+	teleportStones,
+	windCrystals,
 	onBuy,
 }: {
 	rubys: number;
 	potions: number;
+	teleportStones: number;
+	windCrystals: number;
 	onBuy: (productId: VendorProductId) => Promise<void>;
 }) {
 	const products = Object.values(VENDOR_PRODUCTS);
+	const isAtCap = (id: VendorProductId): boolean => {
+		switch (id) {
+			case "potion":
+				return potions >= MAX_POTIONS;
+			case "teleport_stone":
+				return teleportStones >= MAX_TELEPORT_STONES;
+			case "wind_crystal":
+				return windCrystals >= MAX_WIND_CRYSTALS;
+		}
+	};
 	return (
 		<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
 			{products.map((p) => {
-				const atCap = p.id === "potion" && potions >= MAX_POTIONS;
+				const atCap = isAtCap(p.id);
 				const canAfford = rubys >= p.priceRubys;
 				const disabled = !canAfford || atCap;
 				const buttonLabel = atCap
@@ -307,6 +335,10 @@ function productLabel(id: VendorProductId): string {
 	switch (id) {
 		case "potion":
 			return m.vendor_product_potion();
+		case "teleport_stone":
+			return m.vendor_product_teleport_stone();
+		case "wind_crystal":
+			return m.vendor_product_wind_crystal();
 		default:
 			return id;
 	}

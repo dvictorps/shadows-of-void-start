@@ -4,7 +4,7 @@
 // stones and wind crystals join the catalog in a later PR alongside their
 // usage mechanics.
 
-export type VendorProductId = "potion";
+export type VendorProductId = "potion" | "teleport_stone" | "wind_crystal";
 
 export interface VendorProduct {
 	id: VendorProductId;
@@ -17,6 +17,8 @@ export interface VendorProduct {
 
 export const VENDOR_PRODUCTS: Record<VendorProductId, VendorProduct> = {
 	potion: { id: "potion", priceRubys: 10, emoji: "🧪" },
+	teleport_stone: { id: "teleport_stone", priceRubys: 30, emoji: "🪨" },
+	wind_crystal: { id: "wind_crystal", priceRubys: 50, emoji: "💎" },
 };
 
 export function findVendorProduct(id: string): VendorProduct | null {

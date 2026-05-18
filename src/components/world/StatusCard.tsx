@@ -21,7 +21,10 @@ type Props = {
 	stats: ComputedCharacterStats;
 	hpOverride?: number;
 	potionsOverride?: number;
+	teleportStones: number;
+	windCrystals: number;
 	onUsePotion?: () => void;
+	onUseTeleportStone?: () => void;
 	onShowStats?: () => void;
 };
 
@@ -45,6 +48,8 @@ export default function StatusCard({
 	stats,
 	hpOverride,
 	potionsOverride,
+	teleportStones,
+	windCrystals,
 	onShowStats,
 	onUsePotion,
 }: Props) {
@@ -146,8 +151,8 @@ export default function StatusCard({
 					</div>
 
 					<div className="flex justify-center gap-2">
-						<ConsumableSlot label="?" count={0} />
-						<ConsumableSlot label="?" count={0} />
+						<ConsumableSlot label="🪨" count={teleportStones} />
+						<ConsumableSlot label="💎" count={windCrystals} />
 					</div>
 
 					<HealthGlobe hp={hp} maxHp={maxHp} barrier={barrier} />

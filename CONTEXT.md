@@ -271,14 +271,15 @@ This naturally produces the PoE "self-sustaining gear" behaviour: a helmet that 
 **Visual signal** — broken items render with a red border (overriding the rarity color), a red `AlertTriangle` icon overlay, and a red warning line at the top of their tooltip: "Falta {N} de {Atributo}", one line per unmet requirement.
 
 ### Active player input
-Combat is otherwise automatic, but the player has **one active control today**: using a **life potion**.
+Combat is otherwise automatic, but the player has **three active controls today**: using a **life potion**, using a **teleport stone**, and (out of combat) using a **wind crystal**.
 
-- Potions heal **20% of maximum HP** on use.
-- The character can carry a **maximum of 10 potions** at any time.
-- Potions are obtained two ways: bought from the city vendor, or **dropped by monsters** (see Loot Pipeline → Potion drops).
-- The potion button lives on the bottom-right of the combat view (next to the health globe) and on the map's status card (so the player can also use one out-of-combat).
+- **Life Potion**: heals **20% of maximum HP**. Cap 10 carried. Obtained from the city vendor (10 rubys) or as a 20% monster drop (see Loot Pipeline → Potion drops). Potion button lives on the bottom-right of the combat view (next to the health globe) and on the map's status card.
+- **Teleport Stone**: instant return to the city, usable from any view (combat included — panic button). Wipes the active zone bag (you escape but abandon the loot). Cap 10 carried. Vendor-only, 30 rubys. Button sits to the left of the potion in the combat HUD.
+- **Wind Crystal**: jumps the player to any previously-unlocked node with a fixed travel duration (no movement-speed scaling — you're skipping zones, not walking through them). Cap 5 carried. Vendor-only, 50 rubys. Used from the map view only (clicking an unlocked-but-unconnected node opens a confirmation). Counter sits above the teleport stone button in the combat HUD (display-only there; usage is map-only).
 
-Future skills will plug in as additional active controls; the potion is the only one in the MVP.
+The two travel consumables share the character document's `teleportStones` and `windCrystals` counters. The set of nodes available to wind crystals comes from `unlockedNodes` (see Travel system).
+
+Future skills will plug in as additional active controls; these three are the only ones in the MVP.
 
 ---
 
@@ -335,13 +336,13 @@ Legendaries are reachable in Act 1 from any source, but the baseline chance is *
 
 ### Vendor catalog (MVP)
 
-Today the vendor sells a single product:
+| Product | Price | Cap |
+|---|---|---|
+| Life Potion | 10 Rubys | 10 |
+| Teleport Stone | 30 Rubys | 10 |
+| Wind Crystal | 50 Rubys | 5 |
 
-| Product | Price |
-|---|---|
-| Life Potion | 10 Rubys |
-
-Teleport stones and wind crystals join the catalog in the consumables PR (alongside their usage mechanics). The catalog data lives in `src/game/vendor/products.ts`; adding a product means registering an id + price there and handling it in `convex/vendor.ts` → `vendorBuy`.
+The catalog data lives in `src/game/vendor/products.ts`; adding a product means registering an id + price + emoji there and handling it in `convex/vendor.ts` → `vendorBuy` (per-product cap check + counter increment).
 
 ### Selling rules
 
@@ -435,6 +436,9 @@ time_seconds = max(0.5, distance / (1 + 2 × movementSpeed/100))
 ```
 
 The 2× coefficient on movement speed is intentional — boots can roll up to ~30% MS in early game and we want the player to *feel* that gear choice on the world map, not see a barely-perceptible improvement. The 0.5s floor keeps travel always visible.
+
+### Unlocked nodes
+Every time the player arrives at a node (via any travel mechanic) the destination is appended to the character's `unlockedNodes` set. The character starts with `["city"]` on creation. This set is **append-only** — respawn doesn't clear it, leaving the world a one-time discover-then-fast-travel-back. Wind crystals consume the list to validate jump targets; nodes outside the list are inaccessible to crystals even if they're shown on the map.
 
 ### State on the character document
 Four fields capture the player's location on the act map:

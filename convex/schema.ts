@@ -43,6 +43,14 @@ export default defineSchema({
 		// Currency — see CONTEXT.md → Ruby. Earned by selling gear at the vendor;
 		// spent on consumables and (future) stash tabs. Monsters never drop Rubys.
 		rubys: v.optional(v.number()),
+		// Travel consumables (see CONTEXT.md → Travel consumables).
+		// Caps enforced server-side at purchase time.
+		teleportStones: v.optional(v.number()),
+		windCrystals: v.optional(v.number()),
+		// Set of node ids the player has visited at least once (arrived at via
+		// any travel mechanic). Wind crystals can only jump to nodes in this
+		// list. Persisted append-only; respawn doesn't clear it.
+		unlockedNodes: v.optional(v.array(v.string())),
 	}).index("by_authUserId", ["authUserId"]),
 
 	// All items live here — drops, inventory, equipped, stash. Location is

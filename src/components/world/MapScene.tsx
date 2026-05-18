@@ -10,6 +10,7 @@ type Props = {
 	onHoverNode: (nodeId: string | null) => void;
 	hoveredNodeId: string | null;
 	currentLocationNodeId: string;
+	unlockedNodeIds: ReadonlySet<string>;
 	onOpenSettings: () => void;
 };
 
@@ -25,9 +26,15 @@ export default function MapScene({
 	onHoverNode,
 	hoveredNodeId,
 	currentLocationNodeId,
+	unlockedNodeIds,
 	onOpenSettings,
 }: Props) {
 	const edges = useMemo(() => buildEdges(act.nodes), [act.nodes]);
+	const currentNode = act.nodes.find((n) => n.id === currentLocationNodeId);
+	const connectedIds = new Set(
+		currentNode?.connections.map((c) => c.id) ?? [],
+	);
+	connectedIds.add(currentLocationNodeId);
 
 	return (
 		<section className="relative h-full overflow-hidden rounded-md border border-white/40 bg-black">
@@ -48,17 +55,22 @@ export default function MapScene({
 				{edges}
 			</svg>
 
-			{act.nodes.map((node) => (
-				<MapNode
-					key={node.id}
-					node={node}
-					hovered={hoveredNodeId === node.id}
-					isCurrent={node.id === currentLocationNodeId}
-					onEnter={() => onEnterNode(node.id)}
-					onHover={() => onHoverNode(node.id)}
-					onLeave={() => onHoverNode(null)}
-				/>
-			))}
+			{act.nodes.map((node) => {
+				const reachableByWindCrystal =
+					!connectedIds.has(node.id) && unlockedNodeIds.has(node.id);
+				return (
+					<MapNode
+						key={node.id}
+						node={node}
+						hovered={hoveredNodeId === node.id}
+						isCurrent={node.id === currentLocationNodeId}
+						reachableByWindCrystal={reachableByWindCrystal}
+						onEnter={() => onEnterNode(node.id)}
+						onHover={() => onHoverNode(node.id)}
+						onLeave={() => onHoverNode(null)}
+					/>
+				);
+			})}
 		</section>
 	);
 }
@@ -99,6 +111,7 @@ function MapNode({
 	node,
 	hovered,
 	isCurrent,
+	reachableByWindCrystal,
 	onEnter,
 	onHover,
 	onLeave,
@@ -106,11 +119,20 @@ function MapNode({
 	node: WorldNode;
 	hovered: boolean;
 	isCurrent: boolean;
+	reachableByWindCrystal: boolean;
 	onEnter: () => void;
 	onHover: () => void;
 	onLeave: () => void;
 }) {
 	const Icon = NODE_ICONS[node.kind];
+	// Wind-crystal-reachable nodes (unlocked but not connected to currentLocation)
+	// get a cyan tint so the player knows the click will offer the crystal flow
+	// instead of just being a no-route dead-click.
+	const borderClass = hovered
+		? "border-white text-white shadow-[0_0_12px_rgba(255,255,255,0.5)]"
+		: reachableByWindCrystal
+			? "border-cyan-400/70 text-cyan-200/80 hover:border-cyan-300"
+			: "border-white/40 text-white/70 hover:border-white/80";
 	return (
 		<div
 			style={{
@@ -127,11 +149,7 @@ function MapNode({
 				onFocus={onHover}
 				onBlur={onLeave}
 				aria-label={m.enter_node({ name: translateNodeName(node) })}
-				className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-black transition ${
-					hovered
-						? "border-white text-white shadow-[0_0_12px_rgba(255,255,255,0.5)]"
-						: "border-white/40 text-white/70 hover:border-white/80"
-				}`}
+				className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-black transition ${borderClass}`}
 			>
 				<Icon className="h-5 w-5" strokeWidth={1.5} />
 			</button>
