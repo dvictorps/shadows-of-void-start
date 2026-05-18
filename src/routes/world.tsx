@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import BagPreviewModal from "#/components/world/BagPreviewModal";
@@ -30,6 +30,7 @@ import {
 	translateNodeDescription,
 	translateNodeName,
 } from "#/game/world/i18n";
+import { computeTravelTime } from "#/game/world/travel";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
@@ -173,7 +174,47 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		);
 	});
 	const respawnDead = useMutation(api.combat.respawnDead);
-	const startTravel = useMutation(api.combat.startTravel);
+	// Optimistic startTravel — paint the travel state on the client before the
+	// mutation round-trips so the progress bar shows instantly. The server's
+	// authoritative values overwrite the prediction when the response arrives
+	// (~100-200ms later, invisible). Reads movementSpeed from a ref because
+	// `stats` isn't in scope at this point in the function body; the ref is
+	// assigned further down, before any user click can fire.
+	const movementSpeedRef = useRef(0);
+	const startTravel = useMutation(
+		api.combat.startTravel,
+	).withOptimisticUpdate((localStore, args) => {
+		const characters = localStore.getQuery(api.characters.list, {});
+		if (!characters) return;
+		const char = characters.find((c) => c._id === args.characterId);
+		if (!char) return;
+		const fromId = char.currentLocation ?? "city";
+		const fromNode = findNode(ACT_1, fromId);
+		const conn = fromNode?.connections.find(
+			(c) => c.id === args.destinationNodeId,
+		);
+		if (!conn) return;
+		const seconds = computeTravelTime(
+			conn.distance,
+			movementSpeedRef.current,
+		);
+		const startedAt = Date.now();
+		const arrivesAt = startedAt + Math.round(seconds * 1000);
+		localStore.setQuery(
+			api.characters.list,
+			{},
+			characters.map((c) =>
+				c._id === args.characterId
+					? {
+							...c,
+							travelDestination: args.destinationNodeId,
+							travelStartedAt: startedAt,
+							travelArrivesAt: arrivesAt,
+						}
+					: c,
+			),
+		);
+	});
 	const arriveAtTravel = useMutation(api.combat.arriveAtTravel);
 
 	const [view, setView] = useState<ViewMode>("map");
@@ -246,6 +287,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	);
 
 	const maxHp = stats.maxLife;
+	// Latest movement speed for the startTravel optimistic update (defined above
+	// before stats are computed). Reading from ref keeps the closure stable.
+	movementSpeedRef.current = stats.movementSpeed;
 	const equippedBySlot = useMemo<
 		ReadonlyMap<EquippedSlot, { id: string; data: EquippedItem["item"] }>
 	>(() => {
