@@ -3,6 +3,10 @@
   "loading": "Carregando...",
   "cancel": "Cancelar",
   "back": "Voltar",
+  "leave_world_title": "Sair do mundo?",
+  "leave_world_message": "Você voltará para a seleção de personagens.",
+  "leave_world_confirm": "Sair",
+  "leave_world_back_label": "Voltar para seleção de personagens",
   "back_to_map": "Voltar ao mapa",
 
   "admin_dashboard": "Painel Admin",

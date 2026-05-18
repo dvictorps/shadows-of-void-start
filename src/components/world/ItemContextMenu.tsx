@@ -25,7 +25,8 @@ export default function ItemContextMenu({ anchor, actions, onClose }: Props) {
 	useEffect(() => {
 		const onDocPointerDown = (e: PointerEvent) => {
 			if (!menuRef.current) return;
-			if (menuRef.current.contains(e.target as Node)) return;
+			if (e.target instanceof Node && menuRef.current.contains(e.target))
+				return;
 			onClose();
 		};
 		const onKey = (e: KeyboardEvent) => {

@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
+import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -15,13 +16,19 @@ import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import { findClassDefinition } from "#/game/classes/data";
+import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
 import { computeCharacterStats } from "#/game/stats/compute";
-import type { EquippedItem, EquippedSlot } from "#/game/stats/types";
+import {
+	type EquippedItem,
+	type EquippedSlot,
+	narrowEquippedSlot,
+} from "#/game/stats/types";
 import { ACT_1, findNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
+import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useModal } from "#/hooks/useModal";
 import { m } from "#/paraglide/messages";
 import { api } from "../../convex/_generated/api";
@@ -70,12 +77,97 @@ function WorldView() {
 type ViewMode = "map" | "city" | "combat";
 
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
+	const navigate = useNavigate();
+	const confirm = useConfirmationModal();
 	const classDef = findClassDefinition(character.classId);
 	const enterCity = useMutation(api.characters.enterCity);
 	const enterZone = useMutation(api.characters.enterZone);
-	const exitZone = useMutation(api.characters.exitZone);
-	const pickFromBag = useMutation(api.characters.pickFromBag);
-	const discardFromBag = useMutation(api.characters.discardFromBag);
+	const exitZone = useMutation(api.characters.exitZone).withOptimisticUpdate(
+		(localStore, args) => {
+			// On commit, the bag goes to zero and `keepIds` items become inventory
+			// docs. Mirror that locally so the modal can auto-close immediately.
+			const bagKey = { characterId: args.characterId };
+			const bag = localStore.getQuery(api.characters.zoneBag, bagKey);
+			if (bag) localStore.setQuery(api.characters.zoneBag, bagKey, []);
+			const keep = new Set(args.keepIds.map((id) => id.toString()));
+			const keptDocs = (bag ?? []).filter((it) => keep.has(it._id.toString()));
+			if (keptDocs.length === 0) return;
+			const inv = localStore.getQuery(api.characters.inventory, bagKey) ?? [];
+			const occupied = new Set<number>();
+			for (const it of inv) {
+				if (typeof it.inventorySlot === "number")
+					occupied.add(it.inventorySlot);
+			}
+			let cursor = 0;
+			const nextFreeSlot = (): number => {
+				while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
+				if (cursor >= INVENTORY_MAX_SLOTS) return -1;
+				const s = cursor++;
+				occupied.add(s);
+				return s;
+			};
+			const moved = keptDocs.map((d) => ({
+				...d,
+				locationKind: "inventory" as const,
+				zoneSession: undefined,
+				inventorySlot: nextFreeSlot(),
+			}));
+			localStore.setQuery(
+				api.characters.inventory,
+				bagKey,
+				[...inv, ...moved].sort(bySlotAsc),
+			);
+		},
+	);
+	const pickFromBag = useMutation(
+		api.characters.pickFromBag,
+	).withOptimisticUpdate((localStore, args) => {
+		const bagKey = { characterId: args.characterId };
+		const bag = localStore.getQuery(api.characters.zoneBag, bagKey);
+		if (!bag) return;
+		const idSet = new Set(args.itemIds.map((id) => id.toString()));
+		const picked = bag.filter((it) => idSet.has(it._id.toString()));
+		if (picked.length === 0) return;
+		const remaining = bag.filter((it) => !idSet.has(it._id.toString()));
+		localStore.setQuery(api.characters.zoneBag, bagKey, remaining);
+		const inv = localStore.getQuery(api.characters.inventory, bagKey) ?? [];
+		const occupied = new Set<number>();
+		for (const it of inv) {
+			if (typeof it.inventorySlot === "number") occupied.add(it.inventorySlot);
+		}
+		let cursor = 0;
+		const nextFreeSlot = (): number => {
+			while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
+			if (cursor >= INVENTORY_MAX_SLOTS) return -1;
+			const s = cursor++;
+			occupied.add(s);
+			return s;
+		};
+		const moved = picked.map((d) => ({
+			...d,
+			locationKind: "inventory" as const,
+			zoneSession: undefined,
+			inventorySlot: nextFreeSlot(),
+		}));
+		localStore.setQuery(
+			api.characters.inventory,
+			bagKey,
+			[...inv, ...moved].sort(bySlotAsc),
+		);
+	});
+	const discardFromBag = useMutation(
+		api.characters.discardFromBag,
+	).withOptimisticUpdate((localStore, args) => {
+		const bagKey = { characterId: args.characterId };
+		const bag = localStore.getQuery(api.characters.zoneBag, bagKey);
+		if (!bag) return;
+		const idSet = new Set(args.itemIds.map((id) => id.toString()));
+		localStore.setQuery(
+			api.characters.zoneBag,
+			bagKey,
+			bag.filter((it) => !idSet.has(it._id.toString())),
+		);
+	});
 	const respawnDead = useMutation(api.characters.respawnDead);
 
 	const [view, setView] = useState<ViewMode>("map");
@@ -118,7 +210,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const equippedSnapshot: EquippedItem[] = useMemo(() => {
 		const out: EquippedItem[] = [];
 		for (const item of equippedItems ?? []) {
-			const slot = item.equippedSlot as EquippedSlot | undefined;
+			const slot = narrowEquippedSlot(item.equippedSlot);
 			if (!slot) continue;
 			out.push({ slot, item: item.data });
 		}
@@ -136,7 +228,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	);
 
 	const maxHp = stats.maxLife;
-	const equippedBySlot = useMemo(() => {
+	const equippedBySlot = useMemo<
+		ReadonlyMap<EquippedSlot, { id: string; data: EquippedItem["item"] }>
+	>(() => {
 		const map = new Map<
 			EquippedSlot,
 			{ id: string; data: EquippedItem["item"] }
@@ -144,10 +238,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		for (const eq of equippedSnapshot) {
 			map.set(eq.slot, { id: eq.item.id, data: eq.item });
 		}
-		return map as ReadonlyMap<
-			EquippedSlot,
-			{ id: string; data: EquippedItem["item"] }
-		>;
+		return map;
 	}, [equippedSnapshot]);
 	const monsterPool = useMemo(
 		() => currentNode?.monsterPool ?? [],
@@ -282,8 +373,28 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const onUsePotion =
 		view === "combat" || view === "map" ? combat.usePotion : undefined;
 
+	const handleLeaveWorld = async () => {
+		const ok = await confirm({
+			title: m.leave_world_title(),
+			message: m.leave_world_message(),
+			confirmLabel: m.leave_world_confirm(),
+			cancelLabel: m.cancel(),
+		});
+		if (!ok) return;
+		void navigate({ to: "/character-select" });
+	};
+
 	return (
 		<main className="relative grid h-screen grid-cols-[1fr_640px] gap-3 overflow-hidden bg-black p-3 text-white">
+			<button
+				type="button"
+				onClick={handleLeaveWorld}
+				aria-label={m.leave_world_back_label()}
+				className="absolute top-5 left-5 z-20 inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+			>
+				<ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
+				{m.back()}
+			</button>
 			<div className="grid grid-rows-[1fr_160px] gap-3 overflow-hidden">
 				{view === "map" && (
 					<MapScene

@@ -2,6 +2,8 @@ import type { CharacterClassDefinition } from "../classes/types";
 import type { GeneratedItem } from "../items/types";
 
 // ── Equipment slots ──
+// Single source of truth — also drives the convex schema validator and the
+// equip mutation arg union (see convex/characters.ts).
 
 export const EQUIPPED_SLOTS = [
 	"weapon",
@@ -17,6 +19,19 @@ export const EQUIPPED_SLOTS = [
 ] as const;
 
 export type EquippedSlot = (typeof EQUIPPED_SLOTS)[number];
+
+const EQUIPPED_SLOT_SET = new Set<string>(EQUIPPED_SLOTS);
+
+/**
+ * Runtime narrower for Convex-returned `equippedSlot: string | undefined`.
+ * Returns the value typed as EquippedSlot when it matches; undefined otherwise.
+ */
+export function narrowEquippedSlot(
+	s: string | undefined,
+): EquippedSlot | undefined {
+	if (s === undefined || !EQUIPPED_SLOT_SET.has(s)) return undefined;
+	return s as EquippedSlot;
+}
 
 export interface EquippedItem {
 	slot: EquippedSlot;

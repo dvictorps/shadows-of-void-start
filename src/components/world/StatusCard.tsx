@@ -48,9 +48,7 @@ export default function StatusCard({
 	onShowStats,
 	onUsePotion,
 }: Props) {
-	const classResolved = classDef
-		? CLASS_NAME[classDef.id as CharacterClassId]()
-		: "Unknown";
+	const classResolved = classDef ? CLASS_NAME[classDef.id]() : "Unknown";
 	const maxHp = stats.maxLife;
 	const hpServer = character.hpCurrent ?? maxHp;
 	const hp = hpOverride ?? hpServer;

@@ -34,6 +34,10 @@ function readCache<T>(key: string): T | undefined {
 		if (typeof localStorage === "undefined") return undefined;
 		const raw = localStorage.getItem(key);
 		if (!raw) return undefined;
+		// Unsafe by design — JSON.parse can never validate the runtime shape of
+		// T. The live Convex query overwrites this within one tick, so a stale
+		// cache only flickers briefly; consumers tolerate transient bad shapes
+		// (worst case: a render error caught by an error boundary).
 		return JSON.parse(raw) as T;
 	} catch {
 		return undefined;

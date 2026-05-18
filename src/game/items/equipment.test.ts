@@ -131,7 +131,9 @@ describe("planEquip", () => {
 		const plan = planEquip({
 			item: makeShield("s"),
 			targetSlot: "offhand",
-			currentEquipped: [{ slot: "weapon", item: makeWeapon("gs", "greatsword") }],
+			currentEquipped: [
+				{ slot: "weapon", item: makeWeapon("gs", "greatsword") },
+			],
 		});
 		expect(plan.displaced).toHaveLength(1);
 		expect(plan.displaced[0].slot).toBe("weapon");

@@ -160,9 +160,7 @@ function CharacterRow({
 	onDelete: () => void;
 }) {
 	const classDef = findClassDefinition(character.classId);
-	const className = classDef
-		? CLASS_NAME[classDef.id as CharacterClassId]()
-		: m.unknown_class();
+	const className = classDef ? CLASS_NAME[classDef.id]() : m.unknown_class();
 
 	return (
 		<li>

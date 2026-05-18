@@ -11,7 +11,11 @@ import { findStarterItem, STARTER_WEAPON_BY_CLASS } from "../src/game/items/star
 import { rollDrop, rollMonsterLevel } from "../src/game/loot/drops"
 import { findMonster } from "../src/game/monsters/data"
 import { computeCharacterStats } from "../src/game/stats/compute"
-import type { EquippedItem, EquippedSlot } from "../src/game/stats/types"
+import {
+	EQUIPPED_SLOTS,
+	type EquippedItem,
+	narrowEquippedSlot,
+} from "../src/game/stats/types"
 import {
 	applyDeathXpPenalty,
 	applyXpGain,
@@ -560,24 +564,19 @@ export const discardFromBag = mutation({
 	},
 })
 
-const EQUIPPED_SLOT_LITERALS = [
-	"weapon",
-	"offhand",
-	"helmet",
-	"chestplate",
-	"boots",
-	"gloves",
-	"amulet",
-	"belt",
-	"ring1",
-	"ring2",
-] as const
-
+// Derived from the single source of truth in src/game/stats/types so the
+// validator and the EquippedSlot type can never drift.
 const equippedSlotValidator = v.union(
-	...(EQUIPPED_SLOT_LITERALS.map((s) => v.literal(s)) as [
-		ReturnType<typeof v.literal<"weapon">>,
-		...ReturnType<typeof v.literal<EquippedSlot>>[],
-	]),
+	v.literal(EQUIPPED_SLOTS[0]),
+	v.literal(EQUIPPED_SLOTS[1]),
+	v.literal(EQUIPPED_SLOTS[2]),
+	v.literal(EQUIPPED_SLOTS[3]),
+	v.literal(EQUIPPED_SLOTS[4]),
+	v.literal(EQUIPPED_SLOTS[5]),
+	v.literal(EQUIPPED_SLOTS[6]),
+	v.literal(EQUIPPED_SLOTS[7]),
+	v.literal(EQUIPPED_SLOTS[8]),
+	v.literal(EQUIPPED_SLOTS[9]),
 )
 
 /**
@@ -614,13 +613,10 @@ export const equipItem = mutation({
 			)
 			.collect()
 
-		const currentEquippedSet = currentlyEquipped
-			.filter((it) => it.equippedSlot)
-			.map((it) => ({
-				slot: it.equippedSlot as EquippedSlot,
-				item: it.data,
-				_id: it._id,
-			}))
+		const currentEquippedSet = currentlyEquipped.flatMap((it) => {
+			const slot = narrowEquippedSlot(it.equippedSlot)
+			return slot ? [{ slot, item: it.data, _id: it._id }] : []
+		})
 
 		const plan = planEquip({
 			item: item.data,

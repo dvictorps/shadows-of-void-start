@@ -3,6 +3,10 @@
   "loading": "Loading...",
   "cancel": "Cancel",
   "back": "Back",
+  "leave_world_title": "Leave the world?",
+  "leave_world_message": "You'll return to character selection.",
+  "leave_world_confirm": "Leave",
+  "leave_world_back_label": "Back to character selection",
   "back_to_map": "Back to map",
 
   "admin_dashboard": "Admin Dashboard",

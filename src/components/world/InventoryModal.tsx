@@ -18,11 +18,15 @@ import Modal from "#/components/Modal";
 import ItemContextMenu, {
 	type MenuAction,
 } from "#/components/world/ItemContextMenu";
-import { INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
+import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import { isWeapon, planEquip, validSlotsForItem } from "#/game/items/equipment";
 import type { GeneratedItem } from "#/game/items/types";
 import { describeBrokenReasons } from "#/game/stats/compute";
-import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
+import {
+	type ComputedCharacterStats,
+	type EquippedSlot,
+	narrowEquippedSlot,
+} from "#/game/stats/types";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { m } from "#/paraglide/messages";
 import { api } from "../../../convex/_generated/api";
@@ -96,11 +100,7 @@ export default function InventoryModal({
 				}
 				return it;
 			})
-			.sort((a, b) => {
-				const sa = a.inventorySlot ?? Number.MAX_SAFE_INTEGER;
-				const sb = b.inventorySlot ?? Number.MAX_SAFE_INTEGER;
-				return sa - sb;
-			});
+			.sort(bySlotAsc);
 		localStore.setQuery(
 			api.characters.inventory,
 			{ characterId: args.characterId },
@@ -119,12 +119,10 @@ export default function InventoryModal({
 			const newItem = inv.find((it) => it._id === args.itemId);
 			if (!newItem) return;
 
-			const currentEquipped = equipped
-				.filter((it) => it.equippedSlot)
-				.map((it) => ({
-					slot: it.equippedSlot as EquippedSlot,
-					item: it.data,
-				}));
+			const currentEquipped = equipped.flatMap((it) => {
+				const slot = narrowEquippedSlot(it.equippedSlot);
+				return slot ? [{ slot, item: it.data }] : [];
+			});
 			const plan = planEquip({
 				item: newItem.data,
 				targetSlot: args.targetSlot,
@@ -133,11 +131,10 @@ export default function InventoryModal({
 			if (plan.reject) return;
 
 			const displacedSlots = new Set(plan.displaced.map((d) => d.slot));
-			const displacedDocs = equipped.filter(
-				(it) =>
-					it.equippedSlot &&
-					displacedSlots.has(it.equippedSlot as EquippedSlot),
-			);
+			const displacedDocs = equipped.filter((it) => {
+				const slot = narrowEquippedSlot(it.equippedSlot);
+				return slot !== undefined && displacedSlots.has(slot);
+			});
 
 			const occupied = new Set<number>();
 			for (const it of inv) {
@@ -164,11 +161,7 @@ export default function InventoryModal({
 			const newInventory = [
 				...inv.filter((it) => it._id !== args.itemId),
 				...displacedToInventory,
-			].sort((a, b) => {
-				const sa = a.inventorySlot ?? Number.MAX_SAFE_INTEGER;
-				const sb = b.inventorySlot ?? Number.MAX_SAFE_INTEGER;
-				return sa - sb;
-			});
+			].sort(bySlotAsc);
 
 			const displacedIds = new Set(displacedDocs.map((d) => d._id));
 			const newEquipped = [
@@ -227,11 +220,7 @@ export default function InventoryModal({
 				equippedSlot: undefined,
 				inventorySlot: firstFree,
 			},
-		].sort((a, b) => {
-			const sa = a.inventorySlot ?? Number.MAX_SAFE_INTEGER;
-			const sb = b.inventorySlot ?? Number.MAX_SAFE_INTEGER;
-			return sa - sb;
-		});
+		].sort(bySlotAsc);
 		const newEquipped = equipped.filter((it) => it._id !== item._id);
 
 		localStore.setQuery(
@@ -259,7 +248,8 @@ export default function InventoryModal({
 	const equippedBySlot = useMemo(() => {
 		const map = new Map<EquippedSlot, Doc<"items">>();
 		for (const item of equippedItems) {
-			if (item.equippedSlot) map.set(item.equippedSlot as EquippedSlot, item);
+			const slot = narrowEquippedSlot(item.equippedSlot);
+			if (slot) map.set(slot, item);
 		}
 		return map;
 	}, [equippedItems]);
@@ -295,15 +285,15 @@ export default function InventoryModal({
 	}, [activeItem, active]);
 
 	const handleDragStart = (event: DragStartEvent) => {
-		const data = event.active.data.current as DragSourceData | undefined;
+		const data = asDragSource(event.active.data.current);
 		if (data) setActive(data);
 	};
 
 	const handleDragCancel = () => setActive(null);
 
 	const handleDragEnd = async (event: DragEndEvent) => {
-		const source = event.active.data.current as DragSourceData | undefined;
-		const target = event.over?.data.current as DropTargetData | undefined;
+		const source = asDragSource(event.active.data.current);
+		const target = asDropTarget(event.over?.data.current);
 		setActive(null);
 		if (!source || !target) return;
 
@@ -702,4 +692,37 @@ function DraggableEquipped({
 			/>
 		</div>
 	);
+}
+
+// ── DnD payload narrowers ─────────────────────────────────────────────────
+// @dnd-kit types `data.current` as Record<string, unknown> | undefined. We
+// validate the shape here so a misregistered draggable in the future can't
+// silently coerce into a DragSourceData and crash a handler.
+
+function asDragSource(d: unknown): DragSourceData | undefined {
+	if (!d || typeof d !== "object") return undefined;
+	const obj = d as Record<string, unknown>;
+	const itemId = obj.itemId;
+	if (typeof itemId !== "string") return undefined;
+	if (obj.kind === "inventory") {
+		return { kind: "inventory", itemId: itemId as Id<"items"> };
+	}
+	if (obj.kind === "equipped" && typeof obj.slot === "string") {
+		const slot = narrowEquippedSlot(obj.slot);
+		if (slot) return { kind: "equipped", slot, itemId: itemId as Id<"items"> };
+	}
+	return undefined;
+}
+
+function asDropTarget(d: unknown): DropTargetData | undefined {
+	if (!d || typeof d !== "object") return undefined;
+	const obj = d as Record<string, unknown>;
+	if (obj.kind === "inventory" && typeof obj.slot === "number") {
+		return { kind: "inventory", slot: obj.slot };
+	}
+	if (obj.kind === "equipment" && typeof obj.slot === "string") {
+		const slot = narrowEquippedSlot(obj.slot);
+		if (slot) return { kind: "equipment", slot };
+	}
+	return undefined;
 }
