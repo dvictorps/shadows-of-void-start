@@ -1,6 +1,10 @@
 import { ConvexError, v } from "convex/values"
 import { findClassDefinition } from "../src/game/classes/data"
-import { POTION_HEAL_FRACTION } from "../src/game/combat/constants"
+import {
+	MAX_POTIONS,
+	POTION_DROP_CHANCE,
+	POTION_HEAL_FRACTION,
+} from "../src/game/combat/constants"
 import { rollDrop, rollMonsterLevel } from "../src/game/loot/drops"
 import { findMonster } from "../src/game/monsters/data"
 import {
@@ -50,9 +54,19 @@ export const recordKill = mutation({
 			})
 			updates.hpCurrent = stats.maxLife
 		}
+
+		// Potion drop — independent of the equipment roll. At the 10-potion cap
+		// the roll is wasted silently (per CONTEXT.md → Potion drops).
+		const currentPotions = char.potions ?? 0
+		const potionDropped =
+			currentPotions < MAX_POTIONS && Math.random() < POTION_DROP_CHANCE
+		if (potionDropped) {
+			updates.potions = currentPotions + 1
+		}
+
 		await ctx.db.patch(args.characterId, updates)
 
-		// Roll the drop server-side, persist in the zone bag.
+		// Roll the equipment drop server-side, persist in the zone bag.
 		const zoneSession = char.currentZoneSession
 		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []
 		if (zoneSession) {
@@ -76,7 +90,7 @@ export const recordKill = mutation({
 			}
 		}
 
-		return { xpGained: monster.xpReward, levelsGained, drops }
+		return { xpGained: monster.xpReward, levelsGained, drops, potionDropped }
 	},
 })
 

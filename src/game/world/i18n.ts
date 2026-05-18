@@ -16,3 +16,19 @@ export function translateNodeName(node: WorldNode): string {
 			return node.name;
 	}
 }
+
+/**
+ * Resolve a world-node's flavor description. Returns null for nodes without
+ * a description key — the caller (TextLog) falls back to the node name so
+ * adding a zone before its copy is written doesn't break the UI.
+ */
+export function translateNodeDescription(node: WorldNode): string | null {
+	switch (node.id) {
+		case "city":
+			return m.zone_city_description();
+		case "forest_starter":
+			return m.zone_forest_starter_description();
+		default:
+			return null;
+	}
+}

@@ -25,7 +25,10 @@ import {
 	narrowEquippedSlot,
 } from "#/game/stats/types";
 import { ACT_1, findNode } from "#/game/world";
-import { translateNodeName } from "#/game/world/i18n";
+import {
+	translateNodeDescription,
+	translateNodeName,
+} from "#/game/world/i18n";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
@@ -342,9 +345,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		exitModal.close();
 	};
 
-	// TextLog priority: death > XP gain > low-HP warning > hovered node
-	// (map view) > current zone (combat/city) > generic fallback. Returns a
-	// tone so the UI can color the message.
+	// TextLog priority: death > kill recap (xp + maybe potion) > low-HP warning
+	// > hovered node description (map view) > map idle (act label) > current
+	// zone (combat/city) > generic fallback. Returns a tone for color.
 	const lowHpThreshold = maxHp * 0.3;
 	const isLowHp =
 		view === "combat" &&
@@ -355,16 +358,21 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	if (deathLog) {
 		logMessage = deathLog;
 		logTone = "danger";
-	} else if (combat.lastXpGain !== null) {
-		logMessage = m.xp_gained_from_kill({ amount: combat.lastXpGain });
+	} else if (combat.lastKill !== null) {
+		logMessage = combat.lastKill.potion
+			? m.kill_recap_xp_and_potion({ xp: combat.lastKill.xp })
+			: m.kill_recap_xp_only({ xp: combat.lastKill.xp });
 		logTone = "success";
 	} else if (isLowHp) {
 		logMessage =
 			combat.potions > 0 ? m.low_hp_use_potion() : m.low_hp_no_potions();
 		logTone = "warning";
 	} else if (view === "map" && hoveredNode) {
-		logMessage = translateNodeName(hoveredNode);
-	} else if (view !== "map" && currentNode) {
+		logMessage =
+			translateNodeDescription(hoveredNode) ?? translateNodeName(hoveredNode);
+	} else if (view === "map") {
+		logMessage = m.act_map_label({ number: 1 });
+	} else if (currentNode) {
 		logMessage = m.inside_zone({ zone: translateNodeName(currentNode) });
 	}
 
@@ -419,7 +427,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						state={combat.state}
 						enemy={combat.enemy}
 						events={combat.events}
-						lastXpGain={combat.lastXpGain}
 						playerHp={combat.playerHp}
 						maxHp={maxHp}
 						xp={character.xp ?? 0}

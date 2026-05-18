@@ -10,7 +10,6 @@ type Props = {
 	state: "searching" | "engaged" | "victory";
 	enemy: Enemy | null;
 	events: DamageEvent[];
-	lastXpGain: number | null;
 	playerHp: number;
 	maxHp: number;
 	xp: number;
@@ -28,7 +27,6 @@ export default function CombatScene({
 	state,
 	enemy,
 	events,
-	lastXpGain,
 	playerHp,
 	maxHp,
 	xp,
@@ -84,58 +82,60 @@ export default function CombatScene({
 				</button>
 			</div>
 
-			{/* Enemy nameplate + HP bar */}
-			<div className="flex flex-col items-center gap-2 px-6 pt-12">
+			{/* Enemy nameplate: name on top, level directly below */}
+			<div className="flex flex-col items-center gap-0.5 px-6 pt-12">
 				{enemy ? (
 					<>
 						<div className="display-title text-lg uppercase tracking-[0.15em] text-white">
 							{enemy.def.name}
 						</div>
-						<EnemyHpBar
-							current={enemy.currentHp}
-							max={enemy.def.baseStats.hp}
-						/>
+						<div className="text-[11px] uppercase tracking-[0.2em] text-white/50">
+							Lv {enemy.level}
+						</div>
 					</>
 				) : (
 					<div className="h-[40px]" />
 				)}
 			</div>
 
-			{/* Enemy emoji area */}
-			<div className="relative flex flex-1 items-center justify-center">
-				{state === "searching" && (
-					<p className="animate-pulse text-xs uppercase tracking-[0.25em] text-white/40">
-						{m.searching_enemy()}
-					</p>
-				)}
-				{enemy && state !== "searching" && (
-					<div
-						key={enemy.def.id}
-						className={`text-7xl transition-opacity duration-500 ${
-							state === "victory" ? "opacity-0" : "opacity-100"
-						}`}
-						style={{ animation: "fadeIn 400ms ease-out" }}
-					>
-						{enemy.def.emoji}
-					</div>
-				)}
-				{state === "victory" && lastXpGain !== null && (
-					<div
-						className="absolute text-base uppercase tracking-[0.2em] text-yellow-300"
-						style={{ animation: "xp-rise 800ms ease-out" }}
-					>
-						+{lastXpGain} XP
-					</div>
-				)}
+			{/* Enemy emoji area + HP bar pinned below the emoji */}
+			<div className="relative flex flex-1 flex-col items-center justify-center gap-4">
+				<div className="relative flex flex-1 items-center justify-center">
+					{state === "searching" && (
+						<p className="animate-pulse text-xs uppercase tracking-[0.25em] text-white/40">
+							{m.searching_enemy()}
+						</p>
+					)}
+					{enemy && state !== "searching" && (
+						<div
+							key={enemy.def.id}
+							className={`text-7xl transition-opacity duration-500 ${
+								state === "victory" ? "opacity-0" : "opacity-100"
+							}`}
+							style={{ animation: "fadeIn 400ms ease-out" }}
+						>
+							{enemy.def.emoji}
+						</div>
+					)}
 
-				{/* Damage popups stacked over enemy */}
-				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-					<AnimatePresence>
-						{enemyEvents.map((event) => (
-							<FloatingDamage key={event.id} event={event} />
-						))}
-					</AnimatePresence>
+					{/* Damage popups stacked over enemy */}
+					<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+						<AnimatePresence>
+							{enemyEvents.map((event) => (
+								<FloatingDamage key={event.id} event={event} />
+							))}
+						</AnimatePresence>
+					</div>
 				</div>
+
+				{enemy && (
+					<div className="pb-4">
+						<EnemyHpBar
+							current={enemy.currentHp}
+							max={enemy.def.baseStats.hp}
+						/>
+					</div>
+				)}
 			</div>
 
 			{/* Bottom HUD: HP globe + XP bar + potion button */}
@@ -225,58 +225,30 @@ function FloatingDamage({
 	const seed = hashSeed(event.id);
 	const isCrit = event.isCrit && !event.isMiss;
 
-	// Random direction angle, biased upward. A normal hit picks any vector in
-	// roughly the top hemisphere (slightly outside the emoji); crits stay
-	// dramatic with a near-vertical arc.
-	const angle = isCrit
-		? -Math.PI / 2 + (seed - 0.5) * 0.4 // ±0.2 rad off straight up
-		: -Math.PI / 2 + (seed - 0.5) * 1.8; // wider spread for normal hits
-	const distance = isCrit ? 90 : 70;
+	// Single direction angle biased upward for normal hits and crits alike —
+	// the crit signal is the red color + "!!!" suffix, not a special arc.
+	const angle = -Math.PI / 2 + (seed - 0.5) * 1.8;
+	const distance = 70;
 	const endX = Math.cos(angle) * distance;
 	const endY = Math.sin(angle) * distance;
-	// Start the popup just outside the emoji center so it's visible immediately.
-	const startOffset = isCrit ? 12 : 24;
+	const startOffset = 24;
 	const startX = Math.cos(angle) * startOffset;
 	const startY = Math.sin(angle) * startOffset;
 
 	const color = event.isMiss
 		? "text-white/60"
 		: isCrit
-			? "text-yellow-200"
+			? "text-red-500"
 			: variant === "player"
 				? "text-red-400"
 				: "text-white";
 
-	if (isCrit) {
-		return (
-			<motion.div
-				className="pointer-events-none absolute select-none"
-				style={{ textShadow: "0 2px 4px rgba(0,0,0,0.9)" }}
-				initial={{ opacity: 0, x: startX, y: startY, scale: 0.5 }}
-				animate={{
-					opacity: [0, 1, 1, 0],
-					x: [startX, startX + (endX - startX) * 0.3, endX],
-					y: [startY, startY + (endY - startY) * 0.3, endY],
-					scale: [0.5, 1.5, 1.2, 1.0],
-				}}
-				exit={{ opacity: 0 }}
-				transition={{
-					duration: 1.1,
-					times: [0, 0.2, 0.6, 1],
-					ease: "easeOut",
-				}}
-			>
-				<div className="-translate-x-1/2 -top-5 absolute left-1/2 whitespace-nowrap text-center font-bold text-[10px] uppercase tracking-[0.25em] text-yellow-300">
-					CRIT
-				</div>
-				<span className={`block font-bold text-5xl ${color}`}>
-					{event.amount}!
-				</span>
-			</motion.div>
-		);
-	}
+	const display = event.isMiss
+		? "MISS"
+		: isCrit
+			? `${event.amount}!!!`
+			: `${event.amount}`;
 
-	// Normal hit / miss — single direction, fade out quickly, no scaling.
 	return (
 		<motion.div
 			className="pointer-events-none absolute select-none"
@@ -289,7 +261,7 @@ function FloatingDamage({
 			<span
 				className={`block font-bold ${event.isMiss ? "text-xl uppercase tracking-wider" : "text-3xl"} ${color}`}
 			>
-				{event.isMiss ? "MISS" : event.amount}
+				{display}
 			</span>
 		</motion.div>
 	);

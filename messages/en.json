@@ -70,6 +70,11 @@
   "status_location_log": "Status / Location",
 
   "xp_gained_from_kill": "+{amount} XP",
+  "kill_recap_xp_only": "+{xp} XP",
+  "kill_recap_xp_and_potion": "+{xp} XP · +1 potion",
+  "act_map_label": "Act {number} Map",
+  "zone_city_description": "Fortified haven. Heal, trade, and gear up.",
+  "zone_forest_starter_description": "Shadowed forest where night-borne dangers lurk.",
   "low_hp_use_potion": "Low HP — use a potion!",
   "low_hp_no_potions": "Low HP — leave the zone to recover",
   "you_died_softcore": "You died! -{xp} XP",

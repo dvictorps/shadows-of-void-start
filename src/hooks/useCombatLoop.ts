@@ -87,7 +87,10 @@ export function useCombatLoop({
 		makeBarrierState(stats.maxBarrier),
 	);
 	const [potions, setPotions] = useState(initialPotions);
-	const [lastXpGain, setLastXpGain] = useState<number | null>(null);
+	const [lastKill, setLastKill] = useState<{
+		xp: number;
+		potion: boolean;
+	} | null>(null);
 	const { events, push: pushEvent } = useDamageEvents();
 
 	// Refs the interval callbacks read directly for mid-tick state visibility.
@@ -134,7 +137,7 @@ export function useCombatLoop({
 			deadRef.current = false;
 			enemyRef.current = null;
 			setEnemy(null);
-			setLastXpGain(null);
+			setLastKill(null);
 			leechRef.current = [];
 			nextSwingIndexRef.current = 0;
 			stateRef.current = "searching";
@@ -169,7 +172,7 @@ export function useCombatLoop({
 	useDelay(active && state === "victory", VICTORY_DELAY_MS, () => {
 		enemyRef.current = null;
 		setEnemy(null);
-		setLastXpGain(null);
+		setLastKill(null);
 		setState("searching");
 	});
 
@@ -275,12 +278,23 @@ export function useCombatLoop({
 
 					if (newEnemyHp <= 0) {
 						stateRef.current = "victory";
-						setLastXpGain(currentEnemy.def.xpReward);
+						const xpGained = currentEnemy.def.xpReward;
+						// Synchronous baseline: XP is known from the monster def, potion
+						// drop is decided server-side. Patch in the potion result when
+						// the mutation resolves so the text log gets the recap.
+						setLastKill({ xp: xpGained, potion: false });
 						setState("victory");
 						recordKill({
 							characterId,
 							monsterId: currentEnemy.def.id,
-						}).catch(() => {});
+						})
+							.then((result) => {
+								if (result.potionDropped) {
+									setLastKill({ xp: xpGained, potion: true });
+									setPotions((p) => p + 1);
+								}
+							})
+							.catch(() => {});
 						return;
 					}
 				} else {
@@ -384,7 +398,7 @@ export function useCombatLoop({
 		barrier: barrierSnapshot,
 		potions,
 		events,
-		lastXpGain,
+		lastKill,
 		usePotion,
 	};
 }

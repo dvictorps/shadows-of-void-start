@@ -187,9 +187,10 @@ interface EnemyAttackArgs {
 }
 
 /**
- * Roll one enemy attack. Mobs deal physical-only damage in MVP (no element
- * stats on monster templates yet). Defender's evasion gates the hit; armor
- * mitigates the physical chunk.
+ * Roll one enemy attack. Mirrors `rollPlayerSwing`'s damage pipeline:
+ * roll a flat amount per type (physical + each element on the template),
+ * mitigate physical via armor and each element via its resistance, sum.
+ * Defender's evasion gates the hit. No crit on enemies in MVP.
  */
 export function rollEnemyAttack({
 	def,
@@ -207,23 +208,53 @@ export function rollEnemyAttack({
 			breakdown: { physical: 0, cold: 0, fire: 0, lightning: 0, void: 0 },
 		};
 	}
-	const raw = randInt(
-		Math.max(0, def.baseStats.minDamage),
-		Math.max(def.baseStats.minDamage, def.baseStats.maxDamage),
+
+	const physRange = def.baseStats.physicalDamage;
+	const physRaw = randInt(
+		Math.max(0, physRange.min),
+		Math.max(physRange.min, physRange.max),
 	);
-	const mitigated = applyArmor(raw, defender.armor, enemyLevel);
-	const physical = Math.max(1, Math.floor(mitigated));
+	const physFinal = applyArmor(physRaw, defender.armor, enemyLevel);
+
+	const elementRolls: Record<"Cold" | "Fire" | "Lightning" | "Void", number> = {
+		Cold: 0,
+		Fire: 0,
+		Lightning: 0,
+		Void: 0,
+	};
+	for (const e of def.baseStats.elementalDamage) {
+		elementRolls[e.element] += randInt(
+			Math.max(0, e.min),
+			Math.max(e.min, e.max),
+		);
+	}
+	const coldFinal = applyResistance(elementRolls.Cold, defender.resistances.cold);
+	const fireFinal = applyResistance(elementRolls.Fire, defender.resistances.fire);
+	const lightningFinal = applyResistance(
+		elementRolls.Lightning,
+		defender.resistances.lightning,
+	);
+	const voidFinal = applyResistance(elementRolls.Void, defender.resistances.void);
+
+	const breakdown: DamageBreakdown = {
+		physical: Math.max(0, Math.floor(physFinal)),
+		cold: Math.max(0, Math.floor(coldFinal)),
+		fire: Math.max(0, Math.floor(fireFinal)),
+		lightning: Math.max(0, Math.floor(lightningFinal)),
+		void: Math.max(0, Math.floor(voidFinal)),
+	};
+	const total =
+		breakdown.physical +
+		breakdown.cold +
+		breakdown.fire +
+		breakdown.lightning +
+		breakdown.void;
+
 	return {
-		amount: physical,
+		amount: Math.max(1, total),
 		isCrit: false,
 		isMiss: false,
-		breakdown: {
-			physical,
-			cold: 0,
-			fire: 0,
-			lightning: 0,
-			void: 0,
-		},
+		breakdown,
 	};
 }
 

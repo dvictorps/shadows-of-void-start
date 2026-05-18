@@ -18,7 +18,7 @@ export default function TextLog({ message, tone = "info" }: Props) {
 	return (
 		<section className="overflow-y-auto rounded-md border border-white/40 px-4 py-3">
 			<p
-				className={`display-title text-base uppercase tracking-wider ${TONE_CLASS[tone]}`}
+				className={`display-title text-xl uppercase tracking-wider ${TONE_CLASS[tone]}`}
 			>
 				{message ?? m.status_location_log()}
 			</p>

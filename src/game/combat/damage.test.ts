@@ -179,7 +179,12 @@ describe("rollEnemyAttack", () => {
 				id: "test",
 				name: "test",
 				emoji: "x",
-				baseStats: { hp: 1, attackSpeed: 1, minDamage: 10, maxDamage: 10 },
+				baseStats: {
+					hp: 1,
+					attackSpeed: 1,
+					physicalDamage: { min: 10, max: 10 },
+					elementalDamage: [],
+				},
 				xpReward: 0,
 				allowedRarities: ["normal"],
 			},
@@ -188,6 +193,7 @@ describe("rollEnemyAttack", () => {
 			random: () => 0.0,
 		});
 		expect(result.amount).toBe(10);
+		expect(result.breakdown.physical).toBe(10);
 		expect(result.isMiss).toBe(false);
 	});
 
@@ -197,7 +203,12 @@ describe("rollEnemyAttack", () => {
 				id: "test",
 				name: "test",
 				emoji: "x",
-				baseStats: { hp: 1, attackSpeed: 1, minDamage: 100, maxDamage: 100 },
+				baseStats: {
+					hp: 1,
+					attackSpeed: 1,
+					physicalDamage: { min: 100, max: 100 },
+					elementalDamage: [],
+				},
 				xpReward: 0,
 				allowedRarities: ["normal"],
 			},
@@ -206,6 +217,58 @@ describe("rollEnemyAttack", () => {
 			random: () => 0.0,
 		});
 		expect(result.amount).toBe(50);
+	});
+
+	it("applies per-element resistance to elemental damage", () => {
+		const result = rollEnemyAttack({
+			def: {
+				id: "test",
+				name: "test",
+				emoji: "x",
+				baseStats: {
+					hp: 1,
+					attackSpeed: 1,
+					physicalDamage: { min: 0, max: 0 },
+					elementalDamage: [{ element: "Fire", min: 100, max: 100 }],
+				},
+				xpReward: 0,
+				allowedRarities: ["normal"],
+			},
+			enemyLevel: 1,
+			defender: {
+				...dummyDefender,
+				resistances: { cold: 0, fire: 50, lightning: 0, void: 0 },
+			},
+			random: () => 0.0,
+		});
+		// armor doesn't touch elements; 50% fire resist halves the hit
+		expect(result.amount).toBe(50);
+		expect(result.breakdown.fire).toBe(50);
+		expect(result.breakdown.physical).toBe(0);
+	});
+
+	it("sums hybrid physical + elemental damage", () => {
+		const result = rollEnemyAttack({
+			def: {
+				id: "test",
+				name: "test",
+				emoji: "x",
+				baseStats: {
+					hp: 1,
+					attackSpeed: 1,
+					physicalDamage: { min: 20, max: 20 },
+					elementalDamage: [{ element: "Cold", min: 30, max: 30 }],
+				},
+				xpReward: 0,
+				allowedRarities: ["normal"],
+			},
+			enemyLevel: 1,
+			defender: { ...dummyDefender },
+			random: () => 0.0,
+		});
+		expect(result.amount).toBe(50);
+		expect(result.breakdown.physical).toBe(20);
+		expect(result.breakdown.cold).toBe(30);
 	});
 });
 

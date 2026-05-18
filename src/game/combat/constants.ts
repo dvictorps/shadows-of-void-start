@@ -16,3 +16,8 @@ export const BARRIER_RECOVERY_SECONDS = 6;
 export const LEECH_RATE_PER_SECOND = 0.2;
 // Leech regen capped at this fraction of maxLife per second across all stacks.
 export const LEECH_CAP_PCT_MAX_LIFE_PER_SECOND = 0.2;
+
+// Potions: hard cap on carried potions, and the per-kill drop chance.
+// Drops above the cap are silently wasted (see CONTEXT.md → Potion drops).
+export const MAX_POTIONS = 10;
+export const POTION_DROP_CHANCE = 0.2;
