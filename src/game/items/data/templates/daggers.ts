@@ -17,6 +17,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 20,
 				maxValue: 30,
@@ -38,6 +39,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 22,
 				maxValue: 34,
@@ -59,6 +61,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 24,
 				maxValue: 38,
@@ -80,6 +83,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 26,
 				maxValue: 42,
@@ -101,6 +105,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 28,
 				maxValue: 46,
@@ -122,6 +127,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 30,
 				maxValue: 50,
@@ -143,6 +149,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 32,
 				maxValue: 54,
@@ -164,6 +171,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 34,
 				maxValue: 58,
@@ -185,6 +193,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 36,
 				maxValue: 62,
@@ -206,6 +215,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 38,
 				maxValue: 66,
@@ -227,6 +237,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 40,
 				maxValue: 70,
@@ -248,6 +259,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 42,
 				maxValue: 74,
@@ -269,6 +281,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 44,
 				maxValue: 78,
@@ -290,6 +303,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 46,
 				maxValue: 82,
@@ -311,6 +325,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 48,
 				maxValue: 86,
@@ -332,6 +347,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 50,
 				maxValue: 90,
@@ -353,6 +369,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 52,
 				maxValue: 94,
@@ -374,6 +391,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 54,
 				maxValue: 98,
@@ -395,6 +413,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 56,
 				maxValue: 102,
@@ -416,6 +435,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 58,
 				maxValue: 106,
@@ -437,6 +457,7 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "criticalStrikeMultiplierFlat",
 				displayFormat: "+{value}% Critical Strike Multiplier",
 				minValue: 60,
 				maxValue: 110,

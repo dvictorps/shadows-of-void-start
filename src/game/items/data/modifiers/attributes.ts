@@ -38,4 +38,19 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 		tags: ["attribute"],
 		tiers: createStandardTiers(8, 12, 48, 50),
 	},
+	// Implicit-only — applies to STR + DEX + INT. `applicableTo: []` keeps it
+	// out of the random explicit pool; the engine still recognises the id when
+	// applied via template implicits (e.g., prismatic belt, amulets).
+	allAttributesFlat: {
+		id: "allAttributesFlat",
+		name: "of All Attributes",
+		affixType: "suffix",
+		modifierType: "flat",
+		category: "attribute",
+		applicableTo: [],
+		displayFormat: "+{value} to all Attributes",
+		isGlobalStat: true,
+		tags: ["attribute"],
+		tiers: createStandardTiers(4, 6, 20, 25),
+	},
 };

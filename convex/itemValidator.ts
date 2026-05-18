@@ -7,6 +7,9 @@ import { v } from "convex/values"
 // so this validator catches developer mistakes more than untrusted input.
 
 const rolledImplicit = v.object({
+	// Optional — items rolled before implicits were wired into the stat engine
+	// don't carry an id. They stay display-only on read.
+	modifierId: v.optional(v.string()),
 	description: v.string(),
 	value: v.number(),
 })

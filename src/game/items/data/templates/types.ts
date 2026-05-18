@@ -4,8 +4,12 @@ import type {
 	EquipmentType,
 	WeaponType,
 } from "../../types";
+import type { ModifierId } from "../modifiers";
 
 export interface ImplicitDefinition {
+	// Routes the rolled value through the stat engine via applyModifierValue.
+	// Must reference an existing modifier id so the engine knows how to apply it.
+	modifierId: ModifierId;
 	displayFormat: string;
 	minValue: number;
 	maxValue: number;
