@@ -1,49 +1,42 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { m } from "#/paraglide/messages";
 
 type Props = {
 	fromName: string;
 	toName: string;
-	startedAtMs: number;
 	arrivesAtMs: number;
 };
 
 /**
- * Bottom-pinned banner showing live travel progress.
- *
- * The fill bar runs a pure CSS `transform: scaleX(0 → 1)` keyframe over
- * the *remaining* time, captured once per trip via `useMemo` on
- * `startedAtMs`. On a fresh start it animates over the full duration;
- * on a refresh mid-travel it animates from 0 to 100% over whatever's left.
- *
- * No negative `animation-delay` tricks — those produced a subtle "jump"
- * on mount because the inline style wasn't applied until the second
- * paint. Starting from 0 and only moving forward eliminates the visual
- * artifact entirely. A tiny pause at 0 before the fill starts is the
- * accepted tradeoff per user direction.
+ * Bottom-pinned banner with a CSS `scaleX(0 → 1)` fill over the trip's
+ * remaining time. Animation params lock on first render so the
+ * optimistic→server `arrivesAtMs` swap (~100-200ms diff) doesn't
+ * re-anchor the keyframe mid-trip. Caller keys the component on
+ * `travelDestination` to guarantee a fresh mount per trip.
  */
 export default function TravelProgressBar({
 	fromName,
 	toName,
-	startedAtMs,
 	arrivesAtMs,
 }: Props) {
 	const [now, setNow] = useState(() => Date.now());
 
 	useEffect(() => {
-		const id = window.setInterval(() => setNow(Date.now()), 500);
+		const id = window.setInterval(() => setNow(Date.now()), 1000);
 		return () => window.clearInterval(id);
 	}, []);
 
-	const animationStyle = useMemo(() => {
-		// Captured once per trip (anchored on startedAtMs). Recomputes only when
-		// the player starts a new travel; not on every render of the ticker.
+	const animationRef = useRef<CSSProperties | null>(null);
+	if (animationRef.current === null) {
+		// Lock on first render; ignore later arrivesAtMs updates so the CSS
+		// animation doesn't restart mid-trip.
 		const remainingMs = Math.max(100, arrivesAtMs - Date.now());
-		return {
-			animation: `travel-fill ${remainingMs}ms linear forwards`,
-			transformOrigin: "left center" as const,
+		animationRef.current = {
+			animation: `travel-fill ${remainingMs}ms linear both`,
+			transformOrigin: "left center",
 		};
-	}, [startedAtMs, arrivesAtMs]);
+	}
 
 	const remainingSeconds = Math.max(0, Math.ceil((arrivesAtMs - now) / 1000));
 
@@ -60,9 +53,8 @@ export default function TravelProgressBar({
 				</div>
 				<div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
 					<div
-						key={startedAtMs}
-						className="h-full w-full bg-yellow-300"
-						style={animationStyle}
+						className="h-full w-full bg-white"
+						style={animationRef.current}
 					/>
 				</div>
 			</div>

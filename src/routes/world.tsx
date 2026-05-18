@@ -333,10 +333,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// Also reseeded from `travelDestination` on mount so a refresh mid-travel
 	// still arrives in the right view.
 	const [pendingArrival, setPendingArrival] = useState<string | null>(null);
-	// Tracks the timestamp the current travel started, so the progress bar can
-	// render a duration even after a refresh (server only stores arrivesAt).
-	const [travelStartedAt, setTravelStartedAt] = useState<number | null>(null);
-
 	const bagModal = useModal();
 	const exitModal = useModal();
 	const inventoryModal = useModal();
@@ -427,7 +423,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				// clears travel state. View follows.
 				setView("city");
 				setPendingArrival(null);
-				setTravelStartedAt(null);
 				toast.error(message);
 			} else {
 				toast.error(m.you_died_hardcore());
@@ -501,7 +496,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		if (currentLocation !== pendingArrival) return;
 		enterDestination(pendingArrival);
 		setPendingArrival(null);
-		setTravelStartedAt(null);
 	}, [pendingArrival, isTraveling, currentLocation, enterDestination]);
 
 	const unlockedNodeIds = useMemo(
@@ -542,14 +536,12 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			if (!ok) return;
 			setPendingArrival(nodeId);
 			try {
-				const result = await useWindCrystal({
+				await useWindCrystal({
 					characterId: character._id,
 					destinationNodeId: nodeId,
 				});
-				setTravelStartedAt(result.startedAt);
 			} catch (err) {
 				setPendingArrival(null);
-				setTravelStartedAt(null);
 				toast.error(
 					err instanceof Error ? err.message : m.wind_crystal_failed(),
 				);
@@ -558,14 +550,12 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		}
 		setPendingArrival(nodeId);
 		try {
-			const result = await startTravel({
+			await startTravel({
 				characterId: character._id,
 				destinationNodeId: nodeId,
 			});
-			setTravelStartedAt(result.startedAt);
 		} catch {
 			setPendingArrival(null);
-			setTravelStartedAt(null);
 		}
 	};
 
@@ -578,7 +568,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			// currentLocation to "city" and cleared zone session/travel.
 			setView("city");
 			setPendingArrival(null);
-			setTravelStartedAt(null);
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : m.teleport_stone_failed(),
@@ -694,13 +683,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		travelFromNode &&
 		travelToNode ? (
 			<TravelProgressBar
+				key={travelDestination}
 				fromName={translateNodeName(travelFromNode)}
 				toName={translateNodeName(travelToNode)}
-				startedAtMs={
-					character.travelStartedAt ??
-					travelStartedAt ??
-					travelArrivesAt - 1000
-				}
 				arrivesAtMs={travelArrivesAt}
 			/>
 		) : null;

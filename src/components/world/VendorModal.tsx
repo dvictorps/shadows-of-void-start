@@ -70,10 +70,12 @@ export default function VendorModal({
 
 	const handleBuy = async (productId: VendorProductId) => {
 		const product = VENDOR_PRODUCTS[productId];
+		pushRubyDelta(product.priceRubys, "-");
 		try {
 			await onBuy(productId);
-			pushRubyDelta(product.priceRubys, "-");
 		} catch (err) {
+			// Reverse the optimistic delta so the visual matches the reverted balance.
+			pushRubyDelta(product.priceRubys, "+");
 			toast.error(err instanceof Error ? err.message : m.vendor_buy_failed());
 		}
 	};
@@ -95,11 +97,16 @@ export default function VendorModal({
 	const handleSellSelected = async () => {
 		if (selectedItems.length === 0) return;
 		const total = selectedTotal;
+		const itemIds = selectedItems.map((it) => it._id);
+		const previousSelection = new Set(selected);
+		pushRubyDelta(total, "+");
+		setSelected(new Set());
 		try {
-			await onSellMany(selectedItems.map((it) => it._id));
-			pushRubyDelta(total, "+");
-			setSelected(new Set());
+			await onSellMany(itemIds);
 		} catch (err) {
+			// Reverse the optimistic delta + restore the selection so the user can retry.
+			pushRubyDelta(total, "-");
+			setSelected(previousSelection);
 			toast.error(err instanceof Error ? err.message : m.vendor_sell_failed());
 		}
 	};
