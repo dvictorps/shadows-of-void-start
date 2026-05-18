@@ -1,13 +1,25 @@
 import { useMutation } from "convex/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	damageBarrier,
+	makeBarrierState,
+	rescaleBarrier,
+	tickBarrierRecovery,
+} from "#/game/combat/barrier";
 import { POTION_HEAL_FRACTION } from "#/game/combat/constants";
-import { rollEnemyDamage, rollPlayerDamage } from "#/game/combat/damage";
-import type { GeneratedItem } from "#/game/items/types";
+import {
+	applyDamageToBarrierThenLife,
+	rollEnemyAttack,
+	rollPlayerSwing,
+} from "#/game/combat/damage";
+import type { LeechInstance } from "#/game/combat/leech";
+import { createLeechInstance, tickLeechInstances } from "#/game/combat/leech";
 import {
 	findMonster,
 	type MonsterDefinition,
 	type MonsterId,
 } from "#/game/monsters";
+import type { ComputedCharacterStats } from "#/game/stats/types";
 import { pickRandom } from "#/lib/rng";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -20,17 +32,18 @@ type CombatState = "searching" | "engaged" | "victory";
 export type Enemy = {
 	def: MonsterDefinition;
 	currentHp: number;
+	level: number;
 };
 
 export type { DamageEvent };
 
 type Params = {
 	characterId: Id<"characters">;
-	maxHp: number;
+	stats: ComputedCharacterStats;
 	initialHp: number;
 	initialPotions: number;
-	weapon: GeneratedItem | null;
 	monsterPool: readonly MonsterId[];
+	zoneLevel: number;
 	active: boolean;
 	onPlayerDeath: () => void;
 };
@@ -42,24 +55,26 @@ const HP_SYNC_INTERVAL_MS = 2000;
 
 export function useCombatLoop({
 	characterId,
-	maxHp,
+	stats,
 	initialHp,
 	initialPotions,
-	weapon,
 	monsterPool,
+	zoneLevel,
 	active,
 	onPlayerDeath,
 }: Params) {
+	const maxHp = stats.maxLife;
 	const [state, setState] = useState<CombatState>("searching");
 	const [enemy, setEnemy] = useState<Enemy | null>(null);
 	const [playerHp, setPlayerHp] = useState(initialHp);
+	const [barrier, setBarrier] = useState(() =>
+		makeBarrierState(stats.maxBarrier),
+	);
 	const [potions, setPotions] = useState(initialPotions);
 	const [lastXpGain, setLastXpGain] = useState<number | null>(null);
 	const { events, push: pushEvent } = useDamageEvents();
 
-	// Refs the interval callbacks read directly for mid-tick state visibility
-	// (React state updates inside a tick aren't visible via closure or even via
-	// a functional setter's flag-capture until the next render commit).
+	// Refs the interval callbacks read directly for mid-tick state visibility.
 	const stateRef = useRef(state);
 	stateRef.current = state;
 	const enemyRef = useRef<Enemy | null>(enemy);
@@ -67,10 +82,12 @@ export function useCombatLoop({
 	const playerProgressRef = useRef(0);
 	const enemyProgressRef = useRef(0);
 	const deadRef = useRef(false);
+	// Tracks which swing fires next when dual-wielding (index into stats.swings).
+	const nextSwingIndexRef = useRef(0);
+	const barrierRef = useRef(barrier);
+	barrierRef.current = barrier;
+	const leechRef = useRef<LeechInstance[]>([]);
 
-	// Stable refs for the activation transition handler — these are read only
-	// when active flips, not as effect dependencies (otherwise every Convex
-	// push of a fresh character object would re-fire the effect needlessly).
 	const initialHpRef = useRef(initialHp);
 	initialHpRef.current = initialHp;
 	const initialPotionsRef = useRef(initialPotions);
@@ -83,12 +100,17 @@ export function useCombatLoop({
 	const recordKill = useMutation(api.characters.recordKill);
 	const consumePotion = useMutation(api.characters.usePotion);
 
-	// ── Activation transitions: pull fresh server HP on entry, flush on exit.
+	// Keep barrier max in sync with the stat engine. Gear swaps mid-combat
+	// rescale rather than reset to full.
+	useEffect(() => {
+		setBarrier((prev) => rescaleBarrier(prev, stats.maxBarrier));
+	}, [stats.maxBarrier]);
+
+	// ── Activation transitions ──
 	const activeRef = useRef(active);
 	useEffect(() => {
 		const wasActive = activeRef.current;
 		if (active && !wasActive) {
-			// Fresh combat session: pull server state, clear any leftover enemy.
 			playerHpRef.current = initialHpRef.current;
 			setPlayerHp(initialHpRef.current);
 			setPotions(initialPotionsRef.current);
@@ -97,32 +119,37 @@ export function useCombatLoop({
 			enemyRef.current = null;
 			setEnemy(null);
 			setLastXpGain(null);
+			leechRef.current = [];
+			nextSwingIndexRef.current = 0;
 			stateRef.current = "searching";
 			setState("searching");
 		} else if (!active && wasActive && !deadRef.current) {
-			// Don't flush HP if the player died — the server's respawn mutation
-			// already set HP to max, and a stale 0 from the client would clobber it.
 			syncHp({ characterId, hpCurrent: playerHpRef.current }).catch(() => {});
 			lastSyncedHpRef.current = playerHpRef.current;
 		}
 		activeRef.current = active;
 	}, [active, characterId, syncHp]);
 
-	// ── Search delay → spawn enemy
+	// ── Search delay → spawn enemy ──
 	useDelay(active && state === "searching", SEARCH_DELAY_MS, () => {
 		const pick = pickRandom(monsterPool);
 		if (!pick) return;
 		const def = findMonster(pick);
 		if (!def) return;
-		const newEnemy = { def, currentHp: def.baseStats.hp };
+		const newEnemy: Enemy = {
+			def,
+			currentHp: def.baseStats.hp,
+			level: zoneLevel,
+		};
 		enemyRef.current = newEnemy;
 		setEnemy(newEnemy);
 		playerProgressRef.current = 0;
 		enemyProgressRef.current = 0;
+		nextSwingIndexRef.current = 0;
 		setState("engaged");
 	});
 
-	// ── Victory pause → back to searching
+	// ── Victory pause → back to searching ──
 	useDelay(active && state === "victory", VICTORY_DELAY_MS, () => {
 		enemyRef.current = null;
 		setEnemy(null);
@@ -130,10 +157,11 @@ export function useCombatLoop({
 		setState("searching");
 	});
 
-	// ── Engaged tick: player + enemy attack progress
+	// ── Engaged tick ──
 	const enemyDef = enemy?.def ?? null;
-	const playerAttackSpeed = weapon?.computedStats?.attackSpeed ?? 1;
 	const enemyAttackSpeed = enemyDef?.baseStats.attackSpeed ?? 1;
+	const tickRate = stats.tickRate || 1;
+	const hasSwings = stats.swings.length > 0;
 
 	useTicker(
 		active && state === "engaged" && enemyDef !== null,
@@ -144,73 +172,166 @@ export function useCombatLoop({
 			if (!currentEnemy || currentEnemy.currentHp <= 0) return;
 
 			const dt = TICK_INTERVAL_MS / 1000;
-			playerProgressRef.current += dt * playerAttackSpeed;
+
+			// Leech ticks every frame regardless of swing timing.
+			if (leechRef.current.length > 0) {
+				const { healed, instances } = tickLeechInstances(
+					leechRef.current,
+					dt,
+					maxHp,
+				);
+				leechRef.current = instances;
+				if (healed > 0 && !deadRef.current) {
+					const next = Math.min(maxHp, playerHpRef.current + healed);
+					if (next !== playerHpRef.current) {
+						playerHpRef.current = next;
+						setPlayerHp(next);
+					}
+				}
+			}
+
+			// Barrier recovery timer ticks too.
+			if (
+				barrierRef.current.recoveryRemaining !== null &&
+				barrierRef.current.recoveryRemaining > 0
+			) {
+				const next = tickBarrierRecovery(barrierRef.current, dt);
+				if (next !== barrierRef.current) {
+					barrierRef.current = next;
+					setBarrier(next);
+				}
+			}
+
+			playerProgressRef.current += dt * tickRate;
 			enemyProgressRef.current += dt * enemyAttackSpeed;
 
-			const playerSwing = playerProgressRef.current >= 1;
+			const playerSwing = playerProgressRef.current >= 1 && hasSwings;
 			if (playerSwing) playerProgressRef.current -= 1;
 			const enemySwing = enemyProgressRef.current >= 1;
 			if (enemySwing) enemyProgressRef.current -= 1;
 
-			// Player acts first. Work synchronously through the ref so kill
-			// detection doesn't depend on React batching.
 			if (playerSwing) {
-				const dmg = rollPlayerDamage(weapon);
-				const newHp = Math.max(0, currentEnemy.currentHp - dmg.amount);
-				const updated = { ...currentEnemy, currentHp: newHp };
-				enemyRef.current = updated;
-				setEnemy(updated);
-				pushEvent({ amount: dmg.amount, target: "enemy", isCrit: dmg.isCrit });
+				const swingIndex = nextSwingIndexRef.current % stats.swings.length;
+				const swing = stats.swings[swingIndex];
+				nextSwingIndexRef.current =
+					(nextSwingIndexRef.current + 1) % stats.swings.length;
 
-				if (newHp <= 0) {
-					stateRef.current = "victory";
-					setLastXpGain(currentEnemy.def.xpReward);
-					setState("victory");
-					recordKill({
-						characterId,
-						monsterId: currentEnemy.def.id,
-					}).catch(() => {});
-					return;
+				const result = rollPlayerSwing({
+					swing,
+					stats,
+					defender: {
+						armor: 0,
+						evasion: 0,
+						accuracy: 0,
+						level: currentEnemy.level,
+						resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
+					},
+				});
+
+				if (!result.isMiss && result.amount > 0) {
+					const newEnemyHp = Math.max(
+						0,
+						currentEnemy.currentHp - result.amount,
+					);
+					const updated = { ...currentEnemy, currentHp: newEnemyHp };
+					enemyRef.current = updated;
+					setEnemy(updated);
+					pushEvent({
+						amount: result.amount,
+						target: "enemy",
+						isCrit: result.isCrit,
+					});
+
+					// Spawn a leech instance based on the physical chunk landed.
+					// (For MVP we leech on physical only; elemental leech is a future
+					// mod.) Apply globally regardless of which weapon swung.
+					const leechSrc = result.breakdown.physical;
+					if (stats.lifeLeechPercent > 0 && leechSrc > 0) {
+						const inst = createLeechInstance(leechSrc, stats.lifeLeechPercent);
+						if (inst) leechRef.current.push(inst);
+					}
+
+					// Life-on-hit triggers per landed hit.
+					if (stats.lifeGainOnHit > 0 && !deadRef.current) {
+						const next = Math.min(
+							maxHp,
+							playerHpRef.current + stats.lifeGainOnHit,
+						);
+						if (next !== playerHpRef.current) {
+							playerHpRef.current = next;
+							setPlayerHp(next);
+						}
+					}
+
+					if (newEnemyHp <= 0) {
+						stateRef.current = "victory";
+						setLastXpGain(currentEnemy.def.xpReward);
+						setState("victory");
+						recordKill({
+							characterId,
+							monsterId: currentEnemy.def.id,
+						}).catch(() => {});
+						return;
+					}
+				} else {
+					pushEvent({ amount: 0, target: "enemy", isCrit: false });
 				}
 			}
 
-			// Enemy only swings if still engaged after player's hit.
 			if (enemySwing) {
-				const dmg = rollEnemyDamage(currentEnemy.def);
-				const prevHp = playerHpRef.current;
-				const newHp = Math.max(0, prevHp - dmg);
-				playerHpRef.current = newHp;
-				setPlayerHp(newHp);
-				pushEvent({ amount: dmg, target: "player" });
+				const attack = rollEnemyAttack({
+					def: currentEnemy.def,
+					enemyLevel: currentEnemy.level,
+					defender: {
+						armor: stats.armor,
+						evasion: stats.evasion,
+						accuracy: stats.accuracy,
+						level: currentEnemy.level,
+						resistances: stats.resistances,
+					},
+				});
+				if (attack.isMiss || attack.amount <= 0) {
+					pushEvent({ amount: 0, target: "player" });
+				} else {
+					// Apply to barrier first, then life.
+					const { state: nextBarrier, lifeOverflow } = damageBarrier(
+						barrierRef.current,
+						attack.amount,
+					);
+					barrierRef.current = nextBarrier;
+					setBarrier(nextBarrier);
 
-				if (newHp <= 0 && !deadRef.current) {
-					deadRef.current = true;
-					queueMicrotask(() => onPlayerDeath());
+					const result = applyDamageToBarrierThenLife(
+						lifeOverflow,
+						0,
+						playerHpRef.current,
+					);
+					playerHpRef.current = result.newLife;
+					setPlayerHp(result.newLife);
+					pushEvent({ amount: attack.amount, target: "player" });
+
+					if (result.newLife <= 0 && !deadRef.current) {
+						deadRef.current = true;
+						queueMicrotask(() => onPlayerDeath());
+					}
 				}
 			}
 		},
 	);
 
-	// ── Periodic HP sync. Skip the round-trip when the value hasn't changed
-	// since the last successful sync — saves ~30 no-op mutations/min. Also
-	// skip while dead: respawn is server-authoritative and stale 0 would
-	// race with it.
+	// ── Periodic HP sync ──
 	useTicker(active, HP_SYNC_INTERVAL_MS, () => {
 		if (deadRef.current) return;
 		const hp = playerHpRef.current;
 		if (hp === lastSyncedHpRef.current) return;
 		lastSyncedHpRef.current = hp;
 		syncHp({ characterId, hpCurrent: hp }).catch(() => {
-			// Roll back the watermark so the next tick retries.
 			lastSyncedHpRef.current = -1;
 		});
 	});
 
 	const usePotion = useCallback(async () => {
 		if (potions <= 0 || playerHp >= maxHp) return;
-
-		// Optimistic: apply the heal locally first so the UI snaps immediately.
-		// Server is still authoritative; on failure we revert.
 		const prevHp = playerHpRef.current;
 		const prevPotions = potions;
 		const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
@@ -219,26 +340,33 @@ export function useCombatLoop({
 		setPlayerHp(optimisticHp);
 		setPotions(prevPotions - 1);
 		lastSyncedHpRef.current = optimisticHp;
-
 		try {
 			const result = await consumePotion({ characterId });
-			// Reconcile with server values (handles rare rounding mismatches).
 			playerHpRef.current = result.hpCurrent;
 			setPlayerHp(result.hpCurrent);
 			setPotions(result.potions);
 			lastSyncedHpRef.current = result.hpCurrent;
 		} catch {
-			// Revert the optimistic update.
 			playerHpRef.current = prevHp;
 			setPlayerHp(prevHp);
 			setPotions(prevPotions);
 		}
 	}, [potions, playerHp, maxHp, characterId, consumePotion]);
 
+	const barrierSnapshot = useMemo(
+		() => ({
+			current: barrier.current,
+			max: barrier.max,
+			recoveryRemaining: barrier.recoveryRemaining,
+		}),
+		[barrier.current, barrier.max, barrier.recoveryRemaining],
+	);
+
 	return {
 		state,
 		enemy,
 		playerHp,
+		barrier: barrierSnapshot,
 		potions,
 		events,
 		lastXpGain,

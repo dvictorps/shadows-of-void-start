@@ -479,23 +479,17 @@ function computeOnce(
 		live.filter((eq) => eq.slot !== "weapon" && eq.slot !== "offhand"),
 	);
 
+	const offHandType = offHand?.weaponType;
 	if (stats.path === "attack" && mainHand) {
 		stats.swings.push(buildSwing(mainHand, "mainHand", gearFlat, "attack"));
-		if (
-			offHand &&
-			offHand.weaponType &&
-			ATTACK_WEAPONS.has(offHand.weaponType)
-		) {
+		if (offHand && offHandType && ATTACK_WEAPONS.has(offHandType)) {
 			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "attack"));
 		}
 	} else if (stats.path === "spell" && mainHand) {
 		stats.swings.push(buildSwing(mainHand, "mainHand", gearFlat, "spell"));
-		if (
-			offHand &&
-			offHand.weaponType &&
-			CASTER_WEAPONS.has(offHand.weaponType) &&
-			offHand.weaponType !== "staff" // staff is 2H, can't be offhand
-		) {
+		// Caster dual-wield: only wand+wand. Staves are 2H and can't sit in the
+		// off-hand slot, so we only accept "wand" specifically here.
+		if (offHand && offHandType === "wand") {
 			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "spell"));
 		}
 	}

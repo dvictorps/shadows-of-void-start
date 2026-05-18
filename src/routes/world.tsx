@@ -15,7 +15,9 @@ import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import { findClassDefinition } from "#/game/classes/data";
 import { findStarterItem } from "#/game/items/starter-gear";
-import { computeMaxHp, xpToNextLevel } from "#/game/progression/levels";
+import { xpToNextLevel } from "#/game/progression/levels";
+import { computeCharacterStats } from "#/game/stats/compute";
+import type { EquippedItem, EquippedSlot } from "#/game/stats/types";
 import { ACT_1, findNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
@@ -92,18 +94,50 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const currentNode = currentNodeId ? findNode(ACT_1, currentNodeId) : null;
 	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
 
-	const maxHp = computeMaxHp(classDef, character.level);
-	const weapon = useMemo(
+	const equippedItems = useQuery(api.characters.equipped, {
+		characterId: character._id,
+	});
+
+	// Compose the equipped-item set the stat engine consumes. Starter weapons
+	// (string-id `character.equippedWeapon`) get folded in as a synthetic
+	// EquippedItem until they're migrated to the items table.
+	const equippedSnapshot: EquippedItem[] = useMemo(() => {
+		const out: EquippedItem[] = [];
+		for (const item of equippedItems ?? []) {
+			const slot = item.equippedSlot as EquippedSlot | undefined;
+			if (!slot) continue;
+			out.push({ slot, item: item.data });
+		}
+		// Starter weapon fallback: if the character still references a starter
+		// weapon string id and no item-table weapon is equipped, surface the
+		// starter as the main hand.
+		if (character.equippedWeapon && !out.some((eq) => eq.slot === "weapon")) {
+			const starter = findStarterItem(character.equippedWeapon);
+			if (starter) out.push({ slot: "weapon", item: starter });
+		}
+		return out;
+	}, [equippedItems, character.equippedWeapon]);
+
+	const stats = useMemo(
 		() =>
-			character.equippedWeapon
-				? findStarterItem(character.equippedWeapon)
-				: null,
-		[character.equippedWeapon],
+			computeCharacterStats({
+				classDef,
+				level: character.level,
+				equippedItems: equippedSnapshot,
+			}),
+		[classDef, character.level, equippedSnapshot],
+	);
+
+	const maxHp = stats.maxLife;
+	const weapon = useMemo(
+		() => equippedSnapshot.find((eq) => eq.slot === "weapon")?.item ?? null,
+		[equippedSnapshot],
 	);
 	const monsterPool = useMemo(
 		() => currentNode?.monsterPool ?? [],
 		[currentNode],
 	);
+	const zoneLevel = currentNode?.level ?? character.level;
 
 	const handlePlayerDeath = useCallback(async () => {
 		try {
@@ -127,11 +161,11 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const combat = useCombatLoop({
 		characterId: character._id,
-		maxHp,
+		stats,
 		initialHp: character.hpCurrent ?? maxHp,
 		initialPotions: character.potions ?? 0,
-		weapon,
 		monsterPool,
+		zoneLevel,
 		// Pause combat while the loot picker is open so the player can't die
 		// mid-selection from a goblin they've already retreated from.
 		active: view === "combat" && !exitModal.isOpen,
