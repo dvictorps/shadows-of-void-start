@@ -117,7 +117,7 @@ export interface ComputedCharacterStats {
 	resistances: { cold: number; fire: number; lightning: number; void: number };
 
 	path: CombatPath;
-	/** Combined tick rate (sum of weapon speeds when dual-wielding). */
+	/** Combined tick rate. Dual-wielding uses the average of both weapons' base speeds (×1.10 more multiplier for attack DW). */
 	tickRate: number;
 	/** Swing profiles in tick alternation order. Length 1 = solo, 2 = dual-wield. */
 	swings: SwingProfile[];

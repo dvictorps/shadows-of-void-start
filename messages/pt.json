@@ -213,6 +213,7 @@
   "stats_main_hand": "Mão Principal",
   "stats_off_hand": "Mão Secundária",
   "stats_dual_wield_pattern": "Alternância: {pattern}",
+  "stats_dual_wield_bonus": "Empunhadura Dupla: +10% Vel. de Ataque, +10% Bloqueio",
   "stats_increased_header": "Aumentado",
   "stats_increased_physical": "Físico",
   "stats_increased_cold": "Frio",

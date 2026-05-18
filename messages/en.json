@@ -213,6 +213,7 @@
   "stats_main_hand": "Main Hand",
   "stats_off_hand": "Off Hand",
   "stats_dual_wield_pattern": "Alternation: {pattern}",
+  "stats_dual_wield_bonus": "Dual-Wielding: +10% Attack Speed, +10% Block",
   "stats_increased_header": "Increased",
   "stats_increased_physical": "Physical",
   "stats_increased_cold": "Cold",

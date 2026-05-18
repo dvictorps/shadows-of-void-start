@@ -3,6 +3,7 @@ import {
 	computeArmorMitigation,
 	computeEvasionAvoid,
 	effectiveCritChance,
+	isAttackDualWielding,
 	totalCritMultiplier,
 } from "#/game/stats/compute";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
@@ -222,6 +223,11 @@ function OffenseSection({ stats }: { stats: ComputedCharacterStats }) {
 					{stats.swings.length > 1 && (
 						<p className="mt-2 text-xs text-white/40">
 							{m.stats_dual_wield_pattern({ pattern: swingsLabel })}
+						</p>
+					)}
+					{isAttackDualWielding(stats) && (
+						<p className="mt-1 text-xs text-yellow-300/80">
+							{m.stats_dual_wield_bonus()}
 						</p>
 					)}
 				</div>

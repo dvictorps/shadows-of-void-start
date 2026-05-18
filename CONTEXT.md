@@ -169,7 +169,7 @@ Opened via the existing `InventoryButton` (backpack icon in `EquipmentPanel`). W
 Combat is automatic and **status-machine driven**: both sides have stats, attack rates, and mitigation, and damage is applied tick-by-tick by the formulas below. The player has no per-hit input in MVP combat; skills with cooldowns are a later layer that will plug into this same machine.
 
 ### Per-tick attack
-- Each side has an **attack rate** (attacks per second). Example: a 1.8 attack-speed weapon resolves 1.8 hits/sec. Dual-wielders use a combined alternating rate (see "Dual-wielding").
+- Each side has an **attack rate** (attacks per second). Example: a 1.8 attack-speed weapon resolves 1.8 hits/sec. Dual-wielders use the **average** of both weapons' base speeds, alternating which weapon swings each tick (see "Dual-wielding").
 - The defending side mitigates with its **armor / evasion / barrier / resistances** before the hit lands. Whatever remains is subtracted from life (and barrier, where applicable).
 - Life leech, regen, on-hit, on-kill effects fire per their own triggers as part of the same machine.
 
@@ -206,7 +206,7 @@ Each incoming hit rolls against `hitChance`. A miss deals **zero** damage and tr
 - When the timer expires, barrier refills to **100% instantly** (single-tick refill, not gradual).
 - Barrier does not regenerate while above zero — the refill mechanic is the only recovery.
 
-**Block** (shield-only) — when a hit lands and is not evaded, roll once against `blockChance`. A blocked hit deals 0 damage to barrier/life but **does** trigger the attacker's on-hit (blocks are still "hits" for the attacker's purposes). Thorns still reflect to the attacker on block.
+**Block** — granted by **shields** (base + rolled mods) and by **attack dual-wielding** (flat +10% implicit). When a hit lands and is not evaded, roll once against `blockChance`. A blocked hit deals 0 damage to barrier/life but **does** trigger the attacker's on-hit (blocks are still "hits" for the attacker's purposes). Thorns still reflect to the attacker on block, regardless of whether the block came from a shield or from dual-wielding.
 
 ### Leech
 Per hit that lands and deals damage:
@@ -560,12 +560,14 @@ A second one-handed weapon may go in the off-hand slot. When both hands hold a w
 **Same-archetype rule**: dual-wielding requires both weapons to share archetype. Attack 1H + attack 1H is allowed (sword + dagger, axe + sword, etc.). Caster 1H + caster 1H is allowed (wand + wand — the only caster combination). **Mixed archetype is rejected** (no sword + wand). This keeps the combat tick model coherent — one path (attack or spell) active at a time.
 
 **Combat behaviour**:
-- Combined tick rate = `mainHand.attackSpeed + offHand.attackSpeed` (or `castSpeed` for caster pairs).
+- Combined tick rate = `average(mainHand.attackSpeed, offHand.attackSpeed)` (or `castSpeed` for caster pairs). Attack dual-wielding multiplies that average by an additional **+10% (more multiplier)** as an implicit style buff; wand+wand uses the plain average with no buff.
 - Ticks **alternate**: tick 1 = main hand swings, tick 2 = off-hand, tick 3 = main hand again. The swinging weapon's local stats (base damage, local mods, weapon-specific crit chance) source that tick's damage.
 - Global modifiers (`+X% Increased Physical`, `+X Strength`, global crit chance/multi, resistances, attributes) apply on **every** swing, regardless of which weapon is active.
 - Cast speed base is `1.0` for caster weapons (no per-template base); cast speed mods scale that baseline.
 
-There is no implicit dual-wield damage or attack-speed bonus — the value of dual-wielding is the doubled tick rate. The trade-off vs shield is straightforward: shield offers block + thorns + defensive stats, dual-wielding offers raw rate.
+**Attack dual-wielding implicits** (attack-1H + attack-1H only): **+10% attack speed** (applied as a more multiplier on top of the averaged base) and **+10% block chance** (additive to `blockChance`, still bound by the 75% block cap). Wand+wand does not receive either buff.
+
+The trade-off vs shield: shield offers higher block ceilings, thorns rolls, and defensive stats from a dedicated slot; attack dual-wielding offers a second weapon's local mods (flat damage, local AS/crit) plus the modest +10% AS / +10% block implicits.
 
 ---
 
