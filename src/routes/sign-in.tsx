@@ -12,8 +12,7 @@ export const Route = createFileRoute("/sign-in")({
 });
 
 const INPUT_CLASS =
-	"border-neutral-700 bg-neutral-900 text-white placeholder:text-neutral-500";
-const LABEL_CLASS = "text-neutral-300";
+	"border-neutral-800 bg-neutral-950/80 text-white placeholder:text-neutral-500 focus-visible:border-purple-500/70 focus-visible:ring-purple-500/30";
 
 function SignInPage() {
 	const [isSignUp, setIsSignUp] = useState(false);
@@ -63,21 +62,14 @@ function SignInPage() {
 
 				<div className="w-full max-w-sm">
 					<div className="space-y-6">
-						<div>
-							<h2 className="text-2xl font-semibold text-white">
-								{isSignUp ? "Create account" : "Sign in"}
-							</h2>
-							<p className="mt-1 text-sm text-neutral-400">
-								{isSignUp
-									? "Enter your details to create an account"
-									: "Enter your credentials to continue"}
-							</p>
-						</div>
+						<h2 className="text-2xl font-semibold text-white">
+							{isSignUp ? "Create account" : "Sign in"}
+						</h2>
 
 						<form onSubmit={handleSubmit} className="space-y-4">
 							{isSignUp && (
-								<div className="space-y-2">
-									<Label htmlFor="name" className={LABEL_CLASS}>
+								<div>
+									<Label htmlFor="name" className="sr-only">
 										Name
 									</Label>
 									<Input
@@ -85,15 +77,15 @@ function SignInPage() {
 										type="text"
 										value={name}
 										onChange={(e) => setName(e.target.value)}
-										placeholder="Your name"
+										placeholder="Name"
 										required
 										className={INPUT_CLASS}
 									/>
 								</div>
 							)}
 
-							<div className="space-y-2">
-								<Label htmlFor="email" className={LABEL_CLASS}>
+							<div>
+								<Label htmlFor="email" className="sr-only">
 									Email
 								</Label>
 								<Input
@@ -101,14 +93,14 @@ function SignInPage() {
 									type="email"
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
-									placeholder="you@example.com"
+									placeholder="Email"
 									required
 									className={INPUT_CLASS}
 								/>
 							</div>
 
-							<div className="space-y-2">
-								<Label htmlFor="password" className={LABEL_CLASS}>
+							<div>
+								<Label htmlFor="password" className="sr-only">
 									Password
 								</Label>
 								<Input
@@ -127,7 +119,7 @@ function SignInPage() {
 
 							<Button
 								type="submit"
-								variant="stark"
+								variant="ghost-purple"
 								className="w-full"
 								disabled={loading}
 							>
@@ -140,7 +132,7 @@ function SignInPage() {
 						</form>
 
 						<p className="text-center text-sm text-neutral-400">
-							{isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+							{isSignUp ? "Have an account?" : "No account?"}{" "}
 							<button
 								type="button"
 								onClick={() => {
