@@ -9,9 +9,13 @@ type Props = {
 };
 
 /**
- * Bottom-pinned banner showing live travel progress. Recomputes the remaining
- * time on a 100ms interval; the parent decides when to mount/unmount based on
- * the character's `travelDestination` state.
+ * Bottom-pinned banner showing live travel progress. The fill bar is driven
+ * by a pure CSS animation (60fps via the compositor) for smoothness — JS only
+ * updates the seconds-remaining counter on a 500ms interval, which is plenty
+ * for the second-level resolution shown to the player.
+ *
+ * `animation-delay` is negative-elapsed so a refresh mid-travel picks up at
+ * the correct position instead of restarting from 0%.
  */
 export default function TravelProgressBar({
 	fromName,
@@ -22,13 +26,12 @@ export default function TravelProgressBar({
 	const [now, setNow] = useState(() => Date.now());
 
 	useEffect(() => {
-		const id = window.setInterval(() => setNow(Date.now()), 100);
+		const id = window.setInterval(() => setNow(Date.now()), 500);
 		return () => window.clearInterval(id);
 	}, []);
 
-	const total = Math.max(1, arrivesAtMs - startedAtMs);
-	const elapsed = Math.max(0, now - startedAtMs);
-	const pct = Math.min(100, (elapsed / total) * 100);
+	const totalSeconds = Math.max(0.001, (arrivesAtMs - startedAtMs) / 1000);
+	const elapsedSeconds = Math.max(0, (now - startedAtMs) / 1000);
 	const remainingSeconds = Math.max(0, Math.ceil((arrivesAtMs - now) / 1000));
 
 	return (
@@ -44,8 +47,11 @@ export default function TravelProgressBar({
 				</div>
 				<div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
 					<div
-						className="h-full bg-yellow-300 transition-[width] duration-100"
-						style={{ width: `${pct}%` }}
+						className="h-full bg-yellow-300"
+						style={{
+							animation: `travel-fill ${totalSeconds}s linear forwards`,
+							animationDelay: `-${elapsedSeconds}s`,
+						}}
 					/>
 				</div>
 			</div>
