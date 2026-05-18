@@ -112,9 +112,9 @@ export function useCombatLoop({
 	playerHpRef.current = playerHp;
 	const lastSyncedHpRef = useRef(initialHp);
 
-	const syncHp = useMutation(api.characters.syncHp);
-	const recordKill = useMutation(api.characters.recordKill);
-	const consumePotion = useMutation(api.characters.usePotion);
+	const syncHp = useMutation(api.combat.syncHp);
+	const recordKill = useMutation(api.combat.recordKill);
+	const consumePotion = useMutation(api.combat.usePotion);
 
 	// Keep barrier max in sync with the stat engine. Gear swaps mid-combat
 	// rescale rather than reset to full.
