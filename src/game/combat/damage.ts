@@ -84,18 +84,22 @@ export function rollPlayerSwing({
 	defender,
 	random = Math.random,
 }: PlayerSwingArgs): RolledSwing {
-	const hit = random() <= hitChance(stats.accuracy, defender.evasion);
-	if (!hit) {
-		return {
-			amount: 0,
-			isCrit: false,
-			isMiss: true,
-			breakdown: { physical: 0, cold: 0, fire: 0, lightning: 0, void: 0 },
-		};
-	}
-
 	const isAttack = stats.path === "attack";
 	const isSpell = stats.path === "spell";
+
+	// Spells bypass the accuracy/evasion gate entirely — they always land.
+	// Attacks roll against the defender's evasion using the attacker's accuracy.
+	if (!isSpell) {
+		const hit = random() <= hitChance(stats.accuracy, defender.evasion);
+		if (!hit) {
+			return {
+				amount: 0,
+				isCrit: false,
+				isMiss: true,
+				breakdown: { physical: 0, cold: 0, fire: 0, lightning: 0, void: 0 },
+			};
+		}
+	}
 
 	// 1. Roll flat damage per type using the swing's base ranges.
 	const physBase = randInt(swing.physicalDamage.min, swing.physicalDamage.max);

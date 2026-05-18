@@ -274,7 +274,12 @@ export function useCombatLoop({
 						return;
 					}
 				} else {
-					pushEvent({ amount: 0, target: "enemy", isCrit: false });
+					pushEvent({
+						amount: 0,
+						target: "enemy",
+						isCrit: false,
+						isMiss: true,
+					});
 				}
 			}
 
@@ -291,7 +296,7 @@ export function useCombatLoop({
 					},
 				});
 				if (attack.isMiss || attack.amount <= 0) {
-					pushEvent({ amount: 0, target: "player" });
+					pushEvent({ amount: 0, target: "player", isMiss: true });
 				} else {
 					// Apply to barrier first, then life.
 					const { state: nextBarrier, lifeOverflow } = damageBarrier(

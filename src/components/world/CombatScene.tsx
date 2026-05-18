@@ -207,21 +207,23 @@ function FloatingDamage({
 	event: DamageEvent;
 	variant?: "enemy" | "player";
 }) {
-	const color = event.isCrit
-		? "text-yellow-300"
-		: variant === "player"
-			? "text-red-400"
-			: "text-white";
+	const color = event.isMiss
+		? "text-white/60"
+		: event.isCrit
+			? "text-yellow-300"
+			: variant === "player"
+				? "text-red-400"
+				: "text-white";
 	return (
 		<span
-			className={`pointer-events-none absolute select-none text-3xl font-bold ${color}`}
+			className={`pointer-events-none absolute select-none font-bold ${event.isMiss ? "text-xl uppercase tracking-wider" : "text-3xl"} ${color}`}
 			style={{
 				animation: "damage-float 900ms ease-out forwards",
 				textShadow: "0 2px 4px rgba(0,0,0,0.9)",
 			}}
 		>
-			{event.amount}
-			{event.isCrit && "!"}
+			{event.isMiss ? "MISS" : event.amount}
+			{!event.isMiss && event.isCrit && "!"}
 		</span>
 	);
 }

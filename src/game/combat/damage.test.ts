@@ -140,6 +140,22 @@ describe("rollPlayerSwing", () => {
 		expect(result.amount).toBe(0);
 	});
 
+	it("spell path always lands — accuracy/evasion gate bypassed", () => {
+		const result = rollPlayerSwing({
+			swing: swing({
+				physicalDamage: { min: 0, max: 0 },
+				elementalDamage: [{ element: "Cold", min: 50, max: 50 }],
+			}),
+			// Zero accuracy + huge defender evasion would miss on attack path,
+			// but spell path skips the check entirely.
+			stats: statsAttack({ path: "spell", accuracy: 0 }),
+			defender: { ...dummyDefender, evasion: 10000 },
+			random: () => 0.99,
+		});
+		expect(result.isMiss).toBe(false);
+		expect(result.amount).toBe(50);
+	});
+
 	it("applies elemental resistance per element", () => {
 		const result = rollPlayerSwing({
 			swing: swing({
