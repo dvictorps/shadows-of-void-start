@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { Gem } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -25,6 +26,10 @@ type Props = {
 	onSellMany: (itemIds: Id<"items">[]) => Promise<void>;
 };
 
+type RubyDelta = { id: string; amount: number; sign: "+" | "-" };
+
+const RUBY_DELTA_LIFETIME_MS = 1200;
+
 export default function VendorModal({
 	isOpen,
 	onClose,
@@ -38,11 +43,21 @@ export default function VendorModal({
 }: Props) {
 	const [tab, setTab] = useState<Tab>("buy");
 	const [selected, setSelected] = useState<Set<string>>(new Set());
+	const [rubyDeltas, setRubyDeltas] = useState<RubyDelta[]>([]);
 
 	useEffect(() => {
 		if (!isOpen) return;
 		setSelected(new Set());
+		setRubyDeltas([]);
 	}, [isOpen]);
+
+	const pushRubyDelta = (amount: number, sign: "+" | "-") => {
+		const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+		setRubyDeltas((prev) => [...prev, { id, amount, sign }]);
+		window.setTimeout(() => {
+			setRubyDeltas((prev) => prev.filter((d) => d.id !== id));
+		}, RUBY_DELTA_LIFETIME_MS);
+	};
 
 	const toggle = (id: string) => {
 		setSelected((prev) => {
@@ -54,8 +69,10 @@ export default function VendorModal({
 	};
 
 	const handleBuy = async (productId: VendorProductId) => {
+		const product = VENDOR_PRODUCTS[productId];
 		try {
 			await onBuy(productId);
+			pushRubyDelta(product.priceRubys, "-");
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : m.vendor_buy_failed());
 		}
@@ -77,8 +94,10 @@ export default function VendorModal({
 
 	const handleSellSelected = async () => {
 		if (selectedItems.length === 0) return;
+		const total = selectedTotal;
 		try {
 			await onSellMany(selectedItems.map((it) => it._id));
+			pushRubyDelta(total, "+");
 			setSelected(new Set());
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : m.vendor_sell_failed());
@@ -106,9 +125,39 @@ export default function VendorModal({
 							{m.vendor_tab_sell()}
 						</TabButton>
 					</div>
-					<div className="display-title flex items-center gap-2 px-1 text-xl uppercase tracking-[0.15em] text-yellow-300 tabular-nums">
+					<div className="display-title relative flex items-center gap-2 px-1 text-xl uppercase tracking-[0.15em] text-yellow-300 tabular-nums">
 						<Gem className="h-5 w-5 text-rose-400" strokeWidth={2} />
 						{rubys}
+						{/* Floating deltas — pinned just above the balance, animate up
+						 * + fade. Stack vertically if multiple fire close together. */}
+						<div className="pointer-events-none absolute right-0 bottom-full mb-1 flex flex-col items-end">
+							<AnimatePresence>
+								{rubyDeltas.map((d) => (
+									<motion.div
+										key={d.id}
+										initial={{ opacity: 0, y: 8 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: -16 }}
+										transition={{ duration: 0.4, ease: "easeOut" }}
+										className={`display-title flex items-center gap-1 px-1 font-bold text-base tabular-nums tracking-wider ${
+											d.sign === "+"
+												? "text-emerald-300"
+												: "text-red-400"
+										}`}
+										style={{
+											textShadow: "0 2px 4px rgba(0,0,0,0.9)",
+										}}
+									>
+										{d.sign}
+										{d.amount}
+										<Gem
+											className="h-3.5 w-3.5 text-rose-400"
+											strokeWidth={2}
+										/>
+									</motion.div>
+								))}
+							</AnimatePresence>
+						</div>
 					</div>
 				</div>
 

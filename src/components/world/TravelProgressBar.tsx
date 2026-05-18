@@ -11,16 +11,16 @@ type Props = {
 /**
  * Bottom-pinned banner showing live travel progress.
  *
- * The fill bar is driven by a pure CSS keyframe animation on `transform:
- * scaleX()` — GPU-composited, sub-pixel-smooth, and crucially independent
- * of React re-renders. The animation style is memoized on the travel's
- * timestamps so the `now` ticker driving the seconds-remaining text doesn't
- * thrash the inline style and re-anchor the animation.
+ * The fill bar runs a pure CSS `transform: scaleX(0 → 1)` keyframe over
+ * the *remaining* time, captured once per trip via `useMemo` on
+ * `startedAtMs`. On a fresh start it animates over the full duration;
+ * on a refresh mid-travel it animates from 0 to 100% over whatever's left.
  *
- * `animation-delay` is the negative of the elapsed time at mount, so a
- * refresh mid-travel picks up at the correct position instead of restarting
- * from 0. We use `key={startedAtMs}` to guarantee a clean fresh mount of
- * the bar element on each new trip.
+ * No negative `animation-delay` tricks — those produced a subtle "jump"
+ * on mount because the inline style wasn't applied until the second
+ * paint. Starting from 0 and only moving forward eliminates the visual
+ * artifact entirely. A tiny pause at 0 before the fill starts is the
+ * accepted tradeoff per user direction.
  */
 export default function TravelProgressBar({
 	fromName,
@@ -36,11 +36,11 @@ export default function TravelProgressBar({
 	}, []);
 
 	const animationStyle = useMemo(() => {
-		const totalSeconds = Math.max(0.001, (arrivesAtMs - startedAtMs) / 1000);
-		const elapsedSeconds = Math.max(0, (Date.now() - startedAtMs) / 1000);
+		// Captured once per trip (anchored on startedAtMs). Recomputes only when
+		// the player starts a new travel; not on every render of the ticker.
+		const remainingMs = Math.max(100, arrivesAtMs - Date.now());
 		return {
-			animation: `travel-fill ${totalSeconds}s linear forwards`,
-			animationDelay: `-${elapsedSeconds}s`,
+			animation: `travel-fill ${remainingMs}ms linear forwards`,
 			transformOrigin: "left center" as const,
 		};
 	}, [startedAtMs, arrivesAtMs]);
