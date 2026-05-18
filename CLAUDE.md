@@ -1,11 +1,21 @@
 # Shadows of Void — Project Guidelines
 
+## Orientation for a new agent
+
+Read these in order if you're new to the codebase:
+
+1. **[CONTEXT.md](./CONTEXT.md)** — domain glossary. What the game's rules ARE. Single source of truth.
+2. **[docs/codebase-map.md](./docs/codebase-map.md)** — where each domain lives in the repo. Use this instead of grepping blindly.
+3. **[docs/playbooks/](./docs/playbooks/)** — task recipes (add modifier, add monster, touch combat, etc). If your task matches one, follow it.
+4. **[docs/plans/in-progress.md](./docs/plans/in-progress.md)** — decisions made but not yet executed. Check before starting work to avoid colliding with a planned refactor.
+5. **[docs/adr/](./docs/adr/)** — architecture decisions (optimistic mutations, etc).
+
 ## Tech Stack
 
 - **Frontend:** React + TypeScript + Tailwind CSS + TanStack Router
 - **Backend:** Convex (database + auth)
 - **Build:** Vite + Biome (lint/format) + Vitest (testing)
-- **Path alias:** `#/*` → `./src/*`
+- **Path alias:** `#/*` → `./src/*` (client only — convex uses relative paths)
 
 ## Game Context
 
