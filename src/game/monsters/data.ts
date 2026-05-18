@@ -8,8 +8,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 10,
 			attackSpeed: 1.2,
-			minDamage: 8,
-			maxDamage: 12,
+			physicalDamage: { min: 8, max: 12 },
+			elementalDamage: [],
 		},
 		xpReward: 5,
 		allowedRarities: ["normal"],

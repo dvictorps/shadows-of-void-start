@@ -8,15 +8,16 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 1,
-		requirements: { level: 1, str: 10, dex: 10 },
+		requirements: { level: 1, str: 10 },
 		baseStats: {
-			minDamage: 12,
-			maxDamage: 28,
+			minDamage: 3,
+			maxDamage: 7,
 			attackSpeed: 1.5,
 			criticalChance: 5,
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 60,
 				maxValue: 100,
@@ -38,6 +39,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 80,
 				maxValue: 120,
@@ -59,6 +61,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 95,
 				maxValue: 140,
@@ -80,6 +83,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 110,
 				maxValue: 160,
@@ -101,6 +105,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 130,
 				maxValue: 180,
@@ -122,6 +127,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 150,
 				maxValue: 200,
@@ -143,6 +149,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 170,
 				maxValue: 220,
@@ -164,6 +171,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 190,
 				maxValue: 245,
@@ -185,6 +193,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 210,
 				maxValue: 270,
@@ -206,6 +215,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 230,
 				maxValue: 295,
@@ -227,6 +237,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 255,
 				maxValue: 320,
@@ -248,6 +259,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 280,
 				maxValue: 345,
@@ -269,6 +281,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 300,
 				maxValue: 370,
@@ -290,6 +303,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 325,
 				maxValue: 395,
@@ -311,6 +325,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 350,
 				maxValue: 420,
@@ -332,6 +347,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 370,
 				maxValue: 445,
@@ -353,6 +369,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 390,
 				maxValue: 470,
@@ -374,6 +391,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 415,
 				maxValue: 495,
@@ -395,6 +413,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 440,
 				maxValue: 520,
@@ -416,6 +435,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 460,
 				maxValue: 545,
@@ -437,6 +457,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 		},
 		implicits: [
 			{
+				modifierId: "accuracyFlat",
 				displayFormat: "+{value} Accuracy Rating",
 				minValue: 480,
 				maxValue: 570,

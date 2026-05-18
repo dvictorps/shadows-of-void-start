@@ -400,6 +400,7 @@ function rollImplicits(template: EquipmentTemplate): RolledImplicit[] {
 	return template.implicits.map((imp) => {
 		const value = randInt(imp.minValue, imp.maxValue);
 		return {
+			modifierId: imp.modifierId,
 			description: formatDescription(imp.displayFormat, value),
 			value,
 		};
@@ -675,26 +676,33 @@ function computeArmorStats(
 		}
 	}
 
-	const hasDefenseMods =
-		defenseInfo && (flatBonus !== 0 || defenseIncrease !== 0);
-	const hasBlockMods = blockIncrease > 0 && baseStats.blockChance != null;
+	const baseDefense = defenseInfo
+		? (baseStats[defenseInfo.stat] ?? 0)
+		: 0;
+	const baseBlock = baseStats.blockChance ?? 0;
 
-	if (!hasDefenseMods && !hasBlockMods) return undefined;
+	// Emit computedDefenseStats whenever the item has a defensive baseline OR
+	// a defense/block mod rolled. The previous implementation only emitted on
+	// rolled mods, which silently dropped the item's base armor/evasion/barrier
+	// and shield blockChance for Normal pieces or rolls without defense mods.
+	const hasDefense = defenseInfo && (baseDefense > 0 || flatBonus !== 0);
+	const hasBlock = baseBlock > 0;
+
+	if (!hasDefense && !hasBlock) return undefined;
 
 	const result: ComputedDefenseStats = {};
 
-	if (hasDefenseMods) {
-		let value = (baseStats[defenseInfo!.stat] ?? 0) + flatBonus;
+	if (hasDefense) {
+		let value = baseDefense + flatBonus;
 		if (defenseIncrease > 0) {
 			value = Math.round(value * (1 + defenseIncrease / 100));
 		}
 		result[defenseInfo!.stat] = value;
 	}
 
-	if (hasBlockMods) {
-		result.blockChance = Math.round(
-			baseStats.blockChance! * (1 + blockIncrease / 100),
-		);
+	if (hasBlock) {
+		const block = Math.round(baseBlock * (1 + blockIncrease / 100));
+		if (block > 0) result.blockChance = block;
 	}
 
 	return result;

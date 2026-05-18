@@ -12,9 +12,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 1,
 		requirements: { level: 1, str: 10 },
-		baseStats: { armor: 80, blockChance: 22 },
+		baseStats: { armor: 20, blockChance: 22 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 10, maxValue: 20 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 10, maxValue: 20 },
 		],
 	},
 	{
@@ -24,9 +24,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 8,
 		requirements: { level: 8, str: 18 },
-		baseStats: { armor: 105, blockChance: 22 },
+		baseStats: { armor: 44, blockChance: 22 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 11, maxValue: 21 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 11, maxValue: 21 },
 		],
 	},
 	{
@@ -36,9 +36,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 12,
 		requirements: { level: 12, str: 24 },
-		baseStats: { armor: 128, blockChance: 23 },
+		baseStats: { armor: 66, blockChance: 23 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 12, maxValue: 22 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 12, maxValue: 22 },
 		],
 	},
 	{
@@ -48,9 +48,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 16,
 		requirements: { level: 16, str: 30 },
-		baseStats: { armor: 155, blockChance: 23 },
+		baseStats: { armor: 92, blockChance: 23 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 13, maxValue: 23 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 13, maxValue: 23 },
 		],
 	},
 	{
@@ -60,9 +60,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 20,
 		requirements: { level: 20, str: 38 },
-		baseStats: { armor: 185, blockChance: 24 },
+		baseStats: { armor: 122, blockChance: 24 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 14, maxValue: 24 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 14, maxValue: 24 },
 		],
 	},
 	{
@@ -72,9 +72,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 24,
 		requirements: { level: 24, str: 44 },
-		baseStats: { armor: 218, blockChance: 24 },
+		baseStats: { armor: 155, blockChance: 24 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 15, maxValue: 25 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 15, maxValue: 25 },
 		],
 	},
 	{
@@ -84,9 +84,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 28,
 		requirements: { level: 28, str: 50 },
-		baseStats: { armor: 255, blockChance: 25 },
+		baseStats: { armor: 193, blockChance: 25 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 16, maxValue: 26 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 16, maxValue: 26 },
 		],
 	},
 	{
@@ -96,9 +96,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 32,
 		requirements: { level: 32, str: 58 },
-		baseStats: { armor: 296, blockChance: 25 },
+		baseStats: { armor: 234, blockChance: 25 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 17, maxValue: 27 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 17, maxValue: 27 },
 		],
 	},
 	{
@@ -108,9 +108,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 36,
 		requirements: { level: 36, str: 64 },
-		baseStats: { armor: 340, blockChance: 26 },
+		baseStats: { armor: 280, blockChance: 26 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 18, maxValue: 28 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 18, maxValue: 28 },
 		],
 	},
 	{
@@ -120,9 +120,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 40,
 		requirements: { level: 40, str: 70 },
-		baseStats: { armor: 388, blockChance: 26 },
+		baseStats: { armor: 330, blockChance: 26 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 19, maxValue: 29 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 19, maxValue: 29 },
 		],
 	},
 	{
@@ -132,9 +132,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 44,
 		requirements: { level: 44, str: 78 },
-		baseStats: { armor: 440, blockChance: 27 },
+		baseStats: { armor: 385, blockChance: 27 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 20, maxValue: 30 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 20, maxValue: 30 },
 		],
 	},
 	{
@@ -144,9 +144,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 48,
 		requirements: { level: 48, str: 84 },
-		baseStats: { armor: 496, blockChance: 27 },
+		baseStats: { armor: 444, blockChance: 27 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 21, maxValue: 31 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 21, maxValue: 31 },
 		],
 	},
 	{
@@ -156,9 +156,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 52,
 		requirements: { level: 52, str: 90 },
-		baseStats: { armor: 555, blockChance: 28 },
+		baseStats: { armor: 509, blockChance: 28 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 22, maxValue: 32 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 22, maxValue: 32 },
 		],
 	},
 	{
@@ -168,9 +168,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 56,
 		requirements: { level: 56, str: 98 },
-		baseStats: { armor: 618, blockChance: 28 },
+		baseStats: { armor: 578, blockChance: 28 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 23, maxValue: 33 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 23, maxValue: 33 },
 		],
 	},
 	{
@@ -180,9 +180,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 60,
 		requirements: { level: 60, str: 104 },
-		baseStats: { armor: 685, blockChance: 29 },
+		baseStats: { armor: 653, blockChance: 29 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 24, maxValue: 34 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 24, maxValue: 34 },
 		],
 	},
 	{
@@ -192,9 +192,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 64,
 		requirements: { level: 64, str: 110 },
-		baseStats: { armor: 755, blockChance: 29 },
+		baseStats: { armor: 731, blockChance: 29 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 25, maxValue: 35 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 25, maxValue: 35 },
 		],
 	},
 	{
@@ -204,9 +204,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 68,
 		requirements: { level: 68, str: 118 },
-		baseStats: { armor: 830, blockChance: 30 },
+		baseStats: { armor: 816, blockChance: 30 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 26, maxValue: 36 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 26, maxValue: 36 },
 		],
 	},
 	{
@@ -216,9 +216,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 72,
 		requirements: { level: 72, str: 124 },
-		baseStats: { armor: 908, blockChance: 30 },
+		baseStats: { armor: 903, blockChance: 30 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 27, maxValue: 37 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 27, maxValue: 37 },
 		],
 	},
 	{
@@ -228,9 +228,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 76,
 		requirements: { level: 76, str: 130 },
-		baseStats: { armor: 990, blockChance: 31 },
+		baseStats: { armor: 994, blockChance: 31 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 28, maxValue: 38 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 28, maxValue: 38 },
 		],
 	},
 	{
@@ -240,9 +240,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "plate",
 		dropLevel: 80,
 		requirements: { level: 80, str: 138 },
-		baseStats: { armor: 1075, blockChance: 31 },
+		baseStats: { armor: 1081, blockChance: 31 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 29, maxValue: 39 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 29, maxValue: 39 },
 		],
 	},
 	{
@@ -254,7 +254,7 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, str: 142 },
 		baseStats: { armor: 1140, blockChance: 32 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 30, maxValue: 40 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 30, maxValue: 40 },
 		],
 	},
 
@@ -266,9 +266,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 1,
 		requirements: { level: 1, dex: 10 },
-		baseStats: { evasion: 80, blockChance: 22 },
+		baseStats: { evasion: 20, blockChance: 22 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 10, maxValue: 20 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 10, maxValue: 20 },
 		],
 	},
 	{
@@ -278,9 +278,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 8,
 		requirements: { level: 8, dex: 18 },
-		baseStats: { evasion: 105, blockChance: 22 },
+		baseStats: { evasion: 44, blockChance: 22 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 11, maxValue: 21 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 11, maxValue: 21 },
 		],
 	},
 	{
@@ -290,9 +290,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 12,
 		requirements: { level: 12, dex: 24 },
-		baseStats: { evasion: 128, blockChance: 23 },
+		baseStats: { evasion: 66, blockChance: 23 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 12, maxValue: 22 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 12, maxValue: 22 },
 		],
 	},
 	{
@@ -302,9 +302,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 16,
 		requirements: { level: 16, dex: 30 },
-		baseStats: { evasion: 155, blockChance: 23 },
+		baseStats: { evasion: 92, blockChance: 23 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 13, maxValue: 23 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 13, maxValue: 23 },
 		],
 	},
 	{
@@ -314,9 +314,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 20,
 		requirements: { level: 20, dex: 38 },
-		baseStats: { evasion: 185, blockChance: 24 },
+		baseStats: { evasion: 122, blockChance: 24 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 14, maxValue: 24 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 14, maxValue: 24 },
 		],
 	},
 	{
@@ -326,9 +326,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 24,
 		requirements: { level: 24, dex: 44 },
-		baseStats: { evasion: 218, blockChance: 24 },
+		baseStats: { evasion: 155, blockChance: 24 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 15, maxValue: 25 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 15, maxValue: 25 },
 		],
 	},
 	{
@@ -338,9 +338,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 28,
 		requirements: { level: 28, dex: 50 },
-		baseStats: { evasion: 255, blockChance: 25 },
+		baseStats: { evasion: 193, blockChance: 25 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 16, maxValue: 26 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 16, maxValue: 26 },
 		],
 	},
 	{
@@ -350,9 +350,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 32,
 		requirements: { level: 32, dex: 58 },
-		baseStats: { evasion: 296, blockChance: 25 },
+		baseStats: { evasion: 234, blockChance: 25 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 17, maxValue: 27 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 17, maxValue: 27 },
 		],
 	},
 	{
@@ -362,9 +362,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 36,
 		requirements: { level: 36, dex: 64 },
-		baseStats: { evasion: 340, blockChance: 26 },
+		baseStats: { evasion: 280, blockChance: 26 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 18, maxValue: 28 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 18, maxValue: 28 },
 		],
 	},
 	{
@@ -374,9 +374,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 40,
 		requirements: { level: 40, dex: 70 },
-		baseStats: { evasion: 388, blockChance: 26 },
+		baseStats: { evasion: 330, blockChance: 26 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 19, maxValue: 29 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 19, maxValue: 29 },
 		],
 	},
 	{
@@ -386,9 +386,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 44,
 		requirements: { level: 44, dex: 78 },
-		baseStats: { evasion: 440, blockChance: 27 },
+		baseStats: { evasion: 385, blockChance: 27 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 20, maxValue: 30 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 20, maxValue: 30 },
 		],
 	},
 	{
@@ -398,9 +398,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 48,
 		requirements: { level: 48, dex: 84 },
-		baseStats: { evasion: 496, blockChance: 27 },
+		baseStats: { evasion: 444, blockChance: 27 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 21, maxValue: 31 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 21, maxValue: 31 },
 		],
 	},
 	{
@@ -410,9 +410,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 52,
 		requirements: { level: 52, dex: 90 },
-		baseStats: { evasion: 555, blockChance: 28 },
+		baseStats: { evasion: 509, blockChance: 28 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 22, maxValue: 32 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 22, maxValue: 32 },
 		],
 	},
 	{
@@ -422,9 +422,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 56,
 		requirements: { level: 56, dex: 98 },
-		baseStats: { evasion: 618, blockChance: 28 },
+		baseStats: { evasion: 578, blockChance: 28 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 23, maxValue: 33 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 23, maxValue: 33 },
 		],
 	},
 	{
@@ -434,9 +434,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 60,
 		requirements: { level: 60, dex: 104 },
-		baseStats: { evasion: 685, blockChance: 29 },
+		baseStats: { evasion: 653, blockChance: 29 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 24, maxValue: 34 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 24, maxValue: 34 },
 		],
 	},
 	{
@@ -446,9 +446,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 64,
 		requirements: { level: 64, dex: 110 },
-		baseStats: { evasion: 755, blockChance: 29 },
+		baseStats: { evasion: 731, blockChance: 29 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 25, maxValue: 35 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 25, maxValue: 35 },
 		],
 	},
 	{
@@ -458,9 +458,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 68,
 		requirements: { level: 68, dex: 118 },
-		baseStats: { evasion: 830, blockChance: 30 },
+		baseStats: { evasion: 816, blockChance: 30 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 26, maxValue: 36 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 26, maxValue: 36 },
 		],
 	},
 	{
@@ -470,9 +470,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 72,
 		requirements: { level: 72, dex: 124 },
-		baseStats: { evasion: 908, blockChance: 30 },
+		baseStats: { evasion: 903, blockChance: 30 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 27, maxValue: 37 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 27, maxValue: 37 },
 		],
 	},
 	{
@@ -482,9 +482,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 76,
 		requirements: { level: 76, dex: 130 },
-		baseStats: { evasion: 990, blockChance: 31 },
+		baseStats: { evasion: 994, blockChance: 31 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 28, maxValue: 38 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 28, maxValue: 38 },
 		],
 	},
 	{
@@ -494,9 +494,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "leather",
 		dropLevel: 80,
 		requirements: { level: 80, dex: 138 },
-		baseStats: { evasion: 1075, blockChance: 31 },
+		baseStats: { evasion: 1081, blockChance: 31 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 29, maxValue: 39 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 29, maxValue: 39 },
 		],
 	},
 	{
@@ -508,7 +508,7 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, dex: 142 },
 		baseStats: { evasion: 1140, blockChance: 32 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 30, maxValue: 40 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 30, maxValue: 40 },
 		],
 	},
 
@@ -520,9 +520,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 1,
 		requirements: { level: 1, int: 10 },
-		baseStats: { barrier: 20, blockChance: 22 },
+		baseStats: { barrier: 12, blockChance: 22 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 10, maxValue: 20 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 10, maxValue: 20 },
 		],
 	},
 	{
@@ -532,9 +532,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 8,
 		requirements: { level: 8, int: 18 },
-		baseStats: { barrier: 28, blockChance: 22 },
+		baseStats: { barrier: 26, blockChance: 22 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 11, maxValue: 21 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 11, maxValue: 21 },
 		],
 	},
 	{
@@ -544,9 +544,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 12,
 		requirements: { level: 12, int: 24 },
-		baseStats: { barrier: 35, blockChance: 23 },
+		baseStats: { barrier: 38, blockChance: 23 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 12, maxValue: 22 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 12, maxValue: 22 },
 		],
 	},
 	{
@@ -556,9 +556,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 16,
 		requirements: { level: 16, int: 30 },
-		baseStats: { barrier: 42, blockChance: 23 },
+		baseStats: { barrier: 50, blockChance: 23 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 13, maxValue: 23 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 13, maxValue: 23 },
 		],
 	},
 	{
@@ -568,9 +568,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 20,
 		requirements: { level: 20, int: 38 },
-		baseStats: { barrier: 50, blockChance: 24 },
+		baseStats: { barrier: 65, blockChance: 24 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 14, maxValue: 24 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 14, maxValue: 24 },
 		],
 	},
 	{
@@ -580,9 +580,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 24,
 		requirements: { level: 24, int: 44 },
-		baseStats: { barrier: 59, blockChance: 24 },
+		baseStats: { barrier: 80, blockChance: 24 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 15, maxValue: 25 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 15, maxValue: 25 },
 		],
 	},
 	{
@@ -592,9 +592,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 28,
 		requirements: { level: 28, int: 50 },
-		baseStats: { barrier: 69, blockChance: 25 },
+		baseStats: { barrier: 97, blockChance: 25 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 16, maxValue: 26 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 16, maxValue: 26 },
 		],
 	},
 	{
@@ -604,9 +604,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 32,
 		requirements: { level: 32, int: 58 },
-		baseStats: { barrier: 80, blockChance: 25 },
+		baseStats: { barrier: 114, blockChance: 25 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 17, maxValue: 27 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 17, maxValue: 27 },
 		],
 	},
 	{
@@ -616,9 +616,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 36,
 		requirements: { level: 36, int: 64 },
-		baseStats: { barrier: 92, blockChance: 26 },
+		baseStats: { barrier: 131, blockChance: 26 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 18, maxValue: 28 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 18, maxValue: 28 },
 		],
 	},
 	{
@@ -628,9 +628,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 40,
 		requirements: { level: 40, int: 70 },
-		baseStats: { barrier: 105, blockChance: 26 },
+		baseStats: { barrier: 149, blockChance: 26 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 19, maxValue: 29 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 19, maxValue: 29 },
 		],
 	},
 	{
@@ -640,9 +640,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 44,
 		requirements: { level: 44, int: 78 },
-		baseStats: { barrier: 119, blockChance: 27 },
+		baseStats: { barrier: 168, blockChance: 27 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 20, maxValue: 30 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 20, maxValue: 30 },
 		],
 	},
 	{
@@ -652,9 +652,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 48,
 		requirements: { level: 48, int: 84 },
-		baseStats: { barrier: 134, blockChance: 27 },
+		baseStats: { barrier: 186, blockChance: 27 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 21, maxValue: 31 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 21, maxValue: 31 },
 		],
 	},
 	{
@@ -664,9 +664,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 52,
 		requirements: { level: 52, int: 90 },
-		baseStats: { barrier: 150, blockChance: 28 },
+		baseStats: { barrier: 205, blockChance: 28 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 22, maxValue: 32 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 22, maxValue: 32 },
 		],
 	},
 	{
@@ -676,9 +676,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 56,
 		requirements: { level: 56, int: 98 },
-		baseStats: { barrier: 167, blockChance: 28 },
+		baseStats: { barrier: 223, blockChance: 28 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 23, maxValue: 33 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 23, maxValue: 33 },
 		],
 	},
 	{
@@ -688,9 +688,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 60,
 		requirements: { level: 60, int: 104 },
-		baseStats: { barrier: 185, blockChance: 29 },
+		baseStats: { barrier: 241, blockChance: 29 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 24, maxValue: 34 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 24, maxValue: 34 },
 		],
 	},
 	{
@@ -700,9 +700,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 64,
 		requirements: { level: 64, int: 110 },
-		baseStats: { barrier: 204, blockChance: 29 },
+		baseStats: { barrier: 257, blockChance: 29 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 25, maxValue: 35 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 25, maxValue: 35 },
 		],
 	},
 	{
@@ -712,9 +712,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 68,
 		requirements: { level: 68, int: 118 },
-		baseStats: { barrier: 224, blockChance: 30 },
+		baseStats: { barrier: 274, blockChance: 30 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 26, maxValue: 36 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 26, maxValue: 36 },
 		],
 	},
 	{
@@ -724,9 +724,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 72,
 		requirements: { level: 72, int: 124 },
-		baseStats: { barrier: 245, blockChance: 30 },
+		baseStats: { barrier: 289, blockChance: 30 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 27, maxValue: 37 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 27, maxValue: 37 },
 		],
 	},
 	{
@@ -736,9 +736,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 76,
 		requirements: { level: 76, int: 130 },
-		baseStats: { barrier: 267, blockChance: 31 },
+		baseStats: { barrier: 301, blockChance: 31 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 28, maxValue: 38 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 28, maxValue: 38 },
 		],
 	},
 	{
@@ -748,9 +748,9 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 80,
 		requirements: { level: 80, int: 138 },
-		baseStats: { barrier: 290, blockChance: 31 },
+		baseStats: { barrier: 308, blockChance: 31 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 29, maxValue: 39 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 29, maxValue: 39 },
 		],
 	},
 	{
@@ -762,7 +762,7 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, int: 142 },
 		baseStats: { barrier: 308, blockChance: 32 },
 		implicits: [
-			{ displayFormat: "+{value}% Block Chance", minValue: 30, maxValue: 40 },
+			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 30, maxValue: 40 },
 		],
 	},
 ];

@@ -8,10 +8,10 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 1,
-		requirements: { level: 1, str: 15 },
+		requirements: { level: 1, str: 10 },
 		baseStats: {
-			minDamage: 18,
-			maxDamage: 35,
+			minDamage: 5,
+			maxDamage: 9,
 			attackSpeed: 1.15,
 			criticalChance: 5,
 		},

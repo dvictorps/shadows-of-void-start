@@ -435,7 +435,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 1,
 		requirements: { level: 1, int: 10 },
-		baseStats: { barrier: 5 },
+		baseStats: { barrier: 12 },
 		implicits: [],
 	},
 	{
@@ -445,7 +445,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 8,
 		requirements: { level: 8, int: 18 },
-		baseStats: { barrier: 12 },
+		baseStats: { barrier: 26 },
 		implicits: [],
 	},
 	{
@@ -455,7 +455,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 12,
 		requirements: { level: 12, int: 24 },
-		baseStats: { barrier: 18 },
+		baseStats: { barrier: 39 },
 		implicits: [],
 	},
 	{
@@ -465,7 +465,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 16,
 		requirements: { level: 16, int: 30 },
-		baseStats: { barrier: 26 },
+		baseStats: { barrier: 52 },
 		implicits: [],
 	},
 	{
@@ -475,7 +475,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 20,
 		requirements: { level: 20, int: 38 },
-		baseStats: { barrier: 35 },
+		baseStats: { barrier: 68 },
 		implicits: [],
 	},
 	{
@@ -485,7 +485,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 24,
 		requirements: { level: 24, int: 44 },
-		baseStats: { barrier: 45 },
+		baseStats: { barrier: 85 },
 		implicits: [],
 	},
 	{
@@ -495,7 +495,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 28,
 		requirements: { level: 28, int: 50 },
-		baseStats: { barrier: 56 },
+		baseStats: { barrier: 104 },
 		implicits: [],
 	},
 	{
@@ -505,7 +505,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 32,
 		requirements: { level: 32, int: 58 },
-		baseStats: { barrier: 69 },
+		baseStats: { barrier: 124 },
 		implicits: [],
 	},
 	{
@@ -515,7 +515,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 36,
 		requirements: { level: 36, int: 64 },
-		baseStats: { barrier: 84 },
+		baseStats: { barrier: 145 },
 		implicits: [],
 	},
 	{
@@ -525,7 +525,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 40,
 		requirements: { level: 40, int: 70 },
-		baseStats: { barrier: 100 },
+		baseStats: { barrier: 167 },
 		implicits: [],
 	},
 	{
@@ -535,7 +535,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 44,
 		requirements: { level: 44, int: 78 },
-		baseStats: { barrier: 118 },
+		baseStats: { barrier: 191 },
 		implicits: [],
 	},
 	{
@@ -545,7 +545,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 48,
 		requirements: { level: 48, int: 84 },
-		baseStats: { barrier: 138 },
+		baseStats: { barrier: 214 },
 		implicits: [],
 	},
 	{
@@ -555,7 +555,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 52,
 		requirements: { level: 52, int: 90 },
-		baseStats: { barrier: 161 },
+		baseStats: { barrier: 239 },
 		implicits: [],
 	},
 	{
@@ -565,7 +565,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 56,
 		requirements: { level: 56, int: 98 },
-		baseStats: { barrier: 185 },
+		baseStats: { barrier: 264 },
 		implicits: [],
 	},
 	{
@@ -575,7 +575,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 60,
 		requirements: { level: 60, int: 104 },
-		baseStats: { barrier: 212 },
+		baseStats: { barrier: 290 },
 		implicits: [],
 	},
 	{
@@ -585,7 +585,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 64,
 		requirements: { level: 64, int: 110 },
-		baseStats: { barrier: 241 },
+		baseStats: { barrier: 314 },
 		implicits: [],
 	},
 	{
@@ -595,7 +595,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 68,
 		requirements: { level: 68, int: 118 },
-		baseStats: { barrier: 273 },
+		baseStats: { barrier: 339 },
 		implicits: [],
 	},
 	{
@@ -605,7 +605,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 72,
 		requirements: { level: 72, int: 124 },
-		baseStats: { barrier: 306 },
+		baseStats: { barrier: 363 },
 		implicits: [],
 	},
 	{
@@ -615,7 +615,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 76,
 		requirements: { level: 76, int: 130 },
-		baseStats: { barrier: 342 },
+		baseStats: { barrier: 384 },
 		implicits: [],
 	},
 	{
@@ -625,7 +625,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 80,
 		requirements: { level: 80, int: 138 },
-		baseStats: { barrier: 378 },
+		baseStats: { barrier: 401 },
 		implicits: [],
 	},
 	{

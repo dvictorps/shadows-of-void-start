@@ -23,6 +23,10 @@ export const MOD_LIMITS: Record<ItemRarity, ModLimits> = {
 // ── Rolled results ──
 
 export interface RolledImplicit {
+	// Optional for back-compat with items rolled before implicits were wired
+	// into the stat engine — those legacy implicits stay display-only. New
+	// rolls always carry the id.
+	modifierId?: string;
 	description: string;
 	value: number;
 }

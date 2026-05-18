@@ -11,6 +11,7 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 		baseStats: {},
 		implicits: [
 			{
+				modifierId: "allAttributesFlat",
 				displayFormat: "+{value} to all Attributes",
 				minValue: 5,
 				maxValue: 10,
@@ -26,6 +27,7 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 		baseStats: {},
 		implicits: [
 			{
+				modifierId: "dexterityFlat",
 				displayFormat: "+{value} Dexterity",
 				minValue: 10,
 				maxValue: 20,
@@ -41,6 +43,7 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 		baseStats: {},
 		implicits: [
 			{
+				modifierId: "strengthFlat",
 				displayFormat: "+{value} Strength",
 				minValue: 10,
 				maxValue: 20,
@@ -56,6 +59,7 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 		baseStats: {},
 		implicits: [
 			{
+				modifierId: "intelligenceFlat",
 				displayFormat: "+{value} Intelligence",
 				minValue: 10,
 				maxValue: 20,

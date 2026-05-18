@@ -87,7 +87,10 @@ export function useCombatLoop({
 		makeBarrierState(stats.maxBarrier),
 	);
 	const [potions, setPotions] = useState(initialPotions);
-	const [lastXpGain, setLastXpGain] = useState<number | null>(null);
+	const [lastKill, setLastKill] = useState<{
+		xp: number;
+		potion: boolean;
+	} | null>(null);
 	const { events, push: pushEvent } = useDamageEvents();
 
 	// Refs the interval callbacks read directly for mid-tick state visibility.
@@ -116,6 +119,30 @@ export function useCombatLoop({
 	const recordKill = useMutation(api.combat.recordKill);
 	const consumePotion = useMutation(api.combat.usePotion);
 
+	// Shared victory resolution. Fires the kill recap synchronously with the
+	// known XP, then patches in the potion-drop result when the server replies.
+	// Used both when the player swing kills and when thorns reflection kills.
+	const resolveKill = useCallback(
+		(enemyDef: MonsterDefinition) => {
+			stateRef.current = "victory";
+			const xpGained = enemyDef.xpReward;
+			setLastKill({ xp: xpGained, potion: false });
+			setState("victory");
+			recordKill({
+				characterId,
+				monsterId: enemyDef.id,
+			})
+				.then((result) => {
+					if (result.potionDropped) {
+						setLastKill({ xp: xpGained, potion: true });
+						setPotions((p) => p + 1);
+					}
+				})
+				.catch(() => {});
+		},
+		[characterId, recordKill],
+	);
+
 	// Keep barrier max in sync with the stat engine. Gear swaps mid-combat
 	// rescale rather than reset to full.
 	useEffect(() => {
@@ -134,7 +161,7 @@ export function useCombatLoop({
 			deadRef.current = false;
 			enemyRef.current = null;
 			setEnemy(null);
-			setLastXpGain(null);
+			setLastKill(null);
 			leechRef.current = [];
 			nextSwingIndexRef.current = 0;
 			stateRef.current = "searching";
@@ -169,7 +196,7 @@ export function useCombatLoop({
 	useDelay(active && state === "victory", VICTORY_DELAY_MS, () => {
 		enemyRef.current = null;
 		setEnemy(null);
-		setLastXpGain(null);
+		setLastKill(null);
 		setState("searching");
 	});
 
@@ -274,13 +301,7 @@ export function useCombatLoop({
 					}
 
 					if (newEnemyHp <= 0) {
-						stateRef.current = "victory";
-						setLastXpGain(currentEnemy.def.xpReward);
-						setState("victory");
-						recordKill({
-							characterId,
-							monsterId: currentEnemy.def.id,
-						}).catch(() => {});
+						resolveKill(currentEnemy.def);
 						return;
 					}
 				} else {
@@ -303,11 +324,16 @@ export function useCombatLoop({
 						accuracy: stats.accuracy,
 						level: currentEnemy.level,
 						resistances: stats.resistances,
+						blockChance: stats.blockChance,
 					},
 				});
-				if (attack.isMiss || attack.amount <= 0) {
+				if (attack.isMiss) {
 					pushEvent({ amount: 0, target: "player", isMiss: true });
-				} else {
+				} else if (attack.isBlocked) {
+					// Block → no damage to barrier/life, but the hit still "lands" for
+					// thorns purposes (handled below).
+					pushEvent({ amount: 0, target: "player", isBlocked: true });
+				} else if (attack.amount > 0) {
 					// Apply to barrier first, then life.
 					const { state: nextBarrier, lifeOverflow } = damageBarrier(
 						barrierRef.current,
@@ -328,6 +354,26 @@ export function useCombatLoop({
 					if (result.newLife <= 0 && !deadRef.current) {
 						deadRef.current = true;
 						queueMicrotask(() => onPlayerDeath());
+					}
+				}
+
+				// Thorns — reflects on any landed hit (block included), not on miss.
+				// Per CONTEXT.md → Defenses → Block: "Thorns still reflect to the
+				// attacker on block." If reflection kills the enemy, fall through to
+				// the same victory branch the player-swing uses.
+				if (!attack.isMiss && stats.thorns > 0 && !deadRef.current) {
+					const reflected = Math.max(1, Math.floor(stats.thorns));
+					const enemyAfter = Math.max(0, currentEnemy.currentHp - reflected);
+					const updated = { ...currentEnemy, currentHp: enemyAfter };
+					enemyRef.current = updated;
+					setEnemy(updated);
+					pushEvent({
+						amount: reflected,
+						target: "enemy",
+						isThorns: true,
+					});
+					if (enemyAfter <= 0) {
+						resolveKill(currentEnemy.def);
 					}
 				}
 			}
@@ -384,7 +430,7 @@ export function useCombatLoop({
 		barrier: barrierSnapshot,
 		potions,
 		events,
-		lastXpGain,
+		lastKill,
 		usePotion,
 	};
 }

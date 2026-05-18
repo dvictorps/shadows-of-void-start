@@ -8,10 +8,10 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 1,
-		requirements: { level: 1, str: 15 },
+		requirements: { level: 1, str: 10 },
 		baseStats: {
-			minDamage: 15,
-			maxDamage: 32,
+			minDamage: 4,
+			maxDamage: 8,
 			attackSpeed: 1.3,
 			criticalChance: 5,
 		},

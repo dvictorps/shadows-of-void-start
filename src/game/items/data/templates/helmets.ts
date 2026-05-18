@@ -435,7 +435,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 1,
 		requirements: { level: 1, int: 8 },
-		baseStats: { barrier: 2 },
+		baseStats: { barrier: 5 },
 		implicits: [],
 	},
 	{
@@ -445,7 +445,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 8,
 		requirements: { level: 8, int: 14 },
-		baseStats: { barrier: 5 },
+		baseStats: { barrier: 10 },
 		implicits: [],
 	},
 	{
@@ -455,7 +455,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 12,
 		requirements: { level: 12, int: 18 },
-		baseStats: { barrier: 7 },
+		baseStats: { barrier: 14 },
 		implicits: [],
 	},
 	{
@@ -465,7 +465,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 16,
 		requirements: { level: 16, int: 22 },
-		baseStats: { barrier: 10 },
+		baseStats: { barrier: 19 },
 		implicits: [],
 	},
 	{
@@ -475,7 +475,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 20,
 		requirements: { level: 20, int: 28 },
-		baseStats: { barrier: 13 },
+		baseStats: { barrier: 25 },
 		implicits: [],
 	},
 	{
@@ -485,7 +485,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 24,
 		requirements: { level: 24, int: 33 },
-		baseStats: { barrier: 16 },
+		baseStats: { barrier: 32 },
 		implicits: [],
 	},
 	{
@@ -495,7 +495,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 28,
 		requirements: { level: 28, int: 38 },
-		baseStats: { barrier: 21 },
+		baseStats: { barrier: 39 },
 		implicits: [],
 	},
 	{
@@ -505,7 +505,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 32,
 		requirements: { level: 32, int: 44 },
-		baseStats: { barrier: 25 },
+		baseStats: { barrier: 46 },
 		implicits: [],
 	},
 	{
@@ -515,7 +515,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 36,
 		requirements: { level: 36, int: 48 },
-		baseStats: { barrier: 31 },
+		baseStats: { barrier: 54 },
 		implicits: [],
 	},
 	{
@@ -525,7 +525,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 40,
 		requirements: { level: 40, int: 53 },
-		baseStats: { barrier: 37 },
+		baseStats: { barrier: 62 },
 		implicits: [],
 	},
 	{
@@ -535,7 +535,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 44,
 		requirements: { level: 44, int: 58 },
-		baseStats: { barrier: 44 },
+		baseStats: { barrier: 70 },
 		implicits: [],
 	},
 	{
@@ -545,7 +545,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 48,
 		requirements: { level: 48, int: 63 },
-		baseStats: { barrier: 51 },
+		baseStats: { barrier: 79 },
 		implicits: [],
 	},
 	{
@@ -555,7 +555,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 52,
 		requirements: { level: 52, int: 68 },
-		baseStats: { barrier: 59 },
+		baseStats: { barrier: 88 },
 		implicits: [],
 	},
 	{
@@ -565,7 +565,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 56,
 		requirements: { level: 56, int: 74 },
-		baseStats: { barrier: 68 },
+		baseStats: { barrier: 98 },
 		implicits: [],
 	},
 	{
@@ -575,7 +575,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 60,
 		requirements: { level: 60, int: 78 },
-		baseStats: { barrier: 78 },
+		baseStats: { barrier: 107 },
 		implicits: [],
 	},
 	{
@@ -585,7 +585,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 64,
 		requirements: { level: 64, int: 83 },
-		baseStats: { barrier: 89 },
+		baseStats: { barrier: 116 },
 		implicits: [],
 	},
 	{
@@ -595,7 +595,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 68,
 		requirements: { level: 68, int: 88 },
-		baseStats: { barrier: 101 },
+		baseStats: { barrier: 126 },
 		implicits: [],
 	},
 	{
@@ -605,7 +605,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 72,
 		requirements: { level: 72, int: 93 },
-		baseStats: { barrier: 113 },
+		baseStats: { barrier: 134 },
 		implicits: [],
 	},
 	{
@@ -615,7 +615,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 76,
 		requirements: { level: 76, int: 98 },
-		baseStats: { barrier: 127 },
+		baseStats: { barrier: 142 },
 		implicits: [],
 	},
 	{
@@ -625,7 +625,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		armorType: "silk",
 		dropLevel: 80,
 		requirements: { level: 80, int: 104 },
-		baseStats: { barrier: 140 },
+		baseStats: { barrier: 149 },
 		implicits: [],
 	},
 	{

@@ -8,15 +8,15 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 1,
-		requirements: { level: 1, int: 15 },
+		requirements: { level: 1, int: 12 },
 		baseStats: {
-			minDamage: 10,
-			maxDamage: 30,
+			minDamage: 4,
+			maxDamage: 9,
 			attackSpeed: 1.2,
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 15, maxValue: 25 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 15, maxValue: 25 },
 		],
 	},
 	{
@@ -33,7 +33,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 18, maxValue: 30 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 18, maxValue: 30 },
 		],
 	},
 	{
@@ -50,7 +50,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 21, maxValue: 35 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 21, maxValue: 35 },
 		],
 	},
 	{
@@ -67,7 +67,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 24, maxValue: 40 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 24, maxValue: 40 },
 		],
 	},
 	{
@@ -84,7 +84,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 27, maxValue: 45 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 27, maxValue: 45 },
 		],
 	},
 	{
@@ -101,7 +101,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 30, maxValue: 50 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 30, maxValue: 50 },
 		],
 	},
 	{
@@ -118,7 +118,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 33, maxValue: 55 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 33, maxValue: 55 },
 		],
 	},
 	{
@@ -135,7 +135,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 36, maxValue: 60 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 36, maxValue: 60 },
 		],
 	},
 	{
@@ -152,7 +152,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 39, maxValue: 65 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 39, maxValue: 65 },
 		],
 	},
 	{
@@ -169,7 +169,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 42, maxValue: 70 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 42, maxValue: 70 },
 		],
 	},
 	{
@@ -186,7 +186,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 45, maxValue: 75 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 45, maxValue: 75 },
 		],
 	},
 	{
@@ -203,7 +203,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 48, maxValue: 80 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 48, maxValue: 80 },
 		],
 	},
 	{
@@ -220,7 +220,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 51, maxValue: 85 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 51, maxValue: 85 },
 		],
 	},
 	{
@@ -237,7 +237,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 54, maxValue: 90 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 54, maxValue: 90 },
 		],
 	},
 	{
@@ -254,7 +254,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 57, maxValue: 95 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 57, maxValue: 95 },
 		],
 	},
 	{
@@ -271,7 +271,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 60, maxValue: 100 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 60, maxValue: 100 },
 		],
 	},
 	{
@@ -288,7 +288,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 63, maxValue: 105 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 63, maxValue: 105 },
 		],
 	},
 	{
@@ -305,7 +305,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 66, maxValue: 110 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 66, maxValue: 110 },
 		],
 	},
 	{
@@ -322,7 +322,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 69, maxValue: 115 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 69, maxValue: 115 },
 		],
 	},
 	{
@@ -339,7 +339,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 72, maxValue: 120 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 72, maxValue: 120 },
 		],
 	},
 	{
@@ -356,7 +356,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ displayFormat: "+{value}% Spell Damage", minValue: 75, maxValue: 125 },
+			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 75, maxValue: 125 },
 		],
 	},
 ];

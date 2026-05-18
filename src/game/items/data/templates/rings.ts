@@ -11,6 +11,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		baseStats: {},
 		implicits: [
 			{
+				modifierId: "coldResistance",
 				displayFormat: "+{value}% Cold Resistance",
 				minValue: 15,
 				maxValue: 25,
@@ -26,6 +27,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		baseStats: {},
 		implicits: [
 			{
+				modifierId: "fireResistance",
 				displayFormat: "+{value}% Fire Resistance",
 				minValue: 15,
 				maxValue: 25,
@@ -41,6 +43,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		baseStats: {},
 		implicits: [
 			{
+				modifierId: "lightningResistance",
 				displayFormat: "+{value}% Lightning Resistance",
 				minValue: 15,
 				maxValue: 25,
@@ -56,6 +59,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		baseStats: {},
 		implicits: [
 			{
+				modifierId: "voidResistance",
 				displayFormat: "+{value}% Void Resistance",
 				minValue: 15,
 				maxValue: 25,
@@ -71,6 +75,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		baseStats: {},
 		implicits: [
 			{
+				modifierId: "healthFlat",
 				displayFormat: "+{value} to Maximum Life",
 				minValue: 15,
 				maxValue: 30,
@@ -86,6 +91,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		baseStats: {},
 		implicits: [
 			{
+				modifierId: "manaFlat",
 				displayFormat: "+{value} to Maximum Mana",
 				minValue: 15,
 				maxValue: 30,

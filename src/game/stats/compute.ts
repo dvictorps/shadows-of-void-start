@@ -97,8 +97,19 @@ function applyMod(
 	pcts: DefensePcts,
 	mod: RolledMod,
 ): void {
-	const v = mod.value;
-	switch (mod.modifierId) {
+	applyModifierValue(stats, pcts, mod.modifierId, mod.value);
+}
+
+// Shared switch for any modifier-id-based stat application. Used by `applyMod`
+// (explicits) and `applyImplicit` (template implicits) so the engine handles
+// both through identical machinery — adding a new id only touches one place.
+function applyModifierValue(
+	stats: ComputedCharacterStats,
+	pcts: DefensePcts,
+	modifierId: string,
+	v: number,
+): void {
+	switch (modifierId) {
 		// Attributes
 		case "strengthFlat":
 			stats.attributes.strength += v;
@@ -107,6 +118,11 @@ function applyMod(
 			stats.attributes.dexterity += v;
 			return;
 		case "intelligenceFlat":
+			stats.attributes.intelligence += v;
+			return;
+		case "allAttributesFlat":
+			stats.attributes.strength += v;
+			stats.attributes.dexterity += v;
 			stats.attributes.intelligence += v;
 			return;
 
@@ -314,6 +330,13 @@ function applyItem(
 	pcts: DefensePcts,
 	item: GeneratedItem,
 ): void {
+	for (const imp of item.implicits) {
+		// Legacy items pre-implicit-wiring carry no modifierId — skip them; they
+		// remain display-only until the player swaps to a freshly-rolled item.
+		if (imp.modifierId) {
+			applyModifierValue(stats, pcts, imp.modifierId, imp.value);
+		}
+	}
 	for (const mod of item.explicits) applyMod(stats, pcts, mod);
 
 	const def = item.computedDefenseStats;
