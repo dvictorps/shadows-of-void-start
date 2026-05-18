@@ -583,6 +583,53 @@ const equippedSlotValidator = v.union(
 )
 
 /**
+ * Idempotent one-time migration for characters created before the items-table
+ * starter weapon flow. If the character still carries the legacy
+ * `equippedWeapon` string id but has no equipped weapon Doc in the items table,
+ * inserts the starter item and patches `equippedWeaponId`. No-op for already
+ * migrated characters or those with a real equipped weapon.
+ */
+export const migrateLegacyStarter = mutation({
+	args: { characterId: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) return { migrated: false }
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		if (!char.equippedWeapon) return { migrated: false }
+		const existing = await ctx.db
+			.query("items")
+			.withIndex("by_character_kind", (q) =>
+				q.eq("characterId", args.characterId).eq("locationKind", "equipped"),
+			)
+			.collect()
+		if (existing.some((it) => it.equippedSlot === "weapon")) {
+			// Already have a real weapon equipped; just clear the legacy field.
+			await ctx.db.patch(args.characterId, { equippedWeapon: undefined })
+			return { migrated: false }
+		}
+		const starterDef = findStarterItem(char.equippedWeapon)
+		if (!starterDef) {
+			await ctx.db.patch(args.characterId, { equippedWeapon: undefined })
+			return { migrated: false }
+		}
+		const itemId = await ctx.db.insert("items", {
+			authUserId: authUser._id,
+			locationKind: "equipped",
+			characterId: args.characterId,
+			equippedSlot: "weapon",
+			data: starterDef,
+			droppedAt: Date.now(),
+			droppedFrom: "starter",
+		})
+		await ctx.db.patch(args.characterId, {
+			equippedWeaponId: itemId,
+			equippedWeapon: undefined,
+		})
+		return { migrated: true }
+	},
+})
+
+/**
  * Move an inventory item into an equipment slot. Validates slot eligibility,
  * 2H/off-hand interactions, same-archetype dual-wield, and equip-time
  * requirements (level + attributes against totals excluding the new item).

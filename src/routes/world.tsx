@@ -101,6 +101,14 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// warm whenever the modal opens — no flicker on first open). Combined with
 	// the localStorage cache below, cold reloads also render last-known data
 	// instantly.
+	const migrateLegacy = useMutation(api.characters.migrateLegacyStarter);
+	// One-shot migration for characters created before the items-table starter
+	// flow. The mutation is idempotent — it self-detects and no-ops once done.
+	useEffect(() => {
+		if (!character.equippedWeapon) return;
+		void migrateLegacy({ characterId: character._id });
+	}, [character.equippedWeapon, character._id, migrateLegacy]);
+
 	const liveEquipped = useQuery(api.characters.equipped, {
 		characterId: character._id,
 	});
@@ -147,10 +155,22 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	);
 
 	const maxHp = stats.maxLife;
-	const weapon = useMemo(
-		() => equippedSnapshot.find((eq) => eq.slot === "weapon")?.item ?? null,
-		[equippedSnapshot],
-	);
+	const equippedBySlot = useMemo(() => {
+		const map = new Map<
+			EquippedSlot,
+			{
+				id: string;
+				data: ReturnType<typeof findStarterItem> | EquippedItem["item"];
+			}
+		>();
+		for (const eq of equippedSnapshot) {
+			map.set(eq.slot, { id: eq.item.id, data: eq.item });
+		}
+		return map as ReadonlyMap<
+			EquippedSlot,
+			{ id: string; data: EquippedItem["item"] }
+		>;
+	}, [equippedSnapshot]);
 	const monsterPool = useMemo(
 		() => currentNode?.monsterPool ?? [],
 		[currentNode],
@@ -307,7 +327,12 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			</div>
 
 			<aside className="grid grid-rows-[1fr_auto] gap-3">
-				<EquipmentPanel weapon={weapon} onOpenInventory={inventoryModal.open} />
+				<EquipmentPanel
+					equippedBySlot={equippedBySlot}
+					stats={stats}
+					characterLevel={character.level}
+					onOpenInventory={inventoryModal.open}
+				/>
 				<StatusCard
 					character={character}
 					classDef={classDef}

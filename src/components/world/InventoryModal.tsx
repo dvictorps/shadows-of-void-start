@@ -19,7 +19,7 @@ import ItemContextMenu, {
 	type MenuAction,
 } from "#/components/world/ItemContextMenu";
 import { INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
-import { isWeapon, validSlotsForItem } from "#/game/items/equipment";
+import { isWeapon, planEquip, validSlotsForItem } from "#/game/items/equipment";
 import type { GeneratedItem } from "#/game/items/types";
 import { describeBrokenReasons } from "#/game/stats/compute";
 import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
@@ -103,8 +103,144 @@ export default function InventoryModal({
 			next,
 		);
 	});
-	const equipItem = useMutation(api.characters.equipItem);
-	const unequipItem = useMutation(api.characters.unequipItem);
+	const equipItem = useMutation(api.characters.equipItem).withOptimisticUpdate(
+		(localStore, args) => {
+			const inv = localStore.getQuery(api.characters.inventory, {
+				characterId: args.characterId,
+			});
+			const equipped = localStore.getQuery(api.characters.equipped, {
+				characterId: args.characterId,
+			});
+			if (!inv || !equipped) return;
+			const newItem = inv.find((it) => it._id === args.itemId);
+			if (!newItem) return;
+
+			const currentEquipped = equipped
+				.filter((it) => it.equippedSlot)
+				.map((it) => ({
+					slot: it.equippedSlot as EquippedSlot,
+					item: it.data,
+				}));
+			const plan = planEquip({
+				item: newItem.data,
+				targetSlot: args.targetSlot,
+				currentEquipped,
+			});
+			if (plan.reject) return;
+
+			const displacedSlots = new Set(plan.displaced.map((d) => d.slot));
+			const displacedDocs = equipped.filter(
+				(it) =>
+					it.equippedSlot &&
+					displacedSlots.has(it.equippedSlot as EquippedSlot),
+			);
+
+			const occupied = new Set<number>();
+			for (const it of inv) {
+				if (it._id === args.itemId) continue;
+				if (typeof it.inventorySlot === "number")
+					occupied.add(it.inventorySlot);
+			}
+			const nextFreeSlot = (): number => {
+				for (let i = 0; i < INVENTORY_MAX_SLOTS; i++) {
+					if (!occupied.has(i)) {
+						occupied.add(i);
+						return i;
+					}
+				}
+				return -1;
+			};
+
+			const displacedToInventory = displacedDocs.map((d) => ({
+				...d,
+				locationKind: "inventory" as const,
+				equippedSlot: undefined,
+				inventorySlot: nextFreeSlot(),
+			}));
+			const newInventory = [
+				...inv.filter((it) => it._id !== args.itemId),
+				...displacedToInventory,
+			].sort((a, b) => {
+				const sa = a.inventorySlot ?? Number.MAX_SAFE_INTEGER;
+				const sb = b.inventorySlot ?? Number.MAX_SAFE_INTEGER;
+				return sa - sb;
+			});
+
+			const displacedIds = new Set(displacedDocs.map((d) => d._id));
+			const newEquipped = [
+				...equipped.filter((it) => !displacedIds.has(it._id)),
+				{
+					...newItem,
+					locationKind: "equipped" as const,
+					equippedSlot: args.targetSlot,
+					inventorySlot: undefined,
+				},
+			];
+
+			localStore.setQuery(
+				api.characters.inventory,
+				{ characterId: args.characterId },
+				newInventory,
+			);
+			localStore.setQuery(
+				api.characters.equipped,
+				{ characterId: args.characterId },
+				newEquipped,
+			);
+		},
+	);
+	const unequipItem = useMutation(
+		api.characters.unequipItem,
+	).withOptimisticUpdate((localStore, args) => {
+		const inv = localStore.getQuery(api.characters.inventory, {
+			characterId: args.characterId,
+		});
+		const equipped = localStore.getQuery(api.characters.equipped, {
+			characterId: args.characterId,
+		});
+		if (!inv || !equipped) return;
+		const item = equipped.find((it) => it.equippedSlot === args.slot);
+		if (!item) return;
+
+		const occupied = new Set<number>();
+		for (const it of inv) {
+			if (typeof it.inventorySlot === "number") occupied.add(it.inventorySlot);
+		}
+		let firstFree = -1;
+		for (let i = 0; i < INVENTORY_MAX_SLOTS; i++) {
+			if (!occupied.has(i)) {
+				firstFree = i;
+				break;
+			}
+		}
+		if (firstFree === -1) return; // server will reject; skip optimistic
+
+		const newInventory = [
+			...inv,
+			{
+				...item,
+				locationKind: "inventory" as const,
+				equippedSlot: undefined,
+				inventorySlot: firstFree,
+			},
+		].sort((a, b) => {
+			const sa = a.inventorySlot ?? Number.MAX_SAFE_INTEGER;
+			const sb = b.inventorySlot ?? Number.MAX_SAFE_INTEGER;
+			return sa - sb;
+		});
+		const newEquipped = equipped.filter((it) => it._id !== item._id);
+
+		localStore.setQuery(
+			api.characters.inventory,
+			{ characterId: args.characterId },
+			newInventory,
+		);
+		localStore.setQuery(
+			api.characters.equipped,
+			{ characterId: args.characterId },
+			newEquipped,
+		);
+	});
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -386,22 +522,42 @@ function equipActionLabel(slot: EquippedSlot, item: GeneratedItem): string {
 	}
 }
 
+const REQUIREMENT_LABEL: Record<string, string> = {
+	Level: "Nível",
+	Strength: "Força",
+	Dexterity: "Destreza",
+	Intelligence: "Inteligência",
+};
+
 function equipErrorMessage(err: unknown): string {
-	const msg = err instanceof Error ? err.message : String(err);
+	const raw = err instanceof Error ? err.message : String(err);
+	// Strip Convex's stack/prefix decorations so the toast reads as plain text.
+	const msg = raw
+		.replace(/^\[CONVEX [^\]]+\]\s*/, "")
+		.replace(/^Uncaught (?:Convex)?Error:\s*/i, "")
+		.replace(/\bConvexError:\s*/, "")
+		.replace(/\s+at handler[\s\S]*$/, "")
+		.trim();
+
 	if (msg.includes("wrong-slot")) return "Slot incompatível";
 	if (msg.includes("mixed-archetype"))
-		return "Não pode misturar arquetipos no dual-wield";
+		return "Não pode misturar arquétipos no dual-wield";
 	if (msg.includes("needs-main-hand"))
 		return "Equipe uma arma principal primeiro";
 	if (msg.includes("offhand-not-weapon"))
 		return "Slot off-hand aceita só armas ou escudos";
-	if (msg.includes("Inventory") || msg.includes("Inventário"))
+	if (msg.toLowerCase().includes("inventory") || msg.includes("Inventário"))
 		return "Inventário cheio — libere espaço primeiro";
-	if (msg.includes("Level")) return msg.replace("Level", "Nível");
-	if (msg.includes("Strength")) return msg.replace("Strength", "Força");
-	if (msg.includes("Dexterity")) return msg.replace("Dexterity", "Destreza");
-	if (msg.includes("Intelligence"))
-		return msg.replace("Intelligence", "Inteligência");
+
+	// "Level 12 required", "Strength 18 required", etc.
+	const reqMatch = msg.match(
+		/(Level|Strength|Dexterity|Intelligence)\s+(\d+)\s+required/,
+	);
+	if (reqMatch) {
+		const [, attr, value] = reqMatch;
+		return `Precisa de ${value} de ${REQUIREMENT_LABEL[attr] ?? attr}`;
+	}
+
 	return msg;
 }
 
@@ -498,14 +654,18 @@ function EquipmentDroppable({
 	});
 	const isDraggingThis =
 		dragging?.kind === "equipped" && dragging.slot === slot;
-	// Highlight color depends on validity: yellow if the active dragged item
-	// can equip here, red if it's an inventory drag of an incompatible item.
+	// Three highlight tiers, decreasing intensity as we move away from a direct
+	// hover: full ring under the cursor, soft glow on every eligible slot while
+	// dragging, red ring when hovering an incompatible slot.
 	let highlight = "";
-	if (isOver) {
-		if (dragging?.kind === "inventory") {
+	if (dragging?.kind === "inventory") {
+		if (isOver) {
 			highlight = eligible
-				? "ring-2 ring-yellow-300/80"
+				? "ring-2 ring-yellow-300/90 shadow-[0_0_14px_rgba(253,224,71,0.55)]"
 				: "ring-2 ring-red-500/70";
+		} else if (eligible) {
+			highlight =
+				"ring-2 ring-yellow-300/40 shadow-[0_0_8px_rgba(253,224,71,0.25)]";
 		}
 	}
 	return (

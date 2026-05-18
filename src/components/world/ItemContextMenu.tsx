@@ -17,6 +17,7 @@ interface Props {
 }
 
 const MENU_ESTIMATED_WIDTH = 220;
+const MENU_OFFSET_PX = 6;
 
 export default function ItemContextMenu({ anchor, actions, onClose }: Props) {
 	const menuRef = useRef<HTMLDivElement>(null);
@@ -38,13 +39,23 @@ export default function ItemContextMenu({ anchor, actions, onClose }: Props) {
 		};
 	}, [onClose]);
 
+	// Anchor below the card so the item's right-side tooltip stays visible.
+	// Estimate menu height as N actions × ~36px each + container padding; flip
+	// above if there's not enough room below.
+	const viewportHeight =
+		typeof window !== "undefined" ? window.innerHeight : 800;
 	const viewportWidth =
 		typeof window !== "undefined" ? window.innerWidth : 1200;
-	const rightCandidate = anchor.right + 8;
-	const flipLeft = rightCandidate + MENU_ESTIMATED_WIDTH > viewportWidth;
-	const left = flipLeft
-		? Math.max(8, anchor.left - 8 - MENU_ESTIMATED_WIDTH)
-		: rightCandidate;
+	const estimatedHeight = 12 + actions.length * 36;
+	const belowCandidate = anchor.bottom + MENU_OFFSET_PX;
+	const flipAbove = belowCandidate + estimatedHeight > viewportHeight;
+	const top = flipAbove
+		? Math.max(8, anchor.top - MENU_OFFSET_PX - estimatedHeight)
+		: belowCandidate;
+	const left = Math.min(
+		Math.max(8, anchor.left),
+		viewportWidth - MENU_ESTIMATED_WIDTH - 8,
+	);
 
 	return createPortal(
 		<div
@@ -53,7 +64,7 @@ export default function ItemContextMenu({ anchor, actions, onClose }: Props) {
 			style={{
 				position: "fixed",
 				left,
-				top: anchor.top,
+				top,
 				zIndex: 1100,
 				minWidth: MENU_ESTIMATED_WIDTH,
 			}}
