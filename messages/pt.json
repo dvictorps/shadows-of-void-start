@@ -84,6 +84,7 @@
   "vendor_tab_buy": "Comprar",
   "vendor_tab_sell": "Vender",
   "vendor_buy_action": "Comprar",
+  "vendor_buy_at_cap": "Limite atingido",
   "vendor_sell_action": "Vender",
   "vendor_buy_failed": "Falha na compra",
   "vendor_sell_failed": "Falha na venda",

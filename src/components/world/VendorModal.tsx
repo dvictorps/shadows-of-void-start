@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
+import { MAX_POTIONS } from "#/game/combat/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { m } from "#/paraglide/messages";
@@ -17,6 +18,7 @@ type Props = {
 	isOpen: boolean;
 	onClose: () => void;
 	rubys: number;
+	potions: number;
 	inventoryItems: Doc<"items">[];
 	onBuy: (productId: VendorProductId) => Promise<void>;
 	onSellMany: (itemIds: Id<"items">[]) => Promise<void>;
@@ -26,6 +28,7 @@ export default function VendorModal({
 	isOpen,
 	onClose,
 	rubys,
+	potions,
 	inventoryItems,
 	onBuy,
 	onSellMany,
@@ -104,7 +107,7 @@ export default function VendorModal({
 				 * modal jump around vertically. */}
 				<div className="flex min-h-[460px] flex-col">
 					{tab === "buy" ? (
-						<BuyTab rubys={rubys} onBuy={handleBuy} />
+						<BuyTab rubys={rubys} potions={potions} onBuy={handleBuy} />
 					) : (
 						<SellTab
 							inventoryItems={inventoryItems}
@@ -151,16 +154,23 @@ function TabButton({
 
 function BuyTab({
 	rubys,
+	potions,
 	onBuy,
 }: {
 	rubys: number;
+	potions: number;
 	onBuy: (productId: VendorProductId) => Promise<void>;
 }) {
 	const products = Object.values(VENDOR_PRODUCTS);
 	return (
-		<div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
+		<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
 			{products.map((p) => {
+				const atCap = p.id === "potion" && potions >= MAX_POTIONS;
 				const canAfford = rubys >= p.priceRubys;
+				const disabled = !canAfford || atCap;
+				const buttonLabel = atCap
+					? m.vendor_buy_at_cap()
+					: m.vendor_buy_action();
 				return (
 					<div
 						key={p.id}
@@ -179,11 +189,12 @@ function BuyTab({
 						<Button
 							type="button"
 							variant="starkMuted"
+							size="lg"
 							onClick={() => onBuy(p.id)}
-							disabled={!canAfford}
-							className="w-full uppercase tracking-wider"
+							disabled={disabled}
+							className="w-full text-base uppercase tracking-wider"
 						>
-							{m.vendor_buy_action()}
+							{buttonLabel}
 						</Button>
 					</div>
 				);
@@ -233,7 +244,7 @@ function SellTab({
 				<button
 					type="button"
 					onClick={toggleAll}
-					className="display-title text-xs uppercase tracking-[0.2em] text-white/60 transition hover:text-white"
+					className="display-title px-2 py-1 text-sm uppercase tracking-[0.2em] text-white/60 transition hover:text-white"
 				>
 					{allSelected
 						? m.vendor_sell_deselect_all()
@@ -271,9 +282,10 @@ function SellTab({
 				<Button
 					type="button"
 					variant="starkMuted"
+					size="lg"
 					onClick={onSell}
 					disabled={selectedCount === 0}
-					className="px-5 py-2 uppercase tracking-wider"
+					className="px-8 text-base uppercase tracking-wider"
 				>
 					{m.vendor_sell_action()}
 				</Button>
