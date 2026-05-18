@@ -15,7 +15,6 @@ import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import { findClassDefinition } from "#/game/classes/data";
-import { findStarterItem } from "#/game/items/starter-gear";
 import { xpToNextLevel } from "#/game/progression/levels";
 import { computeCharacterStats } from "#/game/stats/compute";
 import type { EquippedItem, EquippedSlot } from "#/game/stats/types";
@@ -101,14 +100,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// warm whenever the modal opens — no flicker on first open). Combined with
 	// the localStorage cache below, cold reloads also render last-known data
 	// instantly.
-	const migrateLegacy = useMutation(api.characters.migrateLegacyStarter);
-	// One-shot migration for characters created before the items-table starter
-	// flow. The mutation is idempotent — it self-detects and no-ops once done.
-	useEffect(() => {
-		if (!character.equippedWeapon) return;
-		void migrateLegacy({ characterId: character._id });
-	}, [character.equippedWeapon, character._id, migrateLegacy]);
-
 	const liveEquipped = useQuery(api.characters.equipped, {
 		characterId: character._id,
 	});
@@ -124,9 +115,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		liveInventory,
 	);
 
-	// Compose the equipped-item set the stat engine consumes. Starter weapons
-	// (string-id `character.equippedWeapon`) get folded in as a synthetic
-	// EquippedItem until they're migrated to the items table.
 	const equippedSnapshot: EquippedItem[] = useMemo(() => {
 		const out: EquippedItem[] = [];
 		for (const item of equippedItems ?? []) {
@@ -134,15 +122,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			if (!slot) continue;
 			out.push({ slot, item: item.data });
 		}
-		// Starter weapon fallback: if the character still references a starter
-		// weapon string id and no item-table weapon is equipped, surface the
-		// starter as the main hand.
-		if (character.equippedWeapon && !out.some((eq) => eq.slot === "weapon")) {
-			const starter = findStarterItem(character.equippedWeapon);
-			if (starter) out.push({ slot: "weapon", item: starter });
-		}
 		return out;
-	}, [equippedItems, character.equippedWeapon]);
+	}, [equippedItems]);
 
 	const stats = useMemo(
 		() =>
@@ -158,10 +139,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const equippedBySlot = useMemo(() => {
 		const map = new Map<
 			EquippedSlot,
-			{
-				id: string;
-				data: ReturnType<typeof findStarterItem> | EquippedItem["item"];
-			}
+			{ id: string; data: EquippedItem["item"] }
 		>();
 		for (const eq of equippedSnapshot) {
 			map.set(eq.slot, { id: eq.item.id, data: eq.item });
