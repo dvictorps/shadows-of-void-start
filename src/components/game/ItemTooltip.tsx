@@ -23,13 +23,15 @@ const HAS_ORNAMENTS = new Set<ItemRarity>(["rare", "legendary", "epic"]);
 const SPELL_WEAPONS = new Set(["staff", "wand"]);
 
 const MODIFIED_COLOR = "#8888ff";
+const LABEL_COLOR = "rgba(255, 255, 255, 0.45)";
+const DIM_COLOR = "rgba(255, 255, 255, 0.35)";
 
 function Separator() {
 	return (
 		<div className="my-1 flex items-center gap-1.5 px-2">
-			<div className="h-px flex-1 bg-[#554433]" />
-			<div className="h-1 w-1 rotate-45 bg-[#776655]" />
-			<div className="h-px flex-1 bg-[#554433]" />
+			<div className="h-px flex-1 bg-white/20" />
+			<div className="h-1 w-1 rotate-45 bg-white/40" />
+			<div className="h-px flex-1 bg-white/20" />
 		</div>
 	);
 }
@@ -37,7 +39,7 @@ function Separator() {
 function ImplicitSeparator() {
 	return (
 		<div className="my-1 px-2">
-			<div className="border-t border-[#554433]" />
+			<div className="border-t border-white/15 border-dashed" />
 		</div>
 	);
 }
@@ -118,17 +120,17 @@ export default function ItemTooltip({
 		"barrier" in stats ||
 		"blockChance" in stats;
 
-	const borderColor = showGlow ? nameColor : "#3a2a1a";
+	const borderColor = showGlow ? nameColor : "rgba(255, 255, 255, 0.4)";
 	const glowStyle = showGlow
 		? {
 				borderColor,
-				boxShadow: `0 0 12px ${nameColor}66, inset 0 0 8px ${nameColor}22, 0 0 20px rgba(0,0,0,0.8)`,
+				boxShadow: `0 0 12px ${nameColor}66, inset 0 0 8px ${nameColor}22, 0 0 20px rgba(0,0,0,0.9)`,
 			}
-		: { boxShadow: "0 0 20px rgba(0,0,0,0.8)" };
+		: { boxShadow: "0 0 20px rgba(0,0,0,0.9)" };
 
 	return (
 		<div
-			className="relative inline-block min-w-[240px] max-w-[360px] border bg-[#0c0b0a] font-serif text-sm leading-relaxed"
+			className="relative inline-block min-w-[260px] max-w-[380px] border bg-black text-sm leading-relaxed tracking-wide"
 			style={{
 				borderColor,
 				...glowStyle,
@@ -141,7 +143,7 @@ export default function ItemTooltip({
 
 			{/* Broken-state warning band — overrides the rarity accent above it. */}
 			{brokenReasons && brokenReasons.length > 0 && (
-				<div className="bg-red-900/40 px-4 py-1 text-xs font-bold text-red-300">
+				<div className="bg-red-900/40 px-4 py-1 font-bold text-red-300 text-xs uppercase tracking-wider">
 					{brokenReasons.map((r) => (
 						<div key={r}>{r}</div>
 					))}
@@ -153,18 +155,18 @@ export default function ItemTooltip({
 
 			{/* Item name header */}
 			<div
-				className="px-4 py-2 text-center"
+				className="display-title px-4 py-2 text-center uppercase tracking-[0.15em]"
 				style={{
 					background: `linear-gradient(to bottom, ${headerBg}, transparent)`,
 				}}
 			>
 				{showGeneratedName && (
-					<div className="text-base font-bold" style={{ color: nameColor }}>
+					<div className="text-lg" style={{ color: nameColor }}>
 						{item.name}
 					</div>
 				)}
 				<div
-					className={showGeneratedName ? "text-sm" : "text-base font-bold"}
+					className={showGeneratedName ? "text-sm" : "text-lg"}
 					style={{ color: nameColor }}
 				>
 					{showGeneratedName ? item.templateName : item.name}
@@ -178,7 +180,7 @@ export default function ItemTooltip({
 				<>
 					<div className="space-y-0.5 px-4 py-1">
 						<div className="flex justify-between">
-							<span className="text-[#7f7f7f]">Physical Damage:</span>
+							<span style={{ color: LABEL_COLOR }}>Physical Damage</span>
 							<span
 								style={{
 									color: modifiedStats.has("physicalDamage")
@@ -193,7 +195,7 @@ export default function ItemTooltip({
 						</div>
 						{computed?.elementalDamage.map((elem) => (
 							<div key={elem.element} className="flex justify-between">
-								<span className="text-[#7f7f7f]">{elem.element} Damage:</span>
+								<span style={{ color: LABEL_COLOR }}>{elem.element} Damage</span>
 								<span style={{ color: MODIFIED_COLOR }}>
 									{elem.min}-{elem.max}
 								</span>
@@ -201,7 +203,7 @@ export default function ItemTooltip({
 						))}
 						{(computed?.criticalChance ?? stats.criticalChance) != null && (
 							<div className="flex justify-between">
-								<span className="text-[#7f7f7f]">Critical Strike Chance:</span>
+								<span style={{ color: LABEL_COLOR }}>Critical Strike Chance</span>
 								<span
 									style={{
 										color: modifiedStats.has("criticalChance")
@@ -220,7 +222,7 @@ export default function ItemTooltip({
 						)}
 						{(computed?.attackSpeed ?? stats.attackSpeed) != null && (
 							<div className="flex justify-between">
-								<span className="text-[#7f7f7f]">Attacks per Second:</span>
+								<span style={{ color: LABEL_COLOR }}>Attacks per Second</span>
 								<span
 									style={{
 										color: modifiedStats.has("attackSpeed")
@@ -242,7 +244,7 @@ export default function ItemTooltip({
 				<>
 					<div className="space-y-0.5 px-4 py-1">
 						<div className="flex justify-between">
-							<span className="text-[#7f7f7f]">Critical Strike Chance:</span>
+							<span style={{ color: LABEL_COLOR }}>Critical Strike Chance</span>
 							<span className="text-white">
 								{stats.criticalChance.toFixed(1)}%
 							</span>
@@ -252,16 +254,22 @@ export default function ItemTooltip({
 				</>
 			)}
 
-			{/* Defence stats */}
+			{/* Defence stats — modified-color (blue) only when computed differs from
+			 * the template base. `computedDefenseStats` is always emitted for
+			 * armor pieces (since the silent-defense fix), so a mere existence
+			 * check would paint every defense value blue — compare values. */}
 			{hasDefenses && (
 				<>
 					<div className="space-y-0.5 px-4 py-1">
 						{"armor" in stats && (
 							<div className="flex justify-between">
-								<span className="text-[#7f7f7f]">Armour:</span>
+								<span style={{ color: LABEL_COLOR }}>Armour</span>
 								<span
 									style={{
-										color: defense?.armor != null ? MODIFIED_COLOR : "white",
+										color:
+											defense?.armor != null && defense.armor !== stats.armor
+												? MODIFIED_COLOR
+												: "white",
 									}}
 								>
 									{defense?.armor ?? stats.armor}
@@ -270,10 +278,14 @@ export default function ItemTooltip({
 						)}
 						{"evasion" in stats && (
 							<div className="flex justify-between">
-								<span className="text-[#7f7f7f]">Evasion Rating:</span>
+								<span style={{ color: LABEL_COLOR }}>Evasion Rating</span>
 								<span
 									style={{
-										color: defense?.evasion != null ? MODIFIED_COLOR : "white",
+										color:
+											defense?.evasion != null &&
+											defense.evasion !== stats.evasion
+												? MODIFIED_COLOR
+												: "white",
 									}}
 								>
 									{defense?.evasion ?? stats.evasion}
@@ -282,10 +294,14 @@ export default function ItemTooltip({
 						)}
 						{"barrier" in stats && (
 							<div className="flex justify-between">
-								<span className="text-[#7f7f7f]">Barrier:</span>
+								<span style={{ color: LABEL_COLOR }}>Barrier</span>
 								<span
 									style={{
-										color: defense?.barrier != null ? MODIFIED_COLOR : "white",
+										color:
+											defense?.barrier != null &&
+											defense.barrier !== stats.barrier
+												? MODIFIED_COLOR
+												: "white",
 									}}
 								>
 									{defense?.barrier ?? stats.barrier}
@@ -294,11 +310,14 @@ export default function ItemTooltip({
 						)}
 						{"blockChance" in stats && (
 							<div className="flex justify-between">
-								<span className="text-[#7f7f7f]">Block Chance:</span>
+								<span style={{ color: LABEL_COLOR }}>Block Chance</span>
 								<span
 									style={{
 										color:
-											defense?.blockChance != null ? MODIFIED_COLOR : "white",
+											defense?.blockChance != null &&
+											defense.blockChance !== stats.blockChance
+												? MODIFIED_COLOR
+												: "white",
 									}}
 								>
 									{defense?.blockChance ?? stats.blockChance}%
@@ -317,7 +336,7 @@ export default function ItemTooltip({
 						{item.implicits.map((mod) => (
 							<div
 								key={`${mod.description}:${mod.value}`}
-								className="text-[#8888ff]"
+								style={{ color: MODIFIED_COLOR }}
 							>
 								{localizeImplicit(mod)}
 							</div>
@@ -333,11 +352,11 @@ export default function ItemTooltip({
 					{item.explicits.map((mod) => (
 						<div
 							key={`${mod.modifierId}:${mod.value}:${mod.tier}`}
-							className="text-[#8888ff]"
+							style={{ color: MODIFIED_COLOR }}
 						>
 							{localizeMod(mod)}
 							{!mod.isGlobalStat && mod.modifierType === "increased" && (
-								<span className="text-[#5f5f7f]"> (Local)</span>
+								<span style={{ color: "rgba(136, 136, 255, 0.5)" }}> (Local)</span>
 							)}
 						</div>
 					))}
@@ -351,7 +370,10 @@ export default function ItemTooltip({
 					item.requirements.int) && (
 					<>
 						<Separator />
-						<div className="px-4 py-1 text-xs text-[#7f7f7f]">
+						<div
+							className="px-4 py-1 text-xs uppercase tracking-wider"
+							style={{ color: DIM_COLOR }}
+						>
 							<span>Requires </span>
 							{[
 								item.requirements.level > 1 &&
@@ -368,7 +390,10 @@ export default function ItemTooltip({
 
 			{/* Item level */}
 			<Separator />
-			<div className="px-4 py-1 pb-2 text-xs text-[#7f7f7f]">
+			<div
+				className="px-4 py-1 pb-2 text-xs uppercase tracking-wider"
+				style={{ color: DIM_COLOR }}
+			>
 				Item Level: <span className="text-white">{item.itemLevel}</span>
 			</div>
 		</div>

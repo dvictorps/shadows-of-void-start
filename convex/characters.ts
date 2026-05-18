@@ -31,6 +31,11 @@ function normalize(char: Doc<"characters">) {
 		hardcore: char.hardcore ?? false,
 		equippedWeaponId: char.equippedWeaponId,
 		currentZoneSession: char.currentZoneSession,
+		// Travel system defaults: new characters start in the city, not traveling.
+		currentLocation: char.currentLocation ?? "city",
+		travelDestination: char.travelDestination,
+		travelStartedAt: char.travelStartedAt,
+		travelArrivesAt: char.travelArrivesAt,
 	}
 }
 
@@ -104,6 +109,7 @@ export const create = mutation({
 			potions: STARTING_POTIONS,
 			hardcore: args.hardcore ?? false,
 			createdAt: Date.now(),
+			currentLocation: "city",
 		})
 
 		// Create the starter item entry in the items table so equip lifecycle is

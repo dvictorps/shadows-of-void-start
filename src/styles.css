@@ -253,6 +253,15 @@ pre code {
     0 0 28px rgba(59, 130, 246, 0.45);
 }
 
+@keyframes travel-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
