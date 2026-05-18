@@ -5,6 +5,7 @@ export type DamageEvent = {
 	amount: number;
 	target: "player" | "enemy";
 	isCrit?: boolean;
+	isMiss?: boolean;
 };
 
 const EVENT_LIFETIME_MS = 900;

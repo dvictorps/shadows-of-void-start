@@ -264,17 +264,6 @@ pre code {
   }
 }
 
-@keyframes damage-float {
-  0% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-50px);
-  }
-}
-
 /* Scoped scrollbar styling — rounded white-ish thumb on transparent track,
    thin width. Applied to .fancy-scroll containers (inventory, loot bags). */
 .fancy-scroll {

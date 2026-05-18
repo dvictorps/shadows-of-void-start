@@ -13,5 +13,5 @@ export function findNode(act: Act, nodeId: string): WorldNode | null {
 	return act.nodes.find((n) => n.id === nodeId) ?? null;
 }
 
-export { ACT_1 };
 export type { Act, NodeKind, WorldNode } from "./types";
+export { ACT_1 };

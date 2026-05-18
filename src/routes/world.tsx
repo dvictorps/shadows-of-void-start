@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
+import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -11,14 +12,23 @@ import ExitZoneModal from "#/components/world/ExitZoneModal";
 import InventoryModal from "#/components/world/InventoryModal";
 import MapScene from "#/components/world/MapScene";
 import SettingsModal from "#/components/world/SettingsModal";
+import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import { findClassDefinition } from "#/game/classes/data";
-import { findStarterItem } from "#/game/items/starter-gear";
-import { computeMaxHp, xpToNextLevel } from "#/game/progression/levels";
+import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
+import { xpToNextLevel } from "#/game/progression/levels";
+import { computeCharacterStats } from "#/game/stats/compute";
+import {
+	type EquippedItem,
+	type EquippedSlot,
+	narrowEquippedSlot,
+} from "#/game/stats/types";
 import { ACT_1, findNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
+import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
+import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useModal } from "#/hooks/useModal";
 import { m } from "#/paraglide/messages";
 import { api } from "../../convex/_generated/api";
@@ -67,12 +77,97 @@ function WorldView() {
 type ViewMode = "map" | "city" | "combat";
 
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
+	const navigate = useNavigate();
+	const confirm = useConfirmationModal();
 	const classDef = findClassDefinition(character.classId);
 	const enterCity = useMutation(api.characters.enterCity);
 	const enterZone = useMutation(api.characters.enterZone);
-	const exitZone = useMutation(api.characters.exitZone);
-	const pickFromBag = useMutation(api.characters.pickFromBag);
-	const discardFromBag = useMutation(api.characters.discardFromBag);
+	const exitZone = useMutation(api.characters.exitZone).withOptimisticUpdate(
+		(localStore, args) => {
+			// On commit, the bag goes to zero and `keepIds` items become inventory
+			// docs. Mirror that locally so the modal can auto-close immediately.
+			const bagKey = { characterId: args.characterId };
+			const bag = localStore.getQuery(api.characters.zoneBag, bagKey);
+			if (bag) localStore.setQuery(api.characters.zoneBag, bagKey, []);
+			const keep = new Set(args.keepIds.map((id) => id.toString()));
+			const keptDocs = (bag ?? []).filter((it) => keep.has(it._id.toString()));
+			if (keptDocs.length === 0) return;
+			const inv = localStore.getQuery(api.characters.inventory, bagKey) ?? [];
+			const occupied = new Set<number>();
+			for (const it of inv) {
+				if (typeof it.inventorySlot === "number")
+					occupied.add(it.inventorySlot);
+			}
+			let cursor = 0;
+			const nextFreeSlot = (): number => {
+				while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
+				if (cursor >= INVENTORY_MAX_SLOTS) return -1;
+				const s = cursor++;
+				occupied.add(s);
+				return s;
+			};
+			const moved = keptDocs.map((d) => ({
+				...d,
+				locationKind: "inventory" as const,
+				zoneSession: undefined,
+				inventorySlot: nextFreeSlot(),
+			}));
+			localStore.setQuery(
+				api.characters.inventory,
+				bagKey,
+				[...inv, ...moved].sort(bySlotAsc),
+			);
+		},
+	);
+	const pickFromBag = useMutation(
+		api.characters.pickFromBag,
+	).withOptimisticUpdate((localStore, args) => {
+		const bagKey = { characterId: args.characterId };
+		const bag = localStore.getQuery(api.characters.zoneBag, bagKey);
+		if (!bag) return;
+		const idSet = new Set(args.itemIds.map((id) => id.toString()));
+		const picked = bag.filter((it) => idSet.has(it._id.toString()));
+		if (picked.length === 0) return;
+		const remaining = bag.filter((it) => !idSet.has(it._id.toString()));
+		localStore.setQuery(api.characters.zoneBag, bagKey, remaining);
+		const inv = localStore.getQuery(api.characters.inventory, bagKey) ?? [];
+		const occupied = new Set<number>();
+		for (const it of inv) {
+			if (typeof it.inventorySlot === "number") occupied.add(it.inventorySlot);
+		}
+		let cursor = 0;
+		const nextFreeSlot = (): number => {
+			while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
+			if (cursor >= INVENTORY_MAX_SLOTS) return -1;
+			const s = cursor++;
+			occupied.add(s);
+			return s;
+		};
+		const moved = picked.map((d) => ({
+			...d,
+			locationKind: "inventory" as const,
+			zoneSession: undefined,
+			inventorySlot: nextFreeSlot(),
+		}));
+		localStore.setQuery(
+			api.characters.inventory,
+			bagKey,
+			[...inv, ...moved].sort(bySlotAsc),
+		);
+	});
+	const discardFromBag = useMutation(
+		api.characters.discardFromBag,
+	).withOptimisticUpdate((localStore, args) => {
+		const bagKey = { characterId: args.characterId };
+		const bag = localStore.getQuery(api.characters.zoneBag, bagKey);
+		if (!bag) return;
+		const idSet = new Set(args.itemIds.map((id) => id.toString()));
+		localStore.setQuery(
+			api.characters.zoneBag,
+			bagKey,
+			bag.filter((it) => !idSet.has(it._id.toString())),
+		);
+	});
 	const respawnDead = useMutation(api.characters.respawnDead);
 
 	const [view, setView] = useState<ViewMode>("map");
@@ -84,6 +179,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const exitModal = useModal();
 	const inventoryModal = useModal();
 	const settingsModal = useModal();
+	const statsModal = useModal();
 	const wantsBag = view === "combat" || exitModal.isOpen;
 	const zoneBag = useQuery(
 		api.characters.zoneBag,
@@ -92,18 +188,63 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const currentNode = currentNodeId ? findNode(ACT_1, currentNodeId) : null;
 	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
 
-	const maxHp = computeMaxHp(classDef, character.level);
-	const weapon = useMemo(
-		() =>
-			character.equippedWeapon
-				? findStarterItem(character.equippedWeapon)
-				: null,
-		[character.equippedWeapon],
+	// Always-on subscriptions (lifted from InventoryModal so the queries are
+	// warm whenever the modal opens — no flicker on first open). Combined with
+	// the localStorage cache below, cold reloads also render last-known data
+	// instantly.
+	const liveEquipped = useQuery(api.characters.equipped, {
+		characterId: character._id,
+	});
+	const liveInventory = useQuery(api.characters.inventory, {
+		characterId: character._id,
+	});
+	const equippedItems = useCachedQuery(
+		`equipped:${character._id}`,
+		liveEquipped,
 	);
+	const inventoryItems = useCachedQuery(
+		`inventory:${character._id}`,
+		liveInventory,
+	);
+
+	const equippedSnapshot: EquippedItem[] = useMemo(() => {
+		const out: EquippedItem[] = [];
+		for (const item of equippedItems ?? []) {
+			const slot = narrowEquippedSlot(item.equippedSlot);
+			if (!slot) continue;
+			out.push({ slot, item: item.data });
+		}
+		return out;
+	}, [equippedItems]);
+
+	const stats = useMemo(
+		() =>
+			computeCharacterStats({
+				classDef,
+				level: character.level,
+				equippedItems: equippedSnapshot,
+			}),
+		[classDef, character.level, equippedSnapshot],
+	);
+
+	const maxHp = stats.maxLife;
+	const equippedBySlot = useMemo<
+		ReadonlyMap<EquippedSlot, { id: string; data: EquippedItem["item"] }>
+	>(() => {
+		const map = new Map<
+			EquippedSlot,
+			{ id: string; data: EquippedItem["item"] }
+		>();
+		for (const eq of equippedSnapshot) {
+			map.set(eq.slot, { id: eq.item.id, data: eq.item });
+		}
+		return map;
+	}, [equippedSnapshot]);
 	const monsterPool = useMemo(
 		() => currentNode?.monsterPool ?? [],
 		[currentNode],
 	);
+	const zoneLevel = currentNode?.level ?? character.level;
 
 	const handlePlayerDeath = useCallback(async () => {
 		try {
@@ -127,11 +268,11 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const combat = useCombatLoop({
 		characterId: character._id,
-		maxHp,
+		stats,
 		initialHp: character.hpCurrent ?? maxHp,
 		initialPotions: character.potions ?? 0,
-		weapon,
 		monsterPool,
+		zoneLevel,
 		// Pause combat while the loot picker is open so the player can't die
 		// mid-selection from a goblin they've already retreated from.
 		active: view === "combat" && !exitModal.isOpen,
@@ -201,21 +342,61 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		exitModal.close();
 	};
 
-	const logMessage =
-		deathLog ??
-		(view === "map" && hoveredNode
-			? translateNodeName(hoveredNode)
-			: view !== "map" && currentNode
-				? m.inside_zone({ zone: translateNodeName(currentNode) })
-				: undefined);
+	// TextLog priority: death > XP gain > low-HP warning > hovered node
+	// (map view) > current zone (combat/city) > generic fallback. Returns a
+	// tone so the UI can color the message.
+	const lowHpThreshold = maxHp * 0.3;
+	const isLowHp =
+		view === "combat" &&
+		combat.playerHp > 0 &&
+		combat.playerHp < lowHpThreshold;
+	let logMessage: string | undefined;
+	let logTone: "info" | "warning" | "success" | "danger" = "info";
+	if (deathLog) {
+		logMessage = deathLog;
+		logTone = "danger";
+	} else if (combat.lastXpGain !== null) {
+		logMessage = m.xp_gained_from_kill({ amount: combat.lastXpGain });
+		logTone = "success";
+	} else if (isLowHp) {
+		logMessage =
+			combat.potions > 0 ? m.low_hp_use_potion() : m.low_hp_no_potions();
+		logTone = "warning";
+	} else if (view === "map" && hoveredNode) {
+		logMessage = translateNodeName(hoveredNode);
+	} else if (view !== "map" && currentNode) {
+		logMessage = m.inside_zone({ zone: translateNodeName(currentNode) });
+	}
 
 	const hpOverride = view === "combat" ? combat.playerHp : undefined;
 	const potionsOverride = view === "combat" ? combat.potions : undefined;
 	const onUsePotion =
 		view === "combat" || view === "map" ? combat.usePotion : undefined;
 
+	const handleLeaveWorld = async () => {
+		const ok = await confirm({
+			title: m.leave_world_title(),
+			message: m.leave_world_message(),
+			confirmLabel: m.leave_world_confirm(),
+			cancelLabel: m.cancel(),
+		});
+		if (!ok) return;
+		void navigate({ to: "/character-select" });
+	};
+
 	return (
 		<main className="relative grid h-screen grid-cols-[1fr_640px] gap-3 overflow-hidden bg-black p-3 text-white">
+			{view !== "combat" && (
+				<button
+					type="button"
+					onClick={handleLeaveWorld}
+					aria-label={m.leave_world_back_label()}
+					className="absolute top-5 left-5 z-20 inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+				>
+					<ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
+					{m.back()}
+				</button>
+			)}
 			<div className="grid grid-rows-[1fr_160px] gap-3 overflow-hidden">
 				{view === "map" && (
 					<MapScene
@@ -251,17 +432,24 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						onOpenBag={bagModal.open}
 					/>
 				)}
-				<TextLog message={logMessage} />
+				<TextLog message={logMessage} tone={logTone} />
 			</div>
 
 			<aside className="grid grid-rows-[1fr_auto] gap-3">
-				<EquipmentPanel weapon={weapon} onOpenInventory={inventoryModal.open} />
+				<EquipmentPanel
+					equippedBySlot={equippedBySlot}
+					stats={stats}
+					characterLevel={character.level}
+					onOpenInventory={inventoryModal.open}
+				/>
 				<StatusCard
 					character={character}
 					classDef={classDef}
+					stats={stats}
 					hpOverride={hpOverride}
 					potionsOverride={potionsOverride}
 					onUsePotion={onUsePotion}
+					onShowStats={statsModal.open}
 				/>
 			</aside>
 
@@ -279,10 +467,22 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				onDiscardAll={handleDiscardAll}
 				bagItems={zoneBag ?? []}
 			/>
+			<ShowStatsModal
+				isOpen={statsModal.isOpen}
+				onClose={statsModal.close}
+				stats={stats}
+				referenceEnemyLevel={zoneLevel}
+				currentBarrier={combat.barrier.current}
+				currentLife={combat.playerHp}
+			/>
 			<InventoryModal
 				isOpen={inventoryModal.isOpen}
 				onClose={inventoryModal.close}
 				characterId={character._id}
+				stats={stats}
+				characterLevel={character.level}
+				equippedItems={equippedItems ?? []}
+				inventoryItems={inventoryItems ?? []}
 			/>
 			<SettingsModal
 				isOpen={settingsModal.isOpen}

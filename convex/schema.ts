@@ -21,10 +21,9 @@ export default defineSchema({
 		hpCurrent: v.optional(v.number()),
 		potions: v.optional(v.number()),
 		hardcore: v.optional(v.boolean()),
-		// LEGACY: pre-loot starter-item string id. New code reads equippedWeaponId.
-		// Kept optional so existing dev characters don't fail validation.
-		equippedWeapon: v.optional(v.string()),
-		// New canonical reference into the items table.
+		// Denormalized pointer to the equipped weapon's items-table Doc.
+		// The items table is the source of truth; this is a cached id for fast
+		// "what weapon does this character have" lookups.
 		equippedWeaponId: v.optional(v.id("items")),
 		// Active zone session id (nanoid). Set on enterZone, cleared on exitZone or death.
 		// Items in items table with location.zoneSession === this value belong to the bag.
@@ -50,7 +49,20 @@ export default defineSchema({
 		// zoneBag only: which session of which zone — used to wipe on death/commit
 		zoneSession: v.optional(v.string()),
 		// equipped only: which slot the item occupies
-		equippedSlot: v.optional(v.string()),
+		equippedSlot: v.optional(
+			v.union(
+				v.literal("weapon"),
+				v.literal("offhand"),
+				v.literal("helmet"),
+				v.literal("chestplate"),
+				v.literal("boots"),
+				v.literal("gloves"),
+				v.literal("amulet"),
+				v.literal("belt"),
+				v.literal("ring1"),
+				v.literal("ring2"),
+			),
+		),
 		// stash only: which mode-scoped stash the item lives in
 		stashMode: v.optional(
 			v.union(v.literal("softcore"), v.literal("hardcore")),

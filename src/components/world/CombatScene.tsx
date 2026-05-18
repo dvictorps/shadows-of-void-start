@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
@@ -129,9 +130,11 @@ export default function CombatScene({
 
 				{/* Damage popups stacked over enemy */}
 				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-					{enemyEvents.map((event) => (
-						<FloatingDamage key={event.id} event={event} />
-					))}
+					<AnimatePresence>
+						{enemyEvents.map((event) => (
+							<FloatingDamage key={event.id} event={event} />
+						))}
+					</AnimatePresence>
 				</div>
 			</div>
 
@@ -141,9 +144,11 @@ export default function CombatScene({
 					<HealthGlobe hp={playerHp} maxHp={maxHp} size="lg" />
 					{/* Damage popups over the globe */}
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-						{playerEvents.map((event) => (
-							<FloatingDamage key={event.id} event={event} variant="player" />
-						))}
+						<AnimatePresence>
+							{playerEvents.map((event) => (
+								<FloatingDamage key={event.id} event={event} variant="player" />
+							))}
+						</AnimatePresence>
 					</div>
 				</div>
 
@@ -200,6 +205,16 @@ function EnemyHpBar({ current, max }: { current: number; max: number }) {
 	);
 }
 
+// Lightweight deterministic hash from the event id so popups stay put across
+// re-renders (otherwise Math.random() would jitter every frame).
+function hashSeed(id: string): number {
+	let h = 0;
+	for (let i = 0; i < id.length; i++) {
+		h = (h * 31 + id.charCodeAt(i)) | 0;
+	}
+	return (h >>> 0) / 0xffffffff;
+}
+
 function FloatingDamage({
 	event,
 	variant = "enemy",
@@ -207,21 +222,75 @@ function FloatingDamage({
 	event: DamageEvent;
 	variant?: "enemy" | "player";
 }) {
-	const color = event.isCrit
-		? "text-yellow-300"
-		: variant === "player"
-			? "text-red-400"
-			: "text-white";
+	const seed = hashSeed(event.id);
+	const isCrit = event.isCrit && !event.isMiss;
+
+	// Random direction angle, biased upward. A normal hit picks any vector in
+	// roughly the top hemisphere (slightly outside the emoji); crits stay
+	// dramatic with a near-vertical arc.
+	const angle = isCrit
+		? -Math.PI / 2 + (seed - 0.5) * 0.4 // ±0.2 rad off straight up
+		: -Math.PI / 2 + (seed - 0.5) * 1.8; // wider spread for normal hits
+	const distance = isCrit ? 90 : 70;
+	const endX = Math.cos(angle) * distance;
+	const endY = Math.sin(angle) * distance;
+	// Start the popup just outside the emoji center so it's visible immediately.
+	const startOffset = isCrit ? 12 : 24;
+	const startX = Math.cos(angle) * startOffset;
+	const startY = Math.sin(angle) * startOffset;
+
+	const color = event.isMiss
+		? "text-white/60"
+		: isCrit
+			? "text-yellow-200"
+			: variant === "player"
+				? "text-red-400"
+				: "text-white";
+
+	if (isCrit) {
+		return (
+			<motion.div
+				className="pointer-events-none absolute select-none"
+				style={{ textShadow: "0 2px 4px rgba(0,0,0,0.9)" }}
+				initial={{ opacity: 0, x: startX, y: startY, scale: 0.5 }}
+				animate={{
+					opacity: [0, 1, 1, 0],
+					x: [startX, startX + (endX - startX) * 0.3, endX],
+					y: [startY, startY + (endY - startY) * 0.3, endY],
+					scale: [0.5, 1.5, 1.2, 1.0],
+				}}
+				exit={{ opacity: 0 }}
+				transition={{
+					duration: 1.1,
+					times: [0, 0.2, 0.6, 1],
+					ease: "easeOut",
+				}}
+			>
+				<div className="-translate-x-1/2 -top-5 absolute left-1/2 whitespace-nowrap text-center font-bold text-[10px] uppercase tracking-[0.25em] text-yellow-300">
+					CRIT
+				</div>
+				<span className={`block font-bold text-5xl ${color}`}>
+					{event.amount}!
+				</span>
+			</motion.div>
+		);
+	}
+
+	// Normal hit / miss — single direction, fade out quickly, no scaling.
 	return (
-		<span
-			className={`pointer-events-none absolute select-none text-3xl font-bold ${color}`}
-			style={{
-				animation: "damage-float 900ms ease-out forwards",
-				textShadow: "0 2px 4px rgba(0,0,0,0.9)",
-			}}
+		<motion.div
+			className="pointer-events-none absolute select-none"
+			style={{ textShadow: "0 2px 4px rgba(0,0,0,0.9)" }}
+			initial={{ opacity: 1, x: startX, y: startY }}
+			animate={{ opacity: 0, x: endX, y: endY }}
+			exit={{ opacity: 0 }}
+			transition={{ duration: 0.6, ease: "easeOut" }}
 		>
-			{event.amount}
-			{event.isCrit && "!"}
-		</span>
+			<span
+				className={`block font-bold ${event.isMiss ? "text-xl uppercase tracking-wider" : "text-3xl"} ${color}`}
+			>
+				{event.isMiss ? "MISS" : event.amount}
+			</span>
+		</motion.div>
 	);
 }

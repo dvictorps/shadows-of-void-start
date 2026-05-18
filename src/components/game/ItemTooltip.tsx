@@ -1,3 +1,4 @@
+import { localizeImplicit, localizeMod } from "#/game/items/mod-i18n";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 
 const RARITY_COLORS: Record<ItemRarity, string> = {
@@ -90,7 +91,13 @@ function getModifiedStats(item: GeneratedItem): Set<string> {
 	return modified;
 }
 
-export default function ItemTooltip({ item }: { item: GeneratedItem }) {
+export default function ItemTooltip({
+	item,
+	brokenReasons,
+}: {
+	item: GeneratedItem;
+	brokenReasons?: string[];
+}) {
 	const nameColor = RARITY_COLORS[item.rarity];
 	const headerBg = RARITY_HEADER_BG[item.rarity];
 	const showGeneratedName = HAS_GENERATED_NAME.has(item.rarity);
@@ -130,6 +137,15 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 			{/* Accent line for legendary/epic */}
 			{showGlow && (
 				<div className="h-[2px]" style={{ backgroundColor: nameColor }} />
+			)}
+
+			{/* Broken-state warning band — overrides the rarity accent above it. */}
+			{brokenReasons && brokenReasons.length > 0 && (
+				<div className="bg-red-900/40 px-4 py-1 text-xs font-bold text-red-300">
+					{brokenReasons.map((r) => (
+						<div key={r}>{r}</div>
+					))}
+				</div>
 			)}
 
 			{/* Corner ornaments for rare+ */}
@@ -298,9 +314,12 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 			{item.implicits.length > 0 && (
 				<>
 					<div className="space-y-0.5 px-4 py-1">
-						{item.implicits.map((mod, i) => (
-							<div key={i} className="text-[#8888ff]">
-								{mod.description}
+						{item.implicits.map((mod) => (
+							<div
+								key={`${mod.description}:${mod.value}`}
+								className="text-[#8888ff]"
+							>
+								{localizeImplicit(mod)}
 							</div>
 						))}
 					</div>
@@ -311,9 +330,12 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 			{/* Explicit mods */}
 			{item.explicits.length > 0 && (
 				<div className="space-y-0.5 px-4 py-1">
-					{item.explicits.map((mod, i) => (
-						<div key={i} className="text-[#8888ff]">
-							{mod.description}
+					{item.explicits.map((mod) => (
+						<div
+							key={`${mod.modifierId}:${mod.value}:${mod.tier}`}
+							className="text-[#8888ff]"
+						>
+							{localizeMod(mod)}
 							{!mod.isGlobalStat && mod.modifierType === "increased" && (
 								<span className="text-[#5f5f7f]"> (Local)</span>
 							)}

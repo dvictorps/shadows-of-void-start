@@ -1,24 +1,93 @@
-import ItemTooltip from "#/components/game/ItemTooltip";
-import type { GeneratedItem } from "#/game/items/types";
-import type { EquipmentType, WeaponType } from "#/game/items/types/base";
+import ItemCard, {
+	BROKEN_BORDER,
+	BROKEN_GLOW,
+	RARITY_BORDER,
+	RARITY_GLOW,
+} from "#/components/game/ItemCard";
+import { describeBrokenReasons } from "#/game/stats/compute";
+import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
+import { m } from "#/paraglide/messages";
 import InventoryButton from "./InventoryButton";
 
 type Props = {
-	weapon?: GeneratedItem | null;
+	equippedBySlot: ReadonlyMap<
+		EquippedSlot,
+		{ id: string; data: import("#/game/items/types").GeneratedItem }
+	>;
+	stats: ComputedCharacterStats;
+	characterLevel: number;
 	onOpenInventory?: () => void;
 };
 
-type SlotArea =
-	| "helmet"
-	| "amulet"
-	| "weapon"
-	| "body"
-	| "offhand"
-	| "ring1"
-	| "ring2"
-	| "belt"
-	| "gloves"
-	| "boots";
+type SlotConfig = {
+	slot: EquippedSlot;
+	area: string;
+	label: () => string;
+	size: { w: number; h: number };
+};
+
+const SLOT_CONFIG: SlotConfig[] = [
+	{
+		slot: "helmet",
+		area: "helmet",
+		label: m.slot_label_helmet,
+		size: { w: 120, h: 120 },
+	},
+	{
+		slot: "amulet",
+		area: "amulet",
+		label: m.slot_label_amulet,
+		size: { w: 80, h: 80 },
+	},
+	{
+		slot: "weapon",
+		area: "weapon",
+		label: m.slot_label_weapon,
+		size: { w: 120, h: 170 },
+	},
+	{
+		slot: "chestplate",
+		area: "body",
+		label: m.slot_label_chestplate,
+		size: { w: 120, h: 170 },
+	},
+	{
+		slot: "offhand",
+		area: "offhand",
+		label: m.slot_label_offhand,
+		size: { w: 120, h: 170 },
+	},
+	{
+		slot: "ring1",
+		area: "ring1",
+		label: m.slot_label_ring,
+		size: { w: 80, h: 80 },
+	},
+	{
+		slot: "belt",
+		area: "belt",
+		label: m.slot_label_belt,
+		size: { w: 120, h: 50 },
+	},
+	{
+		slot: "ring2",
+		area: "ring2",
+		label: m.slot_label_ring,
+		size: { w: 80, h: 80 },
+	},
+	{
+		slot: "gloves",
+		area: "gloves",
+		label: m.slot_label_gloves,
+		size: { w: 120, h: 120 },
+	},
+	{
+		slot: "boots",
+		area: "boots",
+		label: m.slot_label_boots,
+		size: { w: 120, h: 120 },
+	},
+];
 
 const SLOT_GRID_STYLE = {
 	gridTemplateColumns: "120px 120px 120px",
@@ -31,50 +100,33 @@ const SLOT_GRID_STYLE = {
 	`,
 } as const;
 
-// Emoji used for each weapon subtype when no art asset exists yet.
-const WEAPON_EMOJI: Record<WeaponType, string> = {
-	sword: "🗡️",
-	greatsword: "⚔️",
-	dagger: "🔪",
-	bow: "🏹",
-	axe: "🪓",
-	mace: "🔨",
-	twoHandedAxe: "🪓",
-	staff: "🦯",
-	wand: "🪄",
-};
-
-export default function EquipmentPanel({ weapon, onOpenInventory }: Props) {
-	const weaponEmoji = weapon?.weaponType
-		? WEAPON_EMOJI[weapon.weaponType]
-		: null;
-
+export default function EquipmentPanel({
+	equippedBySlot,
+	stats,
+	characterLevel,
+	onOpenInventory,
+}: Props) {
 	return (
 		<section className="relative rounded-md border border-white/40 p-3">
 			<div className="flex h-full items-center justify-center">
 				<div className="grid gap-2" style={SLOT_GRID_STYLE}>
-					<EquipmentSlot type="helmet" label="HELM" area="helmet" />
-					<EquipmentSlot
-						type="amulet"
-						label="AMU"
-						area="amulet"
-						w={80}
-						h={80}
-					/>
-					<EquipmentSlot
-						type="weapon"
-						label="WPN"
-						area="weapon"
-						item={weapon ?? null}
-						glyph={weaponEmoji}
-					/>
-					<EquipmentSlot type="chestplate" label="BODY" area="body" />
-					<EquipmentSlot type="offhand" label="OFF" area="offhand" />
-					<EquipmentSlot type="ring" label="RNG" area="ring1" w={80} h={80} />
-					<EquipmentSlot type="belt" label="BELT" area="belt" w={120} h={50} />
-					<EquipmentSlot type="ring" label="RNG" area="ring2" w={80} h={80} />
-					<EquipmentSlot type="gloves" label="GLV" area="gloves" />
-					<EquipmentSlot type="boots" label="BTS" area="boots" />
+					{SLOT_CONFIG.map((cfg) => {
+						const entry = equippedBySlot.get(cfg.slot);
+						const broken = entry ? stats.brokenItemIds.has(entry.id) : false;
+						const reasons =
+							broken && entry
+								? describeBrokenReasons(entry.data, stats, characterLevel)
+								: undefined;
+						return (
+							<EquipmentSlot
+								key={cfg.slot}
+								cfg={cfg}
+								item={entry?.data ?? null}
+								broken={broken}
+								brokenReasons={reasons}
+							/>
+						);
+					})}
 				</div>
 			</div>
 			<InventoryButton onClick={onOpenInventory} />
@@ -83,49 +135,47 @@ export default function EquipmentPanel({ weapon, onOpenInventory }: Props) {
 }
 
 function EquipmentSlot({
-	label,
-	area,
-	type,
-	w,
-	h,
+	cfg,
 	item,
-	glyph,
+	broken,
+	brokenReasons,
 }: {
-	label: string;
-	area: SlotArea;
-	type: EquipmentType;
-	w?: number;
-	h?: number;
-	item?: GeneratedItem | null;
-	glyph?: string | null;
+	cfg: SlotConfig;
+	item: import("#/game/items/types").GeneratedItem | null;
+	broken: boolean;
+	brokenReasons: string[] | undefined;
 }) {
-	const sized = w !== undefined && h !== undefined;
-	const hasItem = !!item;
+	const slotSize = Math.min(cfg.size.w, cfg.size.h);
+	// Paper-doll convention: the SLOT carries the rarity color + inset glow when
+	// filled. The ItemCard inside renders frameless so we don't get a doubled
+	// border. Empty slots stay neutral (border-white/30 + bg-black/40).
+	const frameClass = item
+		? `border-2 bg-black ${broken ? BROKEN_BORDER : RARITY_BORDER[item.rarity]} ${broken ? BROKEN_GLOW : RARITY_GLOW[item.rarity]}`
+		: "border border-white/30 bg-black/40";
 	return (
 		<div
-			data-slot={type}
-			data-slot-area={area}
+			data-slot={cfg.slot}
+			data-slot-area={cfg.area}
 			style={{
-				gridArea: area,
-				...(sized
-					? { width: w, height: h, placeSelf: "center" }
-					: { width: "100%", height: "100%" }),
+				gridArea: cfg.area,
+				width: cfg.size.w,
+				height: cfg.size.h,
+				placeSelf: "center",
 			}}
-			className="group relative flex items-center justify-center rounded-sm border border-white/30 bg-black/40"
+			className={`relative flex items-center justify-center rounded-md ${frameClass}`}
 		>
-			{hasItem && glyph ? (
-				<span role="img" aria-label={item?.name ?? label} className="text-3xl">
-					{glyph}
-				</span>
+			{item ? (
+				<ItemCard
+					item={item}
+					size={slotSize - 8}
+					broken={broken}
+					brokenReasons={brokenReasons}
+					frameless
+				/>
 			) : (
 				<span className="text-[10px] uppercase tracking-wider text-white/40">
-					{label}
+					{cfg.label()}
 				</span>
-			)}
-			{hasItem && item && (
-				<div className="pointer-events-none absolute top-0 right-full z-50 mr-2 hidden group-hover:block">
-					<ItemTooltip item={item} />
-				</div>
 			)}
 		</div>
 	);
