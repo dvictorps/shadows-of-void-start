@@ -421,11 +421,12 @@ time_seconds = max(0.5, distance / (1 + 2 × movementSpeed/100))
 The 2× coefficient on movement speed is intentional — boots can roll up to ~30% MS in early game and we want the player to *feel* that gear choice on the world map, not see a barely-perceptible improvement. The 0.5s floor keeps travel always visible.
 
 ### State on the character document
-Three fields capture the player's location on the act map:
+Four fields capture the player's location on the act map:
 
-- `currentLocation` — the node id the character is at. Defaults to `"city"` on character creation and on respawn.
-- `travelDestination` — set to the target node id at travel start; cleared on arrival. Mutually exclusive with `currentLocation` (during travel the character is "in transit", not at either node).
-- `travelArrivesAt` — Unix ms timestamp. The client uses this to schedule the auto-arrival mutation and to render the progress bar. Server validates it before allowing `arriveAtTravel` to complete.
+- `currentLocation` — the node id the character is at. Defaults to `"city"` on character creation and on respawn. **During travel it intentionally remains pointing at the source node** — that's what keeps the yellow "you are here" pin anchored to where the player departed from until arrival commits.
+- `travelDestination` — set to the target node id at travel start; cleared on arrival.
+- `travelStartedAt` — Unix ms timestamp the trip began. Used by the client to render the progress bar correctly even after a page refresh (without it, the bar would jump from 0 to 100% in the final second).
+- `travelArrivesAt` — Unix ms timestamp the trip completes. The client uses this to schedule the auto-arrival mutation. Server validates it (with a small grace window for clock skew) before allowing `arriveAtTravel` to complete.
 
 ### Behaviour rules
 - **Re-entering the same node is instant.** If the player retreats from a zone and clicks the same node again, no travel — they're already there.

@@ -34,6 +34,7 @@ function normalize(char: Doc<"characters">) {
 		// Travel system defaults: new characters start in the city, not traveling.
 		currentLocation: char.currentLocation ?? "city",
 		travelDestination: char.travelDestination,
+		travelStartedAt: char.travelStartedAt,
 		travelArrivesAt: char.travelArrivesAt,
 	}
 }

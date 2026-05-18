@@ -221,6 +221,7 @@ export const respawnDead = mutation({
 			// Respawn resets you to the city and clears any in-flight travel.
 			currentLocation: "city",
 			travelDestination: undefined,
+			travelStartedAt: undefined,
 			travelArrivesAt: undefined,
 		})
 		return { mode: "softcore" as const, xpLost }
@@ -310,6 +311,7 @@ export const startTravel = mutation({
 
 		await ctx.db.patch(args.characterId, {
 			travelDestination: args.destinationNodeId,
+			travelStartedAt: startedAt,
 			travelArrivesAt: arrivesAt,
 		})
 		return { startedAt, arrivesAt, durationMs: arrivesAt - startedAt }
@@ -345,6 +347,7 @@ export const arriveAtTravel = mutation({
 		await ctx.db.patch(args.characterId, {
 			currentLocation: char.travelDestination,
 			travelDestination: undefined,
+			travelStartedAt: undefined,
 			travelArrivesAt: undefined,
 		})
 		return { arrivedAt: char.travelDestination }

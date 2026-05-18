@@ -32,9 +32,13 @@ export default defineSchema({
 		// `currentLocation` is the node the character is "at". Defaults to "city"
 		// at character creation; set on travel arrival; reset to "city" on respawn.
 		currentLocation: v.optional(v.string()),
-		// `travelDestination` and `travelArrivesAt` are set together when a travel
-		// starts and cleared together on arrival. Both undefined = not traveling.
+		// `travelDestination`, `travelStartedAt`, `travelArrivesAt` are set together
+		// when a travel starts and cleared together on arrival. All undefined =
+		// not traveling. `currentLocation` is intentionally kept pointing at the
+		// source node during transit — the "you are here" pin stays where the
+		// player departed from until arrival commits.
 		travelDestination: v.optional(v.string()),
+		travelStartedAt: v.optional(v.number()),
 		travelArrivesAt: v.optional(v.number()),
 	}).index("by_authUserId", ["authUserId"]),
 

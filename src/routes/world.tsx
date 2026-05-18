@@ -493,7 +493,11 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			<TravelProgressBar
 				fromName={translateNodeName(travelFromNode)}
 				toName={translateNodeName(travelToNode)}
-				startedAtMs={travelStartedAt ?? travelArrivesAt - 1000}
+				startedAtMs={
+					character.travelStartedAt ??
+					travelStartedAt ??
+					travelArrivesAt - 1000
+				}
 				arrivesAtMs={travelArrivesAt}
 			/>
 		) : null;
