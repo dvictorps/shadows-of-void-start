@@ -1,3 +1,4 @@
+import { localizeImplicit, localizeMod } from "#/game/items/mod-i18n";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 
 const RARITY_COLORS: Record<ItemRarity, string> = {
@@ -313,9 +314,12 @@ export default function ItemTooltip({
 			{item.implicits.length > 0 && (
 				<>
 					<div className="space-y-0.5 px-4 py-1">
-						{item.implicits.map((mod, i) => (
-							<div key={i} className="text-[#8888ff]">
-								{mod.description}
+						{item.implicits.map((mod) => (
+							<div
+								key={`${mod.description}:${mod.value}`}
+								className="text-[#8888ff]"
+							>
+								{localizeImplicit(mod)}
 							</div>
 						))}
 					</div>
@@ -326,9 +330,12 @@ export default function ItemTooltip({
 			{/* Explicit mods */}
 			{item.explicits.length > 0 && (
 				<div className="space-y-0.5 px-4 py-1">
-					{item.explicits.map((mod, i) => (
-						<div key={i} className="text-[#8888ff]">
-							{mod.description}
+					{item.explicits.map((mod) => (
+						<div
+							key={`${mod.modifierId}:${mod.value}:${mod.tier}`}
+							className="text-[#8888ff]"
+						>
+							{localizeMod(mod)}
 							{!mod.isGlobalStat && mod.modifierType === "increased" && (
 								<span className="text-[#5f5f7f]"> (Local)</span>
 							)}

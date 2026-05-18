@@ -5,11 +5,19 @@ import { toast } from "sonner";
 import CreateCharacterModal from "#/components/CreateCharacterModal";
 import { Button } from "#/components/ui/button";
 import { findClassDefinition } from "#/game/classes/data";
+import type { CharacterClassId } from "#/game/classes/types";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useModal } from "#/hooks/useModal";
 import { convexErrorMessage } from "#/lib/convex-errors";
+import { m } from "#/paraglide/messages";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
+
+const CLASS_NAME: Record<CharacterClassId, () => string> = {
+	warrior: m.class_warrior_name,
+	rogue: m.class_rogue_name,
+	mage: m.class_mage_name,
+};
 
 export const Route = createFileRoute("/character-select")({
 	component: CharacterSelectPage,
@@ -36,19 +44,19 @@ function CharacterSelectPage() {
 
 	const handleDelete = async (char: Doc<"characters">) => {
 		const ok = await confirm({
-			title: "Delete character?",
-			message: `"${char.name}" will be permanently lost.`,
-			confirmLabel: "Delete",
-			cancelLabel: "Keep",
+			title: m.delete_character_title(),
+			message: m.delete_character_message({ name: char.name }),
+			confirmLabel: m.delete_action(),
+			cancelLabel: m.keep_action(),
 			variant: "destructive",
 		});
 		if (!ok) return;
 		try {
 			await removeCharacter({ id: char._id });
-			toast.success(`${char.name} deleted`);
+			toast.success(m.character_deleted_toast({ name: char.name }));
 			if (selectedId === char._id) setSelectedId(null);
 		} catch (err) {
-			toast.error(convexErrorMessage(err, "Failed to delete"));
+			toast.error(convexErrorMessage(err, m.delete_failed()));
 		}
 	};
 
@@ -62,7 +70,7 @@ function CharacterSelectPage() {
 			{isAdmin && (
 				<div className="absolute right-6 top-6 z-10">
 					<Link to="/admin" className="no-underline">
-						<Button variant="stark">Admin Dashboard</Button>
+						<Button variant="stark">{m.admin_dashboard()}</Button>
 					</Link>
 				</div>
 			)}
@@ -73,15 +81,15 @@ function CharacterSelectPage() {
 					<div className="mb-4 flex-1 overflow-hidden rounded-md border border-white/40">
 						{characters === undefined ? (
 							<div className="flex h-full items-center justify-center text-xs uppercase tracking-[0.2em] text-neutral-600">
-								Loading...
+								{m.loading()}
 							</div>
 						) : characters.length === 0 ? (
 							<div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
 								<p className="text-xs uppercase tracking-[0.2em] text-neutral-500">
-									No characters yet
+									{m.character_select_empty()}
 								</p>
 								<p className="text-sm text-white/60">
-									Click "Criar" below to create your first hero.
+									{m.character_select_empty_hint()}
 								</p>
 							</div>
 						) : (
@@ -107,7 +115,7 @@ function CharacterSelectPage() {
 							onClick={createModal.open}
 							className="px-3 py-2.5 uppercase tracking-wider"
 						>
-							Criar
+							{m.create_character_button()}
 						</Button>
 						<Button
 							type="button"
@@ -116,7 +124,7 @@ function CharacterSelectPage() {
 							disabled={!selected}
 							className="px-3 py-2.5 uppercase tracking-wider"
 						>
-							Jogar
+							{m.play_character_button()}
 						</Button>
 						<Link to="/" className="no-underline">
 							<Button
@@ -124,7 +132,7 @@ function CharacterSelectPage() {
 								variant="stark"
 								className="w-full px-3 py-2.5 uppercase tracking-wider"
 							>
-								Voltar
+								{m.back()}
 							</Button>
 						</Link>
 					</div>
@@ -152,7 +160,9 @@ function CharacterRow({
 	onDelete: () => void;
 }) {
 	const classDef = findClassDefinition(character.classId);
-	const className = classDef?.name ?? "Unknown";
+	const className = classDef
+		? CLASS_NAME[classDef.id as CharacterClassId]()
+		: m.unknown_class();
 
 	return (
 		<li>
@@ -170,7 +180,7 @@ function CharacterRow({
 						{character.name}
 					</div>
 					<div className="text-[10px] uppercase tracking-wider text-white/50">
-						LVL {character.level} · {className}
+						{m.character_row_level()} {character.level} · {className}
 					</div>
 				</div>
 				{selected && (
@@ -180,7 +190,7 @@ function CharacterRow({
 							e.stopPropagation();
 							onDelete();
 						}}
-						aria-label={`Delete ${character.name}`}
+						aria-label={m.delete_aria_label({ name: character.name })}
 						className="ml-3 shrink-0 border border-red-400/50 bg-black p-1.5 text-red-300 transition hover:border-red-400 hover:bg-red-950/40 hover:text-red-200"
 					>
 						<TrashIcon />

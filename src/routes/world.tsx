@@ -251,13 +251,31 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		exitModal.close();
 	};
 
-	const logMessage =
-		deathLog ??
-		(view === "map" && hoveredNode
-			? translateNodeName(hoveredNode)
-			: view !== "map" && currentNode
-				? m.inside_zone({ zone: translateNodeName(currentNode) })
-				: undefined);
+	// TextLog priority: death > XP gain > low-HP warning > hovered node
+	// (map view) > current zone (combat/city) > generic fallback. Returns a
+	// tone so the UI can color the message.
+	const lowHpThreshold = maxHp * 0.3;
+	const isLowHp =
+		view === "combat" &&
+		combat.playerHp > 0 &&
+		combat.playerHp < lowHpThreshold;
+	let logMessage: string | undefined;
+	let logTone: "info" | "warning" | "success" | "danger" = "info";
+	if (deathLog) {
+		logMessage = deathLog;
+		logTone = "danger";
+	} else if (combat.lastXpGain !== null) {
+		logMessage = m.xp_gained_from_kill({ amount: combat.lastXpGain });
+		logTone = "success";
+	} else if (isLowHp) {
+		logMessage =
+			combat.potions > 0 ? m.low_hp_use_potion() : m.low_hp_no_potions();
+		logTone = "warning";
+	} else if (view === "map" && hoveredNode) {
+		logMessage = translateNodeName(hoveredNode);
+	} else if (view !== "map" && currentNode) {
+		logMessage = m.inside_zone({ zone: translateNodeName(currentNode) });
+	}
 
 	const hpOverride = view === "combat" ? combat.playerHp : undefined;
 	const potionsOverride = view === "combat" ? combat.potions : undefined;
@@ -301,7 +319,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						onOpenBag={bagModal.open}
 					/>
 				)}
-				<TextLog message={logMessage} />
+				<TextLog message={logMessage} tone={logTone} />
 			</div>
 
 			<aside className="grid grid-rows-[1fr_auto] gap-3">
@@ -314,6 +332,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				<StatusCard
 					character={character}
 					classDef={classDef}
+					stats={stats}
 					hpOverride={hpOverride}
 					potionsOverride={potionsOverride}
 					onUsePotion={onUsePotion}

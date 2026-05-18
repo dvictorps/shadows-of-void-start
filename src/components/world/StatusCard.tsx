@@ -3,7 +3,8 @@ import type {
 	CharacterClassDefinition,
 	CharacterClassId,
 } from "#/game/classes/types";
-import { computeMaxHp, xpToNextLevel } from "#/game/progression/levels";
+import { xpToNextLevel } from "#/game/progression/levels";
+import type { ComputedCharacterStats } from "#/game/stats/types";
 import { m } from "#/paraglide/messages";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import HealthGlobe from "./HealthGlobe";
@@ -17,15 +18,31 @@ const CLASS_NAME: Record<CharacterClassId, () => string> = {
 type Props = {
 	character: Doc<"characters">;
 	classDef: CharacterClassDefinition | null;
+	stats: ComputedCharacterStats;
 	hpOverride?: number;
 	potionsOverride?: number;
 	onUsePotion?: () => void;
 	onShowStats?: () => void;
 };
 
+function estimateDps(stats: ComputedCharacterStats): number {
+	if (stats.swings.length === 0) return 0;
+	const avgPerSwing =
+		stats.swings.reduce((sum, s) => {
+			const phys = (s.physicalDamage.min + s.physicalDamage.max) / 2;
+			const elem = s.elementalDamage.reduce(
+				(t, e) => t + (e.min + e.max) / 2,
+				0,
+			);
+			return sum + phys + elem;
+		}, 0) / stats.swings.length;
+	return Math.round(avgPerSwing * stats.tickRate);
+}
+
 export default function StatusCard({
 	character,
 	classDef,
+	stats,
 	hpOverride,
 	potionsOverride,
 	onShowStats,
@@ -34,20 +51,16 @@ export default function StatusCard({
 	const classResolved = classDef
 		? CLASS_NAME[classDef.id as CharacterClassId]()
 		: "Unknown";
-	const attrs = classDef?.baseStats.attributes ?? {
-		strength: 0,
-		dexterity: 0,
-		intelligence: 0,
-	};
-	const maxHp = computeMaxHp(classDef, character.level);
+	const maxHp = stats.maxLife;
 	const hpServer = character.hpCurrent ?? maxHp;
 	const hp = hpOverride ?? hpServer;
 	const potions = potionsOverride ?? character.potions ?? 0;
 	const xp = character.xp ?? 0;
 	const xpNeeded = xpToNextLevel(character.level);
 	const xpPct = Math.min(100, (xp / xpNeeded) * 100);
-	const barrier = classDef?.baseStats.barrier ?? 0;
+	const barrier = stats.maxBarrier;
 	const canUsePotion = !!onUsePotion && potions > 0 && hp < maxHp;
+	const dps = estimateDps(stats);
 
 	return (
 		<section className="rounded-md border border-white/40 p-4">
@@ -66,18 +79,19 @@ export default function StatusCard({
 							{character.level}
 						</p>
 						<p className="text-sm text-white/80">
-							<span className="text-white/50">{m.status_dps_label()}</span> —
+							<span className="text-white/50">{m.status_dps_label()}</span>{" "}
+							{dps > 0 ? dps : "—"}
 						</p>
 					</div>
 					<div className="display-title space-y-1.5 text-right text-base tracking-wider">
 						<p className="text-glow-red">
-							{m.status_strength_label()} {attrs.strength}
+							{m.status_strength_label()} {stats.attributes.strength}
 						</p>
 						<p className="text-glow-green">
-							{m.status_dexterity_label()} {attrs.dexterity}
+							{m.status_dexterity_label()} {stats.attributes.dexterity}
 						</p>
 						<p className="text-glow-blue">
-							{m.status_intelligence_label()} {attrs.intelligence}
+							{m.status_intelligence_label()} {stats.attributes.intelligence}
 						</p>
 					</div>
 				</div>
@@ -134,7 +148,6 @@ export default function StatusCard({
 					</div>
 
 					<div className="flex justify-center gap-2">
-						<ConsumableSlot label="?" count={0} />
 						<ConsumableSlot label="?" count={0} />
 						<ConsumableSlot label="?" count={0} />
 					</div>
