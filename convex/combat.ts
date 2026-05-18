@@ -379,10 +379,26 @@ export const useTeleportStone = mutation({
 			await deleteZoneBag(ctx, char.currentZoneSession)
 		}
 
+		// Arriving at the city heals + refills potion to ≥1 — same contract as
+		// enterCity / respawnDead. Without this the panic-return drops you in
+		// the city at whatever HP you had, defeating the "safety" semantic.
+		const classDef = findClassDefinition(char.classId)
+		const equippedItems = await loadEquippedSet(ctx, args.characterId)
+		const stats = computeCharacterStats({
+			classDef,
+			level: char.level,
+			equippedItems,
+		})
+		const maxHp = stats.maxLife
+		const potions = char.potions ?? 0
+		const refilledPotions = potions === 0 ? 1 : potions
+
 		// "city" is in `unlockedNodes` by invariant (seeded on character
 		// create), so no append needed.
 		await ctx.db.patch(args.characterId, {
 			teleportStones: stones - 1,
+			hpCurrent: maxHp,
+			potions: refilledPotions,
 			currentLocation: "city",
 			currentZoneSession: undefined,
 			travelDestination: undefined,

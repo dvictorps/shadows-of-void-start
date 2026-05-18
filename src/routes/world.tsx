@@ -768,6 +768,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					teleportStones={character.teleportStones ?? 0}
 					windCrystals={character.windCrystals ?? 0}
 					onUsePotion={onUsePotion}
+					onUseTeleportStone={handleUseTeleportStone}
 					onShowStats={statsModal.open}
 				/>
 			</aside>
