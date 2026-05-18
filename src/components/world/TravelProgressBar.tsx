@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { m } from "#/paraglide/messages";
 
 type Props = {
@@ -9,13 +9,18 @@ type Props = {
 };
 
 /**
- * Bottom-pinned banner showing live travel progress. The fill bar is driven
- * by a pure CSS animation (60fps via the compositor) for smoothness — JS only
- * updates the seconds-remaining counter on a 500ms interval, which is plenty
- * for the second-level resolution shown to the player.
+ * Bottom-pinned banner showing live travel progress.
  *
- * `animation-delay` is negative-elapsed so a refresh mid-travel picks up at
- * the correct position instead of restarting from 0%.
+ * The fill bar is driven by a pure CSS keyframe animation on `transform:
+ * scaleX()` — GPU-composited, sub-pixel-smooth, and crucially independent
+ * of React re-renders. The animation style is memoized on the travel's
+ * timestamps so the `now` ticker driving the seconds-remaining text doesn't
+ * thrash the inline style and re-anchor the animation.
+ *
+ * `animation-delay` is the negative of the elapsed time at mount, so a
+ * refresh mid-travel picks up at the correct position instead of restarting
+ * from 0. We use `key={startedAtMs}` to guarantee a clean fresh mount of
+ * the bar element on each new trip.
  */
 export default function TravelProgressBar({
 	fromName,
@@ -30,8 +35,16 @@ export default function TravelProgressBar({
 		return () => window.clearInterval(id);
 	}, []);
 
-	const totalSeconds = Math.max(0.001, (arrivesAtMs - startedAtMs) / 1000);
-	const elapsedSeconds = Math.max(0, (now - startedAtMs) / 1000);
+	const animationStyle = useMemo(() => {
+		const totalSeconds = Math.max(0.001, (arrivesAtMs - startedAtMs) / 1000);
+		const elapsedSeconds = Math.max(0, (Date.now() - startedAtMs) / 1000);
+		return {
+			animation: `travel-fill ${totalSeconds}s linear forwards`,
+			animationDelay: `-${elapsedSeconds}s`,
+			transformOrigin: "left center" as const,
+		};
+	}, [startedAtMs, arrivesAtMs]);
+
 	const remainingSeconds = Math.max(0, Math.ceil((arrivesAtMs - now) / 1000));
 
 	return (
@@ -47,11 +60,9 @@ export default function TravelProgressBar({
 				</div>
 				<div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
 					<div
-						className="h-full bg-yellow-300"
-						style={{
-							animation: `travel-fill ${totalSeconds}s linear forwards`,
-							animationDelay: `-${elapsedSeconds}s`,
-						}}
+						key={startedAtMs}
+						className="h-full w-full bg-yellow-300"
+						style={animationStyle}
 					/>
 				</div>
 			</div>
