@@ -119,6 +119,30 @@ export function useCombatLoop({
 	const recordKill = useMutation(api.combat.recordKill);
 	const consumePotion = useMutation(api.combat.usePotion);
 
+	// Shared victory resolution. Fires the kill recap synchronously with the
+	// known XP, then patches in the potion-drop result when the server replies.
+	// Used both when the player swing kills and when thorns reflection kills.
+	const resolveKill = useCallback(
+		(enemyDef: MonsterDefinition) => {
+			stateRef.current = "victory";
+			const xpGained = enemyDef.xpReward;
+			setLastKill({ xp: xpGained, potion: false });
+			setState("victory");
+			recordKill({
+				characterId,
+				monsterId: enemyDef.id,
+			})
+				.then((result) => {
+					if (result.potionDropped) {
+						setLastKill({ xp: xpGained, potion: true });
+						setPotions((p) => p + 1);
+					}
+				})
+				.catch(() => {});
+		},
+		[characterId, recordKill],
+	);
+
 	// Keep barrier max in sync with the stat engine. Gear swaps mid-combat
 	// rescale rather than reset to full.
 	useEffect(() => {
@@ -277,24 +301,7 @@ export function useCombatLoop({
 					}
 
 					if (newEnemyHp <= 0) {
-						stateRef.current = "victory";
-						const xpGained = currentEnemy.def.xpReward;
-						// Synchronous baseline: XP is known from the monster def, potion
-						// drop is decided server-side. Patch in the potion result when
-						// the mutation resolves so the text log gets the recap.
-						setLastKill({ xp: xpGained, potion: false });
-						setState("victory");
-						recordKill({
-							characterId,
-							monsterId: currentEnemy.def.id,
-						})
-							.then((result) => {
-								if (result.potionDropped) {
-									setLastKill({ xp: xpGained, potion: true });
-									setPotions((p) => p + 1);
-								}
-							})
-							.catch(() => {});
+						resolveKill(currentEnemy.def);
 						return;
 					}
 				} else {
@@ -366,21 +373,7 @@ export function useCombatLoop({
 						isThorns: true,
 					});
 					if (enemyAfter <= 0) {
-						stateRef.current = "victory";
-						const xpGained = currentEnemy.def.xpReward;
-						setLastKill({ xp: xpGained, potion: false });
-						setState("victory");
-						recordKill({
-							characterId,
-							monsterId: currentEnemy.def.id,
-						})
-							.then((result) => {
-								if (result.potionDropped) {
-									setLastKill({ xp: xpGained, potion: true });
-									setPotions((p) => p + 1);
-								}
-							})
-							.catch(() => {});
+						resolveKill(currentEnemy.def);
 					}
 				}
 			}
