@@ -254,7 +254,10 @@ export default function ItemTooltip({
 				</>
 			)}
 
-			{/* Defence stats */}
+			{/* Defence stats — modified-color (blue) only when computed differs from
+			 * the template base. `computedDefenseStats` is always emitted for
+			 * armor pieces (since the silent-defense fix), so a mere existence
+			 * check would paint every defense value blue — compare values. */}
 			{hasDefenses && (
 				<>
 					<div className="space-y-0.5 px-4 py-1">
@@ -263,7 +266,10 @@ export default function ItemTooltip({
 								<span style={{ color: LABEL_COLOR }}>Armour</span>
 								<span
 									style={{
-										color: defense?.armor != null ? MODIFIED_COLOR : "white",
+										color:
+											defense?.armor != null && defense.armor !== stats.armor
+												? MODIFIED_COLOR
+												: "white",
 									}}
 								>
 									{defense?.armor ?? stats.armor}
@@ -275,7 +281,11 @@ export default function ItemTooltip({
 								<span style={{ color: LABEL_COLOR }}>Evasion Rating</span>
 								<span
 									style={{
-										color: defense?.evasion != null ? MODIFIED_COLOR : "white",
+										color:
+											defense?.evasion != null &&
+											defense.evasion !== stats.evasion
+												? MODIFIED_COLOR
+												: "white",
 									}}
 								>
 									{defense?.evasion ?? stats.evasion}
@@ -287,7 +297,11 @@ export default function ItemTooltip({
 								<span style={{ color: LABEL_COLOR }}>Barrier</span>
 								<span
 									style={{
-										color: defense?.barrier != null ? MODIFIED_COLOR : "white",
+										color:
+											defense?.barrier != null &&
+											defense.barrier !== stats.barrier
+												? MODIFIED_COLOR
+												: "white",
 									}}
 								>
 									{defense?.barrier ?? stats.barrier}
@@ -300,7 +314,10 @@ export default function ItemTooltip({
 								<span
 									style={{
 										color:
-											defense?.blockChance != null ? MODIFIED_COLOR : "white",
+											defense?.blockChance != null &&
+											defense.blockChance !== stats.blockChance
+												? MODIFIED_COLOR
+												: "white",
 									}}
 								>
 									{defense?.blockChance ?? stats.blockChance}%
