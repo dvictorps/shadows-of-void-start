@@ -12,9 +12,11 @@ import {
 	applyXpGain,
 } from "../src/game/progression/levels"
 import { computeCharacterStats } from "../src/game/stats/compute"
+import { WIND_CRYSTAL_TRAVEL_SECONDS } from "../src/game/combat/constants"
 import { ACT_1, findNode } from "../src/game/world"
 import { computeTravelTime } from "../src/game/world/travel"
 import {
+	appendUnique,
 	deleteZoneBag,
 	loadEquippedSet,
 	loadOwnedCharacter,
@@ -344,12 +346,116 @@ export const arriveAtTravel = mutation({
 			throw new ConvexError("Travel not complete")
 		}
 
+		// Append destination to the unlocked set on first arrival. Wind crystals
+		// later read this list to validate jump targets.
+		const unlocked = char.unlockedNodes ?? ["city"]
+		const nextUnlocked = appendUnique(unlocked, char.travelDestination)
+
 		await ctx.db.patch(args.characterId, {
 			currentLocation: char.travelDestination,
 			travelDestination: undefined,
 			travelStartedAt: undefined,
 			travelArrivesAt: undefined,
+			unlockedNodes: nextUnlocked,
 		})
 		return { arrivedAt: char.travelDestination }
+	},
+})
+
+// Teleport stone — instant return to the city, usable anywhere (map, zone,
+// combat). Wipes the current zone bag if one's active (panic-button trade
+// off: you escape but you abandon the loot). Decrements the consumable.
+export const useTeleportStone = mutation({
+	args: { characterId: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const stones = char.teleportStones ?? 0
+		if (stones <= 0) throw new ConvexError("No teleport stones")
+
+		if (char.currentZoneSession) {
+			await deleteZoneBag(ctx, char.currentZoneSession)
+		}
+
+		// Arriving at the city heals + refills potion to ≥1 — same contract as
+		// enterCity / respawnDead. Without this the panic-return drops you in
+		// the city at whatever HP you had, defeating the "safety" semantic.
+		const classDef = findClassDefinition(char.classId)
+		const equippedItems = await loadEquippedSet(ctx, args.characterId)
+		const stats = computeCharacterStats({
+			classDef,
+			level: char.level,
+			equippedItems,
+		})
+		const maxHp = stats.maxLife
+		const potions = char.potions ?? 0
+		const refilledPotions = potions === 0 ? 1 : potions
+
+		// "city" is in `unlockedNodes` by invariant (seeded on character
+		// create), so no append needed.
+		await ctx.db.patch(args.characterId, {
+			teleportStones: stones - 1,
+			hpCurrent: maxHp,
+			potions: refilledPotions,
+			currentLocation: "city",
+			currentZoneSession: undefined,
+			travelDestination: undefined,
+			travelStartedAt: undefined,
+			travelArrivesAt: undefined,
+		})
+		return { teleportStones: stones - 1 }
+	},
+})
+
+// Wind crystal — jump to any unlocked node with a fixed (movement-speed-
+// independent) travel duration. Conceptually you're skipping zones rather
+// than walking them; mechanically it routes through the same travel state
+// as `startTravel` so the existing arrival flow + progress bar work
+// unchanged. Map-view only (no usage during combat or in transit).
+export const useWindCrystal = mutation({
+	args: {
+		characterId: v.id("characters"),
+		destinationNodeId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const crystals = char.windCrystals ?? 0
+		if (crystals <= 0) throw new ConvexError("No wind crystals")
+		if (char.travelDestination !== undefined)
+			throw new ConvexError("Already traveling")
+		if (char.currentZoneSession !== undefined)
+			throw new ConvexError("Cannot use wind crystal during combat")
+
+		const fromId = char.currentLocation ?? "city"
+		if (fromId === args.destinationNodeId)
+			throw new ConvexError("Already at destination")
+
+		const destNode = findNode(ACT_1, args.destinationNodeId)
+		if (!destNode)
+			throw new ConvexError(`Unknown destination: ${args.destinationNodeId}`)
+
+		const unlocked = char.unlockedNodes ?? ["city"]
+		if (!unlocked.includes(args.destinationNodeId))
+			throw new ConvexError("Destination not yet unlocked")
+
+		const startedAt = Date.now()
+		const arrivesAt = startedAt + WIND_CRYSTAL_TRAVEL_SECONDS * 1000
+
+		await ctx.db.patch(args.characterId, {
+			windCrystals: crystals - 1,
+			travelDestination: args.destinationNodeId,
+			travelStartedAt: startedAt,
+			travelArrivesAt: arrivesAt,
+		})
+		return {
+			windCrystals: crystals - 1,
+			startedAt,
+			arrivesAt,
+		}
 	},
 })

@@ -21,3 +21,10 @@ export const LEECH_CAP_PCT_MAX_LIFE_PER_SECOND = 0.2;
 // Drops above the cap are silently wasted (see CONTEXT.md → Potion drops).
 export const MAX_POTIONS = 10;
 export const POTION_DROP_CHANCE = 0.2;
+
+// Travel consumables — vendor-only (no drops). Teleport stones instantly
+// return the player to the city; wind crystals jump to any previously-
+// unlocked node with a fixed travel duration (no MS scaling — you're
+// skipping zones, not walking them). Neither has a carry cap: the player
+// can stockpile arbitrarily many, limited only by ruby income.
+export const WIND_CRYSTAL_TRAVEL_SECONDS = 3;

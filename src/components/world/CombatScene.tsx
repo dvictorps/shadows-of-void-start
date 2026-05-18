@@ -18,6 +18,10 @@ type Props = {
 	potions: number;
 	canUsePotion: boolean;
 	onUsePotion: () => void;
+	teleportStones: number;
+	windCrystals: number;
+	canUseTeleportStone: boolean;
+	onUseTeleportStone: () => void;
 	onRetreat: () => void;
 	bagCount: number;
 	onOpenBag: () => void;
@@ -36,6 +40,10 @@ export default function CombatScene({
 	potions,
 	canUsePotion,
 	onUsePotion,
+	teleportStones,
+	windCrystals,
+	canUseTeleportStone,
+	onUseTeleportStone,
 	onRetreat,
 	bagCount,
 	onOpenBag,
@@ -171,6 +179,32 @@ export default function CombatScene({
 							style={{ width: `${xpPct}%` }}
 						/>
 					</div>
+				</div>
+
+				{/* Consumable cluster: wind-crystal counter pinned above the
+				 * teleport-stone button (display-only counter), teleport stone
+				 * button (panic-return-to-city), potion button (heal). Order
+				 * left → right roughly matches "how often used". */}
+				<div className="flex flex-col items-center gap-1">
+					<div
+						className="display-title flex items-center gap-1 border border-white/30 bg-black px-1.5 py-0.5 text-[10px] tracking-wider text-white/80"
+						aria-label={`${windCrystals} wind crystals`}
+					>
+						<span aria-hidden="true">💎</span>
+						<span className="tabular-nums">{windCrystals}</span>
+					</div>
+					<button
+						type="button"
+						onClick={onUseTeleportStone}
+						disabled={!canUseTeleportStone}
+						aria-label="Use teleport stone"
+						className="relative flex h-12 w-12 shrink-0 items-center justify-center border border-white/40 bg-black text-xl transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+					>
+						🪨
+						<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
+							{teleportStones}
+						</span>
+					</button>
 				</div>
 
 				<button

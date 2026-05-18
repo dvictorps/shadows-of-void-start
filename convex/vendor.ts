@@ -1,5 +1,4 @@
 import { ConvexError, v } from "convex/values"
-import { MAX_POTIONS } from "../src/game/combat/constants"
 import { computeSellPrice } from "../src/game/items/sell-price"
 import { findVendorProduct } from "../src/game/vendor/products"
 import { assertInCity, loadOwnedCharacter } from "./_shared/character"
@@ -27,20 +26,19 @@ export const vendorBuy = mutation({
 		if (rubys < product.priceRubys)
 			throw new ConvexError("Not enough rubys")
 
-		if (product.id === "potion") {
-			const potions = char.potions ?? 0
-			if (potions >= MAX_POTIONS)
-				throw new ConvexError("Potion cap reached")
-			await ctx.db.patch(args.characterId, {
-				rubys: rubys - product.priceRubys,
-				potions: potions + 1,
-			})
-			return { rubys: rubys - product.priceRubys, potions: potions + 1 }
-		}
-
-		// Future product ids fall through; throw so client doesn't silently keep
-		// rubys on an unhandled buy.
-		throw new ConvexError(`Buy not implemented for: ${args.productId}`)
+		// Per-product cap (if defined) + counter increment routed via the
+		// product's `counterField` and optional `cap` metadata. Single code
+		// path for all consumables; adding a new product means adding it to
+		// VENDOR_PRODUCTS — capped or uncapped.
+		const newRubys = rubys - product.priceRubys
+		const currentCount = char[product.counterField] ?? 0
+		if (product.cap !== undefined && currentCount >= product.cap)
+			throw new ConvexError(`${product.id} cap reached`)
+		await ctx.db.patch(args.characterId, {
+			rubys: newRubys,
+			[product.counterField]: currentCount + 1,
+		})
+		return { rubys: newRubys, [product.counterField]: currentCount + 1 }
 	},
 })
 

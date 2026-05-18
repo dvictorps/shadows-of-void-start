@@ -1,10 +1,10 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { Gem } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
-import { MAX_POTIONS } from "#/game/combat/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { m } from "#/paraglide/messages";
@@ -19,27 +19,45 @@ type Props = {
 	onClose: () => void;
 	rubys: number;
 	potions: number;
+	teleportStones: number;
+	windCrystals: number;
 	inventoryItems: Doc<"items">[];
 	onBuy: (productId: VendorProductId) => Promise<void>;
 	onSellMany: (itemIds: Id<"items">[]) => Promise<void>;
 };
+
+type RubyDelta = { id: string; amount: number; sign: "+" | "-" };
+
+const RUBY_DELTA_LIFETIME_MS = 1200;
 
 export default function VendorModal({
 	isOpen,
 	onClose,
 	rubys,
 	potions,
+	teleportStones,
+	windCrystals,
 	inventoryItems,
 	onBuy,
 	onSellMany,
 }: Props) {
 	const [tab, setTab] = useState<Tab>("buy");
 	const [selected, setSelected] = useState<Set<string>>(new Set());
+	const [rubyDeltas, setRubyDeltas] = useState<RubyDelta[]>([]);
 
 	useEffect(() => {
 		if (!isOpen) return;
 		setSelected(new Set());
+		setRubyDeltas([]);
 	}, [isOpen]);
+
+	const pushRubyDelta = (amount: number, sign: "+" | "-") => {
+		const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+		setRubyDeltas((prev) => [...prev, { id, amount, sign }]);
+		window.setTimeout(() => {
+			setRubyDeltas((prev) => prev.filter((d) => d.id !== id));
+		}, RUBY_DELTA_LIFETIME_MS);
+	};
 
 	const toggle = (id: string) => {
 		setSelected((prev) => {
@@ -51,9 +69,13 @@ export default function VendorModal({
 	};
 
 	const handleBuy = async (productId: VendorProductId) => {
+		const product = VENDOR_PRODUCTS[productId];
+		pushRubyDelta(product.priceRubys, "-");
 		try {
 			await onBuy(productId);
 		} catch (err) {
+			// Reverse the optimistic delta so the visual matches the reverted balance.
+			pushRubyDelta(product.priceRubys, "+");
 			toast.error(err instanceof Error ? err.message : m.vendor_buy_failed());
 		}
 	};
@@ -74,10 +96,17 @@ export default function VendorModal({
 
 	const handleSellSelected = async () => {
 		if (selectedItems.length === 0) return;
+		const total = selectedTotal;
+		const itemIds = selectedItems.map((it) => it._id);
+		const previousSelection = new Set(selected);
+		pushRubyDelta(total, "+");
+		setSelected(new Set());
 		try {
-			await onSellMany(selectedItems.map((it) => it._id));
-			setSelected(new Set());
+			await onSellMany(itemIds);
 		} catch (err) {
+			// Reverse the optimistic delta + restore the selection so the user can retry.
+			pushRubyDelta(total, "-");
+			setSelected(previousSelection);
 			toast.error(err instanceof Error ? err.message : m.vendor_sell_failed());
 		}
 	};
@@ -103,9 +132,39 @@ export default function VendorModal({
 							{m.vendor_tab_sell()}
 						</TabButton>
 					</div>
-					<div className="display-title flex items-center gap-2 px-1 text-xl uppercase tracking-[0.15em] text-yellow-300 tabular-nums">
+					<div className="display-title relative flex items-center gap-2 px-1 text-xl uppercase tracking-[0.15em] text-yellow-300 tabular-nums">
 						<Gem className="h-5 w-5 text-rose-400" strokeWidth={2} />
 						{rubys}
+						{/* Floating deltas — pinned just above the balance, animate up
+						 * + fade. Stack vertically if multiple fire close together. */}
+						<div className="pointer-events-none absolute right-0 bottom-full mb-1 flex flex-col items-end">
+							<AnimatePresence>
+								{rubyDeltas.map((d) => (
+									<motion.div
+										key={d.id}
+										initial={{ opacity: 0, y: 8 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: -16 }}
+										transition={{ duration: 0.4, ease: "easeOut" }}
+										className={`display-title flex items-center gap-1 px-1 font-bold text-base tabular-nums tracking-wider ${
+											d.sign === "+"
+												? "text-emerald-300"
+												: "text-red-400"
+										}`}
+										style={{
+											textShadow: "0 2px 4px rgba(0,0,0,0.9)",
+										}}
+									>
+										{d.sign}
+										{d.amount}
+										<Gem
+											className="h-3.5 w-3.5 text-rose-400"
+											strokeWidth={2}
+										/>
+									</motion.div>
+								))}
+							</AnimatePresence>
+						</div>
 					</div>
 				</div>
 
@@ -113,7 +172,13 @@ export default function VendorModal({
 				 * modal jump around vertically. */}
 				<div className="flex min-h-[460px] flex-col">
 					{tab === "buy" ? (
-						<BuyTab rubys={rubys} potions={potions} onBuy={handleBuy} />
+						<BuyTab
+							rubys={rubys}
+							potions={potions}
+							teleportStones={teleportStones}
+							windCrystals={windCrystals}
+							onBuy={handleBuy}
+						/>
 					) : (
 						<SellTab
 							inventoryItems={inventoryItems}
@@ -161,17 +226,30 @@ function TabButton({
 function BuyTab({
 	rubys,
 	potions,
+	teleportStones,
+	windCrystals,
 	onBuy,
 }: {
 	rubys: number;
 	potions: number;
+	teleportStones: number;
+	windCrystals: number;
 	onBuy: (productId: VendorProductId) => Promise<void>;
 }) {
 	const products = Object.values(VENDOR_PRODUCTS);
+	// Map a product's counterField to the corresponding live count from props.
+	// Lets `isAtCap` walk the same metadata the server uses, without a switch.
+	const counts: Record<string, number> = {
+		potions,
+		teleportStones,
+		windCrystals,
+	};
+	const isAtCap = (p: (typeof products)[number]): boolean =>
+		p.cap !== undefined && (counts[p.counterField] ?? 0) >= p.cap;
 	return (
 		<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
 			{products.map((p) => {
-				const atCap = p.id === "potion" && potions >= MAX_POTIONS;
+				const atCap = isAtCap(p);
 				const canAfford = rubys >= p.priceRubys;
 				const disabled = !canAfford || atCap;
 				const buttonLabel = atCap
@@ -307,6 +385,10 @@ function productLabel(id: VendorProductId): string {
 	switch (id) {
 		case "potion":
 			return m.vendor_product_potion();
+		case "teleport_stone":
+			return m.vendor_product_teleport_stone();
+		case "wind_crystal":
+			return m.vendor_product_wind_crystal();
 		default:
 			return id;
 	}

@@ -21,7 +21,10 @@ type Props = {
 	stats: ComputedCharacterStats;
 	hpOverride?: number;
 	potionsOverride?: number;
+	teleportStones: number;
+	windCrystals: number;
 	onUsePotion?: () => void;
+	onUseTeleportStone?: () => void;
 	onShowStats?: () => void;
 };
 
@@ -45,8 +48,11 @@ export default function StatusCard({
 	stats,
 	hpOverride,
 	potionsOverride,
+	teleportStones,
+	windCrystals,
 	onShowStats,
 	onUsePotion,
+	onUseTeleportStone,
 }: Props) {
 	const classResolved = classDef ? CLASS_NAME[classDef.id]() : "Unknown";
 	const maxHp = stats.maxLife;
@@ -58,6 +64,11 @@ export default function StatusCard({
 	const xpPct = Math.min(100, (xp / xpNeeded) * 100);
 	const barrier = stats.maxBarrier;
 	const canUsePotion = !!onUsePotion && potions > 0 && hp < maxHp;
+	// Clicking from the city would consume a stone for a no-op, so disable.
+	const canUseTeleportStone =
+		!!onUseTeleportStone &&
+		teleportStones > 0 &&
+		character.currentLocation !== "city";
 	const dps = estimateDps(stats);
 
 	return (
@@ -146,8 +157,19 @@ export default function StatusCard({
 					</div>
 
 					<div className="flex justify-center gap-2">
-						<ConsumableSlot label="?" count={0} />
-						<ConsumableSlot label="?" count={0} />
+						<button
+							type="button"
+							onClick={onUseTeleportStone}
+							disabled={!canUseTeleportStone}
+							aria-label="Use teleport stone"
+							className="relative flex h-12 w-12 items-center justify-center border border-white/30 bg-black/60 text-xs font-bold uppercase tracking-wider text-white/60 transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-white/30 disabled:hover:bg-black/60"
+						>
+							🪨
+							<span className="absolute -bottom-1 -right-1 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
+								{teleportStones}
+							</span>
+						</button>
+						<ConsumableSlot label="💎" count={windCrystals} />
 					</div>
 
 					<HealthGlobe hp={hp} maxHp={maxHp} barrier={barrier} />

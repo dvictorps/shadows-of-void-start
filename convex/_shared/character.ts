@@ -80,6 +80,14 @@ export function newZoneSession(): string {
 	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+// Append `item` to `list` if it's not already present. Returns the same
+// reference when no change is needed so callers can `if (next === list)
+// skip update`. Used for `unlockedNodes` and similar append-only sets
+// where the list grows monotonically across the character's lifetime.
+export function appendUnique<T>(list: T[], item: T): T[] {
+	return list.includes(item) ? list : [...list, item]
+}
+
 // City-only mutations (vendor purchases/sales today, stash later) require the
 // character to be physically at the city — not in a zone, not in transit.
 // The UI gates this via the city scene's affordances; this is the server-side
