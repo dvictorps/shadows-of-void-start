@@ -80,6 +80,18 @@ export function newZoneSession(): string {
 	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+// City-only mutations (vendor purchases/sales today, stash later) require the
+// character to be physically at the city — not in a zone, not in transit.
+// The UI gates this via the city scene's affordances; this is the server-side
+// equivalent guard that direct mutation calls also hit.
+export function assertInCity(char: Doc<"characters">): void {
+	const location = char.currentLocation ?? "city"
+	if (location !== "city")
+		throw new ConvexError("Must be in the city")
+	if (char.travelDestination !== undefined)
+		throw new ConvexError("Cannot do this while travelling")
+}
+
 // Derived from the single source of truth in src/game/stats/types so the
 // validator and the EquippedSlot type can never drift.
 export const equippedSlotValidator = v.union(

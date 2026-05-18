@@ -1,5 +1,5 @@
 import { Gem } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
@@ -58,13 +58,19 @@ export default function VendorModal({
 		}
 	};
 
-	const selectedItems = inventoryItems.filter((it) =>
-		selected.has(it._id.toString()),
-	);
-	const selectedTotal = selectedItems.reduce(
-		(sum, it) => sum + computeSellPrice(it.data),
-		0,
-	);
+	// Memoize the selection summary so toggling unrelated state (e.g., the
+	// `now` ticker on the seconds-remaining counter elsewhere in the world
+	// view) doesn't re-walk the inventory + recompute every sell price.
+	const { selectedItems, selectedTotal } = useMemo(() => {
+		const items = inventoryItems.filter((it) =>
+			selected.has(it._id.toString()),
+		);
+		const total = items.reduce(
+			(sum, it) => sum + computeSellPrice(it.data),
+			0,
+		);
+		return { selectedItems: items, selectedTotal: total };
+	}, [inventoryItems, selected]);
 
 	const handleSellSelected = async () => {
 		if (selectedItems.length === 0) return;
@@ -177,7 +183,7 @@ function BuyTab({
 						className="flex flex-col items-center gap-3 rounded-md border border-white/20 bg-black p-4"
 					>
 						<div className="flex h-16 w-16 items-center justify-center text-5xl">
-							{productEmoji(p.id)}
+							{p.emoji}
 						</div>
 						<div className="display-title text-center text-sm uppercase tracking-[0.15em] text-white">
 							{productLabel(p.id)}
@@ -294,20 +300,14 @@ function SellTab({
 	);
 }
 
+// Localised display label per product. Emoji lives on the product data
+// itself (see src/game/vendor/products.ts); only the label needs i18n
+// routing since it must vary per locale.
 function productLabel(id: VendorProductId): string {
 	switch (id) {
 		case "potion":
 			return m.vendor_product_potion();
 		default:
 			return id;
-	}
-}
-
-function productEmoji(id: VendorProductId): string {
-	switch (id) {
-		case "potion":
-			return "🧪";
-		default:
-			return "❓";
 	}
 }

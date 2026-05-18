@@ -2,23 +2,9 @@ import { ConvexError, v } from "convex/values"
 import { MAX_POTIONS } from "../src/game/combat/constants"
 import { computeSellPrice } from "../src/game/items/sell-price"
 import { findVendorProduct } from "../src/game/vendor/products"
-import { loadOwnedCharacter } from "./_shared/character"
-import type { Doc } from "./_generated/dataModel"
+import { assertInCity, loadOwnedCharacter } from "./_shared/character"
 import { mutation } from "./_generated/server"
 import { authComponent } from "./auth"
-
-// Per CONTEXT.md → Stash and Vendor, the vendor lives inside the city node.
-// All vendor mutations require the character to be physically there: at the
-// city, with no in-flight travel and no active zone session. The UI only
-// shows the vendor button inside the city scene, so this guard exists to
-// reject direct mutation calls that bypass the UI.
-function assertInCity(char: Doc<"characters">) {
-	const location = char.currentLocation ?? "city"
-	if (location !== "city")
-		throw new ConvexError("Must be in the city to use the vendor")
-	if (char.travelDestination !== undefined)
-		throw new ConvexError("Cannot use the vendor while travelling")
-}
 
 // Vendor purchases. The catalog lives in src/game/vendor/products.ts. For
 // MVP this only sells potions; teleport stones / wind crystals join later
@@ -60,37 +46,9 @@ export const vendorBuy = mutation({
 
 // Vendor sale. Inventory items only — equipped/zone-bag/stash items are
 // off-limits (player must unequip first). Sell price formula in
-// src/game/items/sell-price.ts.
-export const vendorSell = mutation({
-	args: {
-		characterId: v.id("characters"),
-		itemId: v.id("items"),
-	},
-	handler: async (ctx, args) => {
-		const authUser = await authComponent.getAuthUser(ctx)
-		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
-		assertInCity(char)
-
-		const item = await ctx.db.get(args.itemId)
-		if (!item) throw new ConvexError("Item not found")
-		if (item.characterId !== args.characterId)
-			throw new ConvexError("Not your item")
-		if (item.locationKind !== "inventory")
-			throw new ConvexError("Item is not in inventory")
-
-		const price = computeSellPrice(item.data)
-		const rubys = char.rubys ?? 0
-
-		await ctx.db.delete(args.itemId)
-		await ctx.db.patch(args.characterId, { rubys: rubys + price })
-		return { rubys: rubys + price, priceGained: price }
-	},
-})
-
-// Batch sale. Validates every item up front (ownership + inventory location),
-// computes the total, then commits atomically: deletes all items in parallel
-// and credits the rubys in a single character patch.
+// src/game/items/sell-price.ts. Handles single and batch sales; the client
+// always passes an array (length 1 for one item) so this is the only
+// mutation needed.
 export const vendorSellMany = mutation({
 	args: {
 		characterId: v.id("characters"),

@@ -68,12 +68,11 @@ type Params = {
 const SEARCH_DELAY_MS = 1500;
 const VICTORY_DELAY_MS = 800;
 const TICK_INTERVAL_MS = 50;
-// HP sync cadence during active combat. The deactivation effect (retreat /
-// view change) always flushes the latest HP synchronously, so the periodic
-// sync is purely insurance against a mid-combat refresh — worth keeping but
-// doesn't need 2s granularity. 10s = ~6 calls/min on an active fight that's
-// taking damage, vs the original 30 calls/min. The sync also self-skips when
-// HP hasn't changed since the last write (idle player → zero calls).
+// Periodic sync is insurance against a mid-combat refresh — the deactivation
+// effect (retreat / view change) already flushes the latest HP synchronously
+// on graceful exits. 10s of potential lost-on-refresh HP is the tradeoff for
+// the call-volume reduction. Self-skips when HP hasn't changed since the
+// last write, so idle players make zero calls regardless of this interval.
 const HP_SYNC_INTERVAL_MS = 10000;
 
 export function useCombatLoop({
