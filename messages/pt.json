@@ -10,6 +10,8 @@
   "back_to_map": "Voltar ao mapa",
 
   "admin_dashboard": "Painel Admin",
+  "sign_out_button": "Sair",
+  "sign_out_toast": "Sessão encerrada",
   "character_select_empty": "Nenhum personagem ainda",
   "character_select_empty_hint": "Clique em \"Criar\" para criar seu primeiro herói.",
   "create_character_button": "Criar",
