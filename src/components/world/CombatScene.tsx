@@ -83,13 +83,13 @@ export default function CombatScene({
 			</div>
 
 			{/* Enemy nameplate: name on top, level directly below */}
-			<div className="flex flex-col items-center gap-0.5 px-6 pt-12">
+			<div className="flex flex-col items-center gap-1 px-6 pt-12">
 				{enemy ? (
 					<>
-						<div className="display-title text-lg uppercase tracking-[0.15em] text-white">
+						<div className="display-title text-2xl uppercase tracking-[0.15em] text-white">
 							{enemy.def.name}
 						</div>
-						<div className="text-[11px] uppercase tracking-[0.2em] text-white/50">
+						<div className="text-sm uppercase tracking-[0.2em] text-white/60">
 							Lv {enemy.level}
 						</div>
 					</>
@@ -98,7 +98,7 @@ export default function CombatScene({
 				)}
 			</div>
 
-			{/* Enemy emoji area + HP bar pinned below the emoji */}
+			{/* Enemy emoji area with HP bar pinned below the emoji */}
 			<div className="relative flex flex-1 flex-col items-center justify-center gap-4">
 				<div className="relative flex flex-1 items-center justify-center">
 					{state === "searching" && (
@@ -129,12 +129,10 @@ export default function CombatScene({
 				</div>
 
 				{enemy && (
-					<div className="pb-4">
-						<EnemyHpBar
-							current={enemy.currentHp}
-							max={enemy.def.baseStats.hp}
-						/>
-					</div>
+					<EnemyHpBar
+						current={enemy.currentHp}
+						max={enemy.def.baseStats.hp}
+					/>
 				)}
 			</div>
 
@@ -191,14 +189,14 @@ export default function CombatScene({
 function EnemyHpBar({ current, max }: { current: number; max: number }) {
 	const pct = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
 	return (
-		<div className="flex w-full max-w-xs flex-col items-center gap-1">
-			<div className="h-2.5 w-full overflow-hidden rounded-full border border-white/40 bg-black">
+		<div className="mb-4 flex w-full max-w-sm flex-col items-center gap-1">
+			<div className="h-3 w-full overflow-hidden rounded-full border border-white/40 bg-black">
 				<div
 					className="h-full bg-gradient-to-r from-red-700 to-red-500 transition-[width] duration-150"
 					style={{ width: `${pct}%` }}
 				/>
 			</div>
-			<span className="text-[10px] uppercase tracking-wider text-white/50">
+			<span className="text-xs uppercase tracking-wider text-white/60">
 				{Math.ceil(current)} / {max}
 			</span>
 		</div>
