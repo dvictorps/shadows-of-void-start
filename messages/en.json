@@ -89,6 +89,8 @@
   "vendor_sell_failed": "Sale failed",
   "vendor_sell_empty": "Inventory is empty — nothing to sell",
   "vendor_sell_pick_an_item": "Select an item",
+  "vendor_sell_pick_items": "Pick items to sell",
+  "vendor_sell_selected": "{count} selected · will earn",
   "vendor_sell_preview": "Will earn",
   "vendor_product_potion": "Life Potion",
   "low_hp_use_potion": "Low HP — use a potion!",

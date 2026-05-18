@@ -10,15 +10,19 @@ type Props = {
 export default function CityScene({ cityName, onLeave, onOpenVendor }: Props) {
 	return (
 		<section className="relative flex flex-col items-center justify-center rounded-md border border-white/40 bg-black p-8">
-			{/* Top-left vendor button — opens the merchant modal. */}
+			{/* Vertically-centered vendor button on the left edge — the city's
+			 * primary CTA. Stacks icon + label as a chunky tile (~3x the size
+			 * of the corner controls). */}
 			<button
 				type="button"
 				onClick={onOpenVendor}
 				aria-label={m.city_open_vendor()}
-				className="absolute top-3 left-3 inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+				className="-translate-y-1/2 absolute top-1/2 left-8 inline-flex flex-col items-center gap-2 border-2 border-white/40 bg-black px-6 py-5 font-medium text-white/80 uppercase tracking-[0.2em] transition hover:border-white hover:bg-white/10 hover:text-white"
 			>
-				<Store className="h-3.5 w-3.5" strokeWidth={2} />
-				{m.city_vendor_label()}
+				<Store className="h-12 w-12" strokeWidth={1.5} />
+				<span className="display-title text-base">
+					{m.city_vendor_label()}
+				</span>
 			</button>
 
 			{/* Top-right back button — mirrors the combat-view retreat affordance so

@@ -218,7 +218,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	});
 	const arriveAtTravel = useMutation(api.combat.arriveAtTravel);
 	const vendorBuy = useMutation(api.vendor.vendorBuy);
-	const vendorSell = useMutation(api.vendor.vendorSell);
+	const vendorSellMany = useMutation(api.vendor.vendorSellMany);
 
 	const [view, setView] = useState<ViewMode>("map");
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -664,8 +664,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				onBuy={async (productId) => {
 					await vendorBuy({ characterId: character._id, productId });
 				}}
-				onSell={async (itemId) => {
-					await vendorSell({ characterId: character._id, itemId });
+				onSellMany={async (itemIds) => {
+					await vendorSellMany({ characterId: character._id, itemIds });
 				}}
 			/>
 			<SettingsModal

@@ -89,6 +89,8 @@
   "vendor_sell_failed": "Falha na venda",
   "vendor_sell_empty": "Inventário vazio — sem itens para vender",
   "vendor_sell_pick_an_item": "Selecione um item",
+  "vendor_sell_pick_items": "Selecione itens para vender",
+  "vendor_sell_selected": "{count} selecionado(s) · vai render",
   "vendor_sell_preview": "Vai render",
   "vendor_product_potion": "Poção de Vida",
   "low_hp_use_potion": "Vida baixa — use uma poção!",

@@ -71,3 +71,37 @@ export const vendorSell = mutation({
 		return { rubys: rubys + price, priceGained: price }
 	},
 })
+
+// Batch sale. Validates every item up front (ownership + inventory location),
+// computes the total, then commits atomically: deletes all items in parallel
+// and credits the rubys in a single character patch.
+export const vendorSellMany = mutation({
+	args: {
+		characterId: v.id("characters"),
+		itemIds: v.array(v.id("items")),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		if (args.itemIds.length === 0) return { rubys: char.rubys ?? 0, priceGained: 0, sold: 0 }
+
+		const items = await Promise.all(args.itemIds.map((id) => ctx.db.get(id)))
+		let total = 0
+		for (let i = 0; i < items.length; i++) {
+			const item = items[i]
+			if (!item) throw new ConvexError("Item not found")
+			if (item.characterId !== args.characterId)
+				throw new ConvexError("Not your item")
+			if (item.locationKind !== "inventory")
+				throw new ConvexError("Item is not in inventory")
+			total += computeSellPrice(item.data)
+		}
+
+		const rubys = char.rubys ?? 0
+		await Promise.all(args.itemIds.map((id) => ctx.db.delete(id)))
+		await ctx.db.patch(args.characterId, { rubys: rubys + total })
+		return { rubys: rubys + total, priceGained: total, sold: args.itemIds.length }
+	},
+})
