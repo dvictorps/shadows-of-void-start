@@ -534,6 +534,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				{view === "combat" && currentNode && (
 					<CombatScene
 						zoneName={translateNodeName(currentNode)}
+						zoneLevel={zoneLevel}
 						state={combat.state}
 						enemy={combat.enemy}
 						events={combat.events}

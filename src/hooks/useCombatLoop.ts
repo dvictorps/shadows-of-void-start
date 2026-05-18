@@ -14,6 +14,7 @@ import {
 } from "#/game/combat/damage";
 import type { LeechInstance } from "#/game/combat/leech";
 import { createLeechInstance, tickLeechInstances } from "#/game/combat/leech";
+import { rollMonsterLevel } from "#/game/loot/drops";
 import {
 	findMonster,
 	type MonsterDefinition,
@@ -179,10 +180,13 @@ export function useCombatLoop({
 		if (!pick) return;
 		const def = findMonster(pick);
 		if (!def) return;
+		// Monster instance level rolls zoneLevel ± 1 (floored at 1) per spawn,
+		// matching the server's drop-level logic. See CONTEXT.md → "Zone level
+		// and monster instance level".
 		const newEnemy: Enemy = {
 			def,
 			currentHp: def.baseStats.hp,
-			level: zoneLevel,
+			level: rollMonsterLevel(zoneLevel),
 		};
 		enemyRef.current = newEnemy;
 		setEnemy(newEnemy);

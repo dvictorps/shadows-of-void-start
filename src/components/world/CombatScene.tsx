@@ -7,6 +7,7 @@ import HealthGlobe from "./HealthGlobe";
 
 type Props = {
 	zoneName: string;
+	zoneLevel: number;
 	state: "searching" | "engaged" | "victory";
 	enemy: Enemy | null;
 	events: DamageEvent[];
@@ -24,6 +25,7 @@ type Props = {
 
 export default function CombatScene({
 	zoneName,
+	zoneLevel,
 	state,
 	enemy,
 	events,
@@ -50,9 +52,11 @@ export default function CombatScene({
 
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
-			{/* Zone label */}
-			<div className="absolute left-3 top-3 text-[10px] uppercase tracking-[0.2em] text-white/40">
-				{zoneName}
+			{/* Zone label + static zone level (the area's intrinsic difficulty;
+			 * the per-spawn monster level is shown separately on the nameplate). */}
+			<div className="absolute left-3 top-3 flex flex-col gap-0.5 text-[10px] uppercase tracking-[0.2em] text-white/40">
+				<span>{zoneName}</span>
+				<span className="text-white/30">LV {zoneLevel}</span>
 			</div>
 
 			{/* Top-right action cluster: loot button then Retreat */}
