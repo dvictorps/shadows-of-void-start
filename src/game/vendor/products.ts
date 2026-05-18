@@ -4,11 +4,7 @@
 // stones and wind crystals join the catalog in a later PR alongside their
 // usage mechanics.
 
-import {
-	MAX_POTIONS,
-	MAX_TELEPORT_STONES,
-	MAX_WIND_CRYSTALS,
-} from "../combat/constants";
+import { MAX_POTIONS } from "../combat/constants";
 
 export type VendorProductId = "potion" | "teleport_stone" | "wind_crystal";
 
@@ -26,7 +22,11 @@ export interface VendorProduct {
 	priceRubys: number;
 	emoji: string;
 	counterField: VendorCounterField;
-	cap: number;
+	// Carry cap. Undefined = uncapped (player can stockpile arbitrarily many).
+	// Potions are capped at 10 because they're the active heal control with
+	// combat consequences; travel consumables aren't gameplay-balanced by
+	// supply, only by ruby cost.
+	cap?: number;
 }
 
 export const VENDOR_PRODUCTS: Record<VendorProductId, VendorProduct> = {
@@ -42,14 +42,12 @@ export const VENDOR_PRODUCTS: Record<VendorProductId, VendorProduct> = {
 		priceRubys: 30,
 		emoji: "🪨",
 		counterField: "teleportStones",
-		cap: MAX_TELEPORT_STONES,
 	},
 	wind_crystal: {
 		id: "wind_crystal",
 		priceRubys: 50,
 		emoji: "💎",
 		counterField: "windCrystals",
-		cap: MAX_WIND_CRYSTALS,
 	},
 };
 

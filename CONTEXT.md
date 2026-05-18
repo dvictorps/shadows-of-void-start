@@ -274,8 +274,8 @@ This naturally produces the PoE "self-sustaining gear" behaviour: a helmet that 
 Combat is otherwise automatic, but the player has **three active controls today**: using a **life potion**, using a **teleport stone**, and (out of combat) using a **wind crystal**.
 
 - **Life Potion**: heals **20% of maximum HP**. Cap 10 carried. Obtained from the city vendor (10 rubys) or as a 20% monster drop (see Loot Pipeline → Potion drops). Potion button lives on the bottom-right of the combat view (next to the health globe) and on the map's status card.
-- **Teleport Stone**: instant return to the city, usable from any view (combat included — panic button). Wipes the active zone bag (you escape but abandon the loot). Cap 10 carried. Vendor-only, 30 rubys. Button sits to the left of the potion in the combat HUD.
-- **Wind Crystal**: jumps the player to any previously-unlocked node with a fixed travel duration (no movement-speed scaling — you're skipping zones, not walking through them). Cap 5 carried. Vendor-only, 50 rubys. Used from the map view only (clicking an unlocked-but-unconnected node opens a confirmation). Counter sits above the teleport stone button in the combat HUD (display-only there; usage is map-only).
+- **Teleport Stone**: instant return to the city, usable from any view (combat included — panic button). Wipes the active zone bag (you escape but abandon the loot). Uncapped (stockpile what you can afford). Vendor-only, 30 rubys. Button sits to the left of the potion in the combat HUD.
+- **Wind Crystal**: jumps the player to any previously-unlocked node with a fixed travel duration (no movement-speed scaling — you're skipping zones, not walking through them). Uncapped. Vendor-only, 50 rubys. Used from the map view only (clicking an unlocked-but-unconnected node opens a confirmation). Counter sits above the teleport stone button in the combat HUD (display-only there; usage is map-only).
 
 The two travel consumables share the character document's `teleportStones` and `windCrystals` counters. The set of nodes available to wind crystals comes from `unlockedNodes` (see Travel system).
 
@@ -339,10 +339,12 @@ Legendaries are reachable in Act 1 from any source, but the baseline chance is *
 | Product | Price | Cap |
 |---|---|---|
 | Life Potion | 10 Rubys | 10 |
-| Teleport Stone | 30 Rubys | 10 |
-| Wind Crystal | 50 Rubys | 5 |
+| Teleport Stone | 30 Rubys | — |
+| Wind Crystal | 50 Rubys | — |
 
-The catalog data lives in `src/game/vendor/products.ts`; adding a product means registering an id + price + emoji there and handling it in `convex/vendor.ts` → `vendorBuy` (per-product cap check + counter increment).
+Potions are capped because they're the active heal control — supply matters for combat balance. Travel consumables are uncapped (player can stockpile arbitrarily many); their gameplay weight comes from the ruby cost, not from rationing.
+
+The catalog data lives in `src/game/vendor/products.ts`; adding a product means registering an id + price + emoji + (optionally) cap there. `convex/vendor.ts` → `vendorBuy` reads the metadata and walks one code path for all products.
 
 ### Selling rules
 

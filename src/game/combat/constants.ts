@@ -25,7 +25,6 @@ export const POTION_DROP_CHANCE = 0.2;
 // Travel consumables — vendor-only (no drops). Teleport stones instantly
 // return the player to the city; wind crystals jump to any previously-
 // unlocked node with a fixed travel duration (no MS scaling — you're
-// skipping zones, not walking through them).
-export const MAX_TELEPORT_STONES = 10;
-export const MAX_WIND_CRYSTALS = 5;
+// skipping zones, not walking them). Neither has a carry cap: the player
+// can stockpile arbitrarily many, limited only by ruby income.
 export const WIND_CRYSTAL_TRAVEL_SECONDS = 3;

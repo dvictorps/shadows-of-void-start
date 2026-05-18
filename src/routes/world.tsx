@@ -254,7 +254,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			const rubys = char.rubys ?? 0;
 			if (rubys < product.priceRubys) return;
 			const currentCount = char[product.counterField] ?? 0;
-			if (currentCount >= product.cap) return;
+			if (product.cap !== undefined && currentCount >= product.cap) return;
 			applyCharacterDelta(localStore, args.characterId, {
 				rubys: rubys - product.priceRubys,
 				[product.counterField]: currentCount + 1,

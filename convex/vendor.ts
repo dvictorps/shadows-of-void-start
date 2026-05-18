@@ -26,12 +26,13 @@ export const vendorBuy = mutation({
 		if (rubys < product.priceRubys)
 			throw new ConvexError("Not enough rubys")
 
-		// Per-product cap + counter increment routed via the product's
-		// `counterField` and `cap` metadata. Single code path for all three
-		// consumables; adding a new product means adding it to VENDOR_PRODUCTS.
+		// Per-product cap (if defined) + counter increment routed via the
+		// product's `counterField` and optional `cap` metadata. Single code
+		// path for all consumables; adding a new product means adding it to
+		// VENDOR_PRODUCTS — capped or uncapped.
 		const newRubys = rubys - product.priceRubys
 		const currentCount = char[product.counterField] ?? 0
-		if (currentCount >= product.cap)
+		if (product.cap !== undefined && currentCount >= product.cap)
 			throw new ConvexError(`${product.id} cap reached`)
 		await ctx.db.patch(args.characterId, {
 			rubys: newRubys,

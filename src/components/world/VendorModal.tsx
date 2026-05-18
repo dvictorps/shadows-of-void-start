@@ -189,7 +189,7 @@ function BuyTab({
 		windCrystals,
 	};
 	const isAtCap = (p: (typeof products)[number]): boolean =>
-		(counts[p.counterField] ?? 0) >= p.cap;
+		p.cap !== undefined && (counts[p.counterField] ?? 0) >= p.cap;
 	return (
 		<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
 			{products.map((p) => {
