@@ -1,4 +1,9 @@
-import ItemCard from "#/components/game/ItemCard";
+import ItemCard, {
+	BROKEN_BORDER,
+	BROKEN_GLOW,
+	RARITY_BORDER,
+	RARITY_GLOW,
+} from "#/components/game/ItemCard";
 import { describeBrokenReasons } from "#/game/stats/compute";
 import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
 import InventoryButton from "./InventoryButton";
@@ -95,6 +100,12 @@ function EquipmentSlot({
 	brokenReasons: string[] | undefined;
 }) {
 	const slotSize = Math.min(cfg.size.w, cfg.size.h);
+	// Paper-doll convention: the SLOT carries the rarity color + inset glow when
+	// filled. The ItemCard inside renders frameless so we don't get a doubled
+	// border. Empty slots stay neutral (border-white/30 + bg-black/40).
+	const frameClass = item
+		? `border-2 bg-black ${broken ? BROKEN_BORDER : RARITY_BORDER[item.rarity]} ${broken ? BROKEN_GLOW : RARITY_GLOW[item.rarity]}`
+		: "border border-white/30 bg-black/40";
 	return (
 		<div
 			data-slot={cfg.slot}
@@ -105,7 +116,7 @@ function EquipmentSlot({
 				height: cfg.size.h,
 				placeSelf: "center",
 			}}
-			className="relative flex items-center justify-center rounded-sm border border-white/30 bg-black/40"
+			className={`relative flex items-center justify-center rounded-md ${frameClass}`}
 		>
 			{item ? (
 				<ItemCard
@@ -113,6 +124,7 @@ function EquipmentSlot({
 					size={slotSize - 8}
 					broken={broken}
 					brokenReasons={brokenReasons}
+					frameless
 				/>
 			) : (
 				<span className="text-[10px] uppercase tracking-wider text-white/40">

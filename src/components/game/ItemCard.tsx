@@ -9,7 +9,7 @@ import type { EquipmentType, WeaponType } from "#/game/items/types/base";
 // slots is what draws the eye.
 export const SLOT_EMPTY = "border border-white/15 bg-black/40";
 
-const RARITY_BORDER: Record<ItemRarity, string> = {
+export const RARITY_BORDER: Record<ItemRarity, string> = {
 	normal: "border-[#3a4658]",
 	magic: "border-[#5577cc]",
 	rare: "border-[#b39800]",
@@ -17,7 +17,7 @@ const RARITY_BORDER: Record<ItemRarity, string> = {
 	epic: "border-[#1eff00]",
 };
 
-const RARITY_GLOW: Record<ItemRarity, string> = {
+export const RARITY_GLOW: Record<ItemRarity, string> = {
 	normal: "shadow-[inset_0_0_10px_rgba(60,130,200,0.18)]",
 	magic:
 		"shadow-[inset_0_0_14px_rgba(100,140,220,0.55),0_0_10px_rgba(100,140,220,0.35)]",
@@ -26,6 +26,10 @@ const RARITY_GLOW: Record<ItemRarity, string> = {
 		"shadow-[inset_0_0_16px_rgba(220,40,80,0.55),0_0_16px_rgba(220,40,80,0.55)] animate-[item-pulse_2s_ease-in-out_infinite]",
 	epic: "shadow-[inset_0_0_16px_rgba(60,255,40,0.55),0_0_16px_rgba(60,255,40,0.55)] animate-[item-pulse_1.6s_ease-in-out_infinite]",
 };
+
+export const BROKEN_BORDER = "border-red-500";
+export const BROKEN_GLOW =
+	"shadow-[inset_0_0_12px_rgba(220,40,40,0.35),0_0_10px_rgba(220,40,40,0.35)]";
 
 const EQUIPMENT_EMOJI: Record<EquipmentType, string> = {
 	weapon: "⚔️",
@@ -68,6 +72,11 @@ type Props = {
 	broken?: boolean;
 	/** Lines shown in red at the top of the tooltip when broken. */
 	brokenReasons?: string[];
+	/**
+	 * Render only the emoji + badge/tooltip, no own border or background. Used
+	 * when the parent (e.g. paper-doll slot) supplies the rarity-colored frame.
+	 */
+	frameless?: boolean;
 	/** Click handler — receives the card's bounding rect for positioning popovers. */
 	onClick?: (rect: DOMRect) => void;
 };
@@ -84,6 +93,7 @@ export default function ItemCard({
 	suppressTooltip,
 	broken,
 	brokenReasons,
+	frameless,
 	onClick,
 }: Props) {
 	const cardRef = useRef<HTMLButtonElement>(null);
@@ -119,14 +129,15 @@ export default function ItemCard({
 
 	const handleLeave = () => setTooltipPos(null);
 
-	const borderClass = broken ? "border-red-500" : RARITY_BORDER[item.rarity];
-	const glowClass = broken
-		? "shadow-[inset_0_0_12px_rgba(220,40,40,0.35),0_0_10px_rgba(220,40,40,0.35)]"
-		: RARITY_GLOW[item.rarity];
 	const cardClasses = [
-		"relative flex items-center justify-center rounded-md border-2 bg-black transition-colors",
-		borderClass,
-		glowClass,
+		"relative flex items-center justify-center rounded-md transition-colors",
+		frameless
+			? "bg-transparent"
+			: [
+					"border-2 bg-black",
+					broken ? BROKEN_BORDER : RARITY_BORDER[item.rarity],
+					broken ? BROKEN_GLOW : RARITY_GLOW[item.rarity],
+				].join(" "),
 		dimmed ? "opacity-40 grayscale" : "",
 		onClick ? "cursor-pointer" : "cursor-default",
 	]
