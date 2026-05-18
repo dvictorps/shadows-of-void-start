@@ -35,6 +35,22 @@ export type Enemy = {
 	level: number;
 };
 
+/**
+ * Defender profile the damage engine expects when the player attacks. Normal
+ * mobs have no defensive stats yet — minibosses with rolled modifiers (see
+ * CONTEXT.md "Monster Modifier Pool") will surface armor / evasion /
+ * resistances here once the modifier roller lands.
+ */
+function defenderFromEnemy(enemy: Enemy) {
+	return {
+		armor: 0,
+		evasion: 0,
+		accuracy: 0,
+		level: enemy.level,
+		resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
+	};
+}
+
 export type { DamageEvent };
 
 type Params = {
@@ -219,13 +235,7 @@ export function useCombatLoop({
 				const result = rollPlayerSwing({
 					swing,
 					stats,
-					defender: {
-						armor: 0,
-						evasion: 0,
-						accuracy: 0,
-						level: currentEnemy.level,
-						resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
-					},
+					defender: defenderFromEnemy(currentEnemy),
 				});
 
 				if (!result.isMiss && result.amount > 0) {

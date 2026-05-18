@@ -386,15 +386,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	return (
 		<main className="relative grid h-screen grid-cols-[1fr_640px] gap-3 overflow-hidden bg-black p-3 text-white">
-			<button
-				type="button"
-				onClick={handleLeaveWorld}
-				aria-label={m.leave_world_back_label()}
-				className="absolute top-5 left-5 z-20 inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
-			>
-				<ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
-				{m.back()}
-			</button>
+			{view !== "combat" && (
+				<button
+					type="button"
+					onClick={handleLeaveWorld}
+					aria-label={m.leave_world_back_label()}
+					className="absolute top-5 left-5 z-20 inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+				>
+					<ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
+					{m.back()}
+				</button>
+			)}
 			<div className="grid grid-rows-[1fr_160px] gap-3 overflow-hidden">
 				{view === "map" && (
 					<MapScene

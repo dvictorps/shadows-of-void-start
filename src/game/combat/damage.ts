@@ -116,14 +116,12 @@ export function rollPlayerSwing({
 
 	// 2. Sum increased pools per element, applied additively then once.
 	const inc = stats.increased;
-	const universal = inc.universal;
 	const pathSpecific = isAttack ? inc.melee : isSpell ? inc.spell : 0;
-	const physIncreased = inc.physical + universal + pathSpecific;
+	const physIncreased = inc.physical + pathSpecific;
 	const elementBonus = (perElement: number) =>
 		perElement +
 		inc.elementalGlobal +
 		(isAttack ? inc.elementalWithAttacks : 0) +
-		universal +
 		pathSpecific;
 
 	const phys = physBase * (1 + physIncreased / 100);

@@ -74,7 +74,6 @@ function blankIncreased(): IncreasedPools {
 		elementalWithAttacks: 0,
 		melee: 0,
 		spell: 0,
-		universal: 0,
 		attackSpeed: 0,
 		castSpeed: 0,
 		criticalChance: 0,
@@ -82,8 +81,23 @@ function blankIncreased(): IncreasedPools {
 }
 
 // ── Apply a single rolled mod to the accumulator ──
+//
+// The global defense % mods (armorIncrease / evasionIncrease / barrierIncrease)
+// need to be applied AFTER all flat values are summed, so we route them into
+// a separate scratch object the caller folds in at the end. This keeps the
+// pass single-iteration.
 
-function applyMod(stats: ComputedCharacterStats, mod: RolledMod): void {
+interface DefensePcts {
+	armor: number;
+	evasion: number;
+	barrier: number;
+}
+
+function applyMod(
+	stats: ComputedCharacterStats,
+	pcts: DefensePcts,
+	mod: RolledMod,
+): void {
 	const v = mod.value;
 	switch (mod.modifierId) {
 		// Attributes
@@ -148,15 +162,14 @@ function applyMod(stats: ComputedCharacterStats, mod: RolledMod): void {
 			stats.blockChance += v;
 			return;
 
-		// Global increased pools
 		case "globalArmorIncrease":
-			// Armor% applies to the cumulative flat armor — fold it post-sum.
-			// Stored on the increased pool intentionally so we can apply once.
-			// Use a dedicated key — we treat it as a post-process below.
+			pcts.armor += v;
 			return;
 		case "globalEvasionIncrease":
+			pcts.evasion += v;
 			return;
 		case "globalBarrierIncrease":
+			pcts.barrier += v;
 			return;
 
 		// Global damage increased
@@ -293,17 +306,17 @@ function collectGlobalFlatDamage(items: EquippedItem[]): GearFlatDamage {
 	return flat;
 }
 
-// ── Apply one equipped item's contributions (excluding flat-to-attacks, which
-//   is layered onto swings, not character totals) ──
+// ── Apply one equipped item's contributions ──
+// Flat-to-attacks is layered onto swings (see collectGlobalFlatDamage), not
+// character totals. Local computed defense was already baked by the generator.
 
-function applyItem(stats: ComputedCharacterStats, item: GeneratedItem): void {
-	for (const mod of item.explicits) applyMod(stats, mod);
+function applyItem(
+	stats: ComputedCharacterStats,
+	pcts: DefensePcts,
+	item: GeneratedItem,
+): void {
+	for (const mod of item.explicits) applyMod(stats, pcts, mod);
 
-	// Implicits don't carry a modifierId so they can't go through applyMod.
-	// They're text-described; numerical contributions live in the explicit pool.
-	// Future: structured implicits can fold here.
-
-	// Local computed defense (already includes localDefenseIncrease/Flat)
 	const def = item.computedDefenseStats;
 	if (def) {
 		if (def.armor) stats.armor += def.armor;
@@ -313,30 +326,16 @@ function applyItem(stats: ComputedCharacterStats, item: GeneratedItem): void {
 	}
 }
 
-// ── Global defense % multipliers — applied after flat sums ──
-
-function applyGlobalDefenseIncreases(
+function foldGlobalDefenseIncreases(
 	stats: ComputedCharacterStats,
-	items: EquippedItem[],
+	pcts: DefensePcts,
 ): void {
-	let armorPct = 0;
-	let evasionPct = 0;
-	let barrierPct = 0;
-	for (const { item } of items) {
-		for (const mod of item.explicits) {
-			if (mod.modifierId === "globalArmorIncrease") armorPct += mod.value;
-			else if (mod.modifierId === "globalEvasionIncrease")
-				evasionPct += mod.value;
-			else if (mod.modifierId === "globalBarrierIncrease")
-				barrierPct += mod.value;
-		}
-	}
-	if (armorPct > 0)
-		stats.armor = Math.round(stats.armor * (1 + armorPct / 100));
-	if (evasionPct > 0)
-		stats.evasion = Math.round(stats.evasion * (1 + evasionPct / 100));
-	if (barrierPct > 0)
-		stats.maxBarrier = Math.round(stats.maxBarrier * (1 + barrierPct / 100));
+	if (pcts.armor > 0)
+		stats.armor = Math.round(stats.armor * (1 + pcts.armor / 100));
+	if (pcts.evasion > 0)
+		stats.evasion = Math.round(stats.evasion * (1 + pcts.evasion / 100));
+	if (pcts.barrier > 0)
+		stats.maxBarrier = Math.round(stats.maxBarrier * (1 + pcts.barrier / 100));
 }
 
 // ── Determine combat path from main-hand weapon ──
@@ -465,9 +464,10 @@ function computeOnce(
 	live: EquippedItem[],
 ): ComputedCharacterStats {
 	const stats = blankStats();
+	const pcts: DefensePcts = { armor: 0, evasion: 0, barrier: 0 };
 	applyBase(stats, input.classDef, input.level);
-	for (const eq of live) applyItem(stats, eq.item);
-	applyGlobalDefenseIncreases(stats, live);
+	for (const eq of live) applyItem(stats, pcts, eq.item);
+	foldGlobalDefenseIncreases(stats, pcts);
 	applyCaps(stats);
 
 	// Swing assembly

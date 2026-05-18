@@ -35,7 +35,6 @@ function statsAttack(
 			elementalWithAttacks: 0,
 			melee: 0,
 			spell: 0,
-			universal: 0,
 			attackSpeed: 0,
 			castSpeed: 0,
 			criticalChance: 0,

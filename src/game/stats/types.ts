@@ -91,8 +91,6 @@ export interface IncreasedPools {
 	melee: number;
 	/** Applies only to spell-path damage. */
 	spell: number;
-	/** Universal "+X% damage" — applies to every hit, both paths. */
-	universal: number;
 	attackSpeed: number;
 	castSpeed: number;
 	/** Crit chance modifier, applied multiplicatively on top of weapon's base. */

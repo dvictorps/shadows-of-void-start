@@ -300,7 +300,6 @@ function IncreasedRows({ stats }: { stats: ComputedCharacterStats }) {
 			label: m.stats_increased_global_crit_chance(),
 			value: i.criticalChance,
 		},
-		{ label: m.stats_increased_universal(), value: i.universal },
 	].filter((e) => e.value !== 0);
 	if (entries.length === 0) return null;
 	return (
