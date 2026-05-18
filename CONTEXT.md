@@ -166,10 +166,57 @@ Opened via the existing `InventoryButton` (backpack icon in `EquipmentPanel`). W
 Combat is automatic and **status-machine driven**: both sides have stats, attack rates, and mitigation, and damage is applied tick-by-tick by the formulas below. The player has no per-hit input in MVP combat; skills with cooldowns are a later layer that will plug into this same machine.
 
 ### Per-tick attack
-- Each side has an **attack rate** (attacks per second). Example: a 1.8 attack-speed weapon resolves 1.8 hits/sec.
-- Each hit's damage is the sum of the side's offensive stats (flat damage, multipliers, crit chance × crit multi, elemental contributions, etc.) — i.e., every global damage modifier in the pool applies.
+- Each side has an **attack rate** (attacks per second). Example: a 1.8 attack-speed weapon resolves 1.8 hits/sec. Dual-wielders use a combined alternating rate (see "Dual-wielding").
 - The defending side mitigates with its **armor / evasion / barrier / resistances** before the hit lands. Whatever remains is subtracted from life (and barrier, where applicable).
 - Life leech, regen, on-hit, on-kill effects fire per their own triggers as part of the same machine.
+
+### Damage formula (per hit)
+A hit is computed in this order:
+
+1. **Flat damage** — roll a random integer in `[min, max]` per damage type. Sources: the swinging weapon's `physicalDamage` + flat-to-attacks mods from gear (rings, gloves, amulet — never belt). For caster weapons: per-element flat-to-spells from the weapon itself (no other source rolls flat-to-spells).
+2. **Increased pool** — sum all `+X% increased` modifiers in the same category, apply once: `base × (1 + Σincreased/100)`. Categories: physical, per-element, "damage" (universal), attack damage / spell damage, attack speed, cast speed, crit chance.
+3. **More multipliers** — cascade multiplicatively, no pooling: `base × moreA × moreB × ...`. Reserved for skills today; no items roll `more` modifiers yet.
+4. **Crit roll** — `random() × 100 < critChance`. On hit: damage × `(1 + critMultiplier/100)`. Crit chance is capped at 100% **and** clamped to 5% minimum (no zero-crit characters). Crit multiplier has no cap.
+5. **Defenses** — see below.
+
+### Defenses
+
+**Armor** (physical mitigation, Last Epoch-inspired):
+```
+physicalReduction = armor / (armor + 10 × enemyLevel)
+cap = 85%
+```
+The denominator scales with the attacker's level, **not** with hit size. Armor stays effective against same-level enemies regardless of how big any single hit is — unlike PoE, where armor falls off against spikes. Armor reduces only physical damage; elemental and void pass through untouched.
+
+**Evasion + Accuracy** (hit-or-miss gate, applied before damage):
+```
+hitChance = attackerAccuracy / (attackerAccuracy + defenderEvasion / 4)
+clamp [0.05, 0.95]
+```
+Each incoming hit rolls against `hitChance`. A miss deals **zero** damage and triggers no on-hit effects (no leech, no life-on-hit). Symmetric — both sides roll. Default monster baseline: `accuracy = monsterLevel × 10`, `evasion = 0` (overridden by monster modifiers).
+
+**Resistances** (cold / fire / lightning / void) cap at 75%. Each elemental hit is multiplied by `(1 - resistance/100)`.
+
+**Barrier** (sits over life, blue ring around HP globe):
+- Functions as overflow life — incoming damage hits barrier first; what remains carries to HP.
+- When barrier reaches **0**, a **6-second timer** starts. The timer does **not reset** on further hits — damage during the recovery window just hits HP directly.
+- When the timer expires, barrier refills to **100% instantly** (single-tick refill, not gradual).
+- Barrier does not regenerate while above zero — the refill mechanic is the only recovery.
+
+**Block** (shield-only) — when a hit lands and is not evaded, roll once against `blockChance`. A blocked hit deals 0 damage to barrier/life but **does** trigger the attacker's on-hit (blocks are still "hits" for the attacker's purposes). Thorns still reflect to the attacker on block.
+
+### Leech
+Per hit that lands and deals damage:
+
+```
+magnitude = damageDealt × leechPercent / 100
+rate = magnitude × 0.20   per second
+duration = magnitude / rate = 5 seconds
+```
+
+Each leeching hit spawns a **regen instance** that ticks for 5 seconds. Multiple instances stack additively. Total leech rate is capped at **20% of max life per second** — excess instances still spawn but their rates are clamped against the cap. Mana leech follows the same formula independently.
+
+Leech does not refill barrier — it is life-only (and the parallel rule for mana).
 
 ### Tick order
 The **player acts first** on each tick. Within a tick: player's hit resolves → effects trigger → enemy's hit resolves. This gives the player a slight advantage equivalent to one free swing per combat and keeps simulations deterministic.
@@ -200,6 +247,25 @@ When the player leaves a zone, all **damage-over-time (DoT) effects are removed*
 
 ### Equipment swap during combat
 Allowed. The player can re-equip gear inside a zone — useful for swapping in resist-heavy gear before a hard fight, or weapon variations. There is no equip cooldown in the MVP.
+
+### Equipment requirements and broken state
+Items carry `requirements: { level, str?, dex?, int? }` (already baked into base templates). Two distinct checks govern equip behaviour:
+
+**Equip-time check (strict)**
+At the moment of equip, the character's totals are computed **without the item being equipped** and compared against the item's requirements. The equip mutation rejects if `level < req.level` or any attribute is short. The item's own attribute contribution never helps it equip itself.
+
+**Broken state (lax, post-equip)**
+If a previously equipped item's requirements become unmet (e.g., the player unequips a ring that was supplying +STR), the item enters **broken state**. It stays in the slot but contributes **zero stats** — broken weapons swing for damage 1, broken armor adds no defense, broken jewelry stops conferring its mods.
+
+Broken detection runs as a fixed-point iteration in the stat engine:
+1. Start with all equipped items "live", compute totals (class base + level scaling + all equipped contributions).
+2. For each equipped item, check requirements against current totals.
+3. Mark unmet items as broken; subtract their contribution from totals.
+4. Repeat until the broken set is stable (no new items become broken).
+
+This naturally produces the PoE "self-sustaining gear" behaviour: a helmet that gives +15 STR and requires STR 15 cannot be equipped by a STR-10 character alone, but once equipped (via a temporary STR source) it counts its own +15 in the broken-state check and stays functional. Removing the temporary source while the helmet is equipped leaves it OK; unequipping the helmet means it cannot be re-equipped without external help.
+
+**Visual signal** — broken items render with a red border (overriding the rarity color), a red `AlertTriangle` icon overlay, and a red warning line at the top of their tooltip: "Falta {N} de {Atributo}", one line per unmet requirement.
 
 ### Active player input
 Combat is otherwise automatic, but the player has **one active control today**: using a **life potion**.
@@ -409,13 +475,36 @@ Defensive identity. Primarily roll:
 **Caster armor exception:** helmet and chestplate **with a silk base** can roll `+% Spell Damage`. This is the only offensive mod that armor receives. It mirrors PoE energy-shield gear and preserves the caster fantasy without giving martial armor offensive rolls. Boots are excluded — they are defense + utility (movement speed) and never offensive.
 
 ### Off-hand (`offhand`)
-Currently restricted to **shields** — defensive identity with light hybrid potential. Rolls:
+A flexible slot that accepts shields **or** a second weapon (dual-wielding). The slot's contents drive distinct combat behaviour:
+
+**Shield in off-hand** — defensive identity, light hybrid potential. Rolls:
 - Local defense (same resolution as armor)
 - Block chance
 - Thorns
 - Defensive utility
 
-Dual-wielding (two attack weapons, no shield) is on the roadmap but not yet modeled; when added, the second weapon will likely not occupy the `offhand` slot — TBD.
+The shield does not swing — it adds its stats to the character's totals and that's it.
+
+**Weapon in off-hand (dual-wielding)** — see "Dual-wielding" below.
+
+### Dual-wielding
+A second one-handed weapon may go in the off-hand slot. When both hands hold a weapon, the character is **dual-wielding** and the off-hand contributes its own swings on top of the main hand's.
+
+**Slot eligibility**:
+- One-handed attack weapons (`sword`, `dagger`, `axe`, `mace`) can occupy main hand **or** off-hand.
+- One-handed caster (`wand`) can occupy main hand **or** off-hand.
+- Two-handed weapons (`greatsword`, `twoHandedAxe`, `bow`, `staff`) occupy main hand **and block the off-hand slot** — equipping a 2H weapon while an off-hand item is equipped auto-unequips the off-hand back to inventory.
+- Shields are off-hand only.
+
+**Same-archetype rule**: dual-wielding requires both weapons to share archetype. Attack 1H + attack 1H is allowed (sword + dagger, axe + sword, etc.). Caster 1H + caster 1H is allowed (wand + wand — the only caster combination). **Mixed archetype is rejected** (no sword + wand). This keeps the combat tick model coherent — one path (attack or spell) active at a time.
+
+**Combat behaviour**:
+- Combined tick rate = `mainHand.attackSpeed + offHand.attackSpeed` (or `castSpeed` for caster pairs).
+- Ticks **alternate**: tick 1 = main hand swings, tick 2 = off-hand, tick 3 = main hand again. The swinging weapon's local stats (base damage, local mods, weapon-specific crit chance) source that tick's damage.
+- Global modifiers (`+X% Increased Physical`, `+X Strength`, global crit chance/multi, resistances, attributes) apply on **every** swing, regardless of which weapon is active.
+- Cast speed base is `1.0` for caster weapons (no per-template base); cast speed mods scale that baseline.
+
+There is no implicit dual-wield damage or attack-speed bonus — the value of dual-wielding is the doubled tick rate. The trade-off vs shield is straightforward: shield offers block + thorns + defensive stats, dual-wielding offers raw rate.
 
 ---
 
@@ -570,6 +659,30 @@ Conditions that must always hold. If you find code that violates these, file it 
 
 ---
 
+## Stat Engine
+
+A pure function in `src/game/stats/compute.ts` is the canonical source for "what stats does this character have right now?". Used by combat (server + client) and by the Show Stats panel.
+
+Input: `{ classDef, level, equippedItems[] }`.
+Output: `ComputedCharacterStats` — attributes (str/dex/int), life/mana max + regen, barrier max, armor/evasion/accuracy, resistances (cold/fire/lightning/void, all capped 75%), crit chance (capped 100%, floored 5%), crit multi, attack speed (attack path) / cast speed (spell path; base 1.0), flat damage per element per path, increased pools per category, more multipliers cascade, leech %, movement speed, magic find, life/mana on hit, life/mana on kill, block chance, thorns. Plus the `broken` set — item ids that failed the broken-state check.
+
+Derivations the engine does itself: armor mitigation %, evasion-vs-typical-enemy hit-avoid %, total DPS estimate (path-aware). The engine does **not** roll dice — it only computes the static numbers. Per-hit rolls live in the combat loop.
+
+The function is pure, deterministic, and dependency-free (no React, no Convex). Same inputs → same outputs. Recomputed wherever needed; not cached on the character document. The reactive Convex queries that feed it keep the UI in sync automatically.
+
+## Show Stats panel
+
+A modal opened from the "Show" button in the status card. Layout: `max-w-3xl`, four sections:
+
+- **Atributos** — STR, DEX, INT totals.
+- **Defesas** — Vida (current/max), Barreira (current/max + recovery state), Armadura (raw + derived mitigation % vs zone), Evasão (raw + derived avoid % vs zone), Resistências (four elements), Regen Vida, Bloqueio (when a shield is equipped).
+- **Ofensiva** — header switches between `ATAQUE` and `CONJURAÇÃO` based on main-hand archetype. Shows DPS, attack/cast speed, flat damage range per element, crit chance, crit multi, accuracy, plus a sub-block of increased totals per category.
+- **Utilidade** — movement speed, life/mana on hit, leech %, life/mana on kill, magic find.
+
+Inactive path is hidden (sword equipped → no spell stats shown). Totals per category only — no per-source breakdown in this iteration.
+
+---
+
 ## Out of Scope (for now)
 
 - **Unique items** — hand-crafted rarity above Epic, planned. See `docs/plans/roadmap.md`.
@@ -577,7 +690,6 @@ Conditions that must always hold. If you find code that violates these, file it 
 - **Active skills with cooldowns** — planned, but only after all classes are implemented and the passive tree exists. The MVP combat loop has exactly one active control: the life potion.
 - **Passive tree** — planned, between MVP combat and active skills.
 - **Hub city** — the hub gets its own city (with vendor/stash/NPCs) only in late-game planning. For now the hub is pure navigation between acts.
-- **Dual wielding** — two attack weapons instead of weapon+shield. Slot model TBD.
 - **% max life / % max mana mods** — intentionally removed, reserved for future power creep.
 - **Light radius** — removed. The game is an auto-battler resolved by stats; there is no perception/sight mechanic for light radius to modify.
 - **Stun duration** — kept in the pool as filler, but the stun mechanic itself is **not yet designed**. Treat existing tier values as placeholders. Once stun is specified (does the auto-battler simulate stun? as a damage window? as a global debuff?), revisit the mod.

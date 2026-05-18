@@ -2,3 +2,17 @@
 // in useCombatLoop) and server (authoritative consumePotion) so balance
 // changes can't drift between the two.
 export const POTION_HEAL_FRACTION = 0.2;
+
+// Caster weapons have no per-template cast speed — every wand/staff casts at
+// this baseline and global cast-speed mods scale it.
+export const BASE_CAST_SPEED = 1.0;
+
+// Barrier recovery: after barrier reaches zero, this many seconds elapse
+// before it refills to 100% in a single tick. The timer does not reset on
+// damage during the window.
+export const BARRIER_RECOVERY_SECONDS = 6;
+
+// Leech: how much of the magnitude ticks per second (so duration = 1/rate s).
+export const LEECH_RATE_PER_SECOND = 0.2;
+// Leech regen capped at this fraction of maxLife per second across all stacks.
+export const LEECH_CAP_PCT_MAX_LIFE_PER_SECOND = 0.2;
