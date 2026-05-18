@@ -580,3 +580,39 @@ export function effectiveCritChance(
 export function totalCritMultiplier(bonusFromMods: number): number {
 	return BASE_CRIT_MULTIPLIER + bonusFromMods;
 }
+
+// ── Broken state explanation ──
+
+/**
+ * For a broken item, returns short Portuguese descriptions of every
+ * requirement currently unmet against the supplied totals. Empty if the
+ * item is actually fine (caller should still gate on brokenItemIds).
+ */
+export function describeBrokenReasons(
+	item: {
+		requirements?:
+			| { level?: number; str?: number; dex?: number; int?: number }
+			| undefined;
+	},
+	totals: ComputedCharacterStats,
+	characterLevel: number,
+): string[] {
+	const reasons: string[] = [];
+	const reqs = item.requirements;
+	if (!reqs) return reasons;
+	if (reqs.level !== undefined && characterLevel < reqs.level) {
+		reasons.push(`Falta nível ${reqs.level}`);
+	}
+	if (reqs.str !== undefined && totals.attributes.strength < reqs.str) {
+		reasons.push(`Falta ${reqs.str - totals.attributes.strength} de Força`);
+	}
+	if (reqs.dex !== undefined && totals.attributes.dexterity < reqs.dex) {
+		reasons.push(`Falta ${reqs.dex - totals.attributes.dexterity} de Destreza`);
+	}
+	if (reqs.int !== undefined && totals.attributes.intelligence < reqs.int) {
+		reasons.push(
+			`Falta ${reqs.int - totals.attributes.intelligence} de Inteligência`,
+		);
+	}
+	return reasons;
+}

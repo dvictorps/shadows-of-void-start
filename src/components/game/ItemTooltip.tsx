@@ -90,7 +90,13 @@ function getModifiedStats(item: GeneratedItem): Set<string> {
 	return modified;
 }
 
-export default function ItemTooltip({ item }: { item: GeneratedItem }) {
+export default function ItemTooltip({
+	item,
+	brokenReasons,
+}: {
+	item: GeneratedItem;
+	brokenReasons?: string[];
+}) {
 	const nameColor = RARITY_COLORS[item.rarity];
 	const headerBg = RARITY_HEADER_BG[item.rarity];
 	const showGeneratedName = HAS_GENERATED_NAME.has(item.rarity);
@@ -130,6 +136,15 @@ export default function ItemTooltip({ item }: { item: GeneratedItem }) {
 			{/* Accent line for legendary/epic */}
 			{showGlow && (
 				<div className="h-[2px]" style={{ backgroundColor: nameColor }} />
+			)}
+
+			{/* Broken-state warning band — overrides the rarity accent above it. */}
+			{brokenReasons && brokenReasons.length > 0 && (
+				<div className="bg-red-900/40 px-4 py-1 text-xs font-bold text-red-300">
+					{brokenReasons.map((r) => (
+						<div key={r}>{r}</div>
+					))}
+				</div>
 			)}
 
 			{/* Corner ornaments for rare+ */}

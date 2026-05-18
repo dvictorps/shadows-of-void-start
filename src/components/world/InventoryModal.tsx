@@ -18,7 +18,8 @@ import Modal from "#/components/Modal";
 import { INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import { validSlotsForItem } from "#/game/items/equipment";
 import type { GeneratedItem } from "#/game/items/types";
-import type { EquippedSlot } from "#/game/stats/types";
+import { describeBrokenReasons } from "#/game/stats/compute";
+import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
 import { m } from "#/paraglide/messages";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
@@ -52,12 +53,16 @@ type Props = {
 	isOpen: boolean;
 	onClose: () => void;
 	characterId: Id<"characters">;
+	stats: ComputedCharacterStats;
+	characterLevel: number;
 };
 
 export default function InventoryModal({
 	isOpen,
 	onClose,
 	characterId,
+	stats,
+	characterLevel,
 }: Props) {
 	const equippedItems = useQuery(
 		api.characters.equipped,
@@ -228,6 +233,13 @@ export default function InventoryModal({
 						<div className="grid grid-cols-2 gap-2">
 							{EQUIPMENT_SLOT_LAYOUT.map(({ slot, label }) => {
 								const item = equippedBySlot.get(slot);
+								const broken = item
+									? stats.brokenItemIds.has(item.data.id)
+									: false;
+								const reasons =
+									broken && item
+										? describeBrokenReasons(item.data, stats, characterLevel)
+										: undefined;
 								return (
 									<EquipmentDroppable
 										key={slot}
@@ -236,6 +248,8 @@ export default function InventoryModal({
 										item={item ?? null}
 										eligible={validEquipSlots.has(slot)}
 										dragging={active}
+										broken={broken}
+										brokenReasons={reasons}
 									/>
 								);
 							})}
@@ -372,12 +386,16 @@ function EquipmentDroppable({
 	item,
 	eligible,
 	dragging,
+	broken,
+	brokenReasons,
 }: {
 	slot: EquippedSlot;
 	label: string;
 	item: Doc<"items"> | null;
 	eligible: boolean;
 	dragging: DragSourceData | null;
+	broken: boolean;
+	brokenReasons: string[] | undefined;
 }) {
 	const { setNodeRef, isOver } = useDroppable({
 		id: `equip-${slot}`,
@@ -407,7 +425,13 @@ function EquipmentDroppable({
 				{!item && label}
 			</div>
 			{item && (
-				<DraggableEquipped item={item} slot={slot} hidden={isDraggingThis} />
+				<DraggableEquipped
+					item={item}
+					slot={slot}
+					hidden={isDraggingThis}
+					broken={broken}
+					brokenReasons={brokenReasons}
+				/>
 			)}
 		</div>
 	);
@@ -417,10 +441,14 @@ function DraggableEquipped({
 	item,
 	slot,
 	hidden,
+	broken,
+	brokenReasons,
 }: {
 	item: Doc<"items">;
 	slot: EquippedSlot;
 	hidden: boolean;
+	broken: boolean;
+	brokenReasons: string[] | undefined;
 }) {
 	const { attributes, listeners, setNodeRef } = useDraggable({
 		id: `equipped-${slot}`,
@@ -445,6 +473,8 @@ function DraggableEquipped({
 				item={item.data}
 				size={EQUIPMENT_SLOT_SIZE}
 				suppressTooltip={hidden}
+				broken={broken}
+				brokenReasons={brokenReasons}
 			/>
 		</div>
 	);

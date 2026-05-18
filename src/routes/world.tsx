@@ -328,6 +328,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				isOpen={inventoryModal.isOpen}
 				onClose={inventoryModal.close}
 				characterId={character._id}
+				stats={stats}
+				characterLevel={character.level}
 			/>
 			<SettingsModal
 				isOpen={settingsModal.isOpen}

@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ItemTooltip from "#/components/game/ItemTooltip";
@@ -63,6 +64,10 @@ type Props = {
 	size?: number;
 	dimmed?: boolean;
 	suppressTooltip?: boolean;
+	/** Equipped-but-requirements-unmet state. Renders red border + warn icon. */
+	broken?: boolean;
+	/** Lines shown in red at the top of the tooltip when broken. */
+	brokenReasons?: string[];
 	onClick?: () => void;
 };
 
@@ -76,6 +81,8 @@ export default function ItemCard({
 	size = 64,
 	dimmed,
 	suppressTooltip,
+	broken,
+	brokenReasons,
 	onClick,
 }: Props) {
 	const cardRef = useRef<HTMLButtonElement>(null);
@@ -111,8 +118,10 @@ export default function ItemCard({
 
 	const handleLeave = () => setTooltipPos(null);
 
-	const borderClass = RARITY_BORDER[item.rarity];
-	const glowClass = RARITY_GLOW[item.rarity];
+	const borderClass = broken ? "border-red-500" : RARITY_BORDER[item.rarity];
+	const glowClass = broken
+		? "shadow-[inset_0_0_12px_rgba(220,40,40,0.35),0_0_10px_rgba(220,40,40,0.35)]"
+		: RARITY_GLOW[item.rarity];
 	const cardClasses = [
 		"relative flex items-center justify-center rounded-md border-2 bg-black transition-colors",
 		borderClass,
@@ -146,6 +155,11 @@ export default function ItemCard({
 				>
 					{emojiFor(item)}
 				</span>
+				{broken && (
+					<span className="pointer-events-none absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-black bg-red-500 text-black shadow-[0_0_6px_rgba(220,40,40,0.7)]">
+						<AlertTriangle size={12} strokeWidth={3} />
+					</span>
+				)}
 			</button>
 			{tooltipPos &&
 				createPortal(
@@ -158,7 +172,7 @@ export default function ItemCard({
 							pointerEvents: "none",
 						}}
 					>
-						<ItemTooltip item={item} />
+						<ItemTooltip item={item} brokenReasons={brokenReasons} />
 					</div>,
 					document.body,
 				)}
