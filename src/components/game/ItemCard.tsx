@@ -68,7 +68,8 @@ type Props = {
 	broken?: boolean;
 	/** Lines shown in red at the top of the tooltip when broken. */
 	brokenReasons?: string[];
-	onClick?: () => void;
+	/** Click handler — receives the card's bounding rect for positioning popovers. */
+	onClick?: (rect: DOMRect) => void;
 };
 
 const TOOLTIP_OFFSET_PX = 12;
@@ -137,7 +138,11 @@ export default function ItemCard({
 			<button
 				ref={cardRef}
 				type="button"
-				onClick={onClick}
+				onClick={() => {
+					if (!onClick) return;
+					const rect = cardRef.current?.getBoundingClientRect();
+					if (rect) onClick(rect);
+				}}
 				onMouseEnter={handleEnter}
 				onMouseLeave={handleLeave}
 				onFocus={handleEnter}

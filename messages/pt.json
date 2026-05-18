@@ -87,6 +87,13 @@
 
   "modal_close_label": "Fechar",
 
+  "equip_main_hand": "Equipar como Mão Principal",
+  "equip_off_hand": "Equipar como Mão Secundária",
+  "equip_ring_1": "Equipar no Anel 1",
+  "equip_ring_2": "Equipar no Anel 2",
+  "equip_generic": "Equipar",
+  "unequip_action": "Desequipar",
+
   "stats_title": "Estatísticas",
   "stats_section_attributes": "Atributos",
   "stats_section_defenses": "Defesas",

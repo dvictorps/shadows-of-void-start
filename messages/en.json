@@ -87,6 +87,13 @@
 
   "modal_close_label": "Close",
 
+  "equip_main_hand": "Equip in Main Hand",
+  "equip_off_hand": "Equip in Off Hand",
+  "equip_ring_1": "Equip in Ring 1",
+  "equip_ring_2": "Equip in Ring 2",
+  "equip_generic": "Equip",
+  "unequip_action": "Unequip",
+
   "stats_title": "Stats",
   "stats_section_attributes": "Attributes",
   "stats_section_defenses": "Defenses",
