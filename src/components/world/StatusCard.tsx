@@ -67,22 +67,15 @@ export default function StatusCard({
 							<span className="text-white/50">{m.status_dps_label()}</span> —
 						</p>
 					</div>
-					<div className="text-right text-sm">
-						<p className="text-white">
-							<span className="text-white/50">{m.status_strength_label()}</span>{" "}
-							{attrs.strength}
+					<div className="display-title space-y-1.5 text-right text-base tracking-wider">
+						<p className="text-glow-red">
+							{m.status_strength_label()} {attrs.strength}
 						</p>
-						<p className="text-white">
-							<span className="text-white/50">
-								{m.status_dexterity_label()}
-							</span>{" "}
-							{attrs.dexterity}
+						<p className="text-glow-green">
+							{m.status_dexterity_label()} {attrs.dexterity}
 						</p>
-						<p className="text-white">
-							<span className="text-white/50">
-								{m.status_intelligence_label()}
-							</span>{" "}
-							{attrs.intelligence}
+						<p className="text-glow-blue">
+							{m.status_intelligence_label()} {attrs.intelligence}
 						</p>
 					</div>
 				</div>

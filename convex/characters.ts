@@ -4,7 +4,10 @@ import {
 	findClassDefinition,
 } from "../src/game/classes/data"
 import type { CharacterClassId } from "../src/game/classes/types"
-import { STARTER_WEAPON_BY_CLASS } from "../src/game/items/starter-gear"
+import { POTION_HEAL_FRACTION } from "../src/game/combat/constants"
+import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
+import { findStarterItem, STARTER_WEAPON_BY_CLASS } from "../src/game/items/starter-gear"
+import { rollDrop, rollMonsterLevel } from "../src/game/loot/drops"
 import { findMonster } from "../src/game/monsters/data"
 import {
 	applyDeathXpPenalty,
@@ -14,11 +17,11 @@ import {
 import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
 import { authComponent } from "./auth"
+import { ACT_1, findNode } from "../src/game/world"
 
 const MAX_CHARACTERS_PER_USER = 8
 const MAX_NAME_LENGTH = 20
 const STARTING_POTIONS = 5
-const POTION_HEAL_FRACTION = 0.2
 
 function isKnownClassId(id: string): id is CharacterClassId {
 	return Object.hasOwn(CLASS_DEFINITIONS, id)
@@ -38,13 +41,69 @@ function normalize(char: Doc<"characters">) {
 		potions: char.potions ?? 0,
 		hardcore: char.hardcore ?? false,
 		equippedWeapon: char.equippedWeapon ?? defaultStarterWeapon(char.classId),
+		equippedWeaponId: char.equippedWeaponId,
+		currentZoneSession: char.currentZoneSession,
 	}
 }
 
-/**
- * Returns all characters owned by the current user, newest first.
- * Returns an empty array if unauthenticated.
- */
+function newZoneSession(): string {
+	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+async function loadOwnedCharacter(
+	ctx: MutationCtx,
+	authUserId: string,
+	id: Id<"characters">,
+): Promise<Doc<"characters">> {
+	const char = await ctx.db.get(id)
+	if (!char) throw new ConvexError("Character not found")
+	if (char.authUserId !== authUserId) throw new ConvexError("Not your character")
+	return char
+}
+
+async function deleteZoneBag(
+	ctx: MutationCtx,
+	zoneSession: string,
+): Promise<void> {
+	const bagItems = await ctx.db
+		.query("items")
+		.withIndex("by_zoneSession", (q) => q.eq("zoneSession", zoneSession))
+		.collect()
+	await Promise.all(bagItems.map((item) => ctx.db.delete(item._id)))
+}
+
+// Fetches the inventory in one pass and returns a slot allocator. The allocator
+// mutates an internal occupied-set as it hands out slots — callers reuse the
+// returned `inventory.length` for overflow checks instead of refetching.
+async function fetchInventoryAllocator(
+	ctx: MutationCtx,
+	characterId: Id<"characters">,
+): Promise<{ used: number; nextFreeSlot: () => number }> {
+	const inventory = await ctx.db
+		.query("items")
+		.withIndex("by_character_kind", (q) =>
+			q.eq("characterId", characterId).eq("locationKind", "inventory"),
+		)
+		.collect()
+	const occupied = new Set(
+		inventory
+			.map((it) => it.inventorySlot)
+			.filter((s): s is number => typeof s === "number"),
+	)
+	function nextFreeSlot(): number {
+		for (let i = 0; i < INVENTORY_MAX_SLOTS; i++) {
+			if (!occupied.has(i)) {
+				occupied.add(i)
+				return i
+			}
+		}
+		return -1
+	}
+	return { used: inventory.length, nextFreeSlot }
+}
+
+// ── Character CRUD ──
+
 export const list = query({
 	args: {},
 	handler: async (ctx) => {
@@ -59,9 +118,6 @@ export const list = query({
 	},
 })
 
-/**
- * Creates a character for the current user.
- */
 export const create = mutation({
 	args: {
 		name: v.string(),
@@ -79,7 +135,9 @@ export const create = mutation({
 		const name = args.name.trim()
 		if (name.length === 0) throw new ConvexError("Name cannot be empty")
 		if (name.length > MAX_NAME_LENGTH)
-			throw new ConvexError(`Name must be at most ${MAX_NAME_LENGTH} characters`)
+			throw new ConvexError(
+				`Name must be at most ${MAX_NAME_LENGTH} characters`,
+			)
 
 		const existing = await ctx.db
 			.query("characters")
@@ -99,9 +157,9 @@ export const create = mutation({
 
 		const classDef = findClassDefinition(args.classId)
 		const maxHp = computeMaxHp(classDef, 1)
-		const starterWeapon = defaultStarterWeapon(args.classId)
+		const starterWeaponId = defaultStarterWeapon(args.classId)
 
-		return await ctx.db.insert("characters", {
+		const characterId = await ctx.db.insert("characters", {
 			authUserId: authUser._id,
 			name,
 			classId: args.classId,
@@ -110,15 +168,32 @@ export const create = mutation({
 			hpCurrent: maxHp,
 			potions: STARTING_POTIONS,
 			hardcore: args.hardcore ?? false,
-			equippedWeapon: starterWeapon,
+			equippedWeapon: starterWeaponId,
 			createdAt: Date.now(),
 		})
+
+		// Create the starter item entry in the items table so equip lifecycle is
+		// consistent from day one (no special-casing later when equip/unequip lands).
+		if (starterWeaponId) {
+			const starterDef = findStarterItem(starterWeaponId)
+			if (starterDef) {
+				const itemId = await ctx.db.insert("items", {
+					authUserId: authUser._id,
+					locationKind: "equipped",
+					characterId,
+					equippedSlot: "weapon",
+					data: starterDef,
+					droppedAt: Date.now(),
+					droppedFrom: "starter",
+				})
+				await ctx.db.patch(characterId, { equippedWeaponId: itemId })
+			}
+		}
+
+		return characterId
 	},
 })
 
-/**
- * Deletes a character owned by the current user.
- */
 export const remove = mutation({
 	args: { id: v.id("characters") },
 	handler: async (ctx, args) => {
@@ -130,28 +205,32 @@ export const remove = mutation({
 		if (char.authUserId !== authUser._id)
 			throw new ConvexError("Not your character")
 
+		// Cascade: delete all items owned by this character (inventory, equipped, zoneBag).
+		// Stash is account-wide so we leave it.
+		const ownedItems = await ctx.db
+			.query("items")
+			.withIndex("by_character_kind", (q) => q.eq("characterId", args.id))
+			.collect()
+		await Promise.all(ownedItems.map((item) => ctx.db.delete(item._id)))
+
 		await ctx.db.delete(args.id)
+	},
+})
+
+export const byId = query({
+	args: { id: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) return null
+		const char = await ctx.db.get(args.id)
+		if (!char) return null
+		if (char.authUserId !== authUser._id) return null
+		return { ...char, ...normalize(char) }
 	},
 })
 
 // ── Combat mutations ──
 
-async function loadOwnedCharacter(
-	ctx: MutationCtx,
-	authUserId: string,
-	id: Id<"characters">,
-): Promise<Doc<"characters">> {
-	const char = await ctx.db.get(id)
-	if (!char) throw new ConvexError("Character not found")
-	if (char.authUserId !== authUserId) throw new ConvexError("Not your character")
-	return char
-}
-
-/**
- * Records a monster kill, granting XP server-side. The client tells us *which*
- * monster was killed; the server looks up its XP reward — clients never pick
- * the amount themselves.
- */
 export const recordKill = mutation({
 	args: {
 		characterId: v.id("characters"),
@@ -171,25 +250,42 @@ export const recordKill = mutation({
 			monster.xpReward,
 		)
 
-		const updates: Partial<Doc<"characters">> = {
-			level,
-			xp,
-		}
+		const updates: Partial<Doc<"characters">> = { level, xp }
 
-		// On level-up, refill HP to the new max as a quality-of-life beat.
 		if (levelsGained > 0) {
 			const classDef = findClassDefinition(char.classId)
 			updates.hpCurrent = computeMaxHp(classDef, level)
 		}
-
 		await ctx.db.patch(args.characterId, updates)
-		return { xpGained: monster.xpReward, levelsGained }
+
+		// Roll the drop server-side, persist in the zone bag.
+		const zoneSession = char.currentZoneSession
+		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []
+		if (zoneSession) {
+			const monsterLevel = rollMonsterLevel(1) // For MVP all goblins ride zone 1; future: pass zone.level via arg
+			const drop = rollDrop({
+				monsterRarity: "normal",
+				monsterLevel,
+			})
+			if (drop) {
+				const insertedId = await ctx.db.insert("items", {
+					authUserId: authUser._id,
+					locationKind: "zoneBag",
+					characterId: args.characterId,
+					zoneSession,
+					data: drop,
+					droppedAt: Date.now(),
+					droppedFrom: monster.id,
+					droppedFromLevel: monsterLevel,
+				})
+				drops.push({ id: insertedId, data: drop })
+			}
+		}
+
+		return { xpGained: monster.xpReward, levelsGained, drops }
 	},
 })
 
-/**
- * Consumes one potion and heals the character. Validated server-side.
- */
 export const usePotion = mutation({
 	args: { characterId: v.id("characters") },
 	handler: async (ctx, args) => {
@@ -205,7 +301,10 @@ export const usePotion = mutation({
 		const currentHp = char.hpCurrent ?? maxHp
 		if (currentHp >= maxHp) throw new ConvexError("Already at full HP")
 
-		const healed = Math.min(maxHp, currentHp + Math.floor(maxHp * POTION_HEAL_FRACTION))
+		const healed = Math.min(
+			maxHp,
+			currentHp + Math.floor(maxHp * POTION_HEAL_FRACTION),
+		)
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: healed,
 			potions: potions - 1,
@@ -214,12 +313,6 @@ export const usePotion = mutation({
 	},
 })
 
-/**
- * Periodic HP sync from the client. The server clamps to [0, maxHp] and
- * accepts whatever value the client claims within that range. This is the
- * "trust with sanity check" path; authoritative events still go through
- * recordKill / usePotion / respawn.
- */
 export const syncHp = mutation({
 	args: {
 		characterId: v.id("characters"),
@@ -239,10 +332,6 @@ export const syncHp = mutation({
 	},
 })
 
-/**
- * Entering a city node: full heal, plus a courtesy refill to 1 potion if the
- * character has zero. Prevents being stranded with no recovery options.
- */
 export const enterCity = mutation({
 	args: { characterId: v.id("characters") },
 	handler: async (ctx, args) => {
@@ -263,10 +352,6 @@ export const enterCity = mutation({
 	},
 })
 
-/**
- * Death handler. Softcore: apply XP penalty, full heal, character persists.
- * Hardcore: delete the character permanently.
- */
 export const respawnDead = mutation({
 	args: { characterId: v.id("characters") },
 	handler: async (ctx, args) => {
@@ -274,7 +359,20 @@ export const respawnDead = mutation({
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
 
+		// Wipe the zone bag — death loses everything staged.
+		if (char.currentZoneSession) {
+			await deleteZoneBag(ctx, char.currentZoneSession)
+		}
+
 		if (char.hardcore) {
+			// Cascade item delete then character delete (mirrors `remove`).
+			const ownedItems = await ctx.db
+				.query("items")
+				.withIndex("by_character_kind", (q) =>
+					q.eq("characterId", args.characterId),
+				)
+				.collect()
+			await Promise.all(ownedItems.map((item) => ctx.db.delete(item._id)))
 			await ctx.db.delete(args.characterId)
 			return { mode: "hardcore" as const, xpLost: 0 }
 		}
@@ -286,22 +384,278 @@ export const respawnDead = mutation({
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxHp,
 			xp,
+			currentZoneSession: undefined,
 		})
 		return { mode: "softcore" as const, xpLost }
 	},
 })
 
-/**
- * Convenience query so the world view can subscribe to a single character.
- */
-export const byId = query({
-	args: { id: v.id("characters") },
+// ── Zone session lifecycle ──
+
+export const enterZone = mutation({
+	args: {
+		characterId: v.id("characters"),
+		zoneId: v.string(),
+	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
-		if (!authUser) return null
-		const char = await ctx.db.get(args.id)
-		if (!char) return null
-		if (char.authUserId !== authUser._id) return null
-		return { ...char, ...normalize(char) }
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const zone = findNode(ACT_1, args.zoneId)
+		if (!zone || zone.kind !== "combat")
+			throw new ConvexError(`Unknown combat zone: ${args.zoneId}`)
+
+		// Wipe any leftover bag from a previous session (player closed tab mid-fight
+		// last time, etc.). Combat scope is "what dropped in THIS visit only".
+		if (char.currentZoneSession) {
+			await deleteZoneBag(ctx, char.currentZoneSession)
+		}
+
+		const zoneSession = newZoneSession()
+		await ctx.db.patch(args.characterId, { currentZoneSession: zoneSession })
+		return { zoneSession }
+	},
+})
+
+export const exitZone = mutation({
+	args: {
+		characterId: v.id("characters"),
+		keepIds: v.array(v.id("items")),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const zoneSession = char.currentZoneSession
+		if (!zoneSession) return { kept: 0, discarded: 0 }
+
+		const bagItems = await ctx.db
+			.query("items")
+			.withIndex("by_zoneSession", (q) => q.eq("zoneSession", zoneSession))
+			.collect()
+
+		const keepSet = new Set(args.keepIds.map((id) => id.toString()))
+		const validKeeps = bagItems.filter(
+			(it) =>
+				keepSet.has(it._id.toString()) && it.characterId === args.characterId,
+		)
+
+		const { used, nextFreeSlot } = await fetchInventoryAllocator(
+			ctx,
+			args.characterId,
+		)
+		if (used + validKeeps.length > INVENTORY_MAX_SLOTS) {
+			throw new ConvexError(
+				`Inventory overflow: ${used + validKeeps.length} > ${INVENTORY_MAX_SLOTS}`,
+			)
+		}
+
+		const keepSetById = new Set(validKeeps.map((it) => it._id))
+		const slotAssignments = validKeeps.map((it) => ({
+			id: it._id,
+			slot: nextFreeSlot(),
+		}))
+		const toDelete = bagItems.filter((it) => !keepSetById.has(it._id))
+
+		await Promise.all([
+			...slotAssignments.map((a) =>
+				ctx.db.patch(a.id, {
+					locationKind: "inventory" as const,
+					zoneSession: undefined,
+					inventorySlot: a.slot,
+				}),
+			),
+			...toDelete.map((it) => ctx.db.delete(it._id)),
+		])
+
+		await ctx.db.patch(args.characterId, { currentZoneSession: undefined })
+		return { kept: validKeeps.length, discarded: toDelete.length }
+	},
+})
+
+/**
+ * Move a subset of zone-bag items to inventory while keeping the session alive.
+ * Validates ownership + inventory overflow.
+ */
+export const pickFromBag = mutation({
+	args: {
+		characterId: v.id("characters"),
+		itemIds: v.array(v.id("items")),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const zoneSession = char.currentZoneSession
+		if (!zoneSession || args.itemIds.length === 0) return { kept: 0 }
+
+		const idSet = new Set(args.itemIds.map((id) => id.toString()))
+		const bagItems = await ctx.db
+			.query("items")
+			.withIndex("by_zoneSession", (q) => q.eq("zoneSession", zoneSession))
+			.collect()
+		const valid = bagItems.filter(
+			(it) =>
+				idSet.has(it._id.toString()) && it.characterId === args.characterId,
+		)
+
+		const { used, nextFreeSlot } = await fetchInventoryAllocator(
+			ctx,
+			args.characterId,
+		)
+		if (used + valid.length > INVENTORY_MAX_SLOTS) {
+			throw new ConvexError(
+				`Inventory overflow: ${used + valid.length} > ${INVENTORY_MAX_SLOTS}`,
+			)
+		}
+
+		const assignments = valid.map((it) => ({
+			id: it._id,
+			slot: nextFreeSlot(),
+		}))
+		await Promise.all(
+			assignments.map((a) =>
+				ctx.db.patch(a.id, {
+					locationKind: "inventory" as const,
+					zoneSession: undefined,
+					inventorySlot: a.slot,
+				}),
+			),
+		)
+		return { kept: valid.length }
+	},
+})
+
+/**
+ * Delete a subset of zone-bag items. Session stays alive.
+ */
+export const discardFromBag = mutation({
+	args: {
+		characterId: v.id("characters"),
+		itemIds: v.array(v.id("items")),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const zoneSession = char.currentZoneSession
+		if (!zoneSession || args.itemIds.length === 0) return { discarded: 0 }
+
+		const idSet = new Set(args.itemIds.map((id) => id.toString()))
+		const bagItems = await ctx.db
+			.query("items")
+			.withIndex("by_zoneSession", (q) => q.eq("zoneSession", zoneSession))
+			.collect()
+		const toDelete = bagItems.filter(
+			(it) =>
+				idSet.has(it._id.toString()) && it.characterId === args.characterId,
+		)
+		await Promise.all(toDelete.map((it) => ctx.db.delete(it._id)))
+		return { discarded: toDelete.length }
+	},
+})
+
+/**
+ * Reorder an item within the inventory grid. If `targetSlot` is occupied,
+ * the items swap positions; otherwise the source item just moves.
+ */
+export const reorderInventory = mutation({
+	args: {
+		characterId: v.id("characters"),
+		itemId: v.id("items"),
+		targetSlot: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		if (args.targetSlot < 0 || args.targetSlot >= INVENTORY_MAX_SLOTS) {
+			throw new ConvexError(`Invalid slot: ${args.targetSlot}`)
+		}
+
+		const source = await ctx.db.get(args.itemId)
+		if (!source) throw new ConvexError("Item not found")
+		if (source.characterId !== args.characterId)
+			throw new ConvexError("Not your item")
+		if (source.locationKind !== "inventory")
+			throw new ConvexError("Item is not in inventory")
+
+		// Find any item currently sitting on the target slot.
+		const allInv = await ctx.db
+			.query("items")
+			.withIndex("by_character_kind", (q) =>
+				q.eq("characterId", args.characterId).eq("locationKind", "inventory"),
+			)
+			.collect()
+		const occupant = allInv.find((it) => it.inventorySlot === args.targetSlot)
+
+		const sourceSlot = source.inventorySlot
+		await ctx.db.patch(source._id, { inventorySlot: args.targetSlot })
+		if (occupant && occupant._id !== source._id) {
+			await ctx.db.patch(occupant._id, { inventorySlot: sourceSlot ?? -1 })
+		}
+	},
+})
+
+// Query: items in the current zone bag (for the preview/exit modals).
+export const zoneBag = query({
+	args: { characterId: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) return []
+		const char = await ctx.db.get(args.characterId)
+		if (!char || char.authUserId !== authUser._id) return []
+		const zoneSession = char.currentZoneSession
+		if (!zoneSession) return []
+		return await ctx.db
+			.query("items")
+			.withIndex("by_zoneSession", (q) => q.eq("zoneSession", zoneSession))
+			.collect()
+	},
+})
+
+// Query: inventory items for a character. Returned in slot order so the
+// client can map slot→item directly.
+export const inventory = query({
+	args: { characterId: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) return []
+		const char = await ctx.db.get(args.characterId)
+		if (!char || char.authUserId !== authUser._id) return []
+		const items = await ctx.db
+			.query("items")
+			.withIndex("by_character_kind", (q) =>
+				q.eq("characterId", args.characterId).eq("locationKind", "inventory"),
+			)
+			.collect()
+		return items.sort((a, b) => {
+			const sa = a.inventorySlot ?? Number.MAX_SAFE_INTEGER
+			const sb = b.inventorySlot ?? Number.MAX_SAFE_INTEGER
+			if (sa !== sb) return sa - sb
+			return b.droppedAt - a.droppedAt
+		})
+	},
+})
+
+// Query: a character's currently equipped items (just weapon for now).
+export const equipped = query({
+	args: { characterId: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) return []
+		const char = await ctx.db.get(args.characterId)
+		if (!char || char.authUserId !== authUser._id) return []
+		return await ctx.db
+			.query("items")
+			.withIndex("by_character_kind", (q) =>
+				q.eq("characterId", args.characterId).eq("locationKind", "equipped"),
+			)
+			.collect()
 	},
 })

@@ -1,5 +1,6 @@
 import { useMutation } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { POTION_HEAL_FRACTION } from "#/game/combat/constants";
 import { rollEnemyDamage, rollPlayerDamage } from "#/game/combat/damage";
 import type { GeneratedItem } from "#/game/items/types";
 import {
@@ -207,14 +208,30 @@ export function useCombatLoop({
 
 	const usePotion = useCallback(async () => {
 		if (potions <= 0 || playerHp >= maxHp) return;
+
+		// Optimistic: apply the heal locally first so the UI snaps immediately.
+		// Server is still authoritative; on failure we revert.
+		const prevHp = playerHpRef.current;
+		const prevPotions = potions;
+		const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
+		const optimisticHp = Math.min(maxHp, prevHp + heal);
+		playerHpRef.current = optimisticHp;
+		setPlayerHp(optimisticHp);
+		setPotions(prevPotions - 1);
+		lastSyncedHpRef.current = optimisticHp;
+
 		try {
 			const result = await consumePotion({ characterId });
+			// Reconcile with server values (handles rare rounding mismatches).
 			playerHpRef.current = result.hpCurrent;
 			setPlayerHp(result.hpCurrent);
 			setPotions(result.potions);
 			lastSyncedHpRef.current = result.hpCurrent;
 		} catch {
-			// ignore — surfaced via sync on next event
+			// Revert the optimistic update.
+			playerHpRef.current = prevHp;
+			setPlayerHp(prevHp);
+			setPotions(prevPotions);
 		}
 	}, [potions, playerHp, maxHp, characterId, consumePotion]);
 

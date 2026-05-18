@@ -5,6 +5,7 @@ import InventoryButton from "./InventoryButton";
 
 type Props = {
 	weapon?: GeneratedItem | null;
+	onOpenInventory?: () => void;
 };
 
 type SlotArea =
@@ -43,7 +44,7 @@ const WEAPON_EMOJI: Record<WeaponType, string> = {
 	wand: "🪄",
 };
 
-export default function EquipmentPanel({ weapon }: Props) {
+export default function EquipmentPanel({ weapon, onOpenInventory }: Props) {
 	const weaponEmoji = weapon?.weaponType
 		? WEAPON_EMOJI[weapon.weaponType]
 		: null;
@@ -76,7 +77,7 @@ export default function EquipmentPanel({ weapon }: Props) {
 					<EquipmentSlot type="boots" label="BTS" area="boots" />
 				</div>
 			</div>
-			<InventoryButton />
+			<InventoryButton onClick={onOpenInventory} />
 		</section>
 	);
 }

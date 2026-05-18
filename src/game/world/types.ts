@@ -1,4 +1,4 @@
-import type { MonsterId } from "#/game/monsters";
+import type { MonsterId } from "../monsters";
 
 export type NodeKind = "city" | "combat" | "boss";
 
@@ -13,6 +13,9 @@ export interface WorldNode {
 	connections: string[];
 	// Monster ids eligible to spawn in this node. Only set for combat nodes.
 	monsterPool?: MonsterId[];
+	// Zone level — drives monster instance level (±1) and drop ilvl. Only set
+	// for combat / boss nodes.
+	level?: number;
 }
 
 export interface Act {

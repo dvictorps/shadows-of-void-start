@@ -20,6 +20,7 @@ export const ACT_1: Act = {
 			position: { x: 0.65, y: 0.5 },
 			connections: ["city"],
 			monsterPool: ["goblin"],
+			level: 1,
 		},
 	],
 };

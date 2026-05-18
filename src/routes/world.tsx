@@ -3,10 +3,14 @@ import { useMutation, useQuery } from "convex/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import BagPreviewModal from "#/components/world/BagPreviewModal";
 import CityScene from "#/components/world/CityScene";
 import CombatScene from "#/components/world/CombatScene";
 import EquipmentPanel from "#/components/world/EquipmentPanel";
+import ExitZoneModal from "#/components/world/ExitZoneModal";
+import InventoryModal from "#/components/world/InventoryModal";
 import MapScene from "#/components/world/MapScene";
+import SettingsModal from "#/components/world/SettingsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import { findClassDefinition } from "#/game/classes/data";
@@ -15,9 +19,10 @@ import { computeMaxHp, xpToNextLevel } from "#/game/progression/levels";
 import { ACT_1, findNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
+import { useModal } from "#/hooks/useModal";
 import { m } from "#/paraglide/messages";
 import { api } from "../../convex/_generated/api";
-import type { Doc } from "../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../convex/_generated/dataModel";
 
 const searchSchema = z.object({
 	characterId: z.string(),
@@ -64,6 +69,10 @@ type ViewMode = "map" | "city" | "combat";
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const classDef = findClassDefinition(character.classId);
 	const enterCity = useMutation(api.characters.enterCity);
+	const enterZone = useMutation(api.characters.enterZone);
+	const exitZone = useMutation(api.characters.exitZone);
+	const pickFromBag = useMutation(api.characters.pickFromBag);
+	const discardFromBag = useMutation(api.characters.discardFromBag);
 	const respawnDead = useMutation(api.characters.respawnDead);
 
 	const [view, setView] = useState<ViewMode>("map");
@@ -71,6 +80,15 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const [deathLog, setDeathLog] = useState<string | null>(null);
 
+	const bagModal = useModal();
+	const exitModal = useModal();
+	const inventoryModal = useModal();
+	const settingsModal = useModal();
+	const wantsBag = view === "combat" || exitModal.isOpen;
+	const zoneBag = useQuery(
+		api.characters.zoneBag,
+		wantsBag ? { characterId: character._id } : "skip",
+	);
 	const currentNode = currentNodeId ? findNode(ACT_1, currentNodeId) : null;
 	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
 
@@ -114,7 +132,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		initialPotions: character.potions ?? 0,
 		weapon,
 		monsterPool,
-		active: view === "combat",
+		// Pause combat while the loot picker is open so the player can't die
+		// mid-selection from a goblin they've already retreated from.
+		active: view === "combat" && !exitModal.isOpen,
 		onPlayerDeath: handlePlayerDeath,
 	});
 
@@ -128,12 +148,57 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			void enterCity({ characterId: character._id });
 		} else if (node.kind === "combat" || node.kind === "boss") {
 			setView("combat");
+			void enterZone({ characterId: character._id, zoneId: nodeId });
 		}
 	};
 
 	const handleBackToMap = () => {
 		setView("map");
 		setCurrentNodeId(null);
+	};
+
+	const handleRetreat = () => {
+		// Wait for the bag query to resolve before deciding modal vs auto-exit —
+		// otherwise an undefined (still-loading) bag silently discards the loot.
+		if (zoneBag === undefined) return;
+		handleBackToMap();
+		if (zoneBag.length > 0) {
+			exitModal.open();
+		} else {
+			void exitZone({ characterId: character._id, keepIds: [] });
+		}
+	};
+
+	const handlePickSelected = async (ids: Id<"items">[]) => {
+		try {
+			await pickFromBag({ characterId: character._id, itemIds: ids });
+		} catch {
+			toast.error(m.inventory_full_error());
+		}
+	};
+
+	const handleDiscardSelected = async (ids: Id<"items">[]) => {
+		await discardFromBag({ characterId: character._id, itemIds: ids });
+	};
+
+	const handlePickAll = async (ids: Id<"items">[]) => {
+		try {
+			await exitZone({ characterId: character._id, keepIds: ids });
+			exitModal.close();
+		} catch {
+			toast.error(m.inventory_full_error());
+		}
+	};
+
+	const handleDiscardAll = async () => {
+		await exitZone({ characterId: character._id, keepIds: [] });
+		exitModal.close();
+	};
+
+	const handleCloseExit = () => {
+		// Leftover bag items survive until the next enterZone/enterCity, which
+		// purges any orphan session.
+		exitModal.close();
 	};
 
 	const logMessage =
@@ -158,6 +223,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						onEnterNode={handleEnterNode}
 						onHoverNode={setHoveredNodeId}
 						hoveredNodeId={hoveredNodeId}
+						onOpenSettings={settingsModal.open}
 					/>
 				)}
 				{view === "city" && currentNode && (
@@ -180,14 +246,16 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						potions={combat.potions}
 						canUsePotion={combat.potions > 0 && combat.playerHp < maxHp}
 						onUsePotion={combat.usePotion}
-						onRetreat={handleBackToMap}
+						onRetreat={handleRetreat}
+						bagCount={zoneBag?.length ?? 0}
+						onOpenBag={bagModal.open}
 					/>
 				)}
 				<TextLog message={logMessage} />
 			</div>
 
 			<aside className="grid grid-rows-[1fr_auto] gap-3">
-				<EquipmentPanel weapon={weapon} />
+				<EquipmentPanel weapon={weapon} onOpenInventory={inventoryModal.open} />
 				<StatusCard
 					character={character}
 					classDef={classDef}
@@ -196,6 +264,30 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					onUsePotion={onUsePotion}
 				/>
 			</aside>
+
+			<BagPreviewModal
+				isOpen={bagModal.isOpen}
+				onClose={bagModal.close}
+				items={zoneBag ?? []}
+			/>
+			<ExitZoneModal
+				isOpen={exitModal.isOpen}
+				onClose={handleCloseExit}
+				onPickSelected={handlePickSelected}
+				onDiscardSelected={handleDiscardSelected}
+				onPickAll={handlePickAll}
+				onDiscardAll={handleDiscardAll}
+				bagItems={zoneBag ?? []}
+			/>
+			<InventoryModal
+				isOpen={inventoryModal.isOpen}
+				onClose={inventoryModal.close}
+				characterId={character._id}
+			/>
+			<SettingsModal
+				isOpen={settingsModal.isOpen}
+				onClose={settingsModal.close}
+			/>
 		</main>
 	);
 }

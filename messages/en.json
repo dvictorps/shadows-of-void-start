@@ -55,5 +55,35 @@
 
   "zone_city": "City",
   "zone_forest_starter": "Starter Forest",
-  "monster_goblin": "Goblin"
+  "monster_goblin": "Goblin",
+
+  "settings_title": "Settings",
+  "settings_language": "Language",
+  "open_settings": "Open settings",
+  "language_pt": "Português",
+  "language_en": "English",
+
+  "inventory_title": "Inventory ({used} / {total})",
+  "inventory_equipped_header": "Equipped",
+  "inventory_bag_header": "Bag",
+  "inventory_free_slot_one": "{count} free",
+  "inventory_free_slot_other": "{count} free",
+  "inventory_full_error": "Inventory full — pick fewer items",
+
+  "loot_title": "Loot ({count})",
+  "loot_found_title": "Items Found!",
+  "loot_bag_empty_combat": "Nothing dropped yet — keep fighting.",
+  "loot_bag_empty_run": "Nothing dropped this run.",
+  "loot_close_button": "Close",
+  "loot_pick_selected_button": "Pick selected ({count})",
+  "loot_discard_selected_button": "Discard selected ({count})",
+  "loot_pick_all_button": "Pick all",
+  "loot_discard_all_button": "Discard all",
+  "loot_back_button": "Back",
+  "loot_discard_all_title": "Discard all?",
+  "loot_discard_message_one": "{count} item will be discarded permanently.",
+  "loot_discard_message_other": "{count} items will be discarded permanently.",
+  "loot_discard_confirm_button": "Discard all",
+
+  "modal_close_label": "Close"
 }

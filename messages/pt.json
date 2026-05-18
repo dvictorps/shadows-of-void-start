@@ -55,5 +55,35 @@
 
   "zone_city": "Cidade",
   "zone_forest_starter": "Floresta Inicial",
-  "monster_goblin": "Goblin"
+  "monster_goblin": "Goblin",
+
+  "settings_title": "Configurações",
+  "settings_language": "Idioma",
+  "open_settings": "Abrir configurações",
+  "language_pt": "Português",
+  "language_en": "English",
+
+  "inventory_title": "Inventário ({used} / {total})",
+  "inventory_equipped_header": "Equipado",
+  "inventory_bag_header": "Bag",
+  "inventory_free_slot_one": "{count} livre",
+  "inventory_free_slot_other": "{count} livres",
+  "inventory_full_error": "Inventário cheio — escolha menos itens",
+
+  "loot_title": "Loot ({count})",
+  "loot_found_title": "Itens Encontrados!",
+  "loot_bag_empty_combat": "Nada caiu ainda — continue lutando.",
+  "loot_bag_empty_run": "Nada caiu nessa run.",
+  "loot_close_button": "Fechar",
+  "loot_pick_selected_button": "Pegar selecionados ({count})",
+  "loot_discard_selected_button": "Descartar selecionados ({count})",
+  "loot_pick_all_button": "Pegar tudo",
+  "loot_discard_all_button": "Descartar tudo",
+  "loot_back_button": "Voltar",
+  "loot_discard_all_title": "Descartar tudo?",
+  "loot_discard_message_one": "{count} item será descartado permanentemente.",
+  "loot_discard_message_other": "{count} itens serão descartados permanentemente.",
+  "loot_discard_confirm_button": "Descartar tudo",
+
+  "modal_close_label": "Fechar"
 }

@@ -23,7 +23,7 @@ export default function HealthGlobe({
 		>
 			{/* Liquid fill — rises from the bottom in proportion to current HP */}
 			<div
-				className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-red-500 to-red-900 transition-[height] duration-200"
+				className="absolute inset-x-0 bottom-0 bg-red-600 transition-[height] duration-200"
 				style={{ height: `${pct}%` }}
 				aria-hidden
 			/>
