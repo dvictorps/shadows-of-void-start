@@ -91,6 +91,8 @@
   "vendor_sell_pick_an_item": "Select an item",
   "vendor_sell_pick_items": "Pick items to sell",
   "vendor_sell_selected": "{count} selected · will earn",
+  "vendor_sell_select_all": "Select all",
+  "vendor_sell_deselect_all": "Deselect all",
   "vendor_sell_preview": "Will earn",
   "vendor_product_potion": "Life Potion",
   "low_hp_use_potion": "Low HP — use a potion!",

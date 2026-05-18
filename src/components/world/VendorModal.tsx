@@ -100,19 +100,23 @@ export default function VendorModal({
 					</div>
 				</div>
 
-				{/* Tab body */}
-				{tab === "buy" ? (
-					<BuyTab rubys={rubys} onBuy={handleBuy} />
-				) : (
-					<SellTab
-						inventoryItems={inventoryItems}
-						selected={selected}
-						toggle={toggle}
-						selectedCount={selectedItems.length}
-						selectedTotal={selectedTotal}
-						onSell={handleSellSelected}
-					/>
-				)}
+				{/* Tab body — fixed min height so switching tabs doesn't make the
+				 * modal jump around vertically. */}
+				<div className="flex min-h-[460px] flex-col">
+					{tab === "buy" ? (
+						<BuyTab rubys={rubys} onBuy={handleBuy} />
+					) : (
+						<SellTab
+							inventoryItems={inventoryItems}
+							selected={selected}
+							setSelected={setSelected}
+							toggle={toggle}
+							selectedCount={selectedItems.length}
+							selectedTotal={selectedTotal}
+							onSell={handleSellSelected}
+						/>
+					)}
+				</div>
 			</div>
 		</Modal>
 	);
@@ -191,6 +195,7 @@ function BuyTab({
 function SellTab({
 	inventoryItems,
 	selected,
+	setSelected,
 	toggle,
 	selectedCount,
 	selectedTotal,
@@ -198,6 +203,7 @@ function SellTab({
 }: {
 	inventoryItems: Doc<"items">[];
 	selected: Set<string>;
+	setSelected: (next: Set<string>) => void;
 	toggle: (id: string) => void;
 	selectedCount: number;
 	selectedTotal: number;
@@ -205,15 +211,36 @@ function SellTab({
 }) {
 	if (inventoryItems.length === 0) {
 		return (
-			<p className="py-12 text-center text-sm text-white/40">
+			<p className="flex-1 py-12 text-center text-sm text-white/40">
 				{m.vendor_sell_empty()}
 			</p>
 		);
 	}
 
+	const allSelected =
+		inventoryItems.length > 0 && selectedCount === inventoryItems.length;
+	const toggleAll = () => {
+		if (allSelected) {
+			setSelected(new Set());
+		} else {
+			setSelected(new Set(inventoryItems.map((it) => it._id.toString())));
+		}
+	};
+
 	return (
-		<div className="space-y-4">
-			<div className="fancy-scroll flex max-h-[50vh] min-h-[20vh] flex-wrap content-start gap-3 overflow-y-auto pr-3">
+		<div className="flex flex-1 flex-col gap-4">
+			<div className="flex justify-end">
+				<button
+					type="button"
+					onClick={toggleAll}
+					className="display-title text-xs uppercase tracking-[0.2em] text-white/60 transition hover:text-white"
+				>
+					{allSelected
+						? m.vendor_sell_deselect_all()
+						: m.vendor_sell_select_all()}
+				</button>
+			</div>
+			<div className="fancy-scroll flex max-h-[50vh] min-h-[20vh] flex-1 flex-wrap content-start gap-3 overflow-y-auto pr-3">
 				{inventoryItems.map((item) => {
 					const isSelected = selected.has(item._id.toString());
 					return (
