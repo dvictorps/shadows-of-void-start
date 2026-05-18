@@ -50,7 +50,20 @@ export default defineSchema({
 		// zoneBag only: which session of which zone — used to wipe on death/commit
 		zoneSession: v.optional(v.string()),
 		// equipped only: which slot the item occupies
-		equippedSlot: v.optional(v.string()),
+		equippedSlot: v.optional(
+			v.union(
+				v.literal("weapon"),
+				v.literal("offhand"),
+				v.literal("helmet"),
+				v.literal("chestplate"),
+				v.literal("boots"),
+				v.literal("gloves"),
+				v.literal("amulet"),
+				v.literal("belt"),
+				v.literal("ring1"),
+				v.literal("ring2"),
+			),
+		),
 		// stash only: which mode-scoped stash the item lives in
 		stashMode: v.optional(
 			v.union(v.literal("softcore"), v.literal("hardcore")),

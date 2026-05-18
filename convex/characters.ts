@@ -6,9 +6,12 @@ import {
 import type { CharacterClassId } from "../src/game/classes/types"
 import { POTION_HEAL_FRACTION } from "../src/game/combat/constants"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
+import { planEquip } from "../src/game/items/equipment"
 import { findStarterItem, STARTER_WEAPON_BY_CLASS } from "../src/game/items/starter-gear"
 import { rollDrop, rollMonsterLevel } from "../src/game/loot/drops"
 import { findMonster } from "../src/game/monsters/data"
+import { computeCharacterStats } from "../src/game/stats/compute"
+import type { EquippedItem, EquippedSlot } from "../src/game/stats/types"
 import {
 	applyDeathXpPenalty,
 	applyXpGain,
@@ -556,6 +559,179 @@ export const discardFromBag = mutation({
 		)
 		await Promise.all(toDelete.map((it) => ctx.db.delete(it._id)))
 		return { discarded: toDelete.length }
+	},
+})
+
+const EQUIPPED_SLOT_LITERALS = [
+	"weapon",
+	"offhand",
+	"helmet",
+	"chestplate",
+	"boots",
+	"gloves",
+	"amulet",
+	"belt",
+	"ring1",
+	"ring2",
+] as const
+
+const equippedSlotValidator = v.union(
+	...(EQUIPPED_SLOT_LITERALS.map((s) => v.literal(s)) as [
+		ReturnType<typeof v.literal<"weapon">>,
+		...ReturnType<typeof v.literal<EquippedSlot>>[],
+	]),
+)
+
+/**
+ * Move an inventory item into an equipment slot. Validates slot eligibility,
+ * 2H/off-hand interactions, same-archetype dual-wield, and equip-time
+ * requirements (level + attributes against totals excluding the new item).
+ * Displaced items return to inventory; rejects if the resulting inventory
+ * would overflow.
+ */
+export const equipItem = mutation({
+	args: {
+		characterId: v.id("characters"),
+		itemId: v.id("items"),
+		targetSlot: equippedSlotValidator,
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const item = await ctx.db.get(args.itemId)
+		if (!item) throw new ConvexError("Item not found")
+		if (item.characterId !== args.characterId)
+			throw new ConvexError("Not your item")
+		if (item.locationKind !== "inventory")
+			throw new ConvexError("Item is not in inventory")
+
+		const currentlyEquipped = await ctx.db
+			.query("items")
+			.withIndex("by_character_kind", (q) =>
+				q
+					.eq("characterId", args.characterId)
+					.eq("locationKind", "equipped"),
+			)
+			.collect()
+
+		const currentEquippedSet = currentlyEquipped
+			.filter((it) => it.equippedSlot)
+			.map((it) => ({
+				slot: it.equippedSlot as EquippedSlot,
+				item: it.data,
+				_id: it._id,
+			}))
+
+		const plan = planEquip({
+			item: item.data,
+			targetSlot: args.targetSlot,
+			currentEquipped: currentEquippedSet,
+		})
+		if (plan.reject) {
+			throw new ConvexError(`Cannot equip: ${plan.reject}`)
+		}
+
+		// Requirements check: compute stats with (post-displacement set minus the
+		// new item). If the new item's reqs aren't met against those totals, the
+		// equip-time strict check fails (item's own contribution doesn't help).
+		const displacedIds = new Set(plan.displaced.map((d) => `${d.slot}`))
+		const newSetMinusNewItem: EquippedItem[] = currentEquippedSet
+			.filter(
+				(eq) =>
+					eq.slot !== args.targetSlot && !displacedIds.has(`${eq.slot}`),
+			)
+			.map((eq) => ({ slot: eq.slot, item: eq.item }))
+		const classDef = findClassDefinition(char.classId)
+		const stats = computeCharacterStats({
+			classDef,
+			level: char.level,
+			equippedItems: newSetMinusNewItem,
+		})
+		const reqs = item.data.requirements
+		if (reqs) {
+			if (reqs.level !== undefined && char.level < reqs.level)
+				throw new ConvexError(`Level ${reqs.level} required`)
+			if (reqs.str !== undefined && stats.attributes.strength < reqs.str)
+				throw new ConvexError(`Strength ${reqs.str} required`)
+			if (reqs.dex !== undefined && stats.attributes.dexterity < reqs.dex)
+				throw new ConvexError(`Dexterity ${reqs.dex} required`)
+			if (reqs.int !== undefined && stats.attributes.intelligence < reqs.int)
+				throw new ConvexError(`Intelligence ${reqs.int} required`)
+		}
+
+		// Inventory overflow: source item leaves (-1), displaced items return.
+		const { used, nextFreeSlot } = await fetchInventoryAllocator(
+			ctx,
+			args.characterId,
+		)
+		const finalUsed = used - 1 + plan.displaced.length
+		if (finalUsed > INVENTORY_MAX_SLOTS) {
+			throw new ConvexError("Inventory overflow — free a slot first")
+		}
+
+		// Map displaced docs back to db ids for patching.
+		const docsBySlot = new Map(
+			currentlyEquipped.map((it) => [it.equippedSlot, it]),
+		)
+		await Promise.all([
+			ctx.db.patch(item._id, {
+				locationKind: "equipped" as const,
+				equippedSlot: args.targetSlot,
+				inventorySlot: undefined,
+			}),
+			...plan.displaced.map((d) => {
+				const doc = docsBySlot.get(d.slot)
+				if (!doc) return Promise.resolve()
+				return ctx.db.patch(doc._id, {
+					locationKind: "inventory" as const,
+					equippedSlot: undefined,
+					inventorySlot: nextFreeSlot(),
+				})
+			}),
+		])
+		return { equipped: 1, displaced: plan.displaced.length }
+	},
+})
+
+/**
+ * Move an equipped item back to inventory. Rejects if inventory has no room.
+ */
+export const unequipItem = mutation({
+	args: {
+		characterId: v.id("characters"),
+		slot: equippedSlotValidator,
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const equipped = await ctx.db
+			.query("items")
+			.withIndex("by_character_kind", (q) =>
+				q
+					.eq("characterId", args.characterId)
+					.eq("locationKind", "equipped"),
+			)
+			.collect()
+		const item = equipped.find((it) => it.equippedSlot === args.slot)
+		if (!item) throw new ConvexError("Slot is empty")
+
+		const { used, nextFreeSlot } = await fetchInventoryAllocator(
+			ctx,
+			args.characterId,
+		)
+		if (used + 1 > INVENTORY_MAX_SLOTS) {
+			throw new ConvexError("Inventory full — free a slot first")
+		}
+		await ctx.db.patch(item._id, {
+			locationKind: "inventory" as const,
+			equippedSlot: undefined,
+			inventorySlot: nextFreeSlot(),
+		})
+		return { unequipped: 1 }
 	},
 })
 
