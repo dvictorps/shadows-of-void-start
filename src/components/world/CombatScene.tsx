@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
@@ -129,9 +130,11 @@ export default function CombatScene({
 
 				{/* Damage popups stacked over enemy */}
 				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-					{enemyEvents.map((event) => (
-						<FloatingDamage key={event.id} event={event} />
-					))}
+					<AnimatePresence>
+						{enemyEvents.map((event) => (
+							<FloatingDamage key={event.id} event={event} />
+						))}
+					</AnimatePresence>
 				</div>
 			</div>
 
@@ -141,9 +144,11 @@ export default function CombatScene({
 					<HealthGlobe hp={playerHp} maxHp={maxHp} size="lg" />
 					{/* Damage popups over the globe */}
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-						{playerEvents.map((event) => (
-							<FloatingDamage key={event.id} event={event} variant="player" />
-						))}
+						<AnimatePresence>
+							{playerEvents.map((event) => (
+								<FloatingDamage key={event.id} event={event} variant="player" />
+							))}
+						</AnimatePresence>
 					</div>
 				</div>
 
@@ -200,6 +205,16 @@ function EnemyHpBar({ current, max }: { current: number; max: number }) {
 	);
 }
 
+// Lightweight deterministic hash from the event id so popups stay put across
+// re-renders (otherwise Math.random() would jitter every frame).
+function hashSeed(id: string): number {
+	let h = 0;
+	for (let i = 0; i < id.length; i++) {
+		h = (h * 31 + id.charCodeAt(i)) | 0;
+	}
+	return (h >>> 0) / 0xffffffff;
+}
+
 function FloatingDamage({
 	event,
 	variant = "enemy",
@@ -207,23 +222,71 @@ function FloatingDamage({
 	event: DamageEvent;
 	variant?: "enemy" | "player";
 }) {
+	const seed = hashSeed(event.id);
+	// Horizontal spread: ±48px for crits (more impact), ±32px otherwise.
+	const xSpread = event.isCrit ? 48 : 32;
+	const xOffset = (seed * 2 - 1) * xSpread;
+	// Slight rotation so multiple crits don't all tilt the same way.
+	const rotate = (hashSeed(event.id + ":r") * 2 - 1) * (event.isCrit ? 10 : 4);
+
 	const color = event.isMiss
 		? "text-white/60"
 		: event.isCrit
-			? "text-yellow-300"
+			? "text-yellow-200"
 			: variant === "player"
 				? "text-red-400"
 				: "text-white";
+
+	// Crits get an overshoot scale, a longer travel, and a "CRIT!" label.
+	const isCrit = event.isCrit && !event.isMiss;
+	const distance = isCrit ? 80 : 50;
+	const duration = isCrit ? 1.1 : 0.9;
+	const initialScale = isCrit ? 0.5 : 0.8;
+
 	return (
-		<span
-			className={`pointer-events-none absolute select-none font-bold ${event.isMiss ? "text-xl uppercase tracking-wider" : "text-3xl"} ${color}`}
-			style={{
-				animation: "damage-float 900ms ease-out forwards",
-				textShadow: "0 2px 4px rgba(0,0,0,0.9)",
+		<motion.div
+			className="pointer-events-none absolute select-none"
+			style={{ textShadow: "0 2px 4px rgba(0,0,0,0.9)" }}
+			initial={{
+				opacity: 0,
+				y: 0,
+				x: xOffset,
+				scale: initialScale,
+				rotate: 0,
+			}}
+			animate={
+				isCrit
+					? {
+							opacity: [0, 1, 1, 0],
+							y: [0, -10, -distance / 2, -distance],
+							scale: [initialScale, 1.5, 1.2, 1.0],
+							rotate: [0, rotate, rotate, rotate],
+						}
+					: {
+							opacity: [0, 1, 1, 0],
+							y: [0, -distance / 3, -distance],
+							scale: [initialScale, 1, 0.95],
+							rotate: [0, rotate, rotate],
+						}
+			}
+			exit={{ opacity: 0 }}
+			transition={{
+				duration,
+				times: isCrit ? [0, 0.15, 0.6, 1] : [0, 0.3, 1],
+				ease: "easeOut",
 			}}
 		>
-			{event.isMiss ? "MISS" : event.amount}
-			{!event.isMiss && event.isCrit && "!"}
-		</span>
+			{isCrit && (
+				<div className="-translate-x-1/2 -top-5 absolute left-1/2 whitespace-nowrap text-center font-bold text-[10px] uppercase tracking-[0.25em] text-yellow-300">
+					CRIT
+				</div>
+			)}
+			<span
+				className={`block font-bold ${event.isMiss ? "text-xl uppercase tracking-wider" : isCrit ? "text-5xl" : "text-3xl"} ${color}`}
+			>
+				{event.isMiss ? "MISS" : event.amount}
+				{isCrit && "!"}
+			</span>
+		</motion.div>
 	);
 }

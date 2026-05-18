@@ -38,6 +38,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.32.0",
+    "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "posthog-js": "^1.358.1",
     "radix-ui": "^1.4.3",
