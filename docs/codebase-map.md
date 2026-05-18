@@ -16,6 +16,7 @@ For game design rules (what stats mean, what's allowed where, why), read [CONTEX
 │   ├── codebase-map.md     # ← you are here
 │   ├── playbooks/          # Task recipes (add modifier, add monster, etc)
 │   ├── plans/              # Roadmap + in-progress work
+│   ├── security/           # Threat model + deferred anti-cheat plan
 │   └── adr/                # Architecture decisions
 ├── convex/                 # Server (mutations, queries, schema)
 ├── messages/               # Paraglide i18n source (pt.json, en.json)

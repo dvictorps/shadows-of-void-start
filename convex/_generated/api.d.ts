@@ -16,6 +16,7 @@ import type * as http from "../http.js";
 import type * as itemValidator from "../itemValidator.js";
 import type * as items from "../items.js";
 import type * as users from "../users.js";
+import type * as vendor from "../vendor.js";
 
 import type {
   ApiFromModules,
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   itemValidator: typeof itemValidator;
   items: typeof items;
   users: typeof users;
+  vendor: typeof vendor;
 }>;
 
 /**

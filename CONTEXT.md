@@ -333,6 +333,22 @@ Until passive tree + skills exist, classes effectively play the same way; they j
 
 Legendaries are reachable in Act 1 from any source, but the baseline chance is **very low**. The act boss has the highest baseline Legendary chance (a few %); regular mobs need significant MF stacking to see one. Epic drops are not available in Act 1.
 
+### Vendor catalog (MVP)
+
+Today the vendor sells a single product:
+
+| Product | Price |
+|---|---|
+| Life Potion | 10 Rubys |
+
+Teleport stones and wind crystals join the catalog in the consumables PR (alongside their usage mechanics). The catalog data lives in `src/game/vendor/products.ts`; adding a product means registering an id + price there and handling it in `convex/vendor.ts` → `vendorBuy`.
+
+### Selling rules
+
+- **Only inventory items can be sold.** Equipped gear must be unequipped first. This forces an intentional action before the player loses an item they were actually using.
+- **The vendor does not buy back consumables.** Potions (and future stones/crystals) are a one-way commitment once bought.
+- **Sale is irrevocable.** The item is deleted from the items table and the character is credited Rubys atomically.
+
 ### Vendor price formula
 
 ```

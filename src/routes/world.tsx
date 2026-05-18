@@ -16,6 +16,7 @@ import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
+import VendorModal from "#/components/world/VendorModal";
 import { findClassDefinition } from "#/game/classes/data";
 import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
@@ -25,12 +26,18 @@ import {
 	type EquippedSlot,
 	narrowEquippedSlot,
 } from "#/game/stats/types";
+import { MAX_POTIONS } from "#/game/combat/constants";
+import { computeSellPrice } from "#/game/items/sell-price";
 import { ACT_1, findNode } from "#/game/world";
 import {
 	translateNodeDescription,
 	translateNodeName,
 } from "#/game/world/i18n";
 import { computeTravelTime } from "#/game/world/travel";
+import {
+	VENDOR_PRODUCTS,
+	type VendorProductId,
+} from "#/game/vendor/products";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
@@ -216,6 +223,69 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		);
 	});
 	const arriveAtTravel = useMutation(api.combat.arriveAtTravel);
+	// Vendor mutations with optimistic updates so fast/repeat clicks don't
+	// outrun the reactive query and trigger "cap reached" / "item not found"
+	// errors from a stale client view.
+	const vendorBuy = useMutation(api.vendor.vendorBuy).withOptimisticUpdate(
+		(localStore, args) => {
+			const characters = localStore.getQuery(api.characters.list, {});
+			if (!characters) return;
+			const char = characters.find((c) => c._id === args.characterId);
+			if (!char) return;
+			const product = VENDOR_PRODUCTS[args.productId as VendorProductId];
+			if (!product) return;
+			const rubys = char.rubys ?? 0;
+			if (rubys < product.priceRubys) return;
+			const currentPotions = char.potions ?? 0;
+			if (product.id === "potion") {
+				if (currentPotions >= MAX_POTIONS) return;
+				localStore.setQuery(
+					api.characters.list,
+					{},
+					characters.map((c) =>
+						c._id === args.characterId
+							? {
+									...c,
+									rubys: rubys - product.priceRubys,
+									potions: currentPotions + 1,
+								}
+							: c,
+					),
+				);
+			}
+		},
+	);
+	const vendorSellMany = useMutation(
+		api.vendor.vendorSellMany,
+	).withOptimisticUpdate((localStore, args) => {
+		const inventory = localStore.getQuery(api.items.inventory, {
+			characterId: args.characterId,
+		});
+		if (!inventory) return;
+		const idSet = new Set(args.itemIds.map((id) => id.toString()));
+		const sold = inventory.filter((it) => idSet.has(it._id.toString()));
+		if (sold.length === 0) return;
+		const total = sold.reduce(
+			(sum, it) => sum + computeSellPrice(it.data),
+			0,
+		);
+		localStore.setQuery(
+			api.items.inventory,
+			{ characterId: args.characterId },
+			inventory.filter((it) => !idSet.has(it._id.toString())),
+		);
+		const characters = localStore.getQuery(api.characters.list, {});
+		if (!characters) return;
+		localStore.setQuery(
+			api.characters.list,
+			{},
+			characters.map((c) =>
+				c._id === args.characterId
+					? { ...c, rubys: (c.rubys ?? 0) + total }
+					: c,
+			),
+		);
+	});
 
 	const [view, setView] = useState<ViewMode>("map");
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -234,6 +304,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const inventoryModal = useModal();
 	const settingsModal = useModal();
 	const statsModal = useModal();
+	const vendorModal = useModal();
 	const wantsBag = view === "combat" || exitModal.isOpen;
 	const zoneBag = useQuery(
 		api.items.zoneBag,
@@ -577,6 +648,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					<CityScene
 						cityName={translateNodeName(currentNode)}
 						onLeave={handleBackToMap}
+						onOpenVendor={vendorModal.open}
 					/>
 				)}
 				{view === "combat" && currentNode && (
@@ -606,6 +678,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					equippedBySlot={equippedBySlot}
 					stats={stats}
 					characterLevel={character.level}
+					rubys={character.rubys ?? 0}
 					onOpenInventory={inventoryModal.open}
 				/>
 				<StatusCard
@@ -649,6 +722,19 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				characterLevel={character.level}
 				equippedItems={equippedItems ?? []}
 				inventoryItems={inventoryItems ?? []}
+			/>
+			<VendorModal
+				isOpen={vendorModal.isOpen}
+				onClose={vendorModal.close}
+				rubys={character.rubys ?? 0}
+				potions={character.potions ?? 0}
+				inventoryItems={inventoryItems ?? []}
+				onBuy={async (productId) => {
+					await vendorBuy({ characterId: character._id, productId });
+				}}
+				onSellMany={async (itemIds) => {
+					await vendorSellMany({ characterId: character._id, itemIds });
+				}}
 			/>
 			<SettingsModal
 				isOpen={settingsModal.isOpen}
