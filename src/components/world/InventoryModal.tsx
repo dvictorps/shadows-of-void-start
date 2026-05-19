@@ -236,7 +236,22 @@ export default function InventoryModal({
 					inventorySlot: firstFree,
 				},
 			].sort(bySlotAsc);
-			const newEquipped = equipped.filter((it) => it._id !== item._id);
+			let newEquipped = equipped.filter((it) => it._id !== item._id);
+
+			// Invariant: main hand empty → off-hand cannot hold a weapon.
+			// Promote off-hand weapon into the main-hand slot.
+			if (args.slot === "weapon") {
+				const offhand = newEquipped.find(
+					(it) => it.equippedSlot === "offhand",
+				);
+				if (offhand && isWeapon(offhand.data)) {
+					newEquipped = newEquipped.map((it) =>
+						it._id === offhand._id
+							? { ...it, equippedSlot: "weapon" as const }
+							: it,
+					);
+				}
+			}
 
 			localStore.setQuery(
 				api.items.inventory,

@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values"
 import { findClassDefinition } from "../src/game/classes/data"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
-import { planEquip } from "../src/game/items/equipment"
+import { isWeapon, planEquip } from "../src/game/items/equipment"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, narrowEquippedSlot } from "../src/game/stats/types"
 import {
@@ -325,6 +325,18 @@ export const unequipItem = mutation({
 			equippedSlot: undefined,
 			inventorySlot: nextFreeSlot(),
 		})
+
+		// Invariant: if main hand is empty, off-hand cannot hold a weapon.
+		// Promote the off-hand weapon into the main-hand slot. Shields stay.
+		if (args.slot === "weapon") {
+			const offhand = equipped.find((it) => it.equippedSlot === "offhand")
+			if (offhand && isWeapon(offhand.data)) {
+				await ctx.db.patch(offhand._id, {
+					equippedSlot: "weapon" as const,
+				})
+			}
+		}
+
 		return { unequipped: 1 }
 	},
 })
