@@ -80,7 +80,23 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		],
 	}),
 	component: RootComponent,
+	notFoundComponent: NotFoundComponent,
 });
+
+function NotFoundComponent() {
+	return (
+		<main className="flex h-screen items-center justify-center bg-black text-white">
+			<div className="text-center">
+				<h1 className="display-title text-4xl uppercase tracking-[0.3em]">
+					404
+				</h1>
+				<p className="mt-3 text-sm uppercase tracking-wider text-white/60">
+					Page not found
+				</p>
+			</div>
+		</main>
+	);
+}
 
 function RootComponent() {
 	const context = useRouteContext({ from: Route.id });
