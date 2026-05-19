@@ -504,6 +504,9 @@ function computeOnce(
 	const offHand = live.find((eq) => eq.slot === "offhand")?.item ?? null;
 	stats.path = determinePath(mainHand);
 	const offHandType = offHand?.weaponType;
+	// Source of truth for "is this attack dual-wielding?". The public
+	// `isAttackDualWielding(stats)` helper below re-derives the same answer from
+	// `path` + `swings.length` for UI consumers; both must agree.
 	const isAttackDW =
 		stats.path === "attack" &&
 		!!offHand &&
@@ -538,10 +541,9 @@ function computeOnce(
 			: 1 + stats.increased.attackSpeed / 100;
 	const swingCount = stats.swings.length;
 	const averagedBase =
-		swingCount === 0
-			? 0
-			: stats.swings.reduce((sum, s) => sum + s.baseAttackSpeed, 0) /
-				swingCount;
+		swingCount > 0
+			? stats.swings.reduce((sum, s) => sum + s.baseAttackSpeed, 0) / swingCount
+			: 0;
 	const dwMoreMult = isAttackDW ? DUAL_WIELD_AS_MORE_MULT : 1;
 	stats.tickRate = averagedBase * speedMultiplier * dwMoreMult;
 
@@ -618,6 +620,9 @@ export function effectiveCritChance(
 	return Math.min(CRIT_CHANCE_CAP, Math.max(CRIT_CHANCE_FLOOR, raw));
 }
 
+// Mirrors the internal `isAttackDW` check inside `computeOnce` — the engine
+// guarantees `swings.length === 2` iff attack DW is active, so this derives
+// the same answer for UI without re-reading the equipped items.
 export function isAttackDualWielding(stats: ComputedCharacterStats): boolean {
 	return stats.path === "attack" && stats.swings.length === 2;
 }
