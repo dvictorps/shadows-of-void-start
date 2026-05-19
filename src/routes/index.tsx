@@ -27,16 +27,27 @@ function Home() {
 					of Void
 				</h1>
 
-				<Link to={playTarget} className="no-underline">
+				{isPending ? (
 					<Button
 						size="lg"
 						variant="ghost-purple"
-						disabled={isPending}
+						disabled
 						className="px-12 py-6 text-xl uppercase tracking-[0.25em]"
 					>
 						Play
 					</Button>
-				</Link>
+				) : (
+					<Button
+						size="lg"
+						variant="ghost-purple"
+						asChild
+						className="px-12 py-6 text-xl uppercase tracking-[0.25em]"
+					>
+						<Link to={playTarget} className="no-underline">
+							Play
+						</Link>
+					</Button>
+				)}
 			</div>
 		</main>
 	);
