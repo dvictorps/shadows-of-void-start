@@ -562,6 +562,7 @@ A second one-handed weapon may go in the off-hand slot. When both hands hold a w
 - One-handed caster (`wand`) can occupy main hand **or** off-hand.
 - Two-handed weapons (`greatsword`, `twoHandedAxe`, `bow`, `staff`) occupy main hand **and block the off-hand slot** — equipping a 2H weapon while an off-hand item is equipped auto-unequips the off-hand back to inventory.
 - Shields are off-hand only.
+- **If the main hand is empty, the off-hand cannot hold a weapon.** Unequipping the main hand while the off-hand holds a weapon promotes the off-hand into the main-hand slot (the off-hand slot then becomes empty). Symmetric to the 2H rule above. Shields stay in the off-hand when the main hand is empty — a shield is defensive only and can't be promoted.
 
 **Same-archetype rule**: dual-wielding requires both weapons to share archetype. Attack 1H + attack 1H is allowed (sword + dagger, axe + sword, etc.). Caster 1H + caster 1H is allowed (wand + wand — the only caster combination). **Mixed archetype is rejected** (no sword + wand). This keeps the combat tick model coherent — one path (attack or spell) active at a time.
 

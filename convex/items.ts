@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values"
 import { findClassDefinition } from "../src/game/classes/data"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
-import { planEquip } from "../src/game/items/equipment"
+import { isWeapon, planEquip } from "../src/game/items/equipment"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, narrowEquippedSlot } from "../src/game/stats/types"
 import {
@@ -313,6 +313,16 @@ export const unequipItem = mutation({
 		const item = equipped.find((it) => it.equippedSlot === args.slot)
 		if (!item) throw new ConvexError("Slot is empty")
 
+		// Invariant: if main hand is empty, off-hand cannot hold a weapon.
+		// Capture the off-hand weapon now, before any patches, so the promotion
+		// below operates on a clean pre-mutation snapshot.
+		const offhandToPromote =
+			args.slot === "weapon"
+				? equipped.find(
+						(it) => it.equippedSlot === "offhand" && isWeapon(it.data),
+					)
+				: undefined
+
 		const { used, nextFreeSlot } = await fetchInventoryAllocator(
 			ctx,
 			args.characterId,
@@ -325,6 +335,13 @@ export const unequipItem = mutation({
 			equippedSlot: undefined,
 			inventorySlot: nextFreeSlot(),
 		})
+
+		if (offhandToPromote) {
+			await ctx.db.patch(offhandToPromote._id, {
+				equippedSlot: "weapon" as const,
+			})
+		}
+
 		return { unequipped: 1 }
 	},
 })
