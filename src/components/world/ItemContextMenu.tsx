@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "#/components/ui/button";
 
@@ -16,6 +16,12 @@ interface Props {
 	anchor: { left: number; top: number; right: number; bottom: number };
 	actions: MenuAction[];
 	onClose: () => void;
+	/**
+	 * Reports the menu's bounding rect after layout (and `null` on unmount).
+	 * Used by the parent to plumb the rect into ItemCards so tooltips can
+	 * dodge the menu instead of sitting behind it.
+	 */
+	onLayout?: (rect: DOMRect | null) => void;
 }
 
 const MENU_ESTIMATED_WIDTH = 220;
@@ -24,7 +30,12 @@ const MENU_OFFSET_PX = 6;
 const DIVIDER_HEIGHT_PX = 9;
 const DIVIDER_CLASS = "my-1 h-px bg-white/15";
 
-export default function ItemContextMenu({ anchor, actions, onClose }: Props) {
+export default function ItemContextMenu({
+	anchor,
+	actions,
+	onClose,
+	onLayout,
+}: Props) {
 	const menuRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -44,6 +55,13 @@ export default function ItemContextMenu({ anchor, actions, onClose }: Props) {
 			document.removeEventListener("keydown", onKey);
 		};
 	}, [onClose]);
+
+	useLayoutEffect(() => {
+		if (!onLayout) return;
+		const el = menuRef.current;
+		onLayout(el ? el.getBoundingClientRect() : null);
+		return () => onLayout(null);
+	}, [onLayout]);
 
 	// Anchor below the card so the item's right-side tooltip stays visible.
 	// Estimate menu height as N actions × ~36px each + container padding; flip

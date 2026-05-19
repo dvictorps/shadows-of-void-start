@@ -263,7 +263,7 @@ export default function InventoryModal({
 		anchor: DOMRect;
 	} | null>(null);
 
-	const menuOpen = menu !== null;
+	const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
 
 	const equippedBySlot = useMemo(() => {
 		const map = new Map<EquippedSlot, Doc<"items">>();
@@ -474,7 +474,7 @@ export default function InventoryModal({
 										dragging={active}
 										broken={broken}
 										brokenReasons={reasons}
-										suppressTooltip={menuOpen}
+										avoidRect={menuRect}
 										onItemClick={(rect) => {
 											if (!item) return;
 											setMenu({
@@ -518,7 +518,7 @@ export default function InventoryModal({
 												active?.kind === "inventory" &&
 												item?._id === active.itemId
 											}
-											suppressTooltip={menuOpen}
+											avoidRect={menuRect}
 											onItemClick={(itemId, rect) =>
 												setMenu({
 													source: { kind: "inventory", itemId },
@@ -547,6 +547,7 @@ export default function InventoryModal({
 					anchor={menu.anchor}
 					actions={menuActions}
 					onClose={() => setMenu(null)}
+					onLayout={setMenuRect}
 				/>
 			)}
 		</Modal>
@@ -572,13 +573,13 @@ function InventoryDroppable({
 	slot,
 	item,
 	isDraggingThis,
-	suppressTooltip,
+	avoidRect,
 	onItemClick,
 }: {
 	slot: number;
 	item: Doc<"items"> | null;
 	isDraggingThis: boolean;
-	suppressTooltip: boolean;
+	avoidRect: DOMRect | null;
 	onItemClick: (itemId: Id<"items">, rect: DOMRect) => void;
 }) {
 	const { setNodeRef, isOver } = useDroppable({
@@ -597,7 +598,7 @@ function InventoryDroppable({
 				<DraggableInventoryItem
 					item={item}
 					hidden={isDraggingThis}
-					suppressTooltip={suppressTooltip}
+					avoidRect={avoidRect}
 					onClick={onItemClick}
 				/>
 			)}
@@ -638,12 +639,12 @@ function DragSlot({
 function DraggableInventoryItem({
 	item,
 	hidden,
-	suppressTooltip,
+	avoidRect,
 	onClick,
 }: {
 	item: Doc<"items">;
 	hidden: boolean;
-	suppressTooltip: boolean;
+	avoidRect: DOMRect | null;
 	onClick: (itemId: Id<"items">, rect: DOMRect) => void;
 }) {
 	const handle = useDraggable({
@@ -655,7 +656,8 @@ function DraggableInventoryItem({
 			<ItemCard
 				item={item.data}
 				size={INVENTORY_SLOT_SIZE}
-				suppressTooltip={hidden || suppressTooltip}
+				suppressTooltip={hidden}
+				avoidRect={avoidRect}
 				onClick={hidden ? undefined : (rect) => onClick(item._id, rect)}
 			/>
 		</DragSlot>
@@ -670,7 +672,7 @@ function EquipmentDroppable({
 	dragging,
 	broken,
 	brokenReasons,
-	suppressTooltip,
+	avoidRect,
 	onItemClick,
 }: {
 	slot: EquippedSlot;
@@ -680,7 +682,7 @@ function EquipmentDroppable({
 	dragging: DragSourceData | null;
 	broken: boolean;
 	brokenReasons: string[] | undefined;
-	suppressTooltip: boolean;
+	avoidRect: DOMRect | null;
 	onItemClick: (rect: DOMRect) => void;
 }) {
 	const { setNodeRef, isOver } = useDroppable({
@@ -721,7 +723,7 @@ function EquipmentDroppable({
 					hidden={isDraggingThis}
 					broken={broken}
 					brokenReasons={brokenReasons}
-					suppressTooltip={suppressTooltip}
+					avoidRect={avoidRect}
 					onClick={onItemClick}
 				/>
 			)}
@@ -735,7 +737,7 @@ function DraggableEquipped({
 	hidden,
 	broken,
 	brokenReasons,
-	suppressTooltip,
+	avoidRect,
 	onClick,
 }: {
 	item: Doc<"items">;
@@ -743,7 +745,7 @@ function DraggableEquipped({
 	hidden: boolean;
 	broken: boolean;
 	brokenReasons: string[] | undefined;
-	suppressTooltip: boolean;
+	avoidRect: DOMRect | null;
 	onClick: (rect: DOMRect) => void;
 }) {
 	const handle = useDraggable({
@@ -759,7 +761,8 @@ function DraggableEquipped({
 			<ItemCard
 				item={item.data}
 				size={EQUIPMENT_SLOT_SIZE}
-				suppressTooltip={hidden || suppressTooltip}
+				suppressTooltip={hidden}
+				avoidRect={avoidRect}
 				broken={broken}
 				brokenReasons={brokenReasons}
 				onClick={hidden ? undefined : onClick}

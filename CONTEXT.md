@@ -760,7 +760,7 @@ Clicking an inventory item opens a small context menu next to it. Each valid slo
 
 Inventory items also expose a final **"Descartar"** action, placed after every equip option and separated from them, that permanently deletes the item (see Inventory → Discarding rules). Equipped items get a single-action menu — "Desequipar"; there is no "Descartar" on equipped items by design.
 
-While any inventory dropdown is open, **all** item tooltips (inventory and equipped) are suppressed, so the menu never sits over a tooltip and hovering other items doesn't surface a competing tooltip in the background. Tooltips return on the next hover after the menu closes.
+While an inventory dropdown is open, item tooltips remain visible but **reposition to dodge the menu** instead of sliding behind it: the tooltip pushes past the menu's right edge (or, when flipped, past the menu's left edge). Tooltips and the dropdown coexist so the player can read item stats while choosing a slot.
 
 The dropdown exists to disambiguate the case where drag-and-drop ambiguous targets would force the player to aim. It's never *required*, but it's the natural path when the player knows exactly which ring slot they want without aiming.
 
