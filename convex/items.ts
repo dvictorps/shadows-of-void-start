@@ -313,6 +313,16 @@ export const unequipItem = mutation({
 		const item = equipped.find((it) => it.equippedSlot === args.slot)
 		if (!item) throw new ConvexError("Slot is empty")
 
+		// Invariant: if main hand is empty, off-hand cannot hold a weapon.
+		// Capture the off-hand weapon now, before any patches, so the promotion
+		// below operates on a clean pre-mutation snapshot.
+		const offhandToPromote =
+			args.slot === "weapon"
+				? equipped.find(
+						(it) => it.equippedSlot === "offhand" && isWeapon(it.data),
+					)
+				: undefined
+
 		const { used, nextFreeSlot } = await fetchInventoryAllocator(
 			ctx,
 			args.characterId,
@@ -326,15 +336,10 @@ export const unequipItem = mutation({
 			inventorySlot: nextFreeSlot(),
 		})
 
-		// Invariant: if main hand is empty, off-hand cannot hold a weapon.
-		// Promote the off-hand weapon into the main-hand slot. Shields stay.
-		if (args.slot === "weapon") {
-			const offhand = equipped.find((it) => it.equippedSlot === "offhand")
-			if (offhand && isWeapon(offhand.data)) {
-				await ctx.db.patch(offhand._id, {
-					equippedSlot: "weapon" as const,
-				})
-			}
+		if (offhandToPromote) {
+			await ctx.db.patch(offhandToPromote._id, {
+				equippedSlot: "weapon" as const,
+			})
 		}
 
 		return { unequipped: 1 }
