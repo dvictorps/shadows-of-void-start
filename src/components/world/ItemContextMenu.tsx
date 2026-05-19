@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "#/components/ui/button";
 
@@ -7,6 +7,8 @@ export interface MenuAction {
 	label: string;
 	disabled?: boolean;
 	onClick: () => void;
+	/** Renders a thin separator above this action — groups it visually apart. */
+	dividerBefore?: boolean;
 }
 
 interface Props {
@@ -18,6 +20,9 @@ interface Props {
 
 const MENU_ESTIMATED_WIDTH = 220;
 const MENU_OFFSET_PX = 6;
+// 1px line + my-1 (4px top + 4px bottom) = 9px total vertical footprint
+const DIVIDER_HEIGHT_PX = 9;
+const DIVIDER_CLASS = "my-1 h-px bg-white/15";
 
 export default function ItemContextMenu({ anchor, actions, onClose }: Props) {
 	const menuRef = useRef<HTMLDivElement>(null);
@@ -47,7 +52,9 @@ export default function ItemContextMenu({ anchor, actions, onClose }: Props) {
 		typeof window !== "undefined" ? window.innerHeight : 800;
 	const viewportWidth =
 		typeof window !== "undefined" ? window.innerWidth : 1200;
-	const estimatedHeight = 12 + actions.length * 36;
+	const dividerCount = actions.filter((a) => a.dividerBefore).length;
+	const estimatedHeight =
+		12 + actions.length * 36 + dividerCount * DIVIDER_HEIGHT_PX;
 	const belowCandidate = anchor.bottom + MENU_OFFSET_PX;
 	const flipAbove = belowCandidate + estimatedHeight > viewportHeight;
 	const top = flipAbove
@@ -72,19 +79,23 @@ export default function ItemContextMenu({ anchor, actions, onClose }: Props) {
 			className="flex flex-col gap-1 border border-white/30 bg-black p-1 shadow-[0_8px_24px_rgba(0,0,0,0.7)]"
 		>
 			{actions.map((action) => (
-				<Button
-					key={action.id}
-					type="button"
-					variant="stark"
-					disabled={action.disabled}
-					onClick={() => {
-						action.onClick();
-						onClose();
-					}}
-					className="justify-start px-3 py-1.5 text-xs uppercase tracking-wider"
-				>
-					{action.label}
-				</Button>
+				<Fragment key={action.id}>
+					{action.dividerBefore && (
+						<div className={DIVIDER_CLASS} aria-hidden />
+					)}
+					<Button
+						type="button"
+						variant="stark"
+						disabled={action.disabled}
+						onClick={() => {
+							action.onClick();
+							onClose();
+						}}
+						className="justify-start px-3 py-1.5 text-xs uppercase tracking-wider"
+					>
+						{action.label}
+					</Button>
+				</Fragment>
 			))}
 		</div>,
 		document.body,

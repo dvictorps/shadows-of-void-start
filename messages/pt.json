@@ -184,6 +184,10 @@
   "equip_ring_2": "Equipar no Anel 2",
   "equip_generic": "Equipar",
   "unequip_action": "Desequipar",
+  "inventory_discard_action": "Descartar",
+  "inventory_discard_title": "Descartar \"{name}\"?",
+  "inventory_discard_message": "Esse item será perdido para sempre.",
+  "error_discard_failed": "Falha ao descartar",
 
   "stats_title": "Estatísticas",
   "stats_section_attributes": "Atributos",

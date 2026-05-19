@@ -79,6 +79,12 @@ The character's personal carry capacity. Distinct from the stash — what travel
 - **60 slots**, same one-item-per-slot rule as the stash.
 - This is the destination for items kept after a zone (see Loot Pipeline) and the source for items deposited into the stash.
 
+**Discarding from inventory.** The player can permanently delete an inventory item from the inventory modal's per-item menu. Rules mirror selling (see Vendor → Selling rules):
+
+- **Only inventory items can be discarded.** Equipped gear must be unequipped first.
+- **Discard is irrevocable.** The item is deleted from the items table; no Rubys are credited (the trade-off vs. selling at the vendor).
+- **Discard requires confirmation.** A confirmation modal naming the specific item must be acknowledged before the delete commits.
+
 ### Vendor
 Per-act NPC inside the act's city. Uses **Rubys** in both directions.
 
@@ -752,7 +758,9 @@ Clicking an inventory item opens a small context menu next to it. Each valid slo
 - 1H attack weapon / wand → "Equipar como Mão Principal", "Equipar como Mão Secundária".
 - Anything with a single valid slot → "Equipar".
 
-Equipped items get a single-action menu — "Desequipar".
+Inventory items also expose a final **"Descartar"** action, placed after every equip option and separated from them, that permanently deletes the item (see Inventory → Discarding rules). Equipped items get a single-action menu — "Desequipar"; there is no "Descartar" on equipped items by design.
+
+The item's tooltip is suppressed while its dropdown menu is open so the menu never sits over a visible tooltip; the tooltip returns on the next hover after the menu closes.
 
 The dropdown exists to disambiguate the case where drag-and-drop ambiguous targets would force the player to aim. It's never *required*, but it's the natural path when the player knows exactly which ring slot they want without aiming.
 

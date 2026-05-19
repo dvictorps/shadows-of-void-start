@@ -11,6 +11,7 @@ import {
 	useSensors,
 } from "@dnd-kit/core";
 import { useMutation } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
@@ -27,6 +28,7 @@ import {
 	type EquippedSlot,
 	narrowEquippedSlot,
 } from "#/game/stats/types";
+import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { m } from "#/paraglide/messages";
 import { api } from "../../../convex/_generated/api";
@@ -79,34 +81,34 @@ export default function InventoryModal({
 	equippedItems,
 	inventoryItems,
 }: Props) {
-	const reorder = useMutation(
-		api.items.reorderInventory,
-	).withOptimisticUpdate((localStore, args) => {
-		const inv = localStore.getQuery(api.items.inventory, {
-			characterId: args.characterId,
-		});
-		if (!inv) return;
-		const source = inv.find((it) => it._id === args.itemId);
-		if (!source) return;
-		const occupant = inv.find((it) => it.inventorySlot === args.targetSlot);
-		const sourceSlot = source.inventorySlot;
-		const next = inv
-			.map((it) => {
-				if (it._id === source._id) {
-					return { ...it, inventorySlot: args.targetSlot };
-				}
-				if (occupant && it._id === occupant._id) {
-					return { ...it, inventorySlot: sourceSlot ?? -1 };
-				}
-				return it;
-			})
-			.sort(bySlotAsc);
-		localStore.setQuery(
-			api.items.inventory,
-			{ characterId: args.characterId },
-			next,
-		);
-	});
+	const reorder = useMutation(api.items.reorderInventory).withOptimisticUpdate(
+		(localStore, args) => {
+			const inv = localStore.getQuery(api.items.inventory, {
+				characterId: args.characterId,
+			});
+			if (!inv) return;
+			const source = inv.find((it) => it._id === args.itemId);
+			if (!source) return;
+			const occupant = inv.find((it) => it.inventorySlot === args.targetSlot);
+			const sourceSlot = source.inventorySlot;
+			const next = inv
+				.map((it) => {
+					if (it._id === source._id) {
+						return { ...it, inventorySlot: args.targetSlot };
+					}
+					if (occupant && it._id === occupant._id) {
+						return { ...it, inventorySlot: sourceSlot ?? -1 };
+					}
+					return it;
+				})
+				.sort(bySlotAsc);
+			localStore.setQuery(
+				api.items.inventory,
+				{ characterId: args.characterId },
+				next,
+			);
+		},
+	);
 	const equipItem = useMutation(api.items.equipItem).withOptimisticUpdate(
 		(localStore, args) => {
 			const inv = localStore.getQuery(api.items.inventory, {
@@ -186,64 +188,83 @@ export default function InventoryModal({
 			);
 		},
 	);
-	const unequipItem = useMutation(
-		api.items.unequipItem,
+	const discardItem = useMutation(
+		api.items.discardFromInventory,
 	).withOptimisticUpdate((localStore, args) => {
 		const inv = localStore.getQuery(api.items.inventory, {
 			characterId: args.characterId,
 		});
-		const equipped = localStore.getQuery(api.items.equipped, {
-			characterId: args.characterId,
-		});
-		if (!inv || !equipped) return;
-		const item = equipped.find((it) => it.equippedSlot === args.slot);
-		if (!item) return;
-
-		const occupied = new Set<number>();
-		for (const it of inv) {
-			if (typeof it.inventorySlot === "number") occupied.add(it.inventorySlot);
-		}
-		let firstFree = -1;
-		for (let i = 0; i < INVENTORY_MAX_SLOTS; i++) {
-			if (!occupied.has(i)) {
-				firstFree = i;
-				break;
-			}
-		}
-		if (firstFree === -1) return; // server will reject; skip optimistic
-
-		const newInventory = [
-			...inv,
-			{
-				...item,
-				locationKind: "inventory" as const,
-				equippedSlot: undefined,
-				inventorySlot: firstFree,
-			},
-		].sort(bySlotAsc);
-		const newEquipped = equipped.filter((it) => it._id !== item._id);
-
+		if (!inv) return;
+		const next = inv.filter((it) => it._id !== args.itemId);
 		localStore.setQuery(
 			api.items.inventory,
 			{ characterId: args.characterId },
-			newInventory,
-		);
-		localStore.setQuery(
-			api.items.equipped,
-			{ characterId: args.characterId },
-			newEquipped,
+			next,
 		);
 	});
+	const unequipItem = useMutation(api.items.unequipItem).withOptimisticUpdate(
+		(localStore, args) => {
+			const inv = localStore.getQuery(api.items.inventory, {
+				characterId: args.characterId,
+			});
+			const equipped = localStore.getQuery(api.items.equipped, {
+				characterId: args.characterId,
+			});
+			if (!inv || !equipped) return;
+			const item = equipped.find((it) => it.equippedSlot === args.slot);
+			if (!item) return;
+
+			const occupied = new Set<number>();
+			for (const it of inv) {
+				if (typeof it.inventorySlot === "number")
+					occupied.add(it.inventorySlot);
+			}
+			let firstFree = -1;
+			for (let i = 0; i < INVENTORY_MAX_SLOTS; i++) {
+				if (!occupied.has(i)) {
+					firstFree = i;
+					break;
+				}
+			}
+			if (firstFree === -1) return; // server will reject; skip optimistic
+
+			const newInventory = [
+				...inv,
+				{
+					...item,
+					locationKind: "inventory" as const,
+					equippedSlot: undefined,
+					inventorySlot: firstFree,
+				},
+			].sort(bySlotAsc);
+			const newEquipped = equipped.filter((it) => it._id !== item._id);
+
+			localStore.setQuery(
+				api.items.inventory,
+				{ characterId: args.characterId },
+				newInventory,
+			);
+			localStore.setQuery(
+				api.items.equipped,
+				{ characterId: args.characterId },
+				newEquipped,
+			);
+		},
+	);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
 	);
+
+	const confirm = useConfirmationModal();
 
 	const [active, setActive] = useState<DragSourceData | null>(null);
 	const [menu, setMenu] = useState<{
 		source: DragSourceData;
 		anchor: DOMRect;
 	} | null>(null);
+
+	const menuItemId = menu?.source.itemId ?? null;
 
 	const equippedBySlot = useMemo(() => {
 		const map = new Map<EquippedSlot, Doc<"items">>();
@@ -360,7 +381,25 @@ export default function InventoryModal({
 		}
 	};
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: triggerEquip / triggerUnequip are recreated every render but capture stable mutations; including them would defeat the useMemo
+	const triggerDiscard = async (itemId: Id<"items">) => {
+		const doc = inventory.find((it) => it._id === itemId);
+		if (!doc) return;
+		const ok = await confirm({
+			title: m.inventory_discard_title({ name: doc.data.name }),
+			message: m.inventory_discard_message(),
+			confirmLabel: m.inventory_discard_action(),
+			cancelLabel: m.cancel(),
+			variant: "destructive",
+		});
+		if (!ok) return;
+		try {
+			await discardItem({ characterId, itemId });
+		} catch (err) {
+			toast.error(convexErrorMessage(err, m.error_discard_failed()));
+		}
+	};
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: triggerEquip / triggerUnequip / triggerDiscard are recreated every render but capture stable mutations; including them would defeat the useMemo
 	const menuActions = useMemo<MenuAction[]>(() => {
 		if (!menu) return [];
 		const source = menu.source;
@@ -369,11 +408,20 @@ export default function InventoryModal({
 			const doc = inventory.find((it) => it._id === itemId);
 			if (!doc) return [];
 			const slots = validSlotsForItem(doc.data);
-			return slots.map((slot) => ({
+			const equipActions: MenuAction[] = slots.map((slot) => ({
 				id: slot,
 				label: equipActionLabel(slot, doc.data),
 				onClick: () => void triggerEquip(itemId, slot),
 			}));
+			return [
+				...equipActions,
+				{
+					id: "discard",
+					label: m.inventory_discard_action(),
+					onClick: () => void triggerDiscard(itemId),
+					dividerBefore: equipActions.length > 0,
+				},
+			];
 		}
 		const equippedSlot = source.slot;
 		return [
@@ -427,6 +475,7 @@ export default function InventoryModal({
 										dragging={active}
 										broken={broken}
 										brokenReasons={reasons}
+										suppressTooltip={item != null && menuItemId === item._id}
 										onItemClick={(rect) => {
 											if (!item) return;
 											setMenu({
@@ -458,24 +507,28 @@ export default function InventoryModal({
 									gridTemplateColumns: `repeat(${INVENTORY_COLUMNS}, ${INVENTORY_SLOT_SIZE}px)`,
 								}}
 							>
-								{Array.from({ length: INVENTORY_MAX_SLOTS }, (_, slot) => (
-									<InventoryDroppable
-										// biome-ignore lint/suspicious/noArrayIndexKey: fixed grid, slot index IS the identity
-										key={`slot-${slot}`}
-										slot={slot}
-										item={inventoryBySlot.get(slot) ?? null}
-										isDraggingThis={
-											active?.kind === "inventory" &&
-											inventoryBySlot.get(slot)?._id === active.itemId
-										}
-										onItemClick={(itemId, rect) =>
-											setMenu({
-												source: { kind: "inventory", itemId },
-												anchor: rect,
-											})
-										}
-									/>
-								))}
+								{Array.from({ length: INVENTORY_MAX_SLOTS }, (_, slot) => {
+									const item = inventoryBySlot.get(slot) ?? null;
+									return (
+										<InventoryDroppable
+											// biome-ignore lint/suspicious/noArrayIndexKey: fixed grid, slot index IS the identity
+											key={`slot-${slot}`}
+											slot={slot}
+											item={item}
+											isDraggingThis={
+												active?.kind === "inventory" &&
+												item?._id === active.itemId
+											}
+											suppressTooltip={item != null && menuItemId === item._id}
+											onItemClick={(itemId, rect) =>
+												setMenu({
+													source: { kind: "inventory", itemId },
+													anchor: rect,
+												})
+											}
+										/>
+									);
+								})}
 							</div>
 						</div>
 					</section>
@@ -520,11 +573,13 @@ function InventoryDroppable({
 	slot,
 	item,
 	isDraggingThis,
+	suppressTooltip,
 	onItemClick,
 }: {
 	slot: number;
 	item: Doc<"items"> | null;
 	isDraggingThis: boolean;
+	suppressTooltip: boolean;
 	onItemClick: (itemId: Id<"items">, rect: DOMRect) => void;
 }) {
 	const { setNodeRef, isOver } = useDroppable({
@@ -539,48 +594,78 @@ function InventoryDroppable({
 			className={`relative rounded-md transition-shadow ${highlight}`}
 		>
 			<div className={`absolute inset-0 rounded-md ${SLOT_EMPTY}`} />
-			{item && (
-				<DraggableInventoryItem
-					item={item}
-					hidden={isDraggingThis}
-					onClick={onItemClick}
-				/>
-			)}
+			<AnimatePresence>
+				{item && (
+					<DraggableInventoryItem
+						key={item._id}
+						item={item}
+						hidden={isDraggingThis}
+						suppressTooltip={suppressTooltip}
+						onClick={onItemClick}
+					/>
+				)}
+			</AnimatePresence>
 		</div>
+	);
+}
+
+type DraggableHandle = Pick<
+	ReturnType<typeof useDraggable>,
+	"attributes" | "listeners" | "setNodeRef"
+>;
+
+function MotionDragSlot({
+	handle,
+	hidden,
+	children,
+}: {
+	handle: DraggableHandle;
+	hidden: boolean;
+	children: React.ReactNode;
+}) {
+	return (
+		<motion.div
+			ref={handle.setNodeRef}
+			className="absolute inset-0"
+			style={{ cursor: hidden ? "grabbing" : "grab" }}
+			initial={{ opacity: 0, scale: 0.85 }}
+			animate={{ opacity: hidden ? 0 : 1, scale: 1 }}
+			exit={{ opacity: 0, scale: 0.85 }}
+			transition={{ duration: 0.18, ease: "easeOut" }}
+			whileHover={hidden ? undefined : { scale: 1.05 }}
+			whileTap={hidden ? undefined : { scale: 0.95 }}
+			{...handle.listeners}
+			{...handle.attributes}
+		>
+			{children}
+		</motion.div>
 	);
 }
 
 function DraggableInventoryItem({
 	item,
 	hidden,
+	suppressTooltip,
 	onClick,
 }: {
 	item: Doc<"items">;
 	hidden: boolean;
+	suppressTooltip: boolean;
 	onClick: (itemId: Id<"items">, rect: DOMRect) => void;
 }) {
-	const { attributes, listeners, setNodeRef } = useDraggable({
+	const handle = useDraggable({
 		id: item._id,
 		data: { kind: "inventory", itemId: item._id } satisfies DragSourceData,
 	});
 	return (
-		<div
-			ref={setNodeRef}
-			className="absolute inset-0"
-			style={{
-				opacity: hidden ? 0 : 1,
-				cursor: hidden ? "grabbing" : "grab",
-			}}
-			{...listeners}
-			{...attributes}
-		>
+		<MotionDragSlot handle={handle} hidden={hidden}>
 			<ItemCard
 				item={item.data}
 				size={INVENTORY_SLOT_SIZE}
-				suppressTooltip={hidden}
+				suppressTooltip={hidden || suppressTooltip}
 				onClick={hidden ? undefined : (rect) => onClick(item._id, rect)}
 			/>
-		</div>
+		</MotionDragSlot>
 	);
 }
 
@@ -592,6 +677,7 @@ function EquipmentDroppable({
 	dragging,
 	broken,
 	brokenReasons,
+	suppressTooltip,
 	onItemClick,
 }: {
 	slot: EquippedSlot;
@@ -601,6 +687,7 @@ function EquipmentDroppable({
 	dragging: DragSourceData | null;
 	broken: boolean;
 	brokenReasons: string[] | undefined;
+	suppressTooltip: boolean;
 	onItemClick: (rect: DOMRect) => void;
 }) {
 	const { setNodeRef, isOver } = useDroppable({
@@ -634,16 +721,20 @@ function EquipmentDroppable({
 			>
 				{!item && label}
 			</div>
-			{item && (
-				<DraggableEquipped
-					item={item}
-					slot={slot}
-					hidden={isDraggingThis}
-					broken={broken}
-					brokenReasons={brokenReasons}
-					onClick={onItemClick}
-				/>
-			)}
+			<AnimatePresence>
+				{item && (
+					<DraggableEquipped
+						key={item._id}
+						item={item}
+						slot={slot}
+						hidden={isDraggingThis}
+						broken={broken}
+						brokenReasons={brokenReasons}
+						suppressTooltip={suppressTooltip}
+						onClick={onItemClick}
+					/>
+				)}
+			</AnimatePresence>
 		</div>
 	);
 }
@@ -654,6 +745,7 @@ function DraggableEquipped({
 	hidden,
 	broken,
 	brokenReasons,
+	suppressTooltip,
 	onClick,
 }: {
 	item: Doc<"items">;
@@ -661,9 +753,10 @@ function DraggableEquipped({
 	hidden: boolean;
 	broken: boolean;
 	brokenReasons: string[] | undefined;
+	suppressTooltip: boolean;
 	onClick: (rect: DOMRect) => void;
 }) {
-	const { attributes, listeners, setNodeRef } = useDraggable({
+	const handle = useDraggable({
 		id: `equipped-${slot}`,
 		data: {
 			kind: "equipped",
@@ -672,25 +765,16 @@ function DraggableEquipped({
 		} satisfies DragSourceData,
 	});
 	return (
-		<div
-			ref={setNodeRef}
-			className="absolute inset-0"
-			style={{
-				opacity: hidden ? 0 : 1,
-				cursor: hidden ? "grabbing" : "grab",
-			}}
-			{...listeners}
-			{...attributes}
-		>
+		<MotionDragSlot handle={handle} hidden={hidden}>
 			<ItemCard
 				item={item.data}
 				size={EQUIPMENT_SLOT_SIZE}
-				suppressTooltip={hidden}
+				suppressTooltip={hidden || suppressTooltip}
 				broken={broken}
 				brokenReasons={brokenReasons}
 				onClick={hidden ? undefined : onClick}
 			/>
-		</div>
+		</MotionDragSlot>
 	);
 }
 
