@@ -62,9 +62,9 @@ export default function CombatScene({
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
 			{/* Zone label + static zone level (the area's intrinsic difficulty;
 			 * the per-spawn monster level is shown separately on the nameplate). */}
-			<div className="absolute left-3 top-3 flex flex-col gap-0.5 text-sm uppercase tracking-[0.2em] text-white/60">
+			<div className="absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60">
 				<span>{zoneName}</span>
-				<span className="text-xs text-white/40">LV {zoneLevel}</span>
+				<span className="text-base text-white/40">LV {zoneLevel}</span>
 			</div>
 
 			{/* Top-right action cluster: loot button then Retreat */}
@@ -74,11 +74,11 @@ export default function CombatScene({
 					onClick={onOpenBag}
 					disabled={bagCount === 0}
 					aria-label={`Loot bag (${bagCount} items)`}
-					className="relative inline-flex items-center justify-center border border-white/40 bg-black p-1.5 text-white/80 transition hover:border-white hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+					className="relative inline-flex items-center justify-center border border-white/40 bg-black p-2.5 text-white/80 transition hover:border-white hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
 				>
-					<Sparkles className="h-4 w-4" strokeWidth={2} />
+					<Sparkles className="h-5 w-5" strokeWidth={2} />
 					{bagCount > 0 && (
-						<span className="absolute -top-1.5 -right-1.5 min-w-[1.1rem] border border-white bg-black px-1 text-center font-bold text-[10px] text-white leading-tight">
+						<span className="absolute -top-1.5 -right-1.5 min-w-[1.25rem] border border-white bg-black px-1 text-center font-bold text-xs text-white leading-tight">
 							{bagCount}
 						</span>
 					)}
@@ -87,21 +87,21 @@ export default function CombatScene({
 					type="button"
 					onClick={onRetreat}
 					aria-label={m.retreat_to_map()}
-					className="inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+					className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2.5 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
 				>
-					<ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
+					<ArrowLeft className="h-5 w-5" strokeWidth={2} />
 					{m.retreat()}
 				</button>
 			</div>
 
 			{/* Enemy nameplate: name on top, level directly below */}
-			<div className="flex flex-col items-center gap-1 px-6 pt-12">
+			<div className="flex flex-col items-center gap-1 px-6 pt-14">
 				{enemy ? (
 					<>
-						<div className="display-title text-2xl uppercase tracking-[0.15em] text-white">
+						<div className="display-title text-4xl uppercase tracking-[0.15em] text-white">
 							{enemy.def.name}
 						</div>
-						<div className="text-sm uppercase tracking-[0.2em] text-white/60">
+						<div className="text-lg uppercase tracking-[0.2em] text-white/60">
 							Lv {enemy.level}
 						</div>
 					</>
@@ -148,10 +148,10 @@ export default function CombatScene({
 				)}
 			</div>
 
-			{/* Bottom HUD: HP globe + XP bar + potion button */}
+			{/* Bottom HUD: HP globe + XP bar + teleport stone + (wind-crystal counter / potion) */}
 			<div className="relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4">
 				<div className="relative">
-					<HealthGlobe hp={playerHp} maxHp={maxHp} size="lg" />
+					<HealthGlobe hp={playerHp} maxHp={maxHp} size="md" />
 					{/* Damage popups over the globe */}
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
 						<AnimatePresence>
@@ -181,24 +181,16 @@ export default function CombatScene({
 					</div>
 				</div>
 
-				{/* Consumable cluster: wind-crystal counter pinned above the
-				 * teleport-stone button (display-only counter), teleport stone
-				 * button (panic-return-to-city), potion button (heal). Order
-				 * left → right roughly matches "how often used". */}
+				{/* Teleport stone wears an invisible counter above so its base
+				 * aligns with the potion (which carries the visible counter). */}
 				<div className="flex flex-col items-center gap-1">
-					<div
-						className="display-title flex items-center gap-1 border border-white/30 bg-black px-1.5 py-0.5 text-[10px] tracking-wider text-white/80"
-						aria-label={`${windCrystals} wind crystals`}
-					>
-						<span aria-hidden="true">💎</span>
-						<span className="tabular-nums">{windCrystals}</span>
-					</div>
+					<WindCrystalCounter count={windCrystals} hidden />
 					<button
 						type="button"
 						onClick={onUseTeleportStone}
 						disabled={!canUseTeleportStone}
 						aria-label="Use teleport stone"
-						className="relative flex h-12 w-12 shrink-0 items-center justify-center border border-white/40 bg-black text-xl transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+						className="relative flex h-20 w-20 shrink-0 items-center justify-center border border-white/40 bg-black text-3xl transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
 					>
 						🪨
 						<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
@@ -207,20 +199,48 @@ export default function CombatScene({
 					</button>
 				</div>
 
-				<button
-					type="button"
-					onClick={onUsePotion}
-					disabled={!canUsePotion}
-					aria-label="Use potion"
-					className="relative flex h-14 w-14 shrink-0 items-center justify-center border border-white/40 bg-black text-2xl transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
-				>
-					🧪
-					<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
-						{potions}
-					</span>
-				</button>
+				{/* Wind-crystal usage is map-only; here the counter is just a readout. */}
+				<div className="flex flex-col items-center gap-1">
+					<WindCrystalCounter count={windCrystals} />
+					<button
+						type="button"
+						onClick={onUsePotion}
+						disabled={!canUsePotion}
+						aria-label="Use potion"
+						className="relative flex h-20 w-20 shrink-0 items-center justify-center border border-white/40 bg-black text-3xl transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+					>
+						🧪
+						<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
+							{potions}
+						</span>
+					</button>
+				</div>
 			</div>
 		</section>
+	);
+}
+
+// Rendered in both consumable columns so the teleport-stone button's baseline
+// matches the potion's (which carries the visible counter). The `hidden`
+// variant uses `invisible` rather than conditional rendering so the spacer
+// always matches the real counter's height — no drift possible.
+function WindCrystalCounter({
+	count,
+	hidden = false,
+}: {
+	count: number;
+	hidden?: boolean;
+}) {
+	return (
+		<div
+			role="img"
+			aria-label={`${count} wind crystals`}
+			aria-hidden={hidden || undefined}
+			className={`display-title flex items-center gap-1 text-sm tracking-wider text-white ${hidden ? "invisible" : ""}`}
+		>
+			<span aria-hidden="true">💎</span>
+			<span className="tabular-nums">×{count}</span>
+		</div>
 	);
 }
 
