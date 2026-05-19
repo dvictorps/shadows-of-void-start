@@ -11,6 +11,12 @@ type ModalProps = {
 	// closed by an explicit action inside (used for forced confirmations like
 	// the zone-exit loot picker).
 	dismissible?: boolean;
+	// When true, the small × in the header is suppressed. Use together with
+	// a `footer` action bar that hosts an explicit Close button.
+	hideHeaderClose?: boolean;
+	// Optional action bar pinned to the bottom of the dialog, separated from
+	// the body by a divider. The caller renders whatever buttons it wants.
+	footer?: React.ReactNode;
 };
 
 export default function Modal({
@@ -20,6 +26,8 @@ export default function Modal({
 	children,
 	className = "max-w-md",
 	dismissible = true,
+	hideHeaderClose = false,
+	footer,
 }: ModalProps) {
 	useEffect(() => {
 		if (!isOpen || !dismissible) return;
@@ -33,6 +41,7 @@ export default function Modal({
 	if (!isOpen) return null;
 
 	const closeLabel = m.modal_close_label();
+	const showHeaderClose = dismissible && !hideHeaderClose;
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
@@ -62,7 +71,7 @@ export default function Modal({
 						>
 							{title}
 						</h2>
-						{dismissible && (
+						{showHeaderClose && (
 							<button
 								type="button"
 								onClick={onClose}
@@ -75,6 +84,9 @@ export default function Modal({
 					</div>
 				)}
 				<div className="p-5">{children}</div>
+				{footer && (
+					<div className="border-t border-white/20 px-5 py-3">{footer}</div>
+				)}
 			</div>
 		</div>
 	);

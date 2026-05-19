@@ -441,6 +441,18 @@ export default function InventoryModal({
 				total: INVENTORY_MAX_SLOTS,
 			})}
 			className="max-w-7xl"
+			hideHeaderClose
+			footer={
+				<div className="flex justify-center">
+					<button
+						type="button"
+						onClick={onClose}
+						className="border-2 border-white/40 bg-black px-6 py-2 font-medium text-sm text-white/80 uppercase tracking-[0.25em] transition hover:border-white hover:bg-white/10 hover:text-white"
+					>
+						{m.modal_close_label()}
+					</button>
+				</div>
+			}
 		>
 			<DndContext
 				sensors={sensors}
