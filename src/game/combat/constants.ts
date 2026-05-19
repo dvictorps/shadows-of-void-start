@@ -22,6 +22,13 @@ export const LEECH_CAP_PCT_MAX_LIFE_PER_SECOND = 0.2;
 export const MAX_POTIONS = 10;
 export const POTION_DROP_CHANCE = 0.2;
 
+// Attack dual-wielding implicit buffs (attack-1H + attack-1H only — wand+wand
+// is excluded). The AS buff is a "more" multiplier applied after the increased
+// pool, on top of the averaged base attack speed. The block bonus is additive
+// into the character's blockChance total (still bound by the 75% cap).
+export const DUAL_WIELD_AS_MORE_MULT = 1.1;
+export const DUAL_WIELD_BLOCK_CHANCE_BONUS = 10;
+
 // Travel consumables — vendor-only (no drops). Teleport stones instantly
 // return the player to the city; wind crystals jump to any previously-
 // unlocked node with a fixed travel duration (no MS scaling — you're

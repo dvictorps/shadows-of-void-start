@@ -1,5 +1,9 @@
 import type { CharacterClassDefinition } from "../classes/types";
-import { BASE_CAST_SPEED } from "../combat/constants";
+import {
+	BASE_CAST_SPEED,
+	DUAL_WIELD_AS_MORE_MULT,
+	DUAL_WIELD_BLOCK_CHANCE_BONUS,
+} from "../combat/constants";
 import type { GeneratedItem, RolledMod } from "../items/types";
 import type {
 	ComputedCharacterStats,
@@ -12,6 +16,7 @@ import type {
 // ── Caps ──
 
 const RESISTANCE_CAP = 75;
+const BLOCK_CHANCE_CAP = 75;
 const CRIT_CHANCE_CAP = 100;
 const CRIT_CHANCE_FLOOR = 5;
 const ARMOR_REDUCTION_CAP = 85;
@@ -458,7 +463,10 @@ function applyCaps(stats: ComputedCharacterStats): void {
 	r.fire = Math.min(RESISTANCE_CAP, Math.max(-100, r.fire));
 	r.lightning = Math.min(RESISTANCE_CAP, Math.max(-100, r.lightning));
 	r.void = Math.min(RESISTANCE_CAP, Math.max(-100, r.void));
-	stats.blockChance = Math.min(75, Math.max(0, stats.blockChance));
+	stats.blockChance = Math.min(
+		BLOCK_CHANCE_CAP,
+		Math.max(0, stats.blockChance),
+	);
 }
 
 // ── Requirements check ──
@@ -491,41 +499,53 @@ function computeOnce(
 	applyBase(stats, input.classDef, input.level);
 	for (const eq of live) applyItem(stats, pcts, eq.item);
 	foldGlobalDefenseIncreases(stats, pcts);
-	applyCaps(stats);
 
-	// Swing assembly
 	const mainHand = live.find((eq) => eq.slot === "weapon")?.item ?? null;
 	const offHand = live.find((eq) => eq.slot === "offhand")?.item ?? null;
 	stats.path = determinePath(mainHand);
+	const offHandType = offHand?.weaponType;
+	// Source of truth for "is this attack dual-wielding?". The public
+	// `isAttackDualWielding(stats)` helper below re-derives the same answer from
+	// `path` + `swings.length` for UI consumers; both must agree.
+	const isAttackDW =
+		stats.path === "attack" &&
+		!!offHand &&
+		!!offHandType &&
+		ATTACK_WEAPONS.has(offHandType);
+
+	// Apply DW block bonus before applyCaps so the 75% cap runs once.
+	if (isAttackDW) stats.blockChance += DUAL_WIELD_BLOCK_CHANCE_BONUS;
+	applyCaps(stats);
 
 	const gearFlat = collectGlobalFlatDamage(
 		live.filter((eq) => eq.slot !== "weapon" && eq.slot !== "offhand"),
 	);
 
-	const offHandType = offHand?.weaponType;
 	if (stats.path === "attack" && mainHand) {
 		stats.swings.push(buildSwing(mainHand, "mainHand", gearFlat, "attack"));
-		if (offHand && offHandType && ATTACK_WEAPONS.has(offHandType)) {
+		if (isAttackDW && offHand) {
 			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "attack"));
 		}
 	} else if (stats.path === "spell" && mainHand) {
 		stats.swings.push(buildSwing(mainHand, "mainHand", gearFlat, "spell"));
-		// Caster dual-wield: only wand+wand. Staves are 2H and can't sit in the
-		// off-hand slot, so we only accept "wand" specifically here.
+		// Staves are 2H and can't sit in the off-hand slot — only wand+wand.
+		// Caster dual-wield gets no implicits.
 		if (offHand && offHandType === "wand") {
 			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "spell"));
 		}
 	}
 
-	// Compute combined tick rate from the swings (each weapon at its own pace).
 	const speedMultiplier =
 		stats.path === "spell"
 			? 1 + stats.increased.castSpeed / 100
 			: 1 + stats.increased.attackSpeed / 100;
-	stats.tickRate = stats.swings.reduce(
-		(sum, s) => sum + s.baseAttackSpeed * speedMultiplier,
-		0,
-	);
+	const swingCount = stats.swings.length;
+	const averagedBase =
+		swingCount > 0
+			? stats.swings.reduce((sum, s) => sum + s.baseAttackSpeed, 0) / swingCount
+			: 0;
+	const dwMoreMult = isAttackDW ? DUAL_WIELD_AS_MORE_MULT : 1;
+	stats.tickRate = averagedBase * speedMultiplier * dwMoreMult;
 
 	return stats;
 }
@@ -598,6 +618,13 @@ export function effectiveCritChance(
 ): number {
 	const raw = weaponCrit * (1 + globalIncrease / 100);
 	return Math.min(CRIT_CHANCE_CAP, Math.max(CRIT_CHANCE_FLOOR, raw));
+}
+
+// Mirrors the internal `isAttackDW` check inside `computeOnce` — the engine
+// guarantees `swings.length === 2` iff attack DW is active, so this derives
+// the same answer for UI without re-reading the equipped items.
+export function isAttackDualWielding(stats: ComputedCharacterStats): boolean {
+	return stats.path === "attack" && stats.swings.length === 2;
 }
 
 export function totalCritMultiplier(bonusFromMods: number): number {

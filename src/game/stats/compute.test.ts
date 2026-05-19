@@ -6,6 +6,7 @@ import {
 	computeCharacterStats,
 	computeEvasionAvoid,
 	effectiveCritChance,
+	isAttackDualWielding,
 } from "./compute";
 import type { EquippedItem } from "./types";
 
@@ -177,7 +178,7 @@ describe("computeCharacterStats — equipment contributions", () => {
 		expect(stats.tickRate).toBeCloseTo(1.5);
 	});
 
-	it("dual-wielding two attack 1H weapons combines tick rate", () => {
+	it("attack dual-wielding averages the two weapons' speeds and applies +10% AS more multiplier", () => {
 		const eq: EquippedItem[] = [
 			{
 				slot: "weapon",
@@ -196,7 +197,45 @@ describe("computeCharacterStats — equipment contributions", () => {
 		expect(stats.swings).toHaveLength(2);
 		expect(stats.swings[0].source).toBe("mainHand");
 		expect(stats.swings[1].source).toBe("offHand");
-		expect(stats.tickRate).toBeCloseTo(1.5 + 1.6);
+		expect(isAttackDualWielding(stats)).toBe(true);
+		// avg(1.5, 1.6) × 1.10 = 1.55 × 1.10 = 1.705
+		expect(stats.tickRate).toBeCloseTo(1.705);
+	});
+
+	it("attack dual-wielding grants +10% block chance", () => {
+		const eq: EquippedItem[] = [
+			{
+				slot: "weapon",
+				item: sword("s1", { min: 5, max: 10, speed: 1.3, crit: 5 }),
+			},
+			{
+				slot: "offhand",
+				item: sword("s2", { min: 5, max: 10, speed: 1.3, crit: 5 }),
+			},
+		];
+		const stats = computeCharacterStats({
+			classDef: warrior,
+			level: 1,
+			equippedItems: eq,
+		});
+		expect(stats.blockChance).toBe(10);
+	});
+
+	it("single attack weapon does NOT receive DW buffs (no block, no AS more multiplier)", () => {
+		const eq: EquippedItem[] = [
+			{
+				slot: "weapon",
+				item: sword("s1", { min: 5, max: 10, speed: 1.5, crit: 8 }),
+			},
+		];
+		const stats = computeCharacterStats({
+			classDef: warrior,
+			level: 1,
+			equippedItems: eq,
+		});
+		expect(isAttackDualWielding(stats)).toBe(false);
+		expect(stats.blockChance).toBe(0);
+		expect(stats.tickRate).toBeCloseTo(1.5);
 	});
 
 	it("caster main hand sets path=spell and tick rate uses base cast speed (1.0)", () => {
@@ -210,6 +249,23 @@ describe("computeCharacterStats — equipment contributions", () => {
 		});
 		expect(stats.path).toBe("spell");
 		expect(stats.tickRate).toBe(1.0);
+	});
+
+	it("wand+wand dual-wields without receiving the attack-DW buffs", () => {
+		const eq: EquippedItem[] = [
+			{ slot: "weapon", item: wand("w1", { min: 4, max: 8 }) },
+			{ slot: "offhand", item: wand("w2", { min: 4, max: 8 }) },
+		];
+		const stats = computeCharacterStats({
+			classDef: mage,
+			level: 1,
+			equippedItems: eq,
+		});
+		expect(stats.swings).toHaveLength(2);
+		expect(isAttackDualWielding(stats)).toBe(false);
+		expect(stats.blockChance).toBe(0);
+		// avg(1.0, 1.0) with no DW more multiplier
+		expect(stats.tickRate).toBeCloseTo(1.0);
 	});
 
 	it("flat physical from gear adds onto attack swing damage", () => {
