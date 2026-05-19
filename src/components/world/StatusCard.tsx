@@ -76,23 +76,23 @@ export default function StatusCard({
 			<div className="flex flex-col gap-3">
 				<div className="grid grid-cols-2 gap-4">
 					<div className="min-w-0">
-						<h3 className="display-title truncate text-xl uppercase tracking-wider text-white">
+						<h3 className="display-title truncate text-2xl uppercase tracking-wider text-white">
 							{character.name}
 						</h3>
-						<p className="mt-1 text-sm text-white/80">
+						<p className="mt-1 text-lg text-white/80">
 							<span className="text-white/50">{m.status_class_label()}</span>{" "}
 							{classResolved}
 						</p>
-						<p className="text-sm text-white/80">
+						<p className="text-lg text-white/80">
 							<span className="text-white/50">{m.status_level_label()}</span>{" "}
 							{character.level}
 						</p>
-						<p className="text-sm text-white/80">
+						<p className="text-lg text-white/80">
 							<span className="text-white/50">{m.status_dps_label()}</span>{" "}
 							{dps > 0 ? dps : "—"}
 						</p>
 					</div>
-					<div className="display-title space-y-1.5 text-right text-base tracking-wider">
+					<div className="display-title space-y-1.5 text-right text-xl tracking-wider">
 						<p className="text-glow-red">
 							{m.status_strength_label()} {stats.attributes.strength}
 						</p>
@@ -107,7 +107,7 @@ export default function StatusCard({
 
 				<div className="flex items-center gap-3">
 					<div className="flex-1 space-y-1">
-						<div className="text-[10px] uppercase tracking-wider text-yellow-300/80">
+						<div className="text-sm uppercase tracking-wider text-yellow-300/80">
 							{m.status_xp_label({ current: xp, needed: xpNeeded })}
 						</div>
 						<div
@@ -129,10 +129,10 @@ export default function StatusCard({
 						onClick={onUsePotion}
 						disabled={!canUsePotion}
 						aria-label="Use potion"
-						className="relative flex h-10 w-10 shrink-0 items-center justify-center border border-white/40 bg-black text-base transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+						className="relative flex h-16 w-16 shrink-0 items-center justify-center border border-white/40 bg-black text-2xl transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
 					>
 						🧪
-						<span className="absolute -bottom-1 -right-1 min-w-[1rem] border border-white/40 bg-black px-1 text-center text-[9px] leading-tight text-white">
+						<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
 							{potions}
 						</span>
 					</button>
@@ -162,10 +162,10 @@ export default function StatusCard({
 							onClick={onUseTeleportStone}
 							disabled={!canUseTeleportStone}
 							aria-label="Use teleport stone"
-							className="relative flex h-12 w-12 items-center justify-center border border-white/30 bg-black/60 text-xs font-bold uppercase tracking-wider text-white/60 transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-white/30 disabled:hover:bg-black/60"
+							className="relative flex h-16 w-16 items-center justify-center border border-white/30 bg-black/60 text-2xl font-bold uppercase tracking-wider text-white/60 transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-white/30 disabled:hover:bg-black/60"
 						>
 							🪨
-							<span className="absolute -bottom-1 -right-1 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
+							<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
 								{teleportStones}
 							</span>
 						</button>
@@ -181,9 +181,9 @@ export default function StatusCard({
 
 function ConsumableSlot({ label, count }: { label: string; count: number }) {
 	return (
-		<div className="relative flex h-12 w-12 items-center justify-center border border-white/30 bg-black/60 text-xs font-bold uppercase tracking-wider text-white/60">
+		<div className="relative flex h-16 w-16 items-center justify-center border border-white/30 bg-black/60 text-2xl font-bold uppercase tracking-wider text-white/60">
 			{label}
-			<span className="absolute -bottom-1 -right-1 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
+			<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
 				×{count}
 			</span>
 		</div>
