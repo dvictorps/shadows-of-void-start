@@ -187,15 +187,17 @@ function CharacterRow({
 	const className = classDef ? CLASS_NAME[classDef.id]() : m.unknown_class();
 
 	return (
-		<li>
+		<li
+			className={`flex items-stretch border transition ${
+				selected
+					? "border-white bg-white/10"
+					: "border-white/30 bg-black hover:bg-white/5"
+			}`}
+		>
 			<button
 				type="button"
 				onClick={onSelect}
-				className={`flex w-full items-center justify-between border px-3 py-3 text-left transition ${
-					selected
-						? "border-white bg-white/10"
-						: "border-white/30 bg-black hover:bg-white/5"
-				}`}
+				className="flex flex-1 items-center justify-between px-3 py-3 text-left"
 			>
 				<div className="min-w-0">
 					<div className="display-title truncate text-base uppercase tracking-wider text-white">
@@ -205,20 +207,17 @@ function CharacterRow({
 						{m.character_row_level()} {character.level} · {className}
 					</div>
 				</div>
-				{selected && (
-					<button
-						type="button"
-						onClick={(e) => {
-							e.stopPropagation();
-							onDelete();
-						}}
-						aria-label={m.delete_aria_label({ name: character.name })}
-						className="ml-3 shrink-0 border border-red-400/50 bg-black p-1.5 text-red-300 transition hover:border-red-400 hover:bg-red-950/40 hover:text-red-200"
-					>
-						<TrashIcon />
-					</button>
-				)}
 			</button>
+			{selected && (
+				<button
+					type="button"
+					onClick={onDelete}
+					aria-label={m.delete_aria_label({ name: character.name })}
+					className="m-2 shrink-0 self-center border border-red-400/50 bg-black p-1.5 text-red-300 transition hover:border-red-400 hover:bg-red-950/40 hover:text-red-200"
+				>
+					<TrashIcon />
+				</button>
+			)}
 		</li>
 	);
 }
