@@ -8,7 +8,9 @@ import { findClassDefinition } from "#/game/classes/data";
 import type { CharacterClassId } from "#/game/classes/types";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useModal } from "#/hooks/useModal";
+import { authClient } from "#/lib/auth-client";
 import { convexErrorMessage } from "#/lib/convex-errors";
+import { queueFlashToast } from "#/lib/flash-toast";
 import { m } from "#/paraglide/messages";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
@@ -65,6 +67,17 @@ function CharacterSelectPage() {
 		navigate({ to: "/world", search: { characterId: selected._id } });
 	};
 
+	const handleSignOut = () => {
+		void authClient.signOut({
+			fetchOptions: {
+				onSuccess: () => {
+					queueFlashToast("success", m.sign_out_toast());
+					window.location.href = "/";
+				},
+			},
+		});
+	};
+
 	return (
 		<main className="relative h-screen overflow-hidden bg-black text-white">
 			{isAdmin && (
@@ -74,6 +87,17 @@ function CharacterSelectPage() {
 					</Link>
 				</div>
 			)}
+
+			<div className="absolute right-6 bottom-6 z-10">
+				<Button
+					type="button"
+					variant="stark"
+					onClick={handleSignOut}
+					className="uppercase tracking-wider"
+				>
+					{m.sign_out_button()}
+				</Button>
+			</div>
 
 			<div className="flex h-full items-center justify-center px-6 py-6">
 				<div className="flex h-full max-h-[88vh] w-full max-w-md flex-col rounded-md border border-white/40 p-4">

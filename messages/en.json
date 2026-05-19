@@ -10,6 +10,8 @@
   "back_to_map": "Back to map",
 
   "admin_dashboard": "Admin Dashboard",
+  "sign_out_button": "Sign out",
+  "sign_out_toast": "Signed out",
   "character_select_empty": "No characters yet",
   "character_select_empty_hint": "Click \"Create\" to create your first hero.",
   "create_character_button": "Create",

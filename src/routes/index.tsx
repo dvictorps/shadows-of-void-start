@@ -10,22 +10,44 @@ function Home() {
 
 	return (
 		<main className="relative h-screen overflow-hidden bg-black text-white">
-			<div className="flex h-full flex-col items-center justify-center gap-12 px-6 py-6">
+			{/* Atmospheric radial vignette behind the title — purely decorative */}
+			<div
+				aria-hidden
+				className="pointer-events-none absolute inset-0"
+				style={{
+					background:
+						"radial-gradient(ellipse 60% 45% at 50% 42%, rgba(168, 85, 247, 0.18), rgba(88, 28, 135, 0.08) 45%, transparent 75%)",
+				}}
+			/>
+
+			<div className="relative flex h-full flex-col items-center justify-center gap-12 px-6 py-6">
 				<h1 className="display-title text-glow-purple text-center text-7xl uppercase leading-[0.95] md:text-9xl">
 					Shadows
 					<br />
 					of Void
 				</h1>
 
-				<Link to={playTarget} className="no-underline">
+				{isPending ? (
 					<Button
 						size="lg"
-						disabled={isPending}
-						className="border border-white bg-black px-12 py-6 text-xl uppercase tracking-[0.25em] text-white hover:bg-white/10 hover:text-white"
+						variant="ghost-purple"
+						disabled
+						className="px-12 py-6 text-xl uppercase tracking-[0.25em]"
 					>
 						Play
 					</Button>
-				</Link>
+				) : (
+					<Button
+						size="lg"
+						variant="ghost-purple"
+						asChild
+						className="px-12 py-6 text-xl uppercase tracking-[0.25em]"
+					>
+						<Link to={playTarget} className="no-underline">
+							Play
+						</Link>
+					</Button>
+				)}
 			</div>
 		</main>
 	);
