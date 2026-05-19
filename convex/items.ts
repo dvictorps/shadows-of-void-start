@@ -154,6 +154,32 @@ export const discardFromBag = mutation({
 })
 
 /**
+ * Permanently delete an inventory item. Rejects equipped items — the caller
+ * must unequip first (mirrors the vendor sell rule).
+ */
+export const discardFromInventory = mutation({
+	args: {
+		characterId: v.id("characters"),
+		itemId: v.id("items"),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const item = await ctx.db.get(args.itemId)
+		if (!item) throw new ConvexError("Item not found")
+		if (item.characterId !== args.characterId)
+			throw new ConvexError("Not your item")
+		if (item.locationKind !== "inventory")
+			throw new ConvexError("Item is not in inventory")
+
+		await ctx.db.delete(args.itemId)
+		return { discarded: 1 }
+	},
+})
+
+/**
  * Move an inventory item into an equipment slot. Validates slot eligibility,
  * 2H/off-hand interactions, same-archetype dual-wield, and equip-time
  * requirements (level + attributes against totals excluding the new item).

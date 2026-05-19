@@ -184,6 +184,10 @@
   "equip_ring_2": "Equip in Ring 2",
   "equip_generic": "Equip",
   "unequip_action": "Unequip",
+  "inventory_discard_action": "Discard",
+  "inventory_discard_title": "Discard \"{name}\"?",
+  "inventory_discard_message": "This item will be lost forever.",
+  "error_discard_failed": "Discard failed",
 
   "stats_title": "Stats",
   "stats_section_attributes": "Attributes",

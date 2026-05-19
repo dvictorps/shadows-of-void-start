@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ItemTooltip from "#/components/game/ItemTooltip";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
@@ -86,12 +86,41 @@ type Props = {
 	frameless?: boolean;
 	/** Click handler — receives the card's bounding rect for positioning popovers. */
 	onClick?: (rect: DOMRect) => void;
+	/**
+	 * A rect (in viewport coords) the tooltip should not overlap. Used by the
+	 * inventory modal to push the tooltip past an open context menu instead of
+	 * letting it slide behind it.
+	 */
+	avoidRect?: DOMRect | null;
 };
 
 const TOOLTIP_OFFSET_PX = 12;
 // Rough estimate of the tooltip width — used so we can flip the tooltip to the
 // left side when the card is too close to the right edge of the viewport.
 const TOOLTIP_ESTIMATED_WIDTH = 280;
+
+function tooltipOverlapsAvoid(tooltipLeft: number, avoid: DOMRect): boolean {
+	const tooltipRight = tooltipLeft + TOOLTIP_ESTIMATED_WIDTH;
+	return tooltipLeft < avoid.right && tooltipRight > avoid.left;
+}
+
+function computeTooltipLeft(
+	cardRect: DOMRect,
+	avoid: DOMRect | null | undefined,
+	viewportWidth: number,
+): number {
+	let leftCandidate = cardRect.right + TOOLTIP_OFFSET_PX;
+	if (avoid && tooltipOverlapsAvoid(leftCandidate, avoid)) {
+		leftCandidate = avoid.right + TOOLTIP_OFFSET_PX;
+	}
+	const flipLeft = leftCandidate + TOOLTIP_ESTIMATED_WIDTH > viewportWidth;
+	if (!flipLeft) return leftCandidate;
+	let flippedLeft = cardRect.left - TOOLTIP_OFFSET_PX - TOOLTIP_ESTIMATED_WIDTH;
+	if (avoid && tooltipOverlapsAvoid(flippedLeft, avoid)) {
+		flippedLeft = avoid.left - TOOLTIP_OFFSET_PX - TOOLTIP_ESTIMATED_WIDTH;
+	}
+	return Math.max(8, flippedLeft);
+}
 
 export default function ItemCard({
 	item,
@@ -103,6 +132,7 @@ export default function ItemCard({
 	brokenReasons,
 	frameless,
 	onClick,
+	avoidRect,
 }: Props) {
 	const cardRef = useRef<HTMLButtonElement>(null);
 	const [tooltipPos, setTooltipPos] = useState<{
@@ -111,6 +141,16 @@ export default function ItemCard({
 	} | null>(null);
 	// Drop the tooltip the instant suppression kicks in (e.g. a drag starts).
 	if (suppressTooltip && tooltipPos) setTooltipPos(null);
+
+	// Reposition without re-firing hover — keeps the tooltip visible when a
+	// context menu opens/closes and only the avoidRect changed.
+	useEffect(() => {
+		if (!tooltipPos) return;
+		const rect = cardRef.current?.getBoundingClientRect();
+		if (!rect) return;
+		const left = computeTooltipLeft(rect, avoidRect, window.innerWidth);
+		if (left !== tooltipPos.left) setTooltipPos({ left, top: rect.top });
+	}, [avoidRect, tooltipPos]);
 
 	if (!item) {
 		return (
@@ -125,13 +165,7 @@ export default function ItemCard({
 		if (suppressTooltip) return;
 		const rect = cardRef.current?.getBoundingClientRect();
 		if (!rect) return;
-		const viewportWidth = window.innerWidth;
-		// Default: render to the right; flip left if it would clip the viewport.
-		const rightCandidate = rect.right + TOOLTIP_OFFSET_PX;
-		const flipLeft = rightCandidate + TOOLTIP_ESTIMATED_WIDTH > viewportWidth;
-		const left = flipLeft
-			? Math.max(8, rect.left - TOOLTIP_OFFSET_PX - TOOLTIP_ESTIMATED_WIDTH)
-			: rightCandidate;
+		const left = computeTooltipLeft(rect, avoidRect, window.innerWidth);
 		setTooltipPos({ left, top: rect.top });
 	};
 
