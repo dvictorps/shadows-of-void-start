@@ -11,7 +11,6 @@ import {
 	useSensors,
 } from "@dnd-kit/core";
 import { useMutation } from "convex/react";
-import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
@@ -264,7 +263,7 @@ export default function InventoryModal({
 		anchor: DOMRect;
 	} | null>(null);
 
-	const menuItemId = menu?.source.itemId ?? null;
+	const menuOpen = menu !== null;
 
 	const equippedBySlot = useMemo(() => {
 		const map = new Map<EquippedSlot, Doc<"items">>();
@@ -475,7 +474,7 @@ export default function InventoryModal({
 										dragging={active}
 										broken={broken}
 										brokenReasons={reasons}
-										suppressTooltip={item != null && menuItemId === item._id}
+										suppressTooltip={menuOpen}
 										onItemClick={(rect) => {
 											if (!item) return;
 											setMenu({
@@ -519,7 +518,7 @@ export default function InventoryModal({
 												active?.kind === "inventory" &&
 												item?._id === active.itemId
 											}
-											suppressTooltip={item != null && menuItemId === item._id}
+											suppressTooltip={menuOpen}
 											onItemClick={(itemId, rect) =>
 												setMenu({
 													source: { kind: "inventory", itemId },
@@ -594,17 +593,14 @@ function InventoryDroppable({
 			className={`relative rounded-md transition-shadow ${highlight}`}
 		>
 			<div className={`absolute inset-0 rounded-md ${SLOT_EMPTY}`} />
-			<AnimatePresence>
-				{item && (
-					<DraggableInventoryItem
-						key={item._id}
-						item={item}
-						hidden={isDraggingThis}
-						suppressTooltip={suppressTooltip}
-						onClick={onItemClick}
-					/>
-				)}
-			</AnimatePresence>
+			{item && (
+				<DraggableInventoryItem
+					item={item}
+					hidden={isDraggingThis}
+					suppressTooltip={suppressTooltip}
+					onClick={onItemClick}
+				/>
+			)}
 		</div>
 	);
 }
@@ -614,7 +610,7 @@ type DraggableHandle = Pick<
 	"attributes" | "listeners" | "setNodeRef"
 >;
 
-function MotionDragSlot({
+function DragSlot({
 	handle,
 	hidden,
 	children,
@@ -624,21 +620,18 @@ function MotionDragSlot({
 	children: React.ReactNode;
 }) {
 	return (
-		<motion.div
+		<div
 			ref={handle.setNodeRef}
 			className="absolute inset-0"
-			style={{ cursor: hidden ? "grabbing" : "grab" }}
-			initial={{ opacity: 0, scale: 0.85 }}
-			animate={{ opacity: hidden ? 0 : 1, scale: 1 }}
-			exit={{ opacity: 0, scale: 0.85 }}
-			transition={{ duration: 0.18, ease: "easeOut" }}
-			whileHover={hidden ? undefined : { scale: 1.05 }}
-			whileTap={hidden ? undefined : { scale: 0.95 }}
+			style={{
+				opacity: hidden ? 0 : 1,
+				cursor: hidden ? "grabbing" : "grab",
+			}}
 			{...handle.listeners}
 			{...handle.attributes}
 		>
 			{children}
-		</motion.div>
+		</div>
 	);
 }
 
@@ -658,14 +651,14 @@ function DraggableInventoryItem({
 		data: { kind: "inventory", itemId: item._id } satisfies DragSourceData,
 	});
 	return (
-		<MotionDragSlot handle={handle} hidden={hidden}>
+		<DragSlot handle={handle} hidden={hidden}>
 			<ItemCard
 				item={item.data}
 				size={INVENTORY_SLOT_SIZE}
 				suppressTooltip={hidden || suppressTooltip}
 				onClick={hidden ? undefined : (rect) => onClick(item._id, rect)}
 			/>
-		</MotionDragSlot>
+		</DragSlot>
 	);
 }
 
@@ -721,20 +714,17 @@ function EquipmentDroppable({
 			>
 				{!item && label}
 			</div>
-			<AnimatePresence>
-				{item && (
-					<DraggableEquipped
-						key={item._id}
-						item={item}
-						slot={slot}
-						hidden={isDraggingThis}
-						broken={broken}
-						brokenReasons={brokenReasons}
-						suppressTooltip={suppressTooltip}
-						onClick={onItemClick}
-					/>
-				)}
-			</AnimatePresence>
+			{item && (
+				<DraggableEquipped
+					item={item}
+					slot={slot}
+					hidden={isDraggingThis}
+					broken={broken}
+					brokenReasons={brokenReasons}
+					suppressTooltip={suppressTooltip}
+					onClick={onItemClick}
+				/>
+			)}
 		</div>
 	);
 }
@@ -765,7 +755,7 @@ function DraggableEquipped({
 		} satisfies DragSourceData,
 	});
 	return (
-		<MotionDragSlot handle={handle} hidden={hidden}>
+		<DragSlot handle={handle} hidden={hidden}>
 			<ItemCard
 				item={item.data}
 				size={EQUIPMENT_SLOT_SIZE}
@@ -774,7 +764,7 @@ function DraggableEquipped({
 				brokenReasons={brokenReasons}
 				onClick={hidden ? undefined : onClick}
 			/>
-		</MotionDragSlot>
+		</DragSlot>
 	);
 }
 
