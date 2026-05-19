@@ -13,6 +13,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, str: 8 },
 		baseStats: { armor: 8 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t2",
@@ -23,6 +24,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, str: 14 },
 		baseStats: { armor: 17 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t3",
@@ -33,6 +35,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, str: 18 },
 		baseStats: { armor: 25 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t4",
@@ -43,6 +46,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, str: 22 },
 		baseStats: { armor: 35 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t5",
@@ -53,6 +57,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, str: 28 },
 		baseStats: { armor: 47 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t6",
@@ -63,6 +68,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, str: 33 },
 		baseStats: { armor: 61 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t7",
@@ -73,6 +79,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, str: 38 },
 		baseStats: { armor: 77 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t8",
@@ -83,6 +90,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, str: 44 },
 		baseStats: { armor: 94 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t9",
@@ -93,6 +101,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, str: 48 },
 		baseStats: { armor: 115 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t10",
@@ -103,6 +112,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, str: 53 },
 		baseStats: { armor: 137 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t11",
@@ -113,6 +123,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, str: 58 },
 		baseStats: { armor: 162 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado1.png",
 	},
 	{
 		id: "plate_helmet_t12",
@@ -123,6 +134,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, str: 63 },
 		baseStats: { armor: 189 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 	{
 		id: "plate_helmet_t13",
@@ -133,6 +145,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, str: 68 },
 		baseStats: { armor: 220 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 	{
 		id: "plate_helmet_t14",
@@ -143,6 +156,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, str: 74 },
 		baseStats: { armor: 253 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 	{
 		id: "plate_helmet_t15",
@@ -153,6 +167,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, str: 78 },
 		baseStats: { armor: 290 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 	{
 		id: "plate_helmet_t16",
@@ -163,6 +178,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, str: 83 },
 		baseStats: { armor: 330 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 	{
 		id: "plate_helmet_t17",
@@ -173,6 +189,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, str: 88 },
 		baseStats: { armor: 374 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 	{
 		id: "plate_helmet_t18",
@@ -183,6 +200,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, str: 93 },
 		baseStats: { armor: 420 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 	{
 		id: "plate_helmet_t19",
@@ -193,6 +211,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, str: 98 },
 		baseStats: { armor: 469 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 	{
 		id: "plate_helmet_t20",
@@ -203,6 +222,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, str: 104 },
 		baseStats: { armor: 518 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 	{
 		id: "plate_helmet_t21",
@@ -213,6 +233,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, str: 107 },
 		baseStats: { armor: 555 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 
 	// ── Leather Helmets ──
@@ -225,6 +246,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, dex: 8 },
 		baseStats: { evasion: 8 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t2",
@@ -235,6 +257,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, dex: 14 },
 		baseStats: { evasion: 17 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t3",
@@ -245,6 +268,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, dex: 18 },
 		baseStats: { evasion: 25 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t4",
@@ -255,6 +279,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, dex: 22 },
 		baseStats: { evasion: 35 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t5",
@@ -265,6 +290,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, dex: 28 },
 		baseStats: { evasion: 47 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t6",
@@ -275,6 +301,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, dex: 33 },
 		baseStats: { evasion: 61 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t7",
@@ -285,6 +312,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, dex: 38 },
 		baseStats: { evasion: 77 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t8",
@@ -295,6 +323,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, dex: 44 },
 		baseStats: { evasion: 94 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t9",
@@ -305,6 +334,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, dex: 48 },
 		baseStats: { evasion: 115 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t10",
@@ -315,6 +345,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, dex: 53 },
 		baseStats: { evasion: 137 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t11",
@@ -325,6 +356,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, dex: 58 },
 		baseStats: { evasion: 162 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao1.png",
 	},
 	{
 		id: "leather_helmet_t12",
@@ -335,6 +367,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, dex: 63 },
 		baseStats: { evasion: 189 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 	{
 		id: "leather_helmet_t13",
@@ -345,6 +378,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, dex: 68 },
 		baseStats: { evasion: 220 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 	{
 		id: "leather_helmet_t14",
@@ -355,6 +389,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, dex: 74 },
 		baseStats: { evasion: 253 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 	{
 		id: "leather_helmet_t15",
@@ -365,6 +400,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, dex: 78 },
 		baseStats: { evasion: 290 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 	{
 		id: "leather_helmet_t16",
@@ -375,6 +411,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, dex: 83 },
 		baseStats: { evasion: 330 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 	{
 		id: "leather_helmet_t17",
@@ -385,6 +422,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, dex: 88 },
 		baseStats: { evasion: 374 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 	{
 		id: "leather_helmet_t18",
@@ -395,6 +433,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, dex: 93 },
 		baseStats: { evasion: 420 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 	{
 		id: "leather_helmet_t19",
@@ -405,6 +444,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, dex: 98 },
 		baseStats: { evasion: 469 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 	{
 		id: "leather_helmet_t20",
@@ -415,6 +455,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, dex: 104 },
 		baseStats: { evasion: 518 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 	{
 		id: "leather_helmet_t21",
@@ -425,6 +466,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, dex: 107 },
 		baseStats: { evasion: 555 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 
 	// ── Silk Helmets ──
@@ -437,6 +479,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, int: 8 },
 		baseStats: { barrier: 5 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t2",
@@ -447,6 +490,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, int: 14 },
 		baseStats: { barrier: 10 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t3",
@@ -457,6 +501,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, int: 18 },
 		baseStats: { barrier: 14 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t4",
@@ -467,6 +512,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, int: 22 },
 		baseStats: { barrier: 19 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t5",
@@ -477,6 +523,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, int: 28 },
 		baseStats: { barrier: 25 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t6",
@@ -487,6 +534,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, int: 33 },
 		baseStats: { barrier: 32 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t7",
@@ -497,6 +545,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, int: 38 },
 		baseStats: { barrier: 39 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t8",
@@ -507,6 +556,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, int: 44 },
 		baseStats: { barrier: 46 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t9",
@@ -517,6 +567,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, int: 48 },
 		baseStats: { barrier: 54 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t10",
@@ -527,6 +578,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, int: 53 },
 		baseStats: { barrier: 62 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t11",
@@ -537,6 +589,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, int: 58 },
 		baseStats: { barrier: 70 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira1.png",
 	},
 	{
 		id: "silk_helmet_t12",
@@ -547,6 +600,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, int: 63 },
 		baseStats: { barrier: 79 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira2.png",
 	},
 	{
 		id: "silk_helmet_t13",
@@ -557,6 +611,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, int: 68 },
 		baseStats: { barrier: 88 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira2.png",
 	},
 	{
 		id: "silk_helmet_t14",
@@ -567,6 +622,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, int: 74 },
 		baseStats: { barrier: 98 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira2.png",
 	},
 	{
 		id: "silk_helmet_t15",
@@ -577,6 +633,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, int: 78 },
 		baseStats: { barrier: 107 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira2.png",
 	},
 	{
 		id: "silk_helmet_t16",
@@ -587,6 +644,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, int: 83 },
 		baseStats: { barrier: 116 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira2.png",
 	},
 	{
 		id: "silk_helmet_t17",
@@ -597,6 +655,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, int: 88 },
 		baseStats: { barrier: 126 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira2.png",
 	},
 	{
 		id: "silk_helmet_t18",
@@ -607,6 +666,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, int: 93 },
 		baseStats: { barrier: 134 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira2.png",
 	},
 	{
 		id: "silk_helmet_t19",
@@ -617,6 +677,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, int: 98 },
 		baseStats: { barrier: 142 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira2.png",
 	},
 	{
 		id: "silk_helmet_t20",
@@ -627,6 +688,7 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, int: 104 },
 		baseStats: { barrier: 149 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira2.png",
 	},
 	{
 		id: "silk_helmet_t21",
@@ -637,5 +699,6 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, int: 107 },
 		baseStats: { barrier: 150 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/elmoBarreira2.png",
 	},
 ];

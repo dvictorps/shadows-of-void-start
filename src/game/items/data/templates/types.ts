@@ -30,4 +30,7 @@ export interface EquipmentTemplate {
 	};
 	baseStats: Partial<Record<BaseStatKey, number>>;
 	implicits: ImplicitDefinition[];
+	// Public path to the base's sprite. When undefined, ItemCard falls back to
+	// the equipment-type/weapon-type emoji.
+	icon?: string;
 }

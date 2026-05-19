@@ -14,8 +14,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, str: 10 },
 		baseStats: { armor: 20, blockChance: 22 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 10, maxValue: 20 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 10,
+				maxValue: 20,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t2",
@@ -26,8 +32,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, str: 18 },
 		baseStats: { armor: 44, blockChance: 22 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 11, maxValue: 21 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 11,
+				maxValue: 21,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t3",
@@ -38,8 +50,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, str: 24 },
 		baseStats: { armor: 66, blockChance: 23 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 12, maxValue: 22 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 12,
+				maxValue: 22,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t4",
@@ -50,8 +68,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, str: 30 },
 		baseStats: { armor: 92, blockChance: 23 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 13, maxValue: 23 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 13,
+				maxValue: 23,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t5",
@@ -62,8 +86,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, str: 38 },
 		baseStats: { armor: 122, blockChance: 24 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 14, maxValue: 24 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 14,
+				maxValue: 24,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t6",
@@ -74,8 +104,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, str: 44 },
 		baseStats: { armor: 155, blockChance: 24 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 15, maxValue: 25 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 15,
+				maxValue: 25,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t7",
@@ -86,8 +122,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, str: 50 },
 		baseStats: { armor: 193, blockChance: 25 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 16, maxValue: 26 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 16,
+				maxValue: 26,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t8",
@@ -98,8 +140,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, str: 58 },
 		baseStats: { armor: 234, blockChance: 25 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 17, maxValue: 27 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 17,
+				maxValue: 27,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t9",
@@ -110,8 +158,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, str: 64 },
 		baseStats: { armor: 280, blockChance: 26 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 18, maxValue: 28 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 18,
+				maxValue: 28,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t10",
@@ -122,8 +176,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, str: 70 },
 		baseStats: { armor: 330, blockChance: 26 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 19, maxValue: 29 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 19,
+				maxValue: 29,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t11",
@@ -134,8 +194,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, str: 78 },
 		baseStats: { armor: 385, blockChance: 27 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 20, maxValue: 30 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 20,
+				maxValue: 30,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo.png",
 	},
 	{
 		id: "plate_shield_t12",
@@ -146,8 +212,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, str: 84 },
 		baseStats: { armor: 444, blockChance: 27 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 21, maxValue: 31 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 21,
+				maxValue: 31,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 	{
 		id: "plate_shield_t13",
@@ -158,8 +230,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, str: 90 },
 		baseStats: { armor: 509, blockChance: 28 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 22, maxValue: 32 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 22,
+				maxValue: 32,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 	{
 		id: "plate_shield_t14",
@@ -170,8 +248,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, str: 98 },
 		baseStats: { armor: 578, blockChance: 28 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 23, maxValue: 33 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 23,
+				maxValue: 33,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 	{
 		id: "plate_shield_t15",
@@ -182,8 +266,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, str: 104 },
 		baseStats: { armor: 653, blockChance: 29 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 24, maxValue: 34 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 24,
+				maxValue: 34,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 	{
 		id: "plate_shield_t16",
@@ -194,8 +284,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, str: 110 },
 		baseStats: { armor: 731, blockChance: 29 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 25, maxValue: 35 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 25,
+				maxValue: 35,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 	{
 		id: "plate_shield_t17",
@@ -206,8 +302,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, str: 118 },
 		baseStats: { armor: 816, blockChance: 30 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 26, maxValue: 36 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 26,
+				maxValue: 36,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 	{
 		id: "plate_shield_t18",
@@ -218,8 +320,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, str: 124 },
 		baseStats: { armor: 903, blockChance: 30 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 27, maxValue: 37 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 27,
+				maxValue: 37,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 	{
 		id: "plate_shield_t19",
@@ -230,8 +338,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, str: 130 },
 		baseStats: { armor: 994, blockChance: 31 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 28, maxValue: 38 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 28,
+				maxValue: 38,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 	{
 		id: "plate_shield_t20",
@@ -242,8 +356,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, str: 138 },
 		baseStats: { armor: 1081, blockChance: 31 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 29, maxValue: 39 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 29,
+				maxValue: 39,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 	{
 		id: "plate_shield_t21",
@@ -254,8 +374,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, str: 142 },
 		baseStats: { armor: 1140, blockChance: 32 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 30, maxValue: 40 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 30,
+				maxValue: 40,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 
 	// ── Leather Shields (Bucklers) ──
@@ -268,8 +394,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, dex: 10 },
 		baseStats: { evasion: 20, blockChance: 22 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 10, maxValue: 20 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 10,
+				maxValue: 20,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t2",
@@ -280,8 +412,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, dex: 18 },
 		baseStats: { evasion: 44, blockChance: 22 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 11, maxValue: 21 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 11,
+				maxValue: 21,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t3",
@@ -292,8 +430,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, dex: 24 },
 		baseStats: { evasion: 66, blockChance: 23 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 12, maxValue: 22 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 12,
+				maxValue: 22,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t4",
@@ -304,8 +448,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, dex: 30 },
 		baseStats: { evasion: 92, blockChance: 23 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 13, maxValue: 23 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 13,
+				maxValue: 23,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t5",
@@ -316,8 +466,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, dex: 38 },
 		baseStats: { evasion: 122, blockChance: 24 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 14, maxValue: 24 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 14,
+				maxValue: 24,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t6",
@@ -328,8 +484,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, dex: 44 },
 		baseStats: { evasion: 155, blockChance: 24 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 15, maxValue: 25 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 15,
+				maxValue: 25,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t7",
@@ -340,8 +502,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, dex: 50 },
 		baseStats: { evasion: 193, blockChance: 25 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 16, maxValue: 26 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 16,
+				maxValue: 26,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t8",
@@ -352,8 +520,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, dex: 58 },
 		baseStats: { evasion: 234, blockChance: 25 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 17, maxValue: 27 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 17,
+				maxValue: 27,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t9",
@@ -364,8 +538,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, dex: 64 },
 		baseStats: { evasion: 280, blockChance: 26 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 18, maxValue: 28 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 18,
+				maxValue: 28,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t10",
@@ -376,8 +556,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, dex: 70 },
 		baseStats: { evasion: 330, blockChance: 26 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 19, maxValue: 29 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 19,
+				maxValue: 29,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t11",
@@ -388,8 +574,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, dex: 78 },
 		baseStats: { evasion: 385, blockChance: 27 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 20, maxValue: 30 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 20,
+				maxValue: 30,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t12",
@@ -400,8 +592,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, dex: 84 },
 		baseStats: { evasion: 444, blockChance: 27 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 21, maxValue: 31 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 21,
+				maxValue: 31,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t13",
@@ -412,8 +610,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, dex: 90 },
 		baseStats: { evasion: 509, blockChance: 28 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 22, maxValue: 32 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 22,
+				maxValue: 32,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t14",
@@ -424,8 +628,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, dex: 98 },
 		baseStats: { evasion: 578, blockChance: 28 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 23, maxValue: 33 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 23,
+				maxValue: 33,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t15",
@@ -436,8 +646,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, dex: 104 },
 		baseStats: { evasion: 653, blockChance: 29 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 24, maxValue: 34 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 24,
+				maxValue: 34,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t16",
@@ -448,8 +664,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, dex: 110 },
 		baseStats: { evasion: 731, blockChance: 29 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 25, maxValue: 35 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 25,
+				maxValue: 35,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t17",
@@ -460,8 +682,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, dex: 118 },
 		baseStats: { evasion: 816, blockChance: 30 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 26, maxValue: 36 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 26,
+				maxValue: 36,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t18",
@@ -472,8 +700,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, dex: 124 },
 		baseStats: { evasion: 903, blockChance: 30 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 27, maxValue: 37 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 27,
+				maxValue: 37,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t19",
@@ -484,8 +718,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, dex: 130 },
 		baseStats: { evasion: 994, blockChance: 31 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 28, maxValue: 38 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 28,
+				maxValue: 38,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t20",
@@ -496,8 +736,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, dex: 138 },
 		baseStats: { evasion: 1081, blockChance: 31 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 29, maxValue: 39 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 29,
+				maxValue: 39,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 	{
 		id: "leather_shield_t21",
@@ -508,8 +754,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, dex: 142 },
 		baseStats: { evasion: 1140, blockChance: 32 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 30, maxValue: 40 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 30,
+				maxValue: 40,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 
 	// ── Silk Shields (Wards) ──
@@ -522,8 +774,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, int: 10 },
 		baseStats: { barrier: 12, blockChance: 22 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 10, maxValue: 20 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 10,
+				maxValue: 20,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t2",
@@ -534,8 +792,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, int: 18 },
 		baseStats: { barrier: 26, blockChance: 22 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 11, maxValue: 21 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 11,
+				maxValue: 21,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t3",
@@ -546,8 +810,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, int: 24 },
 		baseStats: { barrier: 38, blockChance: 23 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 12, maxValue: 22 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 12,
+				maxValue: 22,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t4",
@@ -558,8 +828,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, int: 30 },
 		baseStats: { barrier: 50, blockChance: 23 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 13, maxValue: 23 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 13,
+				maxValue: 23,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t5",
@@ -570,8 +846,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, int: 38 },
 		baseStats: { barrier: 65, blockChance: 24 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 14, maxValue: 24 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 14,
+				maxValue: 24,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t6",
@@ -582,8 +864,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, int: 44 },
 		baseStats: { barrier: 80, blockChance: 24 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 15, maxValue: 25 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 15,
+				maxValue: 25,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t7",
@@ -594,8 +882,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, int: 50 },
 		baseStats: { barrier: 97, blockChance: 25 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 16, maxValue: 26 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 16,
+				maxValue: 26,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t8",
@@ -606,8 +900,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, int: 58 },
 		baseStats: { barrier: 114, blockChance: 25 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 17, maxValue: 27 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 17,
+				maxValue: 27,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t9",
@@ -618,8 +918,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, int: 64 },
 		baseStats: { barrier: 131, blockChance: 26 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 18, maxValue: 28 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 18,
+				maxValue: 28,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t10",
@@ -630,8 +936,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, int: 70 },
 		baseStats: { barrier: 149, blockChance: 26 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 19, maxValue: 29 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 19,
+				maxValue: 29,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t11",
@@ -642,8 +954,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, int: 78 },
 		baseStats: { barrier: 168, blockChance: 27 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 20, maxValue: 30 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 20,
+				maxValue: 30,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t12",
@@ -654,8 +972,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, int: 84 },
 		baseStats: { barrier: 186, blockChance: 27 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 21, maxValue: 31 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 21,
+				maxValue: 31,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t13",
@@ -666,8 +990,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, int: 90 },
 		baseStats: { barrier: 205, blockChance: 28 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 22, maxValue: 32 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 22,
+				maxValue: 32,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t14",
@@ -678,8 +1008,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, int: 98 },
 		baseStats: { barrier: 223, blockChance: 28 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 23, maxValue: 33 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 23,
+				maxValue: 33,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t15",
@@ -690,8 +1026,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, int: 104 },
 		baseStats: { barrier: 241, blockChance: 29 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 24, maxValue: 34 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 24,
+				maxValue: 34,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t16",
@@ -702,8 +1044,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, int: 110 },
 		baseStats: { barrier: 257, blockChance: 29 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 25, maxValue: 35 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 25,
+				maxValue: 35,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t17",
@@ -714,8 +1062,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, int: 118 },
 		baseStats: { barrier: 274, blockChance: 30 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 26, maxValue: 36 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 26,
+				maxValue: 36,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t18",
@@ -726,8 +1080,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, int: 124 },
 		baseStats: { barrier: 289, blockChance: 30 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 27, maxValue: 37 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 27,
+				maxValue: 37,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t19",
@@ -738,8 +1098,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, int: 130 },
 		baseStats: { barrier: 301, blockChance: 31 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 28, maxValue: 38 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 28,
+				maxValue: 38,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t20",
@@ -750,8 +1116,14 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, int: 138 },
 		baseStats: { barrier: 308, blockChance: 31 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 29, maxValue: 39 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 29,
+				maxValue: 39,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 	{
 		id: "silk_shield_t21",
@@ -762,7 +1134,13 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, int: 142 },
 		baseStats: { barrier: 308, blockChance: 32 },
 		implicits: [
-			{ modifierId: "blockChanceIncrease", displayFormat: "+{value}% Block Chance", minValue: 30, maxValue: 40 },
+			{
+				modifierId: "blockChanceIncrease",
+				displayFormat: "+{value}% Block Chance",
+				minValue: 30,
+				maxValue: 40,
+			},
 		],
+		icon: "/assets/sprites/escudos-offhands/barreiraEscudo.png",
 	},
 ];

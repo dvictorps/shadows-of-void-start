@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ItemTooltip from "#/components/game/ItemTooltip";
+import { TEMPLATE_BY_ID } from "#/game/items/data/templates";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 import type { EquipmentType, WeaponType } from "#/game/items/types/base";
 
@@ -55,17 +56,25 @@ const WEAPON_EMOJI_OVERRIDE: Record<WeaponType, string> = {
 	wand: "🪄",
 };
 
-function emojiFor(item: GeneratedItem): string {
+type ItemIcon =
+	| { kind: "sprite"; src: string }
+	| { kind: "emoji"; char: string };
+
+function iconFor(item: GeneratedItem): ItemIcon {
+	const tpl = TEMPLATE_BY_ID.get(item.templateId);
+	if (tpl?.icon) return { kind: "sprite", src: tpl.icon };
 	if (item.weaponType && WEAPON_EMOJI_OVERRIDE[item.weaponType]) {
-		return WEAPON_EMOJI_OVERRIDE[item.weaponType];
+		return { kind: "emoji", char: WEAPON_EMOJI_OVERRIDE[item.weaponType] };
 	}
 	const equipmentType = item.equipmentType as EquipmentType;
-	return EQUIPMENT_EMOJI[equipmentType] ?? "❓";
+	return { kind: "emoji", char: EQUIPMENT_EMOJI[equipmentType] ?? "❓" };
 }
 
 type Props = {
 	item?: GeneratedItem | null;
-	size?: number;
+	// Number = square card. Object = rectangular (paper-doll slots that match the
+	// sprite's aspect ratio, e.g., 120×170 for weapon/chest/offhand).
+	size?: number | { w: number; h: number };
 	dimmed?: boolean;
 	/**
 	 * Selected-for-action overlay. Renders a glowing white ring on top of the
@@ -134,6 +143,8 @@ export default function ItemCard({
 	onClick,
 	avoidRect,
 }: Props) {
+	const width = typeof size === "number" ? size : size.w;
+	const height = typeof size === "number" ? size : size.h;
 	const cardRef = useRef<HTMLButtonElement>(null);
 	const [tooltipPos, setTooltipPos] = useState<{
 		left: number;
@@ -154,10 +165,7 @@ export default function ItemCard({
 
 	if (!item) {
 		return (
-			<div
-				style={{ width: size, height: size }}
-				className={`rounded-md ${SLOT_EMPTY}`}
-			/>
+			<div style={{ width, height }} className={`rounded-md ${SLOT_EMPTY}`} />
 		);
 	}
 
@@ -209,16 +217,31 @@ export default function ItemCard({
 				// Don't disable the button when there's no onClick — disabled buttons
 				// don't fire pointer events, which would kill the hover tooltip on
 				// inventory/bag items that are view-only.
-				style={{ width: size, height: size }}
+				style={{ width, height }}
 				className={cardClasses}
 				aria-label={item.name}
 			>
-				<span
-					className="select-none"
-					style={{ fontSize: Math.floor(size * 0.55) }}
-				>
-					{emojiFor(item)}
-				</span>
+				{(() => {
+					const icon = iconFor(item);
+					if (icon.kind === "sprite") {
+						return (
+							<img
+								src={icon.src}
+								alt=""
+								draggable={false}
+								className="pointer-events-none h-full w-full select-none object-contain p-1.5"
+							/>
+						);
+					}
+					return (
+						<span
+							className="select-none"
+							style={{ fontSize: Math.floor(Math.min(width, height) * 0.55) }}
+						>
+							{icon.char}
+						</span>
+					);
+				})()}
 				{broken && (
 					<span className="pointer-events-none absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-black bg-red-500 text-black shadow-[0_0_6px_rgba(220,40,40,0.7)]">
 						<AlertTriangle size={12} strokeWidth={3} />

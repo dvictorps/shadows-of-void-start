@@ -4,7 +4,7 @@ import type { EquipmentTemplate } from "./types";
 export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "gold_amulet",
-		name: "Gold Amulet",
+		name: "Amuleto",
 		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -17,10 +17,11 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 10,
 			},
 		],
+		icon: "/assets/sprites/acessorios/amuleto.png",
 	},
 	{
 		id: "jade_amulet",
-		name: "Jade Amulet",
+		name: "Amuleto de Esmeralda",
 		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -33,10 +34,11 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 20,
 			},
 		],
+		icon: "/assets/sprites/acessorios/amuletoEsmeralda.png",
 	},
 	{
 		id: "amber_amulet",
-		name: "Amber Amulet",
+		name: "Amuleto Sombrio",
 		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -49,10 +51,11 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 20,
 			},
 		],
+		icon: "/assets/sprites/acessorios/amuletoSombrio.png",
 	},
 	{
 		id: "lapis_amulet",
-		name: "Lapis Amulet",
+		name: "Amuleto do Conhecimento",
 		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -65,5 +68,6 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 20,
 			},
 		],
+		icon: "/assets/sprites/acessorios/amuletoConhecimento.png",
 	},
 ];
