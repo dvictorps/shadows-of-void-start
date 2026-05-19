@@ -119,9 +119,12 @@ export default function VendorModal({
 			className="max-w-4xl"
 		>
 			<div className="space-y-5">
-				{/* Header row: tab strip on the left, ruby balance on the right */}
-				<div className="flex items-center justify-between">
-					<div className="flex gap-6 border-white/15 border-b">
+				{/* Header row: centered tab strip with ruby balance pinned right.
+				 * 3-col grid keeps the tabs visually centered in the modal width
+				 * regardless of how wide the balance grows. */}
+				<div className="grid grid-cols-3 items-center">
+					<div />
+					<div className="flex justify-center gap-6 border-white/15 border-b">
 						<TabButton active={tab === "buy"} onClick={() => setTab("buy")}>
 							{m.vendor_tab_buy()}
 						</TabButton>
@@ -132,7 +135,7 @@ export default function VendorModal({
 							{m.vendor_tab_sell()}
 						</TabButton>
 					</div>
-					<div className="display-title relative flex items-center gap-2 px-1 text-xl uppercase tracking-[0.15em] text-yellow-300 tabular-nums">
+					<div className="display-title relative flex items-center justify-end gap-2 px-1 text-xl uppercase tracking-[0.15em] text-yellow-300 tabular-nums">
 						<Gem className="h-5 w-5 text-rose-400" strokeWidth={2} />
 						{rubys}
 						{/* Floating deltas — pinned just above the balance, animate up

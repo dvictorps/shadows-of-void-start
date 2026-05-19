@@ -55,7 +55,7 @@ The `/world` route shares a single shell (equipment panel + status card + log) a
 
 - **Map** — the act's node DAG. Default state when the player isn't inside any node. Equipment panel and status card (small HP globe, consumables, character info) remain visible on the right.
 - **City** — replaces the viewport with the city scene when the player enters a city node. No mobs. Surface includes buttons to open the **vendor** (modal) and the **stash** (modal). The status card and equipment panel are unchanged.
-- **Combat** — replaces the viewport with the active combat scene when the player enters a zone node. Enemy in center, enemy HP/name on top. The HP globe migrates from bottom-right (passive) to bottom-left (large, focal). Consumables remain usable.
+- **Combat** — replaces the viewport with the active combat scene when the player enters a zone node. Enemy in center, enemy HP/name on top. The HP globe migrates from bottom-right (passive) to bottom-left (prominent). Consumables remain usable.
 
 This is component-state inside `/world`, not three different routes. Entering a node sets the view mode; the "Back to map" affordance returns to **Map**.
 
@@ -275,7 +275,7 @@ Combat is otherwise automatic, but the player has **three active controls today*
 
 - **Life Potion**: heals **20% of maximum HP**. Cap 10 carried. Obtained from the city vendor (10 rubys) or as a 20% monster drop (see Loot Pipeline → Potion drops). Potion button lives on the bottom-right of the combat view (next to the health globe) and on the map's status card.
 - **Teleport Stone**: instant return to the city, usable from any view (combat included — panic button). Wipes the active zone bag (you escape but abandon the loot). Uncapped (stockpile what you can afford). Vendor-only, 30 rubys. Button sits to the left of the potion in the combat HUD.
-- **Wind Crystal**: jumps the player to any previously-unlocked node with a fixed travel duration (no movement-speed scaling — you're skipping zones, not walking through them). Uncapped. Vendor-only, 50 rubys. Used from the map view only (clicking an unlocked-but-unconnected node opens a confirmation). Counter sits above the teleport stone button in the combat HUD (display-only there; usage is map-only).
+- **Wind Crystal**: jumps the player to any previously-unlocked node with a fixed travel duration (no movement-speed scaling — you're skipping zones, not walking through them). Uncapped. Vendor-only, 50 rubys. Used from the map view only (clicking an unlocked-but-unconnected node opens a confirmation). Counter sits above the potion button in the combat HUD (display-only there; usage is map-only).
 
 The two travel consumables share the character document's `teleportStones` and `windCrystals` counters. The set of nodes available to wind crystals comes from `unlockedNodes` (see Travel system).
 

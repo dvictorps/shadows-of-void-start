@@ -2,7 +2,13 @@ type Props = {
 	hp: number;
 	maxHp: number;
 	barrier?: number;
-	size?: "sm" | "lg";
+	size?: "sm" | "md" | "lg";
+};
+
+const SIZE_CLASSES: Record<NonNullable<Props["size"]>, string> = {
+	sm: "h-16 w-16 text-[10px]",
+	md: "h-24 w-24 text-sm",
+	lg: "h-28 w-28 text-sm",
 };
 
 export default function HealthGlobe({
@@ -11,8 +17,7 @@ export default function HealthGlobe({
 	barrier = 0,
 	size = "sm",
 }: Props) {
-	const dimensions =
-		size === "lg" ? "h-28 w-28 text-sm" : "h-16 w-16 text-[10px]";
+	const dimensions = SIZE_CLASSES[size];
 	const pct = maxHp > 0 ? Math.max(0, Math.min(100, (hp / maxHp) * 100)) : 0;
 
 	return (
@@ -28,11 +33,11 @@ export default function HealthGlobe({
 				aria-hidden
 			/>
 
-			<span className="relative z-10 font-bold leading-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+			<span className="relative z-10 font-bold leading-tight text-white">
 				{Math.ceil(hp)}/{maxHp}
 			</span>
 			{barrier > 0 && (
-				<span className="relative z-10 text-[0.85em] leading-tight text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+				<span className="relative z-10 text-[0.85em] leading-tight text-white/80">
 					{barrier}/{barrier}
 				</span>
 			)}
