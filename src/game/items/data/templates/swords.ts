@@ -23,6 +23,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 100,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	},
 	{
 		id: "sword_t2",
@@ -45,6 +46,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 120,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	},
 	{
 		id: "sword_t3",
@@ -67,6 +69,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 140,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	},
 	{
 		id: "sword_t4",
@@ -89,6 +92,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 160,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	},
 	{
 		id: "sword_t5",
@@ -111,6 +115,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 180,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	},
 	{
 		id: "sword_t6",
@@ -133,6 +138,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 200,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	},
 	{
 		id: "sword_t7",
@@ -155,6 +161,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 220,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	},
 	{
 		id: "sword_t8",
@@ -177,6 +184,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 245,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaAco.png",
 	},
 	{
 		id: "sword_t9",
@@ -199,6 +207,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 270,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaAco.png",
 	},
 	{
 		id: "sword_t10",
@@ -221,6 +230,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 295,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaAco.png",
 	},
 	{
 		id: "sword_t11",
@@ -243,6 +253,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 320,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaAco.png",
 	},
 	{
 		id: "sword_t12",
@@ -265,6 +276,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 345,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaAco.png",
 	},
 	{
 		id: "sword_t13",
@@ -287,6 +299,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 370,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaAco.png",
 	},
 	{
 		id: "sword_t14",
@@ -309,6 +322,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 395,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/espadaAco.png",
 	},
 	{
 		id: "sword_t15",
@@ -331,6 +345,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 420,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/florete.png",
 	},
 	{
 		id: "sword_t16",
@@ -353,6 +368,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 445,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/florete.png",
 	},
 	{
 		id: "sword_t17",
@@ -375,6 +391,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 470,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/florete.png",
 	},
 	{
 		id: "sword_t18",
@@ -397,6 +414,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 495,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/florete.png",
 	},
 	{
 		id: "sword_t19",
@@ -419,6 +437,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 520,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/florete.png",
 	},
 	{
 		id: "sword_t20",
@@ -441,6 +460,7 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 545,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/florete.png",
 	},
 	{
 		id: "sword_t21",
@@ -463,5 +483,6 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 570,
 			},
 		],
+		icon: "/assets/sprites/armas/pesadas/florete.png",
 	},
 ];

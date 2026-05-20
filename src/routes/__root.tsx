@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
+import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useEffect } from "react";
 import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
 import { authClient } from "#/lib/auth-client";
@@ -131,9 +132,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<PostHogProvider>
 					<TanStackQueryProvider>
 						<ConfirmationProvider>
-							{!chromeless && <Header />}
-							{children}
-							{!chromeless && <Footer />}
+							<TooltipPrimitive.Provider delayDuration={150}>
+								{!chromeless && <Header />}
+								{children}
+								{!chromeless && <Footer />}
+							</TooltipPrimitive.Provider>
 						</ConfirmationProvider>
 						<Toaster />
 						<TanStackDevtools

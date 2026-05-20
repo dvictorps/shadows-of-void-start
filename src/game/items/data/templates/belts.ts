@@ -17,6 +17,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 30,
 			},
 		],
+		icon: "/assets/sprites/acessorios/cinto.png",
 	},
 	{
 		id: "chain_belt",
@@ -33,6 +34,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 20,
 			},
 		],
+		icon: "/assets/sprites/acessorios/cintoLutador.png",
 	},
 	{
 		id: "studded_belt",
@@ -49,6 +51,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 20,
 			},
 		],
+		icon: "/assets/sprites/acessorios/cintoAventureiro.png",
 	},
 	{
 		id: "cloth_belt",
@@ -65,6 +68,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 20,
 			},
 		],
+		icon: "/assets/sprites/acessorios/cintoConhecimento.png",
 	},
 	{
 		id: "prismatic_belt",
@@ -81,6 +85,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 10,
 			},
 		],
+		icon: "/assets/sprites/acessorios/cinto.png",
 	},
 	{
 		id: "silk_belt",
@@ -97,5 +102,6 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 30,
 			},
 		],
+		icon: "/assets/sprites/acessorios/cintoConhecimento.png",
 	},
 ];

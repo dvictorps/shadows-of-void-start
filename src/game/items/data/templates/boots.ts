@@ -13,6 +13,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, str: 8 },
 		baseStats: { armor: 6 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t2",
@@ -23,6 +24,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, str: 14 },
 		baseStats: { armor: 14 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t3",
@@ -33,6 +35,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, str: 18 },
 		baseStats: { armor: 20 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t4",
@@ -43,6 +46,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, str: 22 },
 		baseStats: { armor: 29 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t5",
@@ -53,6 +57,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, str: 28 },
 		baseStats: { armor: 38 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t6",
@@ -63,6 +68,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, str: 33 },
 		baseStats: { armor: 50 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t7",
@@ -73,6 +79,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, str: 38 },
 		baseStats: { armor: 62 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t8",
@@ -83,6 +90,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, str: 44 },
 		baseStats: { armor: 77 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t9",
@@ -93,6 +101,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, str: 48 },
 		baseStats: { armor: 93 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t10",
@@ -103,6 +112,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, str: 53 },
 		baseStats: { armor: 111 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t11",
@@ -113,6 +123,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, str: 58 },
 		baseStats: { armor: 131 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada1.png",
 	},
 	{
 		id: "plate_boots_t12",
@@ -123,6 +134,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, str: 63 },
 		baseStats: { armor: 154 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 	{
 		id: "plate_boots_t13",
@@ -133,6 +145,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, str: 68 },
 		baseStats: { armor: 179 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 	{
 		id: "plate_boots_t14",
@@ -143,6 +156,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, str: 74 },
 		baseStats: { armor: 206 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 	{
 		id: "plate_boots_t15",
@@ -153,6 +167,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, str: 78 },
 		baseStats: { armor: 236 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 	{
 		id: "plate_boots_t16",
@@ -163,6 +178,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, str: 83 },
 		baseStats: { armor: 268 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 	{
 		id: "plate_boots_t17",
@@ -173,6 +189,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, str: 88 },
 		baseStats: { armor: 303 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 	{
 		id: "plate_boots_t18",
@@ -183,6 +200,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, str: 93 },
 		baseStats: { armor: 341 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 	{
 		id: "plate_boots_t19",
@@ -193,6 +211,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, str: 98 },
 		baseStats: { armor: 380 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 	{
 		id: "plate_boots_t20",
@@ -203,6 +222,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, str: 104 },
 		baseStats: { armor: 420 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 	{
 		id: "plate_boots_t21",
@@ -213,6 +233,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, str: 107 },
 		baseStats: { armor: 450 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 
 	// ── Leather Boots ──
@@ -225,6 +246,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, dex: 8 },
 		baseStats: { evasion: 6 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t2",
@@ -235,6 +257,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, dex: 14 },
 		baseStats: { evasion: 14 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t3",
@@ -245,6 +268,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, dex: 18 },
 		baseStats: { evasion: 20 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t4",
@@ -255,6 +279,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, dex: 22 },
 		baseStats: { evasion: 29 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t5",
@@ -265,6 +290,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, dex: 28 },
 		baseStats: { evasion: 38 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t6",
@@ -275,6 +301,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, dex: 33 },
 		baseStats: { evasion: 50 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t7",
@@ -285,6 +312,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, dex: 38 },
 		baseStats: { evasion: 62 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t8",
@@ -295,6 +323,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, dex: 44 },
 		baseStats: { evasion: 77 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t9",
@@ -305,6 +334,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, dex: 48 },
 		baseStats: { evasion: 93 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t10",
@@ -315,6 +345,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, dex: 53 },
 		baseStats: { evasion: 111 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t11",
@@ -325,6 +356,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, dex: 58 },
 		baseStats: { evasion: 131 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao1.png",
 	},
 	{
 		id: "leather_boots_t12",
@@ -335,6 +367,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, dex: 63 },
 		baseStats: { evasion: 154 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 	{
 		id: "leather_boots_t13",
@@ -345,6 +378,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, dex: 68 },
 		baseStats: { evasion: 179 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 	{
 		id: "leather_boots_t14",
@@ -355,6 +389,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, dex: 74 },
 		baseStats: { evasion: 206 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 	{
 		id: "leather_boots_t15",
@@ -365,6 +400,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, dex: 78 },
 		baseStats: { evasion: 236 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 	{
 		id: "leather_boots_t16",
@@ -375,6 +411,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, dex: 83 },
 		baseStats: { evasion: 268 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 	{
 		id: "leather_boots_t17",
@@ -385,6 +422,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, dex: 88 },
 		baseStats: { evasion: 303 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 	{
 		id: "leather_boots_t18",
@@ -395,6 +433,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, dex: 93 },
 		baseStats: { evasion: 341 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 	{
 		id: "leather_boots_t19",
@@ -405,6 +444,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, dex: 98 },
 		baseStats: { evasion: 380 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 	{
 		id: "leather_boots_t20",
@@ -415,6 +455,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, dex: 104 },
 		baseStats: { evasion: 420 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 	{
 		id: "leather_boots_t21",
@@ -425,6 +466,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, dex: 107 },
 		baseStats: { evasion: 450 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 
 	// ── Silk Boots ──
@@ -437,6 +479,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, int: 8 },
 		baseStats: { barrier: 4 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t2",
@@ -447,6 +490,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, int: 14 },
 		baseStats: { barrier: 8 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t3",
@@ -457,6 +501,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, int: 18 },
 		baseStats: { barrier: 11 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t4",
@@ -467,6 +512,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, int: 22 },
 		baseStats: { barrier: 16 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t5",
@@ -477,6 +523,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, int: 28 },
 		baseStats: { barrier: 20 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t6",
@@ -487,6 +534,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, int: 33 },
 		baseStats: { barrier: 26 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t7",
@@ -497,6 +545,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, int: 38 },
 		baseStats: { barrier: 31 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t8",
@@ -507,6 +556,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, int: 44 },
 		baseStats: { barrier: 37 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t9",
@@ -517,6 +567,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, int: 48 },
 		baseStats: { barrier: 44 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t10",
@@ -527,6 +578,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, int: 53 },
 		baseStats: { barrier: 50 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t11",
@@ -537,6 +589,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, int: 58 },
 		baseStats: { barrier: 57 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira1.png",
 	},
 	{
 		id: "silk_boots_t12",
@@ -547,6 +600,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, int: 63 },
 		baseStats: { barrier: 65 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira2.png",
 	},
 	{
 		id: "silk_boots_t13",
@@ -557,6 +611,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, int: 68 },
 		baseStats: { barrier: 72 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira2.png",
 	},
 	{
 		id: "silk_boots_t14",
@@ -567,6 +622,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, int: 74 },
 		baseStats: { barrier: 80 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira2.png",
 	},
 	{
 		id: "silk_boots_t15",
@@ -577,6 +633,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, int: 78 },
 		baseStats: { barrier: 87 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira2.png",
 	},
 	{
 		id: "silk_boots_t16",
@@ -587,6 +644,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, int: 83 },
 		baseStats: { barrier: 95 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira2.png",
 	},
 	{
 		id: "silk_boots_t17",
@@ -597,6 +655,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, int: 88 },
 		baseStats: { barrier: 102 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira2.png",
 	},
 	{
 		id: "silk_boots_t18",
@@ -607,6 +666,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, int: 93 },
 		baseStats: { barrier: 109 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira2.png",
 	},
 	{
 		id: "silk_boots_t19",
@@ -617,6 +677,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, int: 98 },
 		baseStats: { barrier: 116 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira2.png",
 	},
 	{
 		id: "silk_boots_t20",
@@ -627,6 +688,7 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, int: 104 },
 		baseStats: { barrier: 121 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira2.png",
 	},
 	{
 		id: "silk_boots_t21",
@@ -637,5 +699,6 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, int: 107 },
 		baseStats: { barrier: 122 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/botasBarreira2.png",
 	},
 ];

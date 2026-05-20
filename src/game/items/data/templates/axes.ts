@@ -16,6 +16,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t2",
@@ -31,6 +32,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t3",
@@ -46,6 +48,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t4",
@@ -61,6 +64,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t5",
@@ -76,6 +80,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t6",
@@ -91,6 +96,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t7",
@@ -106,6 +112,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t8",
@@ -121,6 +128,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t9",
@@ -136,6 +144,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t10",
@@ -151,6 +160,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t11",
@@ -166,6 +176,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t12",
@@ -181,6 +192,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t13",
@@ -196,6 +208,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t14",
@@ -211,6 +224,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t15",
@@ -226,6 +240,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t16",
@@ -241,6 +256,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t17",
@@ -256,6 +272,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t18",
@@ -271,6 +288,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t19",
@@ -286,6 +304,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t20",
@@ -301,6 +320,7 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 	{
 		id: "axe_t21",
@@ -316,5 +336,6 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/pesadas/machado.png",
 	},
 ];

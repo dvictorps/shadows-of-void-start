@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Gem } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
+import Tooltip from "#/components/ui/tooltip";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { m } from "#/paraglide/messages";
@@ -87,10 +87,7 @@ export default function VendorModal({
 		const items = inventoryItems.filter((it) =>
 			selected.has(it._id.toString()),
 		);
-		const total = items.reduce(
-			(sum, it) => sum + computeSellPrice(it.data),
-			0,
-		);
+		const total = items.reduce((sum, it) => sum + computeSellPrice(it.data), 0);
 		return { selectedItems: items, selectedTotal: total };
 	}, [inventoryItems, selected]);
 
@@ -128,47 +125,51 @@ export default function VendorModal({
 						<TabButton active={tab === "buy"} onClick={() => setTab("buy")}>
 							{m.vendor_tab_buy()}
 						</TabButton>
-						<TabButton
-							active={tab === "sell"}
-							onClick={() => setTab("sell")}
-						>
+						<TabButton active={tab === "sell"} onClick={() => setTab("sell")}>
 							{m.vendor_tab_sell()}
 						</TabButton>
 					</div>
-					<div className="display-title relative flex items-center justify-end gap-2 px-1 text-xl uppercase tracking-[0.15em] text-yellow-300 tabular-nums">
-						<Gem className="h-5 w-5 text-rose-400" strokeWidth={2} />
-						{rubys}
-						{/* Floating deltas — pinned just above the balance, animate up
-						 * + fade. Stack vertically if multiple fire close together. */}
-						<div className="pointer-events-none absolute right-0 bottom-full mb-1 flex flex-col items-end">
-							<AnimatePresence>
-								{rubyDeltas.map((d) => (
-									<motion.div
-										key={d.id}
-										initial={{ opacity: 0, y: 8 }}
-										animate={{ opacity: 1, y: 0 }}
-										exit={{ opacity: 0, y: -16 }}
-										transition={{ duration: 0.4, ease: "easeOut" }}
-										className={`display-title flex items-center gap-1 px-1 font-bold text-base tabular-nums tracking-wider ${
-											d.sign === "+"
-												? "text-emerald-300"
-												: "text-red-400"
-										}`}
-										style={{
-											textShadow: "0 2px 4px rgba(0,0,0,0.9)",
-										}}
-									>
-										{d.sign}
-										{d.amount}
-										<Gem
-											className="h-3.5 w-3.5 text-rose-400"
-											strokeWidth={2}
-										/>
-									</motion.div>
-								))}
-							</AnimatePresence>
+					<Tooltip content="Rubis — moeda do jogo">
+						<div className="display-title relative flex items-center justify-end gap-2 px-1 text-xl uppercase tracking-[0.15em] text-yellow-300 tabular-nums">
+							<img
+								src="/assets/sprites/ui/moedaRubi.png"
+								alt=""
+								draggable={false}
+								className="pointer-events-none h-6 w-6 select-none object-contain"
+							/>
+							{rubys}
+							{/* Floating deltas — pinned just above the balance, animate up
+							 * + fade. Stack vertically if multiple fire close together. */}
+							<div className="pointer-events-none absolute right-0 bottom-full mb-1 flex flex-col items-end">
+								<AnimatePresence>
+									{rubyDeltas.map((d) => (
+										<motion.div
+											key={d.id}
+											initial={{ opacity: 0, y: 8 }}
+											animate={{ opacity: 1, y: 0 }}
+											exit={{ opacity: 0, y: -16 }}
+											transition={{ duration: 0.4, ease: "easeOut" }}
+											className={`display-title flex items-center gap-1 px-1 font-bold text-base tabular-nums tracking-wider ${
+												d.sign === "+" ? "text-emerald-300" : "text-red-400"
+											}`}
+											style={{
+												textShadow: "0 2px 4px rgba(0,0,0,0.9)",
+											}}
+										>
+											{d.sign}
+											{d.amount}
+											<img
+												src="/assets/sprites/ui/moedaRubi.png"
+												alt=""
+												draggable={false}
+												className="pointer-events-none h-4 w-4 select-none object-contain"
+											/>
+										</motion.div>
+									))}
+								</AnimatePresence>
+							</div>
 						</div>
-					</div>
+					</Tooltip>
 				</div>
 
 				{/* Tab body — fixed min height so switching tabs doesn't make the
@@ -213,9 +214,7 @@ function TabButton({
 			type="button"
 			onClick={onClick}
 			className={`display-title relative px-2 pb-2 text-base uppercase tracking-[0.2em] transition ${
-				active
-					? "text-white"
-					: "text-white/40 hover:text-white/70"
+				active ? "text-white" : "text-white/40 hover:text-white/70"
 			}`}
 		>
 			{children}
@@ -264,13 +263,27 @@ function BuyTab({
 						className="flex flex-col items-center gap-3 rounded-md border border-white/20 bg-black p-4"
 					>
 						<div className="flex h-16 w-16 items-center justify-center text-5xl">
-							{p.emoji}
+							{p.icon ? (
+								<img
+									src={p.icon}
+									alt=""
+									draggable={false}
+									className="pointer-events-none h-14 w-14 select-none object-contain"
+								/>
+							) : (
+								p.emoji
+							)}
 						</div>
 						<div className="display-title text-center text-sm uppercase tracking-[0.15em] text-white">
 							{productLabel(p.id)}
 						</div>
 						<div className="display-title flex items-center gap-1 text-base tabular-nums tracking-wider text-yellow-300">
-							<Gem className="h-4 w-4 text-rose-400" strokeWidth={2} />
+							<img
+								src="/assets/sprites/ui/moedaRubi.png"
+								alt=""
+								draggable={false}
+								className="pointer-events-none h-5 w-5 select-none object-contain"
+							/>
 							{p.priceRubys}
 						</div>
 						<Button
@@ -358,7 +371,12 @@ function SellTab({
 						<span className="flex items-center gap-2">
 							<span>{m.vendor_sell_selected({ count: selectedCount })}</span>
 							<span className="flex items-center gap-1 text-yellow-300 tabular-nums">
-								<Gem className="h-3.5 w-3.5 text-rose-400" strokeWidth={2} />
+								<img
+									src="/assets/sprites/ui/moedaRubi.png"
+									alt=""
+									draggable={false}
+									className="pointer-events-none h-4 w-4 select-none object-contain"
+								/>
 								{selectedTotal}
 							</span>
 						</span>

@@ -17,6 +17,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 25,
 			},
 		],
+		icon: "/assets/sprites/acessorios/anelCobalto.png",
 	},
 	{
 		id: "garnet_ring",
@@ -33,6 +34,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 25,
 			},
 		],
+		icon: "/assets/sprites/acessorios/anelCarmesin.png",
 	},
 	{
 		id: "topaz_ring",
@@ -49,6 +51,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 25,
 			},
 		],
+		icon: "/assets/sprites/acessorios/anelEsmeralda.png",
 	},
 	{
 		id: "obsidian_ring",
@@ -65,6 +68,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 25,
 			},
 		],
+		icon: "/assets/sprites/acessorios/anelCaveira.png",
 	},
 	{
 		id: "coral_ring",
@@ -81,6 +85,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 30,
 			},
 		],
+		icon: "/assets/sprites/acessorios/anelCarmesin.png",
 	},
 	{
 		id: "lapis_ring",
@@ -97,5 +102,6 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 				maxValue: 30,
 			},
 		],
+		icon: "/assets/sprites/acessorios/anelCobalto.png",
 	},
 ];

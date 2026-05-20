@@ -16,8 +16,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 10, maxValue: 20 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 10,
+				maxValue: 20,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t2",
@@ -33,8 +39,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 13, maxValue: 24 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 13,
+				maxValue: 24,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t3",
@@ -50,8 +62,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 15, maxValue: 28 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 15,
+				maxValue: 28,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t4",
@@ -67,8 +85,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 17, maxValue: 32 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 17,
+				maxValue: 32,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t5",
@@ -84,8 +108,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 19, maxValue: 36 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 19,
+				maxValue: 36,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t6",
@@ -101,8 +131,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 21, maxValue: 40 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 21,
+				maxValue: 40,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t7",
@@ -118,8 +154,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 23, maxValue: 44 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 23,
+				maxValue: 44,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t8",
@@ -135,8 +177,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 25, maxValue: 48 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 25,
+				maxValue: 48,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t9",
@@ -152,8 +200,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 27, maxValue: 52 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 27,
+				maxValue: 52,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t10",
@@ -169,8 +223,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 29, maxValue: 56 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 29,
+				maxValue: 56,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t11",
@@ -186,8 +246,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 31, maxValue: 60 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 31,
+				maxValue: 60,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t12",
@@ -203,8 +269,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 33, maxValue: 64 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 33,
+				maxValue: 64,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t13",
@@ -220,8 +292,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 35, maxValue: 68 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 35,
+				maxValue: 68,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t14",
@@ -237,8 +315,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 37, maxValue: 72 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 37,
+				maxValue: 72,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t15",
@@ -254,8 +338,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 39, maxValue: 76 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 39,
+				maxValue: 76,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t16",
@@ -271,8 +361,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 41, maxValue: 80 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 41,
+				maxValue: 80,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t17",
@@ -288,8 +384,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 43, maxValue: 84 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 43,
+				maxValue: 84,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t18",
@@ -305,8 +407,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 45, maxValue: 88 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 45,
+				maxValue: 88,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t19",
@@ -322,8 +430,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 47, maxValue: 92 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 47,
+				maxValue: 92,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t20",
@@ -339,8 +453,14 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 49, maxValue: 96 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 49,
+				maxValue: 96,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 	{
 		id: "wand_t21",
@@ -356,7 +476,13 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 7,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 50, maxValue: 100 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 50,
+				maxValue: 100,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/varinha.png",
 	},
 ];

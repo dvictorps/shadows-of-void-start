@@ -16,6 +16,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t2",
@@ -31,6 +32,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t3",
@@ -46,6 +48,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t4",
@@ -61,6 +64,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t5",
@@ -76,6 +80,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t6",
@@ -91,6 +96,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t7",
@@ -106,6 +112,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t8",
@@ -121,6 +128,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t9",
@@ -136,6 +144,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t10",
@@ -151,6 +160,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t11",
@@ -166,6 +176,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t12",
@@ -181,6 +192,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t13",
@@ -196,6 +208,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t14",
@@ -211,6 +224,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t15",
@@ -226,6 +240,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t16",
@@ -241,6 +256,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t17",
@@ -256,6 +272,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t18",
@@ -271,6 +288,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t19",
@@ -286,6 +304,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t20",
@@ -301,6 +320,7 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 	{
 		id: "bow_t21",
@@ -316,5 +336,6 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 5,
 		},
 		implicits: [],
+		icon: "/assets/sprites/armas/ranged/arco.png",
 	},
 ];

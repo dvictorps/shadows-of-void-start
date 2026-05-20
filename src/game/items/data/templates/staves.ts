@@ -16,8 +16,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 15, maxValue: 25 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 15,
+				maxValue: 25,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t2",
@@ -33,8 +39,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 18, maxValue: 30 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 18,
+				maxValue: 30,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t3",
@@ -50,8 +62,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 21, maxValue: 35 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 21,
+				maxValue: 35,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t4",
@@ -67,8 +85,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 24, maxValue: 40 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 24,
+				maxValue: 40,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t5",
@@ -84,8 +108,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 27, maxValue: 45 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 27,
+				maxValue: 45,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t6",
@@ -101,8 +131,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 30, maxValue: 50 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 30,
+				maxValue: 50,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t7",
@@ -118,8 +154,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 33, maxValue: 55 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 33,
+				maxValue: 55,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t8",
@@ -135,8 +177,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 36, maxValue: 60 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 36,
+				maxValue: 60,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t9",
@@ -152,8 +200,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 39, maxValue: 65 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 39,
+				maxValue: 65,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t10",
@@ -169,8 +223,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 42, maxValue: 70 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 42,
+				maxValue: 70,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t11",
@@ -186,8 +246,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 45, maxValue: 75 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 45,
+				maxValue: 75,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajado2H.png",
 	},
 	{
 		id: "staff_t12",
@@ -203,8 +269,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 48, maxValue: 80 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 48,
+				maxValue: 80,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajadoFogo.png",
 	},
 	{
 		id: "staff_t13",
@@ -220,8 +292,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 51, maxValue: 85 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 51,
+				maxValue: 85,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajadoFogo.png",
 	},
 	{
 		id: "staff_t14",
@@ -237,8 +315,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 54, maxValue: 90 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 54,
+				maxValue: 90,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajadoFogo.png",
 	},
 	{
 		id: "staff_t15",
@@ -254,8 +338,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 57, maxValue: 95 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 57,
+				maxValue: 95,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajadoFogo.png",
 	},
 	{
 		id: "staff_t16",
@@ -271,8 +361,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 60, maxValue: 100 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 60,
+				maxValue: 100,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajadoFogo.png",
 	},
 	{
 		id: "staff_t17",
@@ -288,8 +384,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 63, maxValue: 105 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 63,
+				maxValue: 105,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajadoFogo.png",
 	},
 	{
 		id: "staff_t18",
@@ -305,8 +407,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 66, maxValue: 110 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 66,
+				maxValue: 110,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajadoFogo.png",
 	},
 	{
 		id: "staff_t19",
@@ -322,8 +430,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 69, maxValue: 115 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 69,
+				maxValue: 115,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajadoFogo.png",
 	},
 	{
 		id: "staff_t20",
@@ -339,8 +453,14 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 72, maxValue: 120 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 72,
+				maxValue: 120,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajadoFogo.png",
 	},
 	{
 		id: "staff_t21",
@@ -356,7 +476,13 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 			criticalChance: 6,
 		},
 		implicits: [
-			{ modifierId: "globalSpellDamageIncrease", displayFormat: "+{value}% Spell Damage", minValue: 75, maxValue: 125 },
+			{
+				modifierId: "globalSpellDamageIncrease",
+				displayFormat: "+{value}% Spell Damage",
+				minValue: 75,
+				maxValue: 125,
+			},
 		],
+		icon: "/assets/sprites/armas/caster/cajadoFogo.png",
 	},
 ];

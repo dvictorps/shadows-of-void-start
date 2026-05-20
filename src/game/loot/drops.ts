@@ -6,7 +6,17 @@ import type { GeneratedItem, ItemRarity } from "../items/types";
 import type { EquipmentType } from "../items/types/base";
 import type { MonsterRarity } from "../monsters/types";
 
-const JEWELRY_LEVEL_THRESHOLD = 5;
+const ELIGIBLE_EQUIPMENT_TYPES: EquipmentType[] = [
+	"weapon",
+	"helmet",
+	"chestplate",
+	"boots",
+	"gloves",
+	"offhand",
+	"ring",
+	"amulet",
+	"belt",
+];
 
 // Drop probabilities & rarity distributions per mob rarity, mirroring the
 // CONTEXT.md Act 1 baseline table.
@@ -44,21 +54,6 @@ const DROP_TABLE: Record<
 	},
 };
 
-function eligibleEquipmentTypes(monsterLevel: number): EquipmentType[] {
-	const base: EquipmentType[] = [
-		"weapon",
-		"helmet",
-		"chestplate",
-		"boots",
-		"gloves",
-		"offhand",
-	];
-	if (monsterLevel >= JEWELRY_LEVEL_THRESHOLD) {
-		base.push("ring", "amulet", "belt");
-	}
-	return base;
-}
-
 function pickRarity(distribution: { rarity: ItemRarity; weight: number }[]) {
 	return (
 		pickWeighted(distribution, (e) => e.weight)?.rarity ??
@@ -90,8 +85,7 @@ export function rollDrop(params: RollDropParams): GeneratedItem | null {
 	if (Math.random() > table.dropChance) return null;
 
 	const rarity = pickRarity(table.rarity);
-	const types = eligibleEquipmentTypes(params.monsterLevel);
-	const equipmentType = pickRandom(types);
+	const equipmentType = pickRandom(ELIGIBLE_EQUIPMENT_TYPES);
 	if (!equipmentType) return null;
 
 	// Hand control of weapon-subtype and armor-base to the template list: pick
@@ -131,11 +125,6 @@ export function rollDrop(params: RollDropParams): GeneratedItem | null {
 export function rollMonsterLevel(zoneLevel: number): number {
 	return Math.max(1, zoneLevel + randInt(-1, 1));
 }
-
-/**
- * Re-export for callers that want the threshold as a constant.
- */
-export const JEWELRY_MONSTER_LEVEL_THRESHOLD = JEWELRY_LEVEL_THRESHOLD;
 
 // Suppress unused-export linter for the EquipmentType import when only used in types.
 export type { EquipmentType };

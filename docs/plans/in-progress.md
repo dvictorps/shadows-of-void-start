@@ -6,6 +6,59 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ---
 
+## Add Tome and Quiver as new off-hand types (MAX PRIORITY)
+
+**Status**: Planned, not started. **Top of the queue** — next PR after `feat/new-assets`.
+**Branch**: not yet created. Suggested `feat/tome-and-quiver`.
+**Owner**: next agent picking this up.
+
+### Why
+
+The `feat/new-assets` branch added two sprites (`tomoMagico`, `aljava`) that don't have corresponding template types yet. They sit unused in `public/assets/sprites/escudos-offhands/` until this PR lands. The intent is to add real gameplay for them, not just visual coverage.
+
+### Scope
+
+Two new off-hand categories alongside the existing **shield** and **off-hand-weapon (dual-wield)**:
+
+**Tome** — caster off-hand.
+- Silk-base off-hand.
+- **No block chance** (the only off-hand category that doesn't roll block).
+- Mod pool: barrier (local defense), `+% Spell Damage`, cast speed %, flat spell damage to spells? (TBD — grill), mana, resistances, attributes (int-leaning).
+- Equippable by anyone (no main-hand restriction). Stacks on top of staff/wand swings as a stat slot, doesn't itself cast.
+
+**Quiver** — bow-bound off-hand.
+- New `equipmentType: "quiver"` (or stays under `offhand` with a discriminator — grill).
+- **Equip restriction**: main hand must hold a `bow`. Drag-and-drop / dropdown surface the restriction the same way the same-archetype rule already does.
+- **Inverts the existing 2H-blocks-offhand rule for bows** — see Conflict 1 below.
+- Mod pool: flat phys/elemental damage to attacks, attack speed %, crit chance %, accuracy, attributes (dex-leaning). TBD.
+
+### Conflicts with current CONTEXT.md to resolve
+
+1. **Off-hand identity expands.** Today's `## Equipment Slots → Off-hand` (and `## Weapon Types`) treat off-hand as shield-or-weapon. Need to extend the section to enumerate four contents: shield · off-hand weapon (dual-wield) · tome · quiver.
+
+2. **Bow ceases to be a pure 2H blocker.** The current invariant says "Two-handed weapons (greatsword, twoHandedAxe, bow, staff) occupy main hand and block the off-hand slot." Bow becomes an exception: 2H, blocks off-hand **for shields/weapons/tomes**, but accepts a **quiver**. Mirror PoE1.
+
+3. **`planEquip` / `validSlotsForItem` / `equipItem`** in `src/game/items/equipment.ts` (and tests) need a new branch for quiver: reject unless `mainHand?.weaponType === "bow"`; reject equipping a non-quiver off-hand while a bow is in main hand; auto-unequip the quiver if the player swaps the bow for any other main-hand.
+
+4. **Same-archetype dual-wield rule unaffected.** Tome and quiver aren't weapons — they don't enter the archetype check.
+
+### Required design decisions before coding
+
+- Exact mod pool for tome and quiver (which modifiers in `data/modifiers/` apply, with what weights).
+- Tier ladder (mirror the 21-tier `_t1..t21` cadence used by existing offhand bases).
+- Whether quiver is its own `EquipmentType` or a flag on `offhand` (impacts drop pool and `applicableTo` arrays).
+- Tooltip: how to render "Requires Bow in main hand" cleanly.
+- Drop pool: today the loot roller picks uniformly across 9 equipment types (CONTEXT.md → Loot Pipeline → Drop pool). Adding tome/quiver changes the denominator — confirm distribution.
+
+### Sprites already in place
+
+- `/assets/sprites/escudos-offhands/tomoMagico.png`
+- `/assets/sprites/escudos-offhands/aljava.png`
+
+Both ready to be assigned to the new templates via the `icon` field added in `feat/new-assets`.
+
+---
+
 ## Split `convex/characters.ts` into domain modules
 
 **Status**: Planned, not started.

@@ -149,7 +149,11 @@ function EquipmentSlot({
 	broken: boolean;
 	brokenReasons: string[] | undefined;
 }) {
-	const slotSize = Math.min(cfg.size.w, cfg.size.h);
+	// Inner card occupies the full slot minus 8px of frame breathing on each
+	// axis. Passing rectangular dimensions (not Math.min) keeps the sprite
+	// aspect ratio aligned with the slot's — sprites are 220×340 for
+	// weapon/chest/offhand and 220×80 for belt, matching the slot shapes.
+	const innerSize = { w: cfg.size.w - 8, h: cfg.size.h - 8 };
 	// Paper-doll convention: the SLOT carries the rarity color + inset glow when
 	// filled. The ItemCard inside renders frameless so we don't get a doubled
 	// border. Empty slots stay neutral (border-white/30 + bg-black/40).
@@ -171,7 +175,7 @@ function EquipmentSlot({
 			{item ? (
 				<ItemCard
 					item={item}
-					size={slotSize - 8}
+					size={innerSize}
 					broken={broken}
 					brokenReasons={brokenReasons}
 					frameless

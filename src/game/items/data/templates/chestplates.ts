@@ -13,6 +13,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, str: 10 },
 		baseStats: { armor: 20 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t2",
@@ -23,6 +24,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, str: 18 },
 		baseStats: { armor: 45 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t3",
@@ -33,6 +35,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, str: 24 },
 		baseStats: { armor: 68 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t4",
@@ -43,6 +46,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, str: 30 },
 		baseStats: { armor: 95 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t5",
@@ -53,6 +57,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, str: 38 },
 		baseStats: { armor: 128 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t6",
@@ -63,6 +68,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, str: 44 },
 		baseStats: { armor: 165 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t7",
@@ -73,6 +79,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, str: 50 },
 		baseStats: { armor: 208 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t8",
@@ -83,6 +90,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, str: 58 },
 		baseStats: { armor: 255 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t9",
@@ -93,6 +101,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, str: 64 },
 		baseStats: { armor: 310 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t10",
@@ -103,6 +112,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, str: 70 },
 		baseStats: { armor: 370 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t11",
@@ -113,6 +123,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, str: 78 },
 		baseStats: { armor: 438 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada1.png",
 	},
 	{
 		id: "plate_chestplate_t12",
@@ -123,6 +134,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, str: 84 },
 		baseStats: { armor: 512 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 	{
 		id: "plate_chestplate_t13",
@@ -133,6 +145,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, str: 90 },
 		baseStats: { armor: 595 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 	{
 		id: "plate_chestplate_t14",
@@ -143,6 +156,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, str: 98 },
 		baseStats: { armor: 685 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 	{
 		id: "plate_chestplate_t15",
@@ -153,6 +167,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, str: 104 },
 		baseStats: { armor: 785 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 	{
 		id: "plate_chestplate_t16",
@@ -163,6 +178,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, str: 110 },
 		baseStats: { armor: 892 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 	{
 		id: "plate_chestplate_t17",
@@ -173,6 +189,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, str: 118 },
 		baseStats: { armor: 1010 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 	{
 		id: "plate_chestplate_t18",
@@ -183,6 +200,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, str: 124 },
 		baseStats: { armor: 1135 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 	{
 		id: "plate_chestplate_t19",
@@ -193,6 +211,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, str: 130 },
 		baseStats: { armor: 1268 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 	{
 		id: "plate_chestplate_t20",
@@ -203,6 +222,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, str: 138 },
 		baseStats: { armor: 1400 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 	{
 		id: "plate_chestplate_t21",
@@ -213,6 +233,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, str: 142 },
 		baseStats: { armor: 1500 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 
 	// ── Leather Chestplates ──
@@ -225,6 +246,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, dex: 10 },
 		baseStats: { evasion: 20 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t2",
@@ -235,6 +257,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, dex: 18 },
 		baseStats: { evasion: 45 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t3",
@@ -245,6 +268,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, dex: 24 },
 		baseStats: { evasion: 68 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t4",
@@ -255,6 +279,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, dex: 30 },
 		baseStats: { evasion: 95 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t5",
@@ -265,6 +290,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, dex: 38 },
 		baseStats: { evasion: 128 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t6",
@@ -275,6 +301,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, dex: 44 },
 		baseStats: { evasion: 165 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t7",
@@ -285,6 +312,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, dex: 50 },
 		baseStats: { evasion: 208 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t8",
@@ -295,6 +323,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, dex: 58 },
 		baseStats: { evasion: 255 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t9",
@@ -305,6 +334,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, dex: 64 },
 		baseStats: { evasion: 310 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t10",
@@ -315,6 +345,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, dex: 70 },
 		baseStats: { evasion: 370 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t11",
@@ -325,6 +356,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, dex: 78 },
 		baseStats: { evasion: 438 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
 	},
 	{
 		id: "leather_chestplate_t12",
@@ -335,6 +367,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, dex: 84 },
 		baseStats: { evasion: 512 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 	{
 		id: "leather_chestplate_t13",
@@ -345,6 +378,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, dex: 90 },
 		baseStats: { evasion: 595 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 	{
 		id: "leather_chestplate_t14",
@@ -355,6 +389,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, dex: 98 },
 		baseStats: { evasion: 685 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 	{
 		id: "leather_chestplate_t15",
@@ -365,6 +400,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, dex: 104 },
 		baseStats: { evasion: 785 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 	{
 		id: "leather_chestplate_t16",
@@ -375,6 +411,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, dex: 110 },
 		baseStats: { evasion: 892 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 	{
 		id: "leather_chestplate_t17",
@@ -385,6 +422,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, dex: 118 },
 		baseStats: { evasion: 1010 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 	{
 		id: "leather_chestplate_t18",
@@ -395,6 +433,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, dex: 124 },
 		baseStats: { evasion: 1135 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 	{
 		id: "leather_chestplate_t19",
@@ -405,6 +444,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, dex: 130 },
 		baseStats: { evasion: 1268 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 	{
 		id: "leather_chestplate_t20",
@@ -415,6 +455,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, dex: 138 },
 		baseStats: { evasion: 1400 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 	{
 		id: "leather_chestplate_t21",
@@ -425,6 +466,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, dex: 142 },
 		baseStats: { evasion: 1500 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 
 	// ── Silk Chestplates ──
@@ -437,6 +479,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 1, int: 10 },
 		baseStats: { barrier: 12 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t2",
@@ -447,6 +490,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 8, int: 18 },
 		baseStats: { barrier: 26 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t3",
@@ -457,6 +501,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 12, int: 24 },
 		baseStats: { barrier: 39 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t4",
@@ -467,6 +512,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 16, int: 30 },
 		baseStats: { barrier: 52 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t5",
@@ -477,6 +523,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 20, int: 38 },
 		baseStats: { barrier: 68 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t6",
@@ -487,6 +534,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 24, int: 44 },
 		baseStats: { barrier: 85 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t7",
@@ -497,6 +545,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 28, int: 50 },
 		baseStats: { barrier: 104 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t8",
@@ -507,6 +556,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 32, int: 58 },
 		baseStats: { barrier: 124 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t9",
@@ -517,6 +567,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 36, int: 64 },
 		baseStats: { barrier: 145 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t10",
@@ -527,6 +578,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 40, int: 70 },
 		baseStats: { barrier: 167 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t11",
@@ -537,6 +589,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 44, int: 78 },
 		baseStats: { barrier: 191 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira1.png",
 	},
 	{
 		id: "silk_chestplate_t12",
@@ -547,6 +600,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 48, int: 84 },
 		baseStats: { barrier: 214 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira2.png",
 	},
 	{
 		id: "silk_chestplate_t13",
@@ -557,6 +611,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 52, int: 90 },
 		baseStats: { barrier: 239 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira2.png",
 	},
 	{
 		id: "silk_chestplate_t14",
@@ -567,6 +622,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 56, int: 98 },
 		baseStats: { barrier: 264 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira2.png",
 	},
 	{
 		id: "silk_chestplate_t15",
@@ -577,6 +633,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 60, int: 104 },
 		baseStats: { barrier: 290 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira2.png",
 	},
 	{
 		id: "silk_chestplate_t16",
@@ -587,6 +644,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 64, int: 110 },
 		baseStats: { barrier: 314 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira2.png",
 	},
 	{
 		id: "silk_chestplate_t17",
@@ -597,6 +655,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 68, int: 118 },
 		baseStats: { barrier: 339 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira2.png",
 	},
 	{
 		id: "silk_chestplate_t18",
@@ -607,6 +666,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 72, int: 124 },
 		baseStats: { barrier: 363 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira2.png",
 	},
 	{
 		id: "silk_chestplate_t19",
@@ -617,6 +677,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 76, int: 130 },
 		baseStats: { barrier: 384 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira2.png",
 	},
 	{
 		id: "silk_chestplate_t20",
@@ -627,6 +688,7 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 80, int: 138 },
 		baseStats: { barrier: 401 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira2.png",
 	},
 	{
 		id: "silk_chestplate_t21",
@@ -637,5 +699,6 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 83, int: 142 },
 		baseStats: { barrier: 405 },
 		implicits: [],
+		icon: "/assets/sprites/armaduras/barreira/armaduraBarreira2.png",
 	},
 ];
