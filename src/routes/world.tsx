@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import { z } from "zod";
 import BagPreviewModal from "#/components/world/BagPreviewModal";
 import CityScene from "#/components/world/CityScene";
-import CombatScene from "#/components/world/CombatScene";
+import CombatScene, {
+	type ConsumableKey,
+} from "#/components/world/CombatScene";
 import EquipmentPanel from "#/components/world/EquipmentPanel";
 import ExitZoneModal from "#/components/world/ExitZoneModal";
 import InventoryModal from "#/components/world/InventoryModal";
@@ -19,7 +21,9 @@ import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
 import VendorModal from "#/components/world/VendorModal";
 import { findClassDefinition } from "#/game/classes/data";
+import { WIND_CRYSTAL_TRAVEL_SECONDS } from "#/game/combat/constants";
 import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
+import { computeSellPrice } from "#/game/items/sell-price";
 import { xpToNextLevel } from "#/game/progression/levels";
 import { computeCharacterStats } from "#/game/stats/compute";
 import {
@@ -27,18 +31,10 @@ import {
 	type EquippedSlot,
 	narrowEquippedSlot,
 } from "#/game/stats/types";
-import { WIND_CRYSTAL_TRAVEL_SECONDS } from "#/game/combat/constants";
-import { computeSellPrice } from "#/game/items/sell-price";
+import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { ACT_1, findNode } from "#/game/world";
-import {
-	translateNodeDescription,
-	translateNodeName,
-} from "#/game/world/i18n";
+import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
 import { computeTravelTime } from "#/game/world/travel";
-import {
-	VENDOR_PRODUCTS,
-	type VendorProductId,
-} from "#/game/vendor/products";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
@@ -50,6 +46,12 @@ import type { Doc, Id } from "../../convex/_generated/dataModel";
 const searchSchema = z.object({
 	characterId: z.string(),
 });
+
+const CONSUMABLE_DESCRIPTIONS: Record<ConsumableKey, () => string> = {
+	potion: m.consumable_desc_potion,
+	teleport: m.consumable_desc_teleport,
+	wind_crystal: m.consumable_desc_wind_crystal,
+};
 
 export const Route = createFileRoute("/world")({
 	validateSearch: searchSchema,
@@ -112,9 +114,7 @@ function applyCharacterDelta(
 	localStore.setQuery(
 		api.characters.list,
 		{},
-		characters.map((c) =>
-			c._id === characterId ? { ...c, ...delta } : c,
-		),
+		characters.map((c) => (c._id === characterId ? { ...c, ...delta } : c)),
 	);
 }
 
@@ -161,42 +161,43 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			);
 		},
 	);
-	const pickFromBag = useMutation(
-		api.items.pickFromBag,
-	).withOptimisticUpdate((localStore, args) => {
-		const bagKey = { characterId: args.characterId };
-		const bag = localStore.getQuery(api.items.zoneBag, bagKey);
-		if (!bag) return;
-		const idSet = new Set(args.itemIds.map((id) => id.toString()));
-		const picked = bag.filter((it) => idSet.has(it._id.toString()));
-		if (picked.length === 0) return;
-		const remaining = bag.filter((it) => !idSet.has(it._id.toString()));
-		localStore.setQuery(api.items.zoneBag, bagKey, remaining);
-		const inv = localStore.getQuery(api.items.inventory, bagKey) ?? [];
-		const occupied = new Set<number>();
-		for (const it of inv) {
-			if (typeof it.inventorySlot === "number") occupied.add(it.inventorySlot);
-		}
-		let cursor = 0;
-		const nextFreeSlot = (): number => {
-			while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
-			if (cursor >= INVENTORY_MAX_SLOTS) return -1;
-			const s = cursor++;
-			occupied.add(s);
-			return s;
-		};
-		const moved = picked.map((d) => ({
-			...d,
-			locationKind: "inventory" as const,
-			zoneSession: undefined,
-			inventorySlot: nextFreeSlot(),
-		}));
-		localStore.setQuery(
-			api.items.inventory,
-			bagKey,
-			[...inv, ...moved].sort(bySlotAsc),
-		);
-	});
+	const pickFromBag = useMutation(api.items.pickFromBag).withOptimisticUpdate(
+		(localStore, args) => {
+			const bagKey = { characterId: args.characterId };
+			const bag = localStore.getQuery(api.items.zoneBag, bagKey);
+			if (!bag) return;
+			const idSet = new Set(args.itemIds.map((id) => id.toString()));
+			const picked = bag.filter((it) => idSet.has(it._id.toString()));
+			if (picked.length === 0) return;
+			const remaining = bag.filter((it) => !idSet.has(it._id.toString()));
+			localStore.setQuery(api.items.zoneBag, bagKey, remaining);
+			const inv = localStore.getQuery(api.items.inventory, bagKey) ?? [];
+			const occupied = new Set<number>();
+			for (const it of inv) {
+				if (typeof it.inventorySlot === "number")
+					occupied.add(it.inventorySlot);
+			}
+			let cursor = 0;
+			const nextFreeSlot = (): number => {
+				while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
+				if (cursor >= INVENTORY_MAX_SLOTS) return -1;
+				const s = cursor++;
+				occupied.add(s);
+				return s;
+			};
+			const moved = picked.map((d) => ({
+				...d,
+				locationKind: "inventory" as const,
+				zoneSession: undefined,
+				inventorySlot: nextFreeSlot(),
+			}));
+			localStore.setQuery(
+				api.items.inventory,
+				bagKey,
+				[...inv, ...moved].sort(bySlotAsc),
+			);
+		},
+	);
 	const discardFromBag = useMutation(
 		api.items.discardFromBag,
 	).withOptimisticUpdate((localStore, args) => {
@@ -218,29 +219,29 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// `stats` isn't in scope at this point in the function body; the ref is
 	// assigned further down, before any user click can fire.
 	const movementSpeedRef = useRef(0);
-	const startTravel = useMutation(
-		api.combat.startTravel,
-	).withOptimisticUpdate((localStore, args) => {
-		const char = findCharacter(localStore, args.characterId);
-		if (!char) return;
-		const fromId = char.currentLocation ?? "city";
-		const fromNode = findNode(ACT_1, fromId);
-		const conn = fromNode?.connections.find(
-			(c) => c.id === args.destinationNodeId,
-		);
-		if (!conn) return;
-		const seconds = computeTravelTime(
-			conn.distance,
-			movementSpeedRef.current,
-		);
-		const startedAt = Date.now();
-		const arrivesAt = startedAt + Math.round(seconds * 1000);
-		applyCharacterDelta(localStore, args.characterId, {
-			travelDestination: args.destinationNodeId,
-			travelStartedAt: startedAt,
-			travelArrivesAt: arrivesAt,
-		});
-	});
+	const startTravel = useMutation(api.combat.startTravel).withOptimisticUpdate(
+		(localStore, args) => {
+			const char = findCharacter(localStore, args.characterId);
+			if (!char) return;
+			const fromId = char.currentLocation ?? "city";
+			const fromNode = findNode(ACT_1, fromId);
+			const conn = fromNode?.connections.find(
+				(c) => c.id === args.destinationNodeId,
+			);
+			if (!conn) return;
+			const seconds = computeTravelTime(
+				conn.distance,
+				movementSpeedRef.current,
+			);
+			const startedAt = Date.now();
+			const arrivesAt = startedAt + Math.round(seconds * 1000);
+			applyCharacterDelta(localStore, args.characterId, {
+				travelDestination: args.destinationNodeId,
+				travelStartedAt: startedAt,
+				travelArrivesAt: arrivesAt,
+			});
+		},
+	);
 	const arriveAtTravel = useMutation(api.combat.arriveAtTravel);
 	// Vendor mutations with optimistic updates so fast/repeat clicks don't
 	// outrun the reactive query and trigger "cap reached" / "item not found"
@@ -303,10 +304,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		const idSet = new Set(args.itemIds.map((id) => id.toString()));
 		const sold = inventory.filter((it) => idSet.has(it._id.toString()));
 		if (sold.length === 0) return;
-		const total = sold.reduce(
-			(sum, it) => sum + computeSellPrice(it.data),
-			0,
-		);
+		const total = sold.reduce((sum, it) => sum + computeSellPrice(it.data), 0);
 		localStore.setQuery(
 			api.items.inventory,
 			{ characterId: args.characterId },
@@ -328,6 +326,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const [view, setView] = useState<ViewMode>("map");
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const [deathLog, setDeathLog] = useState<string | null>(null);
+	const [consumableHover, setConsumableHover] = useState<ConsumableKey | null>(
+		null,
+	);
 	// Set when the player clicks a node that requires travel — the auto-arrival
 	// effect transitions the view to this node's area when travel completes.
 	// Also reseeded from `travelDestination` on mount so a refresh mid-travel
@@ -623,9 +624,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		exitModal.close();
 	};
 
-	// TextLog priority: death > kill recap (xp + maybe potion) > low-HP warning
-	// > hovered node description (map view) > map idle (act label) > current
-	// zone (combat/city) > generic fallback. Returns a tone for color.
+	// TextLog priority: death > consumable hover (combat) > low-HP warning >
+	// hovered node description (map view) > map idle (act label) > current
+	// zone (combat/city) > generic fallback. XP gains now surface as a
+	// floating popup over the enemy area instead of the log.
 	const lowHpThreshold = maxHp * 0.3;
 	const isLowHp =
 		view === "combat" &&
@@ -636,11 +638,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	if (deathLog) {
 		logMessage = deathLog;
 		logTone = "danger";
-	} else if (combat.lastKill !== null) {
-		logMessage = combat.lastKill.potion
-			? m.kill_recap_xp_and_potion({ xp: combat.lastKill.xp })
-			: m.kill_recap_xp_only({ xp: combat.lastKill.xp });
-		logTone = "success";
+	} else if (view === "combat" && consumableHover) {
+		logMessage = CONSUMABLE_DESCRIPTIONS[consumableHover]();
 	} else if (isLowHp) {
 		logMessage =
 			combat.potions > 0 ? m.low_hp_use_potion() : m.low_hp_no_potions();
@@ -736,6 +735,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						maxHp={maxHp}
 						xp={character.xp ?? 0}
 						xpNeeded={xpToNextLevel(character.level)}
+						lastKillXp={combat.lastKill?.xp}
 						potions={combat.potions}
 						canUsePotion={combat.potions > 0 && combat.playerHp < maxHp}
 						onUsePotion={combat.usePotion}
@@ -746,6 +746,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						onRetreat={handleRetreat}
 						bagCount={zoneBag?.length ?? 0}
 						onOpenBag={bagModal.open}
+						onConsumableHover={setConsumableHover}
 					/>
 				)}
 				<TextLog message={logMessage} tone={logTone} />

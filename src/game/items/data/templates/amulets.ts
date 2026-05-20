@@ -4,7 +4,7 @@ import type { EquipmentTemplate } from "./types";
 export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "gold_amulet",
-		name: "Amuleto",
+		name: "Prismatic Amulet",
 		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -21,7 +21,7 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "jade_amulet",
-		name: "Amuleto de Esmeralda",
+		name: "Jade Amulet",
 		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -38,7 +38,7 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "amber_amulet",
-		name: "Amuleto Sombrio",
+		name: "Amber Amulet",
 		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -55,7 +55,7 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "lapis_amulet",
-		name: "Amuleto do Conhecimento",
+		name: "Lapis Amulet",
 		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },

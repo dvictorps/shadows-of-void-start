@@ -1,4 +1,11 @@
-import { Home, type LucideIcon, MapPin, Settings, Skull, Trees } from "lucide-react";
+import {
+	Home,
+	type LucideIcon,
+	MapPin,
+	Settings,
+	Skull,
+	Trees,
+} from "lucide-react";
 import { useMemo } from "react";
 import type { Act, WorldNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
@@ -48,11 +55,10 @@ export default function MapScene({
 				<Settings className="h-4 w-4" strokeWidth={2} />
 			</button>
 			<svg
-				aria-hidden
+				aria-hidden="true"
 				className="absolute inset-0 h-full w-full"
 				preserveAspectRatio="none"
 			>
-				<title>Connections</title>
 				{edges}
 			</svg>
 

@@ -1,9 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 import HealthGlobe from "./HealthGlobe";
+
+export type ConsumableKey = "potion" | "teleport" | "wind_crystal";
 
 type Props = {
 	zoneName: string;
@@ -15,6 +17,10 @@ type Props = {
 	maxHp: number;
 	xp: number;
 	xpNeeded: number;
+	// XP from the most recent kill — fires a floating popup when state goes
+	// engaged → victory. Persists across the victory frame so the popup has a
+	// value to read.
+	lastKillXp?: number;
 	potions: number;
 	canUsePotion: boolean;
 	onUsePotion: () => void;
@@ -25,6 +31,9 @@ type Props = {
 	onRetreat: () => void;
 	bagCount: number;
 	onOpenBag: () => void;
+	// Hover bubbles back to the parent so the world's TextLog can describe the
+	// consumable the player is pointing at. Null on mouse leave.
+	onConsumableHover?: (key: ConsumableKey | null) => void;
 };
 
 export default function CombatScene({
@@ -37,6 +46,7 @@ export default function CombatScene({
 	maxHp,
 	xp,
 	xpNeeded,
+	lastKillXp,
 	potions,
 	canUsePotion,
 	onUsePotion,
@@ -47,6 +57,7 @@ export default function CombatScene({
 	onRetreat,
 	bagCount,
 	onOpenBag,
+	onConsumableHover,
 }: Props) {
 	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
 	const enemyEvents = useMemo(
@@ -57,6 +68,29 @@ export default function CombatScene({
 		() => events.filter((e) => e.target === "player"),
 		[events],
 	);
+
+	// Floating XP popups — one per kill. We fire on the engaged → victory edge
+	// (not on every lastKillXp change) because the hook may re-set lastKill
+	// when the potion-drop callback resolves, which would double-fire otherwise.
+	const [xpPopups, setXpPopups] = useState<
+		Array<{ id: string; amount: number }>
+	>([]);
+	const prevStateRef = useRef(state);
+	useEffect(() => {
+		const prev = prevStateRef.current;
+		prevStateRef.current = state;
+		if (
+			prev !== "victory" &&
+			state === "victory" &&
+			typeof lastKillXp === "number"
+		) {
+			const id = `xp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+			setXpPopups((p) => [...p, { id, amount: lastKillXp }]);
+			window.setTimeout(() => {
+				setXpPopups((p) => p.filter((x) => x.id !== id));
+			}, 1400);
+		}
+	}, [state, lastKillXp]);
 
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
@@ -138,13 +172,21 @@ export default function CombatScene({
 							))}
 						</AnimatePresence>
 					</div>
+
+					{/* XP popups — anchored below the enemy sprite. Floats slightly up,
+					 * yellow + bold. Pinned to the bottom-center of this enemy area so
+					 * the rise looks like it emanates from the spot the enemy fell. */}
+					<div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
+						<AnimatePresence>
+							{xpPopups.map((p) => (
+								<FloatingXp key={p.id} amount={p.amount} />
+							))}
+						</AnimatePresence>
+					</div>
 				</div>
 
 				{enemy && (
-					<EnemyHpBar
-						current={enemy.currentHp}
-						max={enemy.def.baseStats.hp}
-					/>
+					<EnemyHpBar current={enemy.currentHp} max={enemy.def.baseStats.hp} />
 				)}
 			</div>
 
@@ -188,11 +230,20 @@ export default function CombatScene({
 					<button
 						type="button"
 						onClick={onUseTeleportStone}
+						onMouseEnter={() => onConsumableHover?.("teleport")}
+						onMouseLeave={() => onConsumableHover?.(null)}
+						onFocus={() => onConsumableHover?.("teleport")}
+						onBlur={() => onConsumableHover?.(null)}
 						disabled={!canUseTeleportStone}
 						aria-label="Use teleport stone"
-						className="relative flex h-20 w-20 shrink-0 items-center justify-center border border-white/40 bg-black text-3xl transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+						className="relative flex h-20 w-20 shrink-0 items-center justify-center border border-white/40 bg-black transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
 					>
-						🪨
+						<img
+							src="/assets/sprites/ui/pedraTeleporte.png"
+							alt=""
+							draggable={false}
+							className="pointer-events-none h-14 w-14 select-none object-contain"
+						/>
 						<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
 							{teleportStones}
 						</span>
@@ -201,15 +252,29 @@ export default function CombatScene({
 
 				{/* Wind-crystal usage is map-only; here the counter is just a readout. */}
 				<div className="flex flex-col items-center gap-1">
-					<WindCrystalCounter count={windCrystals} />
+					<WindCrystalCounter
+						count={windCrystals}
+						onHoverChange={(active) =>
+							onConsumableHover?.(active ? "wind_crystal" : null)
+						}
+					/>
 					<button
 						type="button"
 						onClick={onUsePotion}
+						onMouseEnter={() => onConsumableHover?.("potion")}
+						onMouseLeave={() => onConsumableHover?.(null)}
+						onFocus={() => onConsumableHover?.("potion")}
+						onBlur={() => onConsumableHover?.(null)}
 						disabled={!canUsePotion}
 						aria-label="Use potion"
-						className="relative flex h-20 w-20 shrink-0 items-center justify-center border border-white/40 bg-black text-3xl transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+						className="relative flex h-20 w-20 shrink-0 items-center justify-center border border-white/40 bg-black transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
 					>
-						🧪
+						<img
+							src="/assets/sprites/ui/pocaoCura.png"
+							alt=""
+							draggable={false}
+							className="pointer-events-none h-14 w-14 select-none object-contain"
+						/>
 						<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
 							{potions}
 						</span>
@@ -227,20 +292,45 @@ export default function CombatScene({
 function WindCrystalCounter({
 	count,
 	hidden = false,
+	onHoverChange,
 }: {
 	count: number;
 	hidden?: boolean;
+	onHoverChange?: (active: boolean) => void;
 }) {
 	return (
 		<div
 			role="img"
 			aria-label={`${count} wind crystals`}
 			aria-hidden={hidden || undefined}
-			className={`display-title flex items-center gap-1 text-sm tracking-wider text-white ${hidden ? "invisible" : ""}`}
+			onMouseEnter={hidden ? undefined : () => onHoverChange?.(true)}
+			onMouseLeave={hidden ? undefined : () => onHoverChange?.(false)}
+			className={`display-title flex items-center gap-2 text-lg tracking-wider text-white ${hidden ? "invisible" : ""}`}
 		>
-			<span aria-hidden="true">💎</span>
+			<img
+				src="/assets/sprites/ui/cristalDeVento.png"
+				alt=""
+				draggable={false}
+				aria-hidden="true"
+				className="pointer-events-none h-10 w-10 select-none object-contain"
+			/>
 			<span className="tabular-nums">×{count}</span>
 		</div>
+	);
+}
+
+function FloatingXp({ amount }: { amount: number }) {
+	return (
+		<motion.span
+			className="display-title pointer-events-none select-none font-bold text-2xl text-yellow-300 tracking-wider"
+			style={{ textShadow: "0 2px 6px rgba(0,0,0,0.95)" }}
+			initial={{ opacity: 0, y: 10 }}
+			animate={{ opacity: [0, 1, 1, 0], y: -30 }}
+			exit={{ opacity: 0 }}
+			transition={{ duration: 1.4, ease: "easeOut", times: [0, 0.12, 0.7, 1] }}
+		>
+			+{amount} XP
+		</motion.span>
 	);
 }
 

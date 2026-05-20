@@ -12,15 +12,15 @@ export type VendorProductId = "potion" | "teleport_stone" | "wind_crystal";
 // Used by `vendorBuy` (cap + increment) and `VendorModal` (disable button at
 // cap). Narrowed to the union of the three counter field names so callers
 // get type safety on `char[product.counterField]`.
-export type VendorCounterField =
-	| "potions"
-	| "teleportStones"
-	| "windCrystals";
+export type VendorCounterField = "potions" | "teleportStones" | "windCrystals";
 
 export interface VendorProduct {
 	id: VendorProductId;
 	priceRubys: number;
 	emoji: string;
+	// Public path to the product's sprite. When undefined, VendorModal falls
+	// back to the emoji.
+	icon?: string;
 	counterField: VendorCounterField;
 	// Carry cap. Undefined = uncapped (player can stockpile arbitrarily many).
 	// Potions are capped at 10 because they're the active heal control with
@@ -34,6 +34,7 @@ export const VENDOR_PRODUCTS: Record<VendorProductId, VendorProduct> = {
 		id: "potion",
 		priceRubys: 10,
 		emoji: "🧪",
+		icon: "/assets/sprites/ui/pocaoCura.png",
 		counterField: "potions",
 		cap: MAX_POTIONS,
 	},
@@ -41,18 +42,18 @@ export const VENDOR_PRODUCTS: Record<VendorProductId, VendorProduct> = {
 		id: "teleport_stone",
 		priceRubys: 30,
 		emoji: "🪨",
+		icon: "/assets/sprites/ui/pedraTeleporte.png",
 		counterField: "teleportStones",
 	},
 	wind_crystal: {
 		id: "wind_crystal",
 		priceRubys: 50,
 		emoji: "💎",
+		icon: "/assets/sprites/ui/cristalDeVento.png",
 		counterField: "windCrystals",
 	},
 };
 
 export function findVendorProduct(id: string): VendorProduct | null {
-	return id in VENDOR_PRODUCTS
-		? VENDOR_PRODUCTS[id as VendorProductId]
-		: null;
+	return id in VENDOR_PRODUCTS ? VENDOR_PRODUCTS[id as VendorProductId] : null;
 }

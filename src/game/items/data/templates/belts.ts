@@ -4,7 +4,7 @@ import type { EquipmentTemplate } from "./types";
 export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "leather_belt",
-		name: "Cinto",
+		name: "Leather Belt",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -21,7 +21,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "chain_belt",
-		name: "Cinto do Lutador",
+		name: "Chain Belt",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -38,7 +38,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "studded_belt",
-		name: "Cinto do Aventureiro",
+		name: "Studded Belt",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -55,7 +55,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "cloth_belt",
-		name: "Cinto do Conhecimento",
+		name: "Cloth Belt",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -72,7 +72,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "prismatic_belt",
-		name: "Cinto Prismático",
+		name: "Prismatic Belt",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -89,7 +89,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_belt",
-		name: "Cinto de Seda",
+		name: "Silk Belt",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },

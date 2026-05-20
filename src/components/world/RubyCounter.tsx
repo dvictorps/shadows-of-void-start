@@ -1,4 +1,4 @@
-import { Gem } from "lucide-react";
+import Tooltip from "#/components/ui/tooltip";
 
 type Props = {
 	rubys: number;
@@ -11,14 +11,22 @@ type Props = {
  */
 export default function RubyCounter({ rubys }: Props) {
 	return (
-		<div
-			aria-label={`${rubys} rubys`}
-			className="absolute right-3 bottom-3 inline-flex h-10 items-center gap-1.5 rounded-md border border-white/40 bg-black px-3 text-white/80"
-		>
-			<Gem className="h-4 w-4 text-rose-400" strokeWidth={2} />
-			<span className="display-title text-sm tabular-nums tracking-wider">
-				{rubys}
-			</span>
-		</div>
+		<Tooltip content="Rubis — moeda do jogo">
+			<div
+				role="img"
+				aria-label={`${rubys} rubys`}
+				className="absolute right-3 bottom-3 inline-flex h-10 items-center gap-1.5 rounded-md border border-white/40 bg-black px-3 text-white/80"
+			>
+				<img
+					src="/assets/sprites/ui/moedaRubi.png"
+					alt=""
+					draggable={false}
+					className="pointer-events-none h-6 w-6 select-none object-contain"
+				/>
+				<span className="display-title text-sm tabular-nums tracking-wider">
+					{rubys}
+				</span>
+			</div>
+		</Tooltip>
 	);
 }

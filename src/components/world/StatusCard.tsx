@@ -1,4 +1,5 @@
 import { Button } from "#/components/ui/button";
+import Tooltip from "#/components/ui/tooltip";
 import type {
 	CharacterClassDefinition,
 	CharacterClassId,
@@ -124,18 +125,25 @@ export default function StatusCard({
 							/>
 						</div>
 					</div>
-					<button
-						type="button"
-						onClick={onUsePotion}
-						disabled={!canUsePotion}
-						aria-label="Use potion"
-						className="relative flex h-16 w-16 shrink-0 items-center justify-center border border-white/40 bg-black text-2xl transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
-					>
-						🧪
-						<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
-							{potions}
-						</span>
-					</button>
+					<Tooltip content={m.consumable_desc_potion()}>
+						<button
+							type="button"
+							onClick={onUsePotion}
+							disabled={!canUsePotion}
+							aria-label="Use potion"
+							className="relative flex h-16 w-16 shrink-0 items-center justify-center border border-white/40 bg-black transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+						>
+							<img
+								src="/assets/sprites/ui/pocaoCura.png"
+								alt=""
+								draggable={false}
+								className="pointer-events-none h-12 w-12 select-none object-contain"
+							/>
+							<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
+								{potions}
+							</span>
+						</button>
+					</Tooltip>
 				</div>
 
 				<hr className="border-white/15" />
@@ -157,35 +165,43 @@ export default function StatusCard({
 					</div>
 
 					<div className="flex justify-center gap-2">
-						<button
-							type="button"
-							onClick={onUseTeleportStone}
-							disabled={!canUseTeleportStone}
-							aria-label="Use teleport stone"
-							className="relative flex h-16 w-16 items-center justify-center border border-white/30 bg-black/60 text-2xl font-bold uppercase tracking-wider text-white/60 transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-white/30 disabled:hover:bg-black/60"
-						>
-							🪨
-							<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
-								{teleportStones}
-							</span>
-						</button>
-						<ConsumableSlot label="💎" count={windCrystals} />
+						<Tooltip content={m.consumable_desc_teleport()}>
+							<button
+								type="button"
+								onClick={onUseTeleportStone}
+								disabled={!canUseTeleportStone}
+								aria-label="Use teleport stone"
+								className="relative flex h-16 w-16 items-center justify-center border border-white/30 bg-black/60 transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-white/30 disabled:hover:bg-black/60"
+							>
+								<img
+									src="/assets/sprites/ui/pedraTeleporte.png"
+									alt=""
+									draggable={false}
+									className="pointer-events-none h-12 w-12 select-none object-contain"
+								/>
+								<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
+									{teleportStones}
+								</span>
+							</button>
+						</Tooltip>
+						<Tooltip content={m.consumable_desc_wind_crystal()}>
+							<div className="relative flex h-16 w-16 items-center justify-center border border-white/30 bg-black/60">
+								<img
+									src="/assets/sprites/ui/cristalDeVento.png"
+									alt=""
+									draggable={false}
+									className="pointer-events-none h-12 w-12 select-none object-contain"
+								/>
+								<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
+									×{windCrystals}
+								</span>
+							</div>
+						</Tooltip>
 					</div>
 
 					<HealthGlobe hp={hp} maxHp={maxHp} barrier={barrier} />
 				</div>
 			</div>
 		</section>
-	);
-}
-
-function ConsumableSlot({ label, count }: { label: string; count: number }) {
-	return (
-		<div className="relative flex h-16 w-16 items-center justify-center border border-white/30 bg-black/60 text-2xl font-bold uppercase tracking-wider text-white/60">
-			{label}
-			<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
-				×{count}
-			</span>
-		</div>
 	);
 }
