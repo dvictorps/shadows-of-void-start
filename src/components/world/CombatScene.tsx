@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 import HealthGlobe from "./HealthGlobe";
@@ -68,29 +68,6 @@ export default function CombatScene({
 		() => events.filter((e) => e.target === "player"),
 		[events],
 	);
-
-	// Floating XP popups — one per kill. We fire on the engaged → victory edge
-	// (not on every lastKillXp change) because the hook may re-set lastKill
-	// when the potion-drop callback resolves, which would double-fire otherwise.
-	const [xpPopups, setXpPopups] = useState<
-		Array<{ id: string; amount: number }>
-	>([]);
-	const prevStateRef = useRef(state);
-	useEffect(() => {
-		const prev = prevStateRef.current;
-		prevStateRef.current = state;
-		if (
-			prev !== "victory" &&
-			state === "victory" &&
-			typeof lastKillXp === "number"
-		) {
-			const id = `xp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-			setXpPopups((p) => [...p, { id, amount: lastKillXp }]);
-			window.setTimeout(() => {
-				setXpPopups((p) => p.filter((x) => x.id !== id));
-			}, 1400);
-		}
-	}, [state, lastKillXp]);
 
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
@@ -173,14 +150,13 @@ export default function CombatScene({
 						</AnimatePresence>
 					</div>
 
-					{/* XP popups — anchored below the enemy sprite. Floats slightly up,
-					 * yellow + bold. Pinned to the bottom-center of this enemy area so
-					 * the rise looks like it emanates from the spot the enemy fell. */}
+					{/* XP popup mounts on victory and unmounts on the next search,
+					 * so AnimatePresence drives mount/exit instead of a manual queue. */}
 					<div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
 						<AnimatePresence>
-							{xpPopups.map((p) => (
-								<FloatingXp key={p.id} amount={p.amount} />
-							))}
+							{state === "victory" && typeof lastKillXp === "number" && (
+								<FloatingXp amount={lastKillXp} />
+							)}
 						</AnimatePresence>
 					</div>
 				</div>
