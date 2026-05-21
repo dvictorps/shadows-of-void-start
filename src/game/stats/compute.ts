@@ -34,7 +34,7 @@ import {
 	DUAL_WIELD_AS_MORE_MULT,
 	DUAL_WIELD_BLOCK_CHANCE_BONUS,
 } from "../combat/constants";
-import { isBow, isQuiver } from "../items/equipment";
+import { isBow, isQuiver, isWeapon } from "../items/equipment";
 import type { GeneratedItem, RolledMod } from "../items/types";
 import type {
 	ComputedCharacterStats,
@@ -353,35 +353,34 @@ function blankGearFlat(): GearFlatDamage {
 	return { physical: 0, cold: 0, fire: 0, lightning: 0, void: 0 };
 }
 
+// Modifier id → which element bucket it feeds. The `*ToAttacksFlat` ids are
+// the local-to-weapon variants (kept here as a no-op safety net — weapons are
+// filtered out at the call site, so they never reach this map in practice).
+// The `*ToAttacksFlatGlobal` ids are the global versions that roll on
+// rings/amulet/gloves/quiver.
+const FLAT_DAMAGE_MAP: Record<string, keyof GearFlatDamage> = {
+	physicalDamageFlatGlobal: "physical",
+	coldDamageToAttacksFlat: "cold",
+	coldDamageToAttacksFlatGlobal: "cold",
+	fireDamageToAttacksFlat: "fire",
+	fireDamageToAttacksFlatGlobal: "fire",
+	lightningDamageToAttacksFlat: "lightning",
+	lightningDamageToAttacksFlatGlobal: "lightning",
+	voidDamageToAttacksFlat: "void",
+	voidDamageToAttacksFlatGlobal: "void",
+};
+
 function collectGlobalFlatDamage(items: EquippedItem[]): GearFlatDamage {
 	const flat = blankGearFlat();
 	for (const { item } of items) {
-		// Flat-to-attacks only rolls on rings/amulet/gloves; never on the
-		// swinging weapon itself (weapon's flat is in computedStats).
+		for (const mod of item.implicits) {
+			if (!mod.modifierId) continue;
+			const bucket = FLAT_DAMAGE_MAP[mod.modifierId];
+			if (bucket) flat[bucket] += mod.value;
+		}
 		for (const mod of item.explicits) {
-			if (mod.modifierId === "physicalDamageFlatGlobal") {
-				flat.physical += mod.value;
-			} else if (
-				mod.modifierId === "coldDamageToAttacksFlat" ||
-				mod.modifierId === "coldDamageToAttacksFlatGlobal"
-			) {
-				flat.cold += mod.value;
-			} else if (
-				mod.modifierId === "fireDamageToAttacksFlat" ||
-				mod.modifierId === "fireDamageToAttacksFlatGlobal"
-			) {
-				flat.fire += mod.value;
-			} else if (
-				mod.modifierId === "lightningDamageToAttacksFlat" ||
-				mod.modifierId === "lightningDamageToAttacksFlatGlobal"
-			) {
-				flat.lightning += mod.value;
-			} else if (
-				mod.modifierId === "voidDamageToAttacksFlat" ||
-				mod.modifierId === "voidDamageToAttacksFlatGlobal"
-			) {
-				flat.void += mod.value;
-			}
+			const bucket = FLAT_DAMAGE_MAP[mod.modifierId];
+			if (bucket) flat[bucket] += mod.value;
 		}
 	}
 	return flat;
@@ -578,8 +577,16 @@ function computeOnce(
 	if (isAttackDW) stats.blockChance += DUAL_WIELD_BLOCK_CHANCE_BONUS;
 	applyCaps(stats);
 
+	// Filter out the swinging weapons — their local flat-to-attacks is already
+	// baked into `computedStats` and consumed by buildSwing. Off-hand items
+	// that aren't weapons (shield/tome/quiver) DO contribute via the global
+	// flat mod pool — most notably the quiver, which carries those mods as
+	// its identity.
 	const gearFlat = collectGlobalFlatDamage(
-		live.filter((eq) => eq.slot !== "weapon" && eq.slot !== "offhand"),
+		live.filter(
+			(eq) =>
+				eq.slot !== "weapon" && !(eq.slot === "offhand" && isWeapon(eq.item)),
+		),
 	);
 
 	if (stats.path === "attack" && mainHand) {

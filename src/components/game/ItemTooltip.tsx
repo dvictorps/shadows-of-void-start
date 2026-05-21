@@ -1,5 +1,6 @@
 import { localizeImplicit, localizeMod } from "#/game/items/mod-i18n";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
+import { m } from "#/paraglide/messages";
 
 const RARITY_COLORS: Record<ItemRarity, string> = {
 	normal: "#c8c8c8",
@@ -409,7 +410,7 @@ function renderRequirements(item: GeneratedItem) {
 							.join(", ")}
 					</div>
 				)}
-				{needsBow && <div>Requer Arco na Mão Principal</div>}
+				{needsBow && <div>{m.tooltip_requires_bow_in_main_hand()}</div>}
 			</div>
 		</>
 	);

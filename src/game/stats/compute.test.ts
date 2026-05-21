@@ -458,6 +458,32 @@ describe("computeCharacterStats — broken state", () => {
 			warrior.baseStats.attributes.dexterity + 20,
 		);
 	});
+
+	it("quiver's global flat-to-attacks mods contribute to the bow's swing damage", () => {
+		// Regression: prior to the off-hand filter fix, equipping a quiver with
+		// flat-to-attacks globals silently dropped those mods from the gear pool
+		// (the call site filtered out all off-hand items). This test pins the
+		// fix: cold damage from a quiver shows up in the resulting swing.
+		const eq: EquippedItem[] = [
+			{ slot: "weapon", item: bow("bw") },
+			{
+				slot: "offhand",
+				item: quiver("q", [mod("coldDamageToAttacksFlatGlobal", 8)]),
+			},
+		];
+		const stats = computeCharacterStats({
+			classDef: warrior,
+			level: 1,
+			equippedItems: eq,
+		});
+		expect(stats.brokenItemIds.has("q")).toBe(false);
+		expect(stats.swings).toHaveLength(1);
+		const cold = stats.swings[0].elementalDamage.find(
+			(e) => e.element === "Cold",
+		);
+		expect(cold?.min).toBe(8);
+		expect(cold?.max).toBe(8);
+	});
 });
 
 describe("derived helpers", () => {
