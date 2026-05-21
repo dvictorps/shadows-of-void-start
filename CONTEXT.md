@@ -21,19 +21,22 @@ A point in the act's DAG. Two kinds exist today:
 ### Zone
 Synonym for a Zone node. Used in the rest of this document when the distinction from a city is contextual.
 
-A zone has three persistent states per character:
+A zone has persistent states per character:
 - **Incomplete** — never finished. Threshold bar resets every time the player leaves.
-- **Boss pending** — the player reached the threshold but deferred the boss fight. The "summon boss" button persists across exits until the boss is killed.
-- **Complete** — the player killed the zone boss at least once. Stays this way forever. Re-entering the zone is allowed for farming; the boss can be summoned again by refilling the threshold.
+- **Complete** — the player killed the zone miniboss at least once. Stays this way forever. Re-entering the zone is allowed for farming; the miniboss can be summoned again by refilling the threshold.
+
+A future **Boss pending** state is planned (see "Boss Deferral" below) but not implemented yet — today the threshold filling spawns the miniboss immediately, no pause modal.
 
 ### Threshold Bar
-The progress bar shown over the zone view that fills as the player kills mobs. The exact kill count is hidden; only the bar is visible. The threshold is **30 kills**. When it fills, the **zone boss** spawns (or becomes summonable, see "Boss Deferral"). The fill resets to 0 every time the player leaves the zone with the boss unsummoned.
+The progress bar shown over the zone view that fills as the player kills mobs. The exact kill count is hidden; only the bar is visible. The threshold is **30 kills**. When it fills, the **next mob spawn is the zone miniboss** (or, in a future iteration, becomes summonable — see "Boss Deferral"). The fill resets to 0 every time the player leaves the zone with the miniboss unsummoned, and also resets to 0 immediately after a miniboss kill so the farming loop can refill.
 
-### Boss Deferral
-When the threshold bar fills, a pause modal asks if the player wants to fight the boss now. If they decline, a persistent **"Invoke Boss"** button appears in the zone UI. This button survives leaving and re-entering the zone — the boss stays "pending" until killed.
+### Boss Deferral (planned, not implemented)
+When the threshold bar fills, a pause modal will ask if the player wants to fight the boss now. If they decline, a persistent **"Invoke Boss"** button will appear in the zone UI. This button will survive leaving and re-entering the zone — the boss stays "pending" until killed. Until this lands, the threshold-fill spawn happens automatically on the next mob roll.
 
-### Zone Boss (Miniboss)
-The strong enemy that appears at the threshold of a normal zone. Drops better loot than mobs. Respawns every time the threshold is refilled, including after the zone is complete (so completed zones remain meaningful for loot farming).
+### Zone Miniboss
+A **rare-rarity** monster that spawns at the threshold of a normal zone. Picked uniformly from the zone's `monsterPool` and promoted to rare with 3 random modifiers (see Monster Modifier Pool). Drops better loot than mobs — see drop table. Respawns every time the threshold is refilled, including after the zone is complete (so completed zones remain meaningful for loot farming).
+
+After a miniboss kill the player gets a small modal: **continue farming** (combat resumes, threshold resets) or **retreat** (standard exit-zone flow with the loot picker).
 
 ### Act Boss
 A distinct, more powerful enemy that gates progression to the next act. Lives in the **final node** of the act (a dedicated boss node, not a regular zone). For Act 1, the boss node follows **Model B**:
@@ -396,14 +399,21 @@ Starter pool (Act 1):
 - **Increased Life** — wider HP bar.
 - **Increased Damage** — bigger hits.
 - **Increased Attack Speed** — more hits per second.
+- **Increased Evasion** — harder for the player to land hits.
+- **Increased Accuracy** — fewer player evasion procs.
 - **Increased Cold Resistance** — mitigates cold damage.
 - **Increased Fire Resistance** — mitigates fire damage.
 - **Increased Lightning Resistance** — mitigates lightning damage.
 - **Increased Void Resistance** — mitigates void damage.
-- **Additional Barrier** — flat barrier pool above HP.
+- **Additional Barrier** — flat barrier pool above HP. Until monster barrier is implemented natively (see `docs/plans/in-progress.md`), the mod is folded into HP as a placeholder.
 - **More Armor** — increased physical mitigation.
 
 The pool will grow with later acts (on-hit effects, summons, auras), but Act 1 stays minimal.
+
+Mods are picked **distinct** within a single monster (no duplicates). Magnitudes are **fixed** per mod (no per-roll variation) in the current iteration — variance comes from which mods land, not from how strong they roll.
+
+### Magic mob spawn rate
+10% of mid-zone spawns are magic; the rest are normal. The threshold spawn (miniboss) is always rare regardless.
 
 ---
 
@@ -462,6 +472,16 @@ The 2× coefficient on movement speed is intentional — boots can roll up to ~3
 
 ### Unlocked nodes
 Every time the player arrives at a node (via any travel mechanic) the destination is appended to the character's `unlockedNodes` set. The character starts with `["city"]` on creation. This set is **append-only** — respawn doesn't clear it, leaving the world a one-time discover-then-fast-travel-back. Wind crystals consume the list to validate jump targets; nodes outside the list are inaccessible to crystals even if they're shown on the map.
+
+### Progression gating
+A connected combat node is **only travel-eligible if the player has completed the upstream zone**. Concretely:
+
+- The graph imposes a partial order: the city's only outgoing edge is `forest_starter`, which is its own gate (no upstream); `forest_profunda` requires `forest_starter` complete; `pantano` requires `forest_profunda`; and so on through the linear chain.
+- City is always travel-eligible — it's the safety hub, no upstream gate.
+- Attempting to travel to a locked node surfaces a toast (`"Complete a zona anterior"`); the map's "you are here" pin stays put.
+- Wind crystals still respect this gate — jumping to a locked node is rejected (regardless of `unlockedNodes` membership).
+
+A zone enters the **Complete** state by killing the miniboss at least once (see Zone states). The threshold counter for the current visit lives on the character document; the Complete set is persistent and per-character.
 
 ### State on the character document
 Four fields capture the player's location on the act map:

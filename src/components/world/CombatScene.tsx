@@ -1,13 +1,24 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { type CSSProperties, useMemo } from "react";
+import Modal from "#/components/Modal";
+import type { MonsterRarity } from "#/game/monsters";
 import { translateMonsterName } from "#/game/world/i18n";
 import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 import HealthGlobe from "./HealthGlobe";
+import MonsterTooltip from "./MonsterTooltip";
 
 const ENEMY_SPRITE_STYLE: CSSProperties = {
 	animation: "fadeIn 400ms ease-out",
+};
+
+// Rarity-tinted nameplate colors mirror the item rarity palette so the
+// player reads "blue = magic, yellow = rare" consistently across UI.
+const RARITY_NAMEPLATE_COLOR: Record<MonsterRarity, string> = {
+	normal: "#ffffff",
+	magic: "#8888ff",
+	rare: "#ffff77",
 };
 
 export type ConsumableKey = "potion" | "teleport" | "wind_crystal";
@@ -15,7 +26,7 @@ export type ConsumableKey = "potion" | "teleport" | "wind_crystal";
 type Props = {
 	zoneName: string;
 	zoneLevel: number;
-	state: "searching" | "engaged" | "victory";
+	state: "searching" | "engaged" | "victory" | "miniboss_victory";
 	enemy: Enemy | null;
 	events: DamageEvent[];
 	playerHp: number;
@@ -39,6 +50,12 @@ type Props = {
 	// Hover bubbles back to the parent so the world's TextLog can describe the
 	// consumable the player is pointing at. Null on mouse leave.
 	onConsumableHover?: (key: ConsumableKey | null) => void;
+	// Zone progression — kills accumulated in this visit and the threshold
+	// at which the miniboss spawns. See CONTEXT.md → Threshold Bar.
+	zoneKills: number;
+	killsToThreshold: number;
+	// Continue-farming choice on the post-miniboss modal.
+	onDismissMinibossModal: () => void;
 };
 
 export default function CombatScene({
@@ -62,9 +79,13 @@ export default function CombatScene({
 	onRetreat,
 	bagCount,
 	onOpenBag,
+	zoneKills,
+	killsToThreshold,
+	onDismissMinibossModal,
 	onConsumableHover,
 }: Props) {
 	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
+	const thresholdPct = Math.min(100, (zoneKills / killsToThreshold) * 100);
 	const enemyEvents = useMemo(
 		() => events.filter((e) => e.target === "enemy"),
 		[events],
@@ -73,9 +94,24 @@ export default function CombatScene({
 		() => events.filter((e) => e.target === "player"),
 		[events],
 	);
+	const nameColor = enemy ? RARITY_NAMEPLATE_COLOR[enemy.rarity] : "#ffffff";
 
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
+			{/* See CONTEXT.md → Threshold Bar. */}
+			<div
+				role="progressbar"
+				aria-label="Zone threshold"
+				aria-valuenow={zoneKills}
+				aria-valuemin={0}
+				aria-valuemax={killsToThreshold}
+				className="h-1.5 w-full bg-white/10"
+			>
+				<div
+					className="h-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 transition-[width] duration-300"
+					style={{ width: `${thresholdPct}%` }}
+				/>
+			</div>
 			{/* Zone label + static zone level (the area's intrinsic difficulty;
 			 * the per-spawn monster level is shown separately on the nameplate). */}
 			<div className="absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60">
@@ -114,7 +150,10 @@ export default function CombatScene({
 			<div className="flex flex-col items-center gap-1 px-6 pt-14">
 				{enemy ? (
 					<>
-						<div className="display-title text-4xl uppercase tracking-[0.15em] text-white">
+						<div
+							className="display-title text-4xl uppercase tracking-[0.15em]"
+							style={{ color: nameColor }}
+						>
 							{translateMonsterName(enemy.def)}
 						</div>
 						<div className="text-lg uppercase tracking-[0.2em] text-white/60">
@@ -134,16 +173,23 @@ export default function CombatScene({
 						</p>
 					)}
 					{enemy && state !== "searching" && (
-						<img
-							key={enemy.def.id}
-							src={enemy.def.sprite}
-							alt={translateMonsterName(enemy.def)}
-							draggable={false}
-							className={`pointer-events-none h-64 w-64 select-none object-contain transition-opacity duration-500 ${
-								state === "victory" ? "opacity-0" : "opacity-100"
-							}`}
-							style={ENEMY_SPRITE_STYLE}
-						/>
+						<div className="group relative">
+							<img
+								key={enemy.def.id}
+								src={enemy.def.sprite}
+								alt={translateMonsterName(enemy.def)}
+								draggable={false}
+								className={`pointer-events-none h-64 w-64 select-none object-contain transition-opacity duration-500 ${
+									state === "victory" ? "opacity-0" : "opacity-100"
+								}`}
+								style={ENEMY_SPRITE_STYLE}
+							/>
+							{enemy.rarity !== "normal" && (
+								<div className="-translate-x-1/2 pointer-events-none absolute top-full left-1/2 z-20 mt-2 hidden group-hover:block">
+									<MonsterTooltip enemy={enemy} />
+								</div>
+							)}
+						</div>
 					)}
 
 					{/* Damage popups stacked over enemy */}
@@ -262,6 +308,39 @@ export default function CombatScene({
 					</button>
 				</div>
 			</div>
+
+			{/* Post-miniboss modal — appears after the victory delay when the
+			 * killed enemy was rare. Continue resumes the farming loop; Retreat
+			 * triggers the standard exit-zone flow. See CONTEXT.md → Zone Miniboss. */}
+			<Modal
+				isOpen={state === "miniboss_victory"}
+				onClose={onDismissMinibossModal}
+				dismissible={false}
+				title={m.miniboss_modal_title()}
+				hideHeaderClose
+			>
+				<div className="flex flex-col items-center gap-4 px-4 py-2">
+					<p className="text-center text-sm text-white/70">
+						{m.miniboss_modal_body()}
+					</p>
+					<div className="flex gap-3">
+						<button
+							type="button"
+							onClick={onDismissMinibossModal}
+							className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+						>
+							{m.miniboss_modal_continue()}
+						</button>
+						<button
+							type="button"
+							onClick={onRetreat}
+							className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+						>
+							{m.miniboss_modal_retreat()}
+						</button>
+					</div>
+				</div>
+			</Modal>
 		</section>
 	);
 }

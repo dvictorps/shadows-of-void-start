@@ -36,6 +36,7 @@ export const ACT_1: Act = {
 			],
 			monsterPool: ["goblin", "macaco", "morcego", "serpente"],
 			level: 2,
+			gatedBy: ["forest_starter"],
 		},
 		{
 			id: "pantano",
@@ -48,6 +49,7 @@ export const ACT_1: Act = {
 			],
 			monsterPool: ["slime", "zumbi"],
 			level: 4,
+			gatedBy: ["forest_profunda"],
 		},
 		{
 			id: "cripta",
@@ -60,6 +62,7 @@ export const ACT_1: Act = {
 			],
 			monsterPool: ["esqueleto", "esqueleto_armadurado", "esqueleto_lanca"],
 			level: 7,
+			gatedBy: ["pantano"],
 		},
 		{
 			id: "castelo",
@@ -72,6 +75,7 @@ export const ACT_1: Act = {
 			],
 			monsterPool: ["vampiro", "lich"],
 			level: 10,
+			gatedBy: ["cripta"],
 		},
 		{
 			id: "fenda_vazio",
@@ -81,6 +85,7 @@ export const ACT_1: Act = {
 			connections: [{ id: "castelo", distance: 4 }],
 			monsterPool: ["olho_do_vazio", "criatura_do_vazio"],
 			level: 14,
+			gatedBy: ["castelo"],
 		},
 	],
 };

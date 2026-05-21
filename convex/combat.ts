@@ -26,7 +26,7 @@ import {
 	POTION_DROP_CHANCE,
 	POTION_HEAL_FRACTION,
 } from "../src/game/combat/constants"
-import { rollDrop } from "../src/game/loot/drops"
+import { rollDrop, rollMinibossDrops } from "../src/game/loot/drops"
 import { findMonster } from "../src/game/monsters/data"
 import { scaleMonsterStats } from "../src/game/monsters/scaling"
 import {
@@ -35,7 +35,7 @@ import {
 } from "../src/game/progression/levels"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { WIND_CRYSTAL_TRAVEL_SECONDS } from "../src/game/combat/constants"
-import { ACT_1, findNode } from "../src/game/world"
+import { ACT_1, findNode, isNodeAccessible } from "../src/game/world"
 import { computeTravelTime } from "../src/game/world/travel"
 import {
 	appendUnique,
@@ -52,8 +52,14 @@ export const recordKill = mutation({
 	args: {
 		characterId: v.id("characters"),
 		monsterId: v.string(),
-		// Server trusts the client-rolled level for now — see docs/security/threat-model.md.
+		// Server trusts the client-rolled level + rarity for now — see
+		// docs/security/threat-model.md.
 		monsterLevel: v.number(),
+		monsterRarity: v.union(
+			v.literal("normal"),
+			v.literal("magic"),
+			v.literal("rare"),
+		),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -85,6 +91,20 @@ export const recordKill = mutation({
 			updates.hpCurrent = stats.maxLife
 		}
 
+		// See CONTEXT.md → Threshold Bar and Zone states.
+		const isMinibossKill = args.monsterRarity === "rare"
+		const currentZoneKills = char.currentZoneKills ?? 0
+		const currentLocation = char.currentLocation ?? "city"
+		if (isMinibossKill) {
+			updates.currentZoneKills = 0
+			const completed = char.completedZones ?? []
+			if (!completed.includes(currentLocation)) {
+				updates.completedZones = [...completed, currentLocation]
+			}
+		} else {
+			updates.currentZoneKills = currentZoneKills + 1
+		}
+
 		// Potion drop — independent of the equipment roll. At the 10-potion cap
 		// the roll is wasted silently (per CONTEXT.md → Potion drops).
 		const currentPotions = char.potions ?? 0
@@ -96,15 +116,20 @@ export const recordKill = mutation({
 
 		await ctx.db.patch(args.characterId, updates)
 
-		// Roll the equipment drop server-side, persist in the zone bag.
+		// Rare minibosses: 2 items with 1 guaranteed Rare per CONTEXT.md →
+		// Loot Pipeline → Drop rates. Other rarities use the standard table.
 		const zoneSession = char.currentZoneSession
 		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []
 		if (zoneSession) {
-			const drop = rollDrop({
-				monsterRarity: "normal",
-				monsterLevel,
-			})
-			if (drop) {
+			const rolledDrops = isMinibossKill
+				? rollMinibossDrops({ monsterLevel })
+				: [
+						rollDrop({
+							monsterRarity: args.monsterRarity,
+							monsterLevel,
+						}),
+					].filter((d): d is NonNullable<typeof d> => d !== null)
+			for (const drop of rolledDrops) {
 				const insertedId = await ctx.db.insert("items", {
 					authUserId: authUser._id,
 					locationKind: "zoneBag",
@@ -246,6 +271,7 @@ export const respawnDead = mutation({
 			hpCurrent: maxHp,
 			xp,
 			currentZoneSession: undefined,
+			currentZoneKills: 0,
 			// Respawn resets you to the city and clears any in-flight travel.
 			currentLocation: "city",
 			travelDestination: undefined,
@@ -287,7 +313,13 @@ export const enterZone = mutation({
 		}
 
 		const zoneSession = newZoneSession()
-		await ctx.db.patch(args.characterId, { currentZoneSession: zoneSession })
+		// Threshold counter resets on every entry — per CONTEXT.md: "fill resets
+		// to 0 every time the player leaves the zone with the miniboss unsummoned".
+		// Boss Deferral isn't implemented yet, so the counter resets unconditionally.
+		await ctx.db.patch(args.characterId, {
+			currentZoneSession: zoneSession,
+			currentZoneKills: 0,
+		})
 		return { zoneSession }
 	},
 })
@@ -325,6 +357,9 @@ export const startTravel = mutation({
 			throw new ConvexError(
 				`Unknown destination node: ${args.destinationNodeId}`,
 			)
+
+		if (!isNodeAccessible(destNode, char.completedZones))
+			throw new ConvexError("zone-locked")
 
 		const classDef = findClassDefinition(char.classId)
 		const equippedItems = await loadEquippedSet(ctx, args.characterId)
@@ -468,6 +503,9 @@ export const useWindCrystal = mutation({
 		const unlocked = char.unlockedNodes ?? ["city"]
 		if (!unlocked.includes(args.destinationNodeId))
 			throw new ConvexError("Destination not yet unlocked")
+
+		if (!isNodeAccessible(destNode, char.completedZones))
+			throw new ConvexError("zone-locked")
 
 		const startedAt = Date.now()
 		const arrivesAt = startedAt + WIND_CRYSTAL_TRAVEL_SECONDS * 1000
