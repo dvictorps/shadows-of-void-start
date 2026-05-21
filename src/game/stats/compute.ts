@@ -1,3 +1,33 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  Stat engine — turns a character + equipped gear into ComputedCharacterStats.
+//  Pure (no React, no Convex); runs on both client and server. The public
+//  entry point is `computeCharacterStats`; everything else is internal.
+//
+//  Sections (grep the headers to jump):
+//    ── Caps + weapon-archetype sets ──                  constants only
+//    ── Accumulator initialisers ──                      blankStats / blankIncreased
+//    ── Apply a single rolled mod ──                     applyModifierValue (the ~40-case switch)
+//    ── Per-element flat damage from gear ──             collectGlobalFlatDamage
+//    ── Apply one equipped item's contributions ──       applyItem, foldGlobalDefenseIncreases
+//    ── Determine combat path ──                         determinePath (attack/spell/unarmed)
+//    ── Build a swing profile from a weapon ──           buildSwing, addGearFlatToElements
+//    ── Base from class + level ──                       applyBase
+//    ── Apply caps and floors ──                         applyCaps (resists 75, block 75, …)
+//    ── Requirements check ──                            requirementsMet (level/str/dex/int)
+//    ── Single non-iterating pass ──                     computeOnce
+//    ── Public: broken-state fixed-point ──              computeCharacterStats  ← entry
+//    ── Derived helpers for the UI panel ──              mitigation %, evasion %, DPS, …
+//    ── Broken state explanation ──                      describeBrokenReasons  ← UI helper
+//
+//  Common tasks:
+//    • Add a new modifier id          →  applyModifierValue switch + types.ts (if a new field is needed)
+//    • Add a stat field on the engine →  blankStats + ComputedCharacterStats in types.ts + the relevant case
+//    • Add a broken-state rule        →  the fixed-point loop inside computeCharacterStats
+//    • Add flat-to-attacks behaviour  →  collectGlobalFlatDamage + addGearFlatToElements
+//    • Change how a swing is damaged  →  see also `damage.ts:rollPlayerSwing`
+//    • Add a UI-only derived stat     →  Derived helpers section at the bottom
+// ─────────────────────────────────────────────────────────────────────────────
+
 import type { CharacterClassDefinition } from "../classes/types";
 import {
 	BASE_CAST_SPEED,
@@ -14,7 +44,7 @@ import type {
 	SwingProfile,
 } from "./types";
 
-// ── Caps ──
+// ── Caps + weapon-archetype sets ──
 
 const RESISTANCE_CAP = 75;
 const BLOCK_CHANCE_CAP = 75;
@@ -36,7 +66,7 @@ const ATTACK_WEAPONS = new Set([
 ]);
 const CASTER_WEAPONS = new Set(["wand", "staff"]);
 
-// ── Mutable accumulator used during a single pass ──
+// ── Accumulator initialisers ──
 
 function blankStats(): ComputedCharacterStats {
 	return {
@@ -86,7 +116,7 @@ function blankIncreased(): IncreasedPools {
 	};
 }
 
-// ── Apply a single rolled mod to the accumulator ──
+// ── Apply a single rolled mod ──
 //
 // The global defense % mods (armorIncrease / evasionIncrease / barrierIncrease)
 // need to be applied AFTER all flat values are summed, so we route them into
@@ -581,7 +611,7 @@ function computeOnce(
 	return stats;
 }
 
-// ── Public: full computation with broken-state fixed-point ──
+// ── Public: broken-state fixed-point ──
 
 export function computeCharacterStats(
 	input: StatEngineInput,

@@ -1,3 +1,22 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  Item lifecycle mutations + queries. The items table is the single source of
+//  truth for item ownership; the character document caches only equip slot
+//  pointers. Transitions: zoneBag → inventory → equipped (and back), plus
+//  permanent discards.
+//
+//  Mutations:
+//    exitZone              ← bag → inventory (kept) / delete (discarded)
+//    pickFromBag           ← single item bag → inventory
+//    discardFromBag        ← permanent delete of a staged drop
+//    discardFromInventory  ← permanent delete of an inventory item
+//    equipItem             ← runs planEquip + requirements check + displacement
+//    unequipItem           ← equipped → inventory (+ auto-displaces orphan quivers)
+//    reorderInventory      ← swap two inventory slots
+//
+//  Queries:
+//    zoneBag, inventory, equipped — by characterId
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { ConvexError, v } from "convex/values"
 import { findClassDefinition } from "../src/game/classes/data"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"

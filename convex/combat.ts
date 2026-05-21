@@ -1,3 +1,24 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  Combat + zone-session mutations. All client-mutable combat state (HP, XP,
+//  zone session, travel) lives here. Drop rolling and XP scaling are
+//  server-authoritative; per-tick combat sim runs on the client.
+//
+//  Mutations in this file:
+//    recordKill            ← XP + drop + potion roll on monster kill
+//    usePotion             ← heal 20% of max HP, decrement count
+//    syncHp                ← periodic HP write-back from the combat loop
+//    enterCity             ← full heal + potion refill
+//    respawnDead           ← softcore: XP penalty + reset to city; hardcore: delete
+//    enterZone             ← issue a new zoneSession, wipe any prior bag
+//    startTravel           ← begin time-gated node transition
+//    arriveAtTravel        ← commit arrival + append to unlockedNodes
+//    useTeleportStone      ← panic return to city (wipes bag, refunds nothing)
+//    useWindCrystal        ← jump to any unlocked node (vendor-only, fixed time)
+//
+//  Trust model: client-driven event triggers (recordKill, syncHp). Layered
+//  hardening is deferred — see docs/security/threat-model.md.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { ConvexError, v } from "convex/values"
 import { findClassDefinition } from "../src/game/classes/data"
 import {
