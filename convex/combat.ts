@@ -5,8 +5,9 @@ import {
 	POTION_DROP_CHANCE,
 	POTION_HEAL_FRACTION,
 } from "../src/game/combat/constants"
-import { rollDrop, rollMonsterLevel } from "../src/game/loot/drops"
+import { rollDrop } from "../src/game/loot/drops"
 import { findMonster } from "../src/game/monsters/data"
+import { scaleMonsterStats } from "../src/game/monsters/scaling"
 import {
 	applyDeathXpPenalty,
 	applyXpGain,
@@ -30,6 +31,8 @@ export const recordKill = mutation({
 	args: {
 		characterId: v.id("characters"),
 		monsterId: v.string(),
+		// Server trusts the client-rolled level for now — see docs/security/threat-model.md.
+		monsterLevel: v.number(),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -39,10 +42,13 @@ export const recordKill = mutation({
 		const monster = findMonster(args.monsterId)
 		if (!monster) throw new ConvexError(`Unknown monster: ${args.monsterId}`)
 
+		const monsterLevel = Math.max(1, Math.floor(args.monsterLevel))
+		const scaled = scaleMonsterStats(monster, monsterLevel)
+
 		const { level, xp, levelsGained } = applyXpGain(
 			char.level,
 			char.xp ?? 0,
-			monster.xpReward,
+			scaled.xpReward,
 		)
 
 		const updates: Partial<Doc<"characters">> = { level, xp }
@@ -73,7 +79,6 @@ export const recordKill = mutation({
 		const zoneSession = char.currentZoneSession
 		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []
 		if (zoneSession) {
-			const monsterLevel = rollMonsterLevel(1) // For MVP all goblins ride zone 1; future: pass zone.level via arg
 			const drop = rollDrop({
 				monsterRarity: "normal",
 				monsterLevel,
@@ -93,7 +98,7 @@ export const recordKill = mutation({
 			}
 		}
 
-		return { xpGained: monster.xpReward, levelsGained, drops, potionDropped }
+		return { xpGained: scaled.xpReward, levelsGained, drops, potionDropped }
 	},
 })
 

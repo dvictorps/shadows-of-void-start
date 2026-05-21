@@ -1,9 +1,16 @@
-/**
- * XP required to advance from `level` to `level + 1`. Linear curve.
- * Level 1→2 costs 100 XP; level 2→3 costs 200; etc.
- */
+// Growth (1.08) is intentionally steeper than the monster XP scaling rate
+// (1.06) so kills-per-level rises with character level. Anchored at 100 XP
+// for L1→L2 to preserve the early-game pace. See CONTEXT.md → "Experience
+// and Levels".
+export const XP_CURVE_BASE = 100;
+export const XP_CURVE_GROWTH = 1.08;
+
 export function xpToNextLevel(level: number): number {
-	return Math.max(1, level) * 100;
+	const clamped = Math.max(1, level);
+	return Math.max(
+		1,
+		Math.floor(XP_CURVE_BASE * XP_CURVE_GROWTH ** (clamped - 1)),
+	);
 }
 
 /**

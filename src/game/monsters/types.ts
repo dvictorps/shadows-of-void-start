@@ -17,7 +17,7 @@ export interface MonsterElementDamage {
 export interface MonsterDefinition {
 	id: string;
 	name: string;
-	emoji: string;
+	sprite: string;
 	baseStats: {
 		hp: number;
 		attackSpeed: number;

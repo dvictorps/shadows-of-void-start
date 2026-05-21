@@ -1,9 +1,14 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useMemo } from "react";
+import { type CSSProperties, useMemo } from "react";
+import { translateMonsterName } from "#/game/world/i18n";
 import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 import HealthGlobe from "./HealthGlobe";
+
+const ENEMY_SPRITE_STYLE: CSSProperties = {
+	animation: "fadeIn 400ms ease-out",
+};
 
 export type ConsumableKey = "potion" | "teleport" | "wind_crystal";
 
@@ -110,7 +115,7 @@ export default function CombatScene({
 				{enemy ? (
 					<>
 						<div className="display-title text-4xl uppercase tracking-[0.15em] text-white">
-							{enemy.def.name}
+							{translateMonsterName(enemy.def)}
 						</div>
 						<div className="text-lg uppercase tracking-[0.2em] text-white/60">
 							Lv {enemy.level}
@@ -121,7 +126,6 @@ export default function CombatScene({
 				)}
 			</div>
 
-			{/* Enemy emoji area with HP bar pinned below the emoji */}
 			<div className="relative flex flex-1 flex-col items-center justify-center gap-4">
 				<div className="relative flex flex-1 items-center justify-center">
 					{state === "searching" && (
@@ -130,15 +134,16 @@ export default function CombatScene({
 						</p>
 					)}
 					{enemy && state !== "searching" && (
-						<div
+						<img
 							key={enemy.def.id}
-							className={`text-7xl transition-opacity duration-500 ${
+							src={enemy.def.sprite}
+							alt={translateMonsterName(enemy.def)}
+							draggable={false}
+							className={`pointer-events-none h-64 w-64 select-none object-contain transition-opacity duration-500 ${
 								state === "victory" ? "opacity-0" : "opacity-100"
 							}`}
-							style={{ animation: "fadeIn 400ms ease-out" }}
-						>
-							{enemy.def.emoji}
-						</div>
+							style={ENEMY_SPRITE_STYLE}
+						/>
 					)}
 
 					{/* Damage popups stacked over enemy */}
@@ -162,7 +167,7 @@ export default function CombatScene({
 				</div>
 
 				{enemy && (
-					<EnemyHpBar current={enemy.currentHp} max={enemy.def.baseStats.hp} />
+					<EnemyHpBar current={enemy.currentHp} max={enemy.scaled.hp} />
 				)}
 			</div>
 
@@ -298,12 +303,12 @@ function WindCrystalCounter({
 function FloatingXp({ amount }: { amount: number }) {
 	return (
 		<motion.span
-			className="display-title pointer-events-none select-none font-bold text-2xl text-yellow-300 tracking-wider"
-			style={{ textShadow: "0 2px 6px rgba(0,0,0,0.95)" }}
-			initial={{ opacity: 0, y: 10 }}
-			animate={{ opacity: [0, 1, 1, 0], y: -30 }}
+			className="pointer-events-none select-none font-bold text-3xl text-yellow-300"
+			style={{ textShadow: "0 2px 4px rgba(0,0,0,0.9)" }}
+			initial={{ opacity: 1, y: 0 }}
+			animate={{ opacity: 0, y: -70 }}
 			exit={{ opacity: 0 }}
-			transition={{ duration: 1.4, ease: "easeOut", times: [0, 0.12, 0.7, 1] }}
+			transition={{ duration: 0.8, ease: "easeOut" }}
 		>
 			+{amount} XP
 		</motion.span>
