@@ -19,6 +19,8 @@ import {
 	findMonster,
 	type MonsterDefinition,
 	type MonsterId,
+	type ScaledMonsterStats,
+	scaleMonsterStats,
 } from "#/game/monsters";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import { pickRandom } from "#/lib/rng";
@@ -34,6 +36,7 @@ export type Enemy = {
 	def: MonsterDefinition;
 	currentHp: number;
 	level: number;
+	scaled: ScaledMonsterStats;
 };
 
 /**
@@ -125,18 +128,18 @@ export function useCombatLoop({
 	const recordKill = useMutation(api.combat.recordKill);
 	const consumePotion = useMutation(api.combat.usePotion);
 
-	// Shared victory resolution. Fires the kill recap synchronously with the
-	// known XP, then patches in the potion-drop result when the server replies.
-	// Used both when the player swing kills and when thorns reflection kills.
+	// Optimistic XP popup mounts immediately; potion drop is patched in once the
+	// server replies. Shared between player-swing kills and thorns-reflect kills.
 	const resolveKill = useCallback(
-		(enemyDef: MonsterDefinition) => {
+		(killed: Enemy) => {
+			const xpGained = killed.scaled.xpReward;
 			stateRef.current = "victory";
-			const xpGained = enemyDef.xpReward;
 			setLastKill({ xp: xpGained, potion: false });
 			setState("victory");
 			recordKill({
 				characterId,
-				monsterId: enemyDef.id,
+				monsterId: killed.def.id,
+				monsterLevel: killed.level,
 			})
 				.then((result) => {
 					if (result.potionDropped) {
@@ -185,13 +188,13 @@ export function useCombatLoop({
 		if (!pick) return;
 		const def = findMonster(pick);
 		if (!def) return;
-		// Monster instance level rolls zoneLevel ± 1 (floored at 1) per spawn,
-		// matching the server's drop-level logic. See CONTEXT.md → "Zone level
-		// and monster instance level".
+		const level = rollMonsterLevel(zoneLevel);
+		const scaled = scaleMonsterStats(def, level);
 		const newEnemy: Enemy = {
 			def,
-			currentHp: def.baseStats.hp,
-			level: rollMonsterLevel(zoneLevel),
+			currentHp: scaled.hp,
+			level,
+			scaled,
 		};
 		enemyRef.current = newEnemy;
 		setEnemy(newEnemy);
@@ -211,7 +214,7 @@ export function useCombatLoop({
 
 	// ── Engaged tick ──
 	const enemyDef = enemy?.def ?? null;
-	const enemyAttackSpeed = enemyDef?.baseStats.attackSpeed ?? 1;
+	const enemyAttackSpeed = enemy?.scaled.attackSpeed ?? 1;
 	const tickRate = stats.tickRate || 1;
 	const hasSwings = stats.swings.length > 0;
 
@@ -310,7 +313,7 @@ export function useCombatLoop({
 					}
 
 					if (newEnemyHp <= 0) {
-						resolveKill(currentEnemy.def);
+						resolveKill(currentEnemy);
 						return;
 					}
 				} else {
@@ -325,8 +328,9 @@ export function useCombatLoop({
 
 			if (enemySwing) {
 				const attack = rollEnemyAttack({
-					def: currentEnemy.def,
 					enemyLevel: currentEnemy.level,
+					physicalDamage: currentEnemy.scaled.physicalDamage,
+					elementalDamage: currentEnemy.scaled.elementalDamage,
 					defender: {
 						armor: stats.armor,
 						evasion: stats.evasion,
@@ -382,7 +386,7 @@ export function useCombatLoop({
 						isThorns: true,
 					});
 					if (enemyAfter <= 0) {
-						resolveKill(currentEnemy.def);
+						resolveKill(currentEnemy);
 					}
 				}
 			}

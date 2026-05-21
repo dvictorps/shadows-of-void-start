@@ -289,7 +289,9 @@ Future skills will plug in as additional active controls; these three are the on
 
 ## Experience and Levels
 
-- The level cap is **100**. Linear XP curve (the cost to gain a level scales linearly with level number).
+- The level cap is **100**.
+- **Geometric XP curve**: `xpToNextLevel(L) = 100 × 1.08^(L-1)`. L1→L2 costs 100 XP; L50→L51 costs ~4 342; L99→L100 costs ~203 681. Anchored at 100 to preserve the early-game pace. The 1.08 growth rate is **steeper than the monster XP scaling rate of 1.06** (see "Monster stat scaling"), so kills-per-level rises as the character climbs. Concretely, a Warrior killing only Goblins (baseXp 5) needs roughly **20 kills at L1, ~50 at L50, ~127 at L100**.
+- The geometric cost curve is intentional: a linear curve combined with geometric monster XP rewards would make endgame leveling trivial (kills-per-level *falling* toward the cap), which is the inverse of the desired "leveling feels like real progress" pacing. The growth gap (1.08 / 1.06 = ~1.019 per level, ~6× over 99 levels) is calibrated to feel like an ARPG-lite — challenging without becoming a PoE-style hundreds-of-hours grind, which we lack the per-zone mob density to support.
 - **Act 1 carries the character to roughly level 15.** Balance will be refined as later acts come online.
 - See **Death** for the XP-loss-on-death rule.
 
@@ -420,13 +422,28 @@ Hardcore is a **per-character flag** chosen at creation and cannot be toggled af
 - **Act bosses** — handcrafted; their modifiers and behavior are specified per boss, not rolled.
 
 ### Mob configuration
-Mobs live in **game data**, not the database. Each zone declares a **pool of eligible mobs**; combat sessions roll spawns from that pool. Mob templates include base stats (HP, attack speed, damage, defenses) and any flavor-specific behavior; modifiers are layered on top for minibosses.
+Mobs live in **game data**, not the database. Each zone declares a **pool of eligible mobs**; combat sessions roll spawns from that pool. Mob templates declare **level-1 base stats** (HP, attack speed, damage, defenses) and any flavor-specific behavior; the instance-level scaler (see "Monster stat scaling") inflates the power stats at spawn time, and modifiers are layered on top for minibosses.
 
 ### Monster damage types
-Monsters express damage with the **same shape as the player's swing**: `physicalDamage: {min, max}` (defaults to `{min: 0, max: 0}`) plus `elementalDamage: ElementContribution[]` (defaults to `[]`). The per-hit roll mirrors `rollPlayerSwing`: roll a flat amount per type, then mitigate physical via armor and each element via its resistance. A monster can be **single-type** (Goblin = `{physicalDamage: {min: 8, max: 12}, elementalDamage: []}`), **single-element** (Fire Imp = `{physicalDamage: {min: 0, max: 0}, elementalDamage: [{element: "Fire", min: 8, max: 12}]}`), or **hybrid** (Hellhound = both `physicalDamage` and one or more `elementalDamage` entries). The combat engine handles all three without branching — the damage types just sum.
+Monsters express damage with the **same shape as the player's swing**: `physicalDamage: {min, max}` (defaults to `{min: 0, max: 0}`) plus `elementalDamage: ElementContribution[]` (defaults to `[]`). The per-hit roll mirrors `rollPlayerSwing`: roll a flat amount per type, then mitigate physical via armor and each element via its resistance. A monster can be **single-type** (Goblin = `{physicalDamage: {min: 8, max: 12}, elementalDamage: []}`), **single-element** (Lich = `{physicalDamage: {min: 0, max: 0}, elementalDamage: [{element: "Cold", min: 12, max: 16}]}`), or **hybrid** (Vampire = both `physicalDamage` and one or more `elementalDamage` entries). The combat engine handles all three without branching — the damage types just sum.
 
 ### Zone level and monster instance level
-Each combat **zone node** declares its `level: number`. When a mob spawns, the server rolls its **instance level** as `zoneLevel + random(-1, 0, +1)` — the same monster template scales slightly so the zone still feels varied. The instance level is what determines drop **item level** (ilvl) and gates equipment types that can drop (see Loot Pipeline → Drop pool).
+Each combat **zone node** declares its `level: number`. When a mob spawns, the server rolls its **instance level** as `zoneLevel + random(-1, 0, +1)` — the same monster template scales slightly so the zone still feels varied. The instance level is what determines drop **item level** (ilvl) and gates equipment types that can drop (see Loot Pipeline → Drop pool). It is also the multiplier used by the stat scaler below.
+
+### Monster stat scaling
+A monster's template stats are declared as **level-1 baselines**. At spawn time, a pure scaler multiplies the power stats by a **geometric factor** of the monster's instance level:
+
+```
+scaleFactor(L) = 1.06 ^ (L - 1)
+```
+
+- **HP**, **physical damage** (min/max), **elemental damage** (min/max), and **XP reward** are each multiplied by `scaleFactor(instanceLevel)`. So a Goblin defined as `{hp: 10, physicalDamage: {min: 8, max: 12}, xpReward: 5}` at instance level 50 effectively has ~174 HP, ~139–209 physical damage per swing, and rewards ~87 XP. At instance level 100, the factor is `1.06^99 ≈ 320`: ~3 201 HP, ~2 561–3 841 damage, ~1 600 XP.
+- **Attack speed** does **not** scale — it's a "feel" stat that anchors each monster's archetype (slow brute vs. fast assassin). A level-100 Goblin still swings 1.2 times/sec.
+- **Defenses** (armor, evasion, resistances) stay at the template baseline (zero for all normal mobs today). Rare/miniboss modifiers layer on top of the scaled base.
+
+The scaler runs at spawn time on the client (combat sim reads the scaled stats) and at kill time on the server (XP credit, drop ilvl). The client passes the spawn level to the server in `recordKill` so both agree on the effective stats. Per-monster identity (tank, swarmer, caster) is expressed by the **shape of the level-1 baseline** (high HP / low damage / slow AS for a tank, low HP / high damage / fast AS for a glass cannon), not by per-monster scaling curves. A single `g = 1.06` keeps every monster's curve predictable.
+
+The curve is intentionally **geometric** because player power grows multiplicatively (gear stacks `% increased` pools, flat damage from rings, crit multipliers). A linear `× level` curve was prototyped but rejected: it would make endgame monsters trivial against gear-scaled player damage. Geometric scaling mirrors how PoE/Last Epoch/D3 handle area-level monster stats — they all use exponential curves with similar growth rates (~1.05–1.08 per level). XP scaling at 1.06 is paired with an even-steeper **1.08 XP cost curve** (see "Experience and Levels"), so kills-per-level *grows* with the character: ~20 Goblins at L1, ~50 at L50, ~127 at L100. The cost-vs-reward gap is the lever that makes leveling feel like real progress.
 
 ---
 

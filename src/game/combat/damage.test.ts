@@ -175,20 +175,9 @@ describe("rollPlayerSwing", () => {
 describe("rollEnemyAttack", () => {
 	it("returns physical damage with no miss when defender has 0 evasion", () => {
 		const result = rollEnemyAttack({
-			def: {
-				id: "test",
-				name: "test",
-				emoji: "x",
-				baseStats: {
-					hp: 1,
-					attackSpeed: 1,
-					physicalDamage: { min: 10, max: 10 },
-					elementalDamage: [],
-				},
-				xpReward: 0,
-				allowedRarities: ["normal"],
-			},
 			enemyLevel: 1,
+			physicalDamage: { min: 10, max: 10 },
+			elementalDamage: [],
 			defender: { ...dummyDefender, evasion: 0 },
 			random: () => 0.0,
 		});
@@ -199,20 +188,9 @@ describe("rollEnemyAttack", () => {
 
 	it("armor reduces enemy physical hits", () => {
 		const result = rollEnemyAttack({
-			def: {
-				id: "test",
-				name: "test",
-				emoji: "x",
-				baseStats: {
-					hp: 1,
-					attackSpeed: 1,
-					physicalDamage: { min: 100, max: 100 },
-					elementalDamage: [],
-				},
-				xpReward: 0,
-				allowedRarities: ["normal"],
-			},
 			enemyLevel: 10,
+			physicalDamage: { min: 100, max: 100 },
+			elementalDamage: [],
 			defender: { ...dummyDefender, armor: 100, level: 10 },
 			random: () => 0.0,
 		});
@@ -221,20 +199,9 @@ describe("rollEnemyAttack", () => {
 
 	it("applies per-element resistance to elemental damage", () => {
 		const result = rollEnemyAttack({
-			def: {
-				id: "test",
-				name: "test",
-				emoji: "x",
-				baseStats: {
-					hp: 1,
-					attackSpeed: 1,
-					physicalDamage: { min: 0, max: 0 },
-					elementalDamage: [{ element: "Fire", min: 100, max: 100 }],
-				},
-				xpReward: 0,
-				allowedRarities: ["normal"],
-			},
 			enemyLevel: 1,
+			physicalDamage: { min: 0, max: 0 },
+			elementalDamage: [{ element: "Fire", min: 100, max: 100 }],
 			defender: {
 				...dummyDefender,
 				resistances: { cold: 0, fire: 50, lightning: 0, void: 0 },
@@ -249,20 +216,9 @@ describe("rollEnemyAttack", () => {
 
 	it("sums hybrid physical + elemental damage", () => {
 		const result = rollEnemyAttack({
-			def: {
-				id: "test",
-				name: "test",
-				emoji: "x",
-				baseStats: {
-					hp: 1,
-					attackSpeed: 1,
-					physicalDamage: { min: 20, max: 20 },
-					elementalDamage: [{ element: "Cold", min: 30, max: 30 }],
-				},
-				xpReward: 0,
-				allowedRarities: ["normal"],
-			},
 			enemyLevel: 1,
+			physicalDamage: { min: 20, max: 20 },
+			elementalDamage: [{ element: "Cold", min: 30, max: 30 }],
 			defender: { ...dummyDefender },
 			random: () => 0.0,
 		});
@@ -273,20 +229,9 @@ describe("rollEnemyAttack", () => {
 
 	it("rolls block when defender carries blockChance — blocked hit deals zero damage", () => {
 		const result = rollEnemyAttack({
-			def: {
-				id: "test",
-				name: "test",
-				emoji: "x",
-				baseStats: {
-					hp: 1,
-					attackSpeed: 1,
-					physicalDamage: { min: 50, max: 50 },
-					elementalDamage: [],
-				},
-				xpReward: 0,
-				allowedRarities: ["normal"],
-			},
 			enemyLevel: 1,
+			physicalDamage: { min: 50, max: 50 },
+			elementalDamage: [],
 			defender: { ...dummyDefender, blockChance: 75 },
 			// First call (hit check) succeeds; second call (block roll: 0 < 75) blocks.
 			random: (() => {
@@ -304,20 +249,9 @@ describe("rollEnemyAttack", () => {
 
 	it("does not block when block roll exceeds blockChance", () => {
 		const result = rollEnemyAttack({
-			def: {
-				id: "test",
-				name: "test",
-				emoji: "x",
-				baseStats: {
-					hp: 1,
-					attackSpeed: 1,
-					physicalDamage: { min: 50, max: 50 },
-					elementalDamage: [],
-				},
-				xpReward: 0,
-				allowedRarities: ["normal"],
-			},
 			enemyLevel: 1,
+			physicalDamage: { min: 50, max: 50 },
+			elementalDamage: [],
 			defender: { ...dummyDefender, blockChance: 25 },
 			// Hit succeeds; block roll: 0.99 * 100 = 99 ≥ 25 → no block.
 			random: (() => {

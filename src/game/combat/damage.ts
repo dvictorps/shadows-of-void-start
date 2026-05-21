@@ -1,5 +1,5 @@
 import { randInt } from "#/lib/rng";
-import type { MonsterDefinition } from "../monsters/types";
+import type { MonsterElementDamage } from "../monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "../stats/types";
 
 const CRIT_CHANCE_FLOOR = 5;
@@ -184,8 +184,11 @@ export function rollPlayerSwing({
 // ── Enemy attack ──
 
 interface EnemyAttackArgs {
-	def: MonsterDefinition;
 	enemyLevel: number;
+	// Pre-scaled by `scaleMonsterStats` at spawn — damage.ts stays decoupled
+	// from MonsterDefinition and the scaling curve.
+	physicalDamage: { min: number; max: number };
+	elementalDamage: readonly MonsterElementDamage[];
 	defender: DefenderProfile;
 	random?: () => number;
 }
@@ -197,8 +200,9 @@ interface EnemyAttackArgs {
  * Defender's evasion gates the hit. No crit on enemies in MVP.
  */
 export function rollEnemyAttack({
-	def,
 	enemyLevel,
+	physicalDamage,
+	elementalDamage,
 	defender,
 	random = Math.random,
 }: EnemyAttackArgs): RolledSwing {
@@ -229,10 +233,9 @@ export function rollEnemyAttack({
 		};
 	}
 
-	const physRange = def.baseStats.physicalDamage;
 	const physRaw = randInt(
-		Math.max(0, physRange.min),
-		Math.max(physRange.min, physRange.max),
+		Math.max(0, physicalDamage.min),
+		Math.max(physicalDamage.min, physicalDamage.max),
 	);
 	const physFinal = applyArmor(physRaw, defender.armor, enemyLevel);
 
@@ -242,19 +245,28 @@ export function rollEnemyAttack({
 		Lightning: 0,
 		Void: 0,
 	};
-	for (const e of def.baseStats.elementalDamage) {
+	for (const e of elementalDamage) {
 		elementRolls[e.element] += randInt(
 			Math.max(0, e.min),
 			Math.max(e.min, e.max),
 		);
 	}
-	const coldFinal = applyResistance(elementRolls.Cold, defender.resistances.cold);
-	const fireFinal = applyResistance(elementRolls.Fire, defender.resistances.fire);
+	const coldFinal = applyResistance(
+		elementRolls.Cold,
+		defender.resistances.cold,
+	);
+	const fireFinal = applyResistance(
+		elementRolls.Fire,
+		defender.resistances.fire,
+	);
 	const lightningFinal = applyResistance(
 		elementRolls.Lightning,
 		defender.resistances.lightning,
 	);
-	const voidFinal = applyResistance(elementRolls.Void, defender.resistances.void);
+	const voidFinal = applyResistance(
+		elementRolls.Void,
+		defender.resistances.void,
+	);
 
 	const breakdown: DamageBreakdown = {
 		physical: Math.max(0, Math.floor(physFinal)),
