@@ -8,7 +8,6 @@ import HealthGlobe from "./HealthGlobe";
 
 const ENEMY_SPRITE_STYLE: CSSProperties = {
 	animation: "fadeIn 400ms ease-out",
-	imageRendering: "pixelated",
 };
 
 export type ConsumableKey = "potion" | "teleport" | "wind_crystal";
@@ -140,7 +139,7 @@ export default function CombatScene({
 							src={enemy.def.sprite}
 							alt={translateMonsterName(enemy.def)}
 							draggable={false}
-							className={`pointer-events-none h-32 w-32 select-none object-contain transition-opacity duration-500 ${
+							className={`pointer-events-none h-64 w-64 select-none object-contain transition-opacity duration-500 ${
 								state === "victory" ? "opacity-0" : "opacity-100"
 							}`}
 							style={ENEMY_SPRITE_STYLE}

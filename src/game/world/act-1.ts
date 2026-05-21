@@ -22,7 +22,7 @@ export const ACT_1: Act = {
 				{ id: "city", distance: 3 },
 				{ id: "forest_profunda", distance: 4 },
 			],
-			monsterPool: ["goblin"],
+			monsterPool: ["goblin", "macaco", "morcego", "serpente"],
 			level: 1,
 		},
 		{
@@ -34,7 +34,7 @@ export const ACT_1: Act = {
 				{ id: "forest_starter", distance: 4 },
 				{ id: "pantano", distance: 4 },
 			],
-			monsterPool: ["goblin", "macaco", "morcego"],
+			monsterPool: ["goblin", "macaco", "morcego", "serpente"],
 			level: 2,
 		},
 		{

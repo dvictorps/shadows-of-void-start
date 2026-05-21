@@ -53,6 +53,19 @@ export const MONSTERS = {
 		xpReward: 4,
 		allowedRarities: ["normal"],
 	},
+	serpente: {
+		id: "serpente",
+		name: "Serpente",
+		sprite: "/assets/sprites/criaturas/serpente.png",
+		baseStats: {
+			hp: 8,
+			attackSpeed: 1.4,
+			physicalDamage: { min: 7, max: 10 },
+			elementalDamage: [],
+		},
+		xpReward: 6,
+		allowedRarities: ["normal"],
+	},
 	esqueleto: {
 		id: "esqueleto",
 		name: "Esqueleto",

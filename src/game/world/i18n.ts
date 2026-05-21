@@ -50,6 +50,7 @@ const MONSTER_I18N: Record<MonsterId, () => string> = {
 	slime: m.monster_slime,
 	macaco: m.monster_macaco,
 	morcego: m.monster_morcego,
+	serpente: m.monster_serpente,
 	esqueleto: m.monster_esqueleto,
 	esqueleto_armadurado: m.monster_esqueleto_armadurado,
 	esqueleto_lanca: m.monster_esqueleto_lanca,
