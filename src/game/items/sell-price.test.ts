@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { GeneratedItem, RolledMod } from "./types";
 import { computeSellPrice } from "./sell-price";
+import type { GeneratedItem, RolledMod } from "./types";
 
 function mod(tier: number): RolledMod {
 	return {

@@ -241,9 +241,7 @@ export default function InventoryModal({
 			// Invariant: main hand empty → off-hand cannot hold a weapon.
 			// Promote off-hand weapon into the main-hand slot.
 			if (args.slot === "weapon") {
-				const offhand = newEquipped.find(
-					(it) => it.equippedSlot === "offhand",
-				);
+				const offhand = newEquipped.find((it) => it.equippedSlot === "offhand");
 				if (offhand && isWeapon(offhand.data)) {
 					newEquipped = newEquipped.map((it) =>
 						it._id === offhand._id
@@ -288,6 +286,8 @@ export default function InventoryModal({
 		}
 		return map;
 	}, [equippedItems]);
+
+	const mainHandWeaponType = equippedBySlot.get("weapon")?.data.weaponType;
 
 	const inventory = inventoryItems;
 
@@ -489,7 +489,12 @@ export default function InventoryModal({
 									: false;
 								const reasons =
 									broken && item
-										? describeBrokenReasons(item.data, stats, characterLevel)
+										? describeBrokenReasons(
+												item.data,
+												stats,
+												characterLevel,
+												mainHandWeaponType,
+											)
 										: undefined;
 								return (
 									<EquipmentDroppable

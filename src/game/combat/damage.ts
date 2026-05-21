@@ -128,11 +128,23 @@ export function rollPlayerSwing({
 		pathSpecific;
 
 	const phys = physBase * (1 + physIncreased / 100);
-	const cold = elementRolls.Cold * (1 + elementBonus(inc.cold) / 100);
-	const fire = elementRolls.Fire * (1 + elementBonus(inc.fire) / 100);
-	const lightning =
+	let cold = elementRolls.Cold * (1 + elementBonus(inc.cold) / 100);
+	let fire = elementRolls.Fire * (1 + elementBonus(inc.fire) / 100);
+	let lightning =
 		elementRolls.Lightning * (1 + elementBonus(inc.lightning) / 100);
-	const voidDmg = elementRolls.Void * (1 + elementBonus(inc.void) / 100);
+	let voidDmg = elementRolls.Void * (1 + elementBonus(inc.void) / 100);
+
+	// See CONTEXT.md → "Gain as Extra Elemental".
+	if (isSpell) {
+		const gain = stats.gainAsExtraSpell;
+		if (gain.cold > 0 || gain.fire > 0 || gain.lightning > 0 || gain.void > 0) {
+			const spellTotal = phys + cold + fire + lightning + voidDmg;
+			cold += spellTotal * (gain.cold / 100);
+			fire += spellTotal * (gain.fire / 100);
+			lightning += spellTotal * (gain.lightning / 100);
+			voidDmg += spellTotal * (gain.void / 100);
+		}
+	}
 
 	// 3. Crit roll — use the swinging weapon's base crit + global multiplier.
 	const finalCrit = clamp(

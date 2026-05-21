@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values"
 import { findClassDefinition } from "../src/game/classes/data"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
-import { isWeapon, planEquip } from "../src/game/items/equipment"
+import { isBow, isQuiver, isWeapon, planEquip } from "../src/game/items/equipment"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, narrowEquippedSlot } from "../src/game/stats/types"
 import {
@@ -313,11 +313,20 @@ export const unequipItem = mutation({
 		const item = equipped.find((it) => it.equippedSlot === args.slot)
 		if (!item) throw new ConvexError("Slot is empty")
 
+		// Bow leaving the main hand orphans any quiver in the off-hand. Capture
+		// it now so we displace it to inventory in the same transaction.
+		const orphanQuiver =
+			args.slot === "weapon" && isBow(item.data)
+				? equipped.find(
+						(it) => it.equippedSlot === "offhand" && isQuiver(it.data),
+					)
+				: undefined
+
 		// Invariant: if main hand is empty, off-hand cannot hold a weapon.
 		// Capture the off-hand weapon now, before any patches, so the promotion
 		// below operates on a clean pre-mutation snapshot.
 		const offhandToPromote =
-			args.slot === "weapon"
+			args.slot === "weapon" && !orphanQuiver
 				? equipped.find(
 						(it) => it.equippedSlot === "offhand" && isWeapon(it.data),
 					)
@@ -327,7 +336,8 @@ export const unequipItem = mutation({
 			ctx,
 			args.characterId,
 		)
-		if (used + 1 > INVENTORY_MAX_SLOTS) {
+		const slotsNeeded = 1 + (orphanQuiver ? 1 : 0)
+		if (used + slotsNeeded > INVENTORY_MAX_SLOTS) {
 			throw new ConvexError("Inventory full — free a slot first")
 		}
 		await ctx.db.patch(item._id, {
@@ -336,7 +346,13 @@ export const unequipItem = mutation({
 			inventorySlot: nextFreeSlot(),
 		})
 
-		if (offhandToPromote) {
+		if (orphanQuiver) {
+			await ctx.db.patch(orphanQuiver._id, {
+				locationKind: "inventory" as const,
+				equippedSlot: undefined,
+				inventorySlot: nextFreeSlot(),
+			})
+		} else if (offhandToPromote) {
 			await ctx.db.patch(offhandToPromote._id, {
 				equippedSlot: "weapon" as const,
 			})

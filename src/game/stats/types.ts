@@ -134,6 +134,13 @@ export interface ComputedCharacterStats {
 	lifeLeechPercent: number;
 	magicFind: number;
 
+	gainAsExtraSpell: {
+		cold: number;
+		fire: number;
+		lightning: number;
+		void: number;
+	};
+
 	/** Ids of equipped items that failed the requirement check. */
 	brokenItemIds: Set<string>;
 }

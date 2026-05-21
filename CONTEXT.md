@@ -556,18 +556,33 @@ Defensive identity. Primarily roll:
 
 **Caster armor exception:** helmet and chestplate **with a silk base** can roll `+% Spell Damage`. This is the only offensive mod that armor receives. It mirrors PoE energy-shield gear and preserves the caster fantasy without giving martial armor offensive rolls. Boots are excluded — they are defense + utility (movement speed) and never offensive.
 
-### Off-hand (`offhand`)
-A flexible slot that accepts shields **or** a second weapon (dual-wielding). The slot's contents drive distinct combat behaviour:
+### Off-hand (`offhand` slot)
+A flexible slot. Four kinds of items can occupy it, each driving distinct behaviour:
 
-**Shield in off-hand** — defensive identity, light hybrid potential. Rolls:
-- Local defense (same resolution as armor)
-- Block chance
+**Shield** (`equipmentType: "offhand"`) — defensive identity, light hybrid potential. Rolls:
+- Local defense (same resolution as armor — armorType determines armor/evasion/barrier)
+- Block chance (only off-hand kind that does)
 - Thorns
 - Defensive utility
 
 The shield does not swing — it adds its stats to the character's totals and that's it.
 
-**Weapon in off-hand (dual-wielding)** — see "Dual-wielding" below.
+**Off-hand weapon (dual-wielding)** — see "Dual-wielding" below.
+
+**Tome** (`equipmentType: "tome"`) — caster off-hand. Silk-base only (contributes barrier). **The only off-hand without block chance**, by design. Mod pool focused on spell amplification:
+- Local barrier (flat + %), spell damage %, cast speed %, mana flat + regen
+- Resistances, intelligence, magic find, crit chance / multi
+- A **tome-exclusive** family: `+X% of Spell Damage as Extra Cold / Fire / Lightning / Void Damage` (see "Gain as Extra Elemental" below)
+- Universal implicit: `+X% increased Spell Damage`
+- Tome rolls **no life flat or regen** — barrier-only identity. Differentiates from silk armor (which rolls both).
+
+**Quiver** (`equipmentType: "quiver"`) — bow-bound off-hand. Mod pool focused on attack amplification:
+- Flat physical damage to attacks, flat elemental (per element) damage to attacks (global versions — see Modifier Categories)
+- Attack speed, crit chance, crit multi, accuracy
+- Life flat, life-on-hit, mana-on-hit, resistances, dexterity, magic find
+- Universal implicit: `+X% increased Attack Speed`
+- Quiver has **no defensive base stats** — it's a pure damage / utility off-hand.
+- **Equip restriction**: the main hand must hold a `bow`. See "Bow + Quiver" rule below.
 
 ### Dual-wielding
 A second one-handed weapon may go in the off-hand slot. When both hands hold a weapon, the character is **dual-wielding** and the off-hand contributes its own swings on top of the main hand's.
@@ -575,9 +590,11 @@ A second one-handed weapon may go in the off-hand slot. When both hands hold a w
 **Slot eligibility**:
 - One-handed attack weapons (`sword`, `dagger`, `axe`, `mace`) can occupy main hand **or** off-hand.
 - One-handed caster (`wand`) can occupy main hand **or** off-hand.
-- Two-handed weapons (`greatsword`, `twoHandedAxe`, `bow`, `staff`) occupy main hand **and block the off-hand slot** — equipping a 2H weapon while an off-hand item is equipped auto-unequips the off-hand back to inventory.
-- Shields are off-hand only.
-- **If the main hand is empty, the off-hand cannot hold a weapon.** Unequipping the main hand while the off-hand holds a weapon promotes the off-hand into the main-hand slot (the off-hand slot then becomes empty). Symmetric to the 2H rule above. Shields stay in the off-hand when the main hand is empty — a shield is defensive only and can't be promoted.
+- Two-handed weapons (`greatsword`, `twoHandedAxe`, `staff`) occupy main hand **and block the off-hand slot** — equipping a 2H weapon while an off-hand item is equipped auto-unequips the off-hand back to inventory.
+- **Bow is the exception**: 2H, blocks shields/tomes/off-hand weapons, but **accepts a quiver** in the off-hand (see "Bow + Quiver" below).
+- Shields and tomes are off-hand only (never main hand).
+- Quivers are off-hand only AND require a bow in main hand.
+- **If the main hand is empty, the off-hand cannot hold a weapon.** Unequipping the main hand while the off-hand holds a weapon promotes the off-hand into the main-hand slot (the off-hand slot then becomes empty). Symmetric to the 2H rule above. Shields and tomes stay in the off-hand when the main hand is empty — neither swings, so neither can be promoted. **A quiver does not stay**: unequipping the bow main hand auto-unequips the quiver to inventory (see "Bow + Quiver").
 
 **Same-archetype rule**: dual-wielding requires both weapons to share archetype. Attack 1H + attack 1H is allowed (sword + dagger, axe + sword, etc.). Caster 1H + caster 1H is allowed (wand + wand — the only caster combination). **Mixed archetype is rejected** (no sword + wand). This keeps the combat tick model coherent — one path (attack or spell) active at a time.
 
@@ -590,6 +607,18 @@ A second one-handed weapon may go in the off-hand slot. When both hands hold a w
 **Attack dual-wielding implicits** (attack-1H + attack-1H only): **+10% attack speed** (applied as a more multiplier on top of the averaged base) and **+10% block chance** (additive to `blockChance`, still bound by the 75% block cap). Wand+wand does not receive either buff.
 
 The trade-off vs shield: shield offers higher block ceilings, thorns rolls, and defensive stats from a dedicated slot; attack dual-wielding offers a second weapon's local mods (flat damage, local AS/crit) plus the modest +10% AS / +10% block implicits.
+
+### Bow + Quiver
+Bow is the only 2H weapon that **accepts a quiver in the off-hand**. The other 2H weapons (greatsword, twoHandedAxe, staff) keep the standard "2H blocks off-hand" rule. This mirrors PoE's bow + quiver pairing.
+
+Quiver is **bow-bound**: it can only contribute stats while a bow is in the main hand. The rule is enforced two ways:
+
+- **Equip-time enforcement (planEquip)**: violating the rule auto-unequips the conflicting item to inventory.
+  - Equipping a quiver while main hand isn't a bow → rejected unless the player also equips a bow in the same action (manual sequence: equip bow first, then quiver).
+  - Equipping a shield/tome/off-hand weapon to off-hand while bow is in main hand → displaces the bow (the bow can't coexist with non-quiver off-hands). The shield/tome/weapon wins; bow goes to inventory.
+  - Equipping a non-bow weapon to main hand while quiver is in off-hand → both the old main and the now-orphan quiver are displaced to inventory.
+  - Unequipping the bow while quiver is in off-hand → quiver also goes to inventory (orphan auto-cleanup).
+- **Broken-state safety net**: if a quiver ever ends up equipped without a bow in main hand (data inconsistency, dev tools, future bug), the stat engine marks it broken — it contributes zero stats until the player equips a bow. Same semantics as attribute-requirement broken-state.
 
 ---
 
@@ -656,17 +685,29 @@ A short reference for what each category contains, for grilling against the slot
 | Category | Examples | Typical slots |
 |---|---|---|
 | Local attack | physical flat/%, attack speed, crit chance | Attack weapons only |
-| Local defense | flat defense, % defense | Armor, shields |
+| Local defense | flat defense, % defense | Armor, shields, tomes |
 | Spell damage flat | `+X Fire Damage to Spells` | Caster weapons only |
-| Global damage % | `+% Fire Damage`, `+% Spell Damage` | Weapons, jewelry, gloves (some); helmet/chestplate for spell damage on silk only |
-| Global damage flat | `+X Physical Damage to Attacks` | Ring, amulet, gloves (never belt) |
-| Accuracy | flat accuracy | Attack weapons, ring, amulet, gloves, helmet |
-| Crit multi (flat-additive %) | `+X% Critical Strike Multiplier` | Weapons, ring, amulet, gloves |
-| Life / mana | flat, regen | Armor, jewelry; mana also on caster weapons |
-| Resistances | cold/fire/lightning/void | Armor, jewelry |
-| Attributes | str/dex/int | Armor, jewelry |
+| Global damage % | `+% Fire Damage`, `+% Spell Damage` | Weapons, jewelry, gloves (some); silk helmet/chestplate + tomes for spell damage |
+| Global damage flat | `+X Physical Damage to Attacks` | Ring, amulet, gloves, quiver (never belt) |
+| Global elemental flat to attacks | `+X Fire Damage to Attacks` | Ring, amulet, quiver |
+| Gain as extra elemental | `+X% of Spell Damage as Extra Cold Damage` | Tomes only |
+| Accuracy | flat accuracy | Attack weapons, ring, amulet, gloves, helmet, quiver |
+| Crit multi (flat-additive %) | `+X% Critical Strike Multiplier` | Weapons, ring, amulet, gloves, tomes, quivers |
+| Life / mana | flat, regen | Armor, jewelry; mana also on caster weapons and tomes; quiver rolls life flat + life-on-hit + mana-on-hit |
+| Resistances | cold/fire/lightning/void | Armor, jewelry, tomes, quivers |
+| Attributes | str/dex/int | Armor, jewelry; tomes (int), quivers (dex) |
 | Utility | movement speed, stun duration, reduced attribute requirements | Boots, gloves, belt, armor (varies per mod) |
-| Magic find | item rarity (prefix + suffix) | Every slot except weapons (armor, jewelry, offhand) |
+| Magic find | item rarity (prefix + suffix) | Every slot except weapons (armor, jewelry, offhand kinds — shield, tome, quiver) |
+
+### Gain as Extra Elemental (tome-exclusive family)
+
+A new modifier family unique to tomes: `+X% of Spell Damage as Extra <Element> Damage`, one mod per element (Cold, Fire, Lightning, Void). Multiple may roll on the same tome.
+
+**Math.** After the spell-path swing rolls its base spell damage per element and applies the `increased` pool, each `gainAsExtra` mod adds a sibling damage chunk: `baseSpellDamageTotal × (X / 100)` is added to the matching element's damage **before mitigation**. The converted chunk is then mitigated by the target's resistance for that element (so a Fire-gain bonus is reduced by fire resistance, regardless of which source it converted from).
+
+**Stacking.** Stacks additively per element across mods (two `tomeGainAsExtraFire` rolls of 5% and 7% → 12% of spell damage added as fire). Cross-element gains don't interact (a Fire-gain mod and a Cold-gain mod produce independent fire and cold chunks).
+
+**Why tome-only.** It mirrors how `+X Cold Damage to Spells` is staff/wand-exclusive — each item category gets one signature damage-source mechanic. Tome's mechanic scales with the player's existing spell damage (a multiplicative-feel lever), while wand/staff flat damage adds raw numbers (an additive baseline). The two play differently and stack cleanly.
 
 ---
 
@@ -729,9 +770,12 @@ Conditions that must always hold. If you find code that violates these, file it 
 2. **Belt never rolls flat damage of any kind.** Flat physical, flat elemental to attacks, flat spell damage: none. Damage % (including crit chance % and crit multi %) is fine.
 3. **Global defense % matches the base.** Armor% on plate, Evasion% on leather, Barrier% on silk. Mismatched rolls don't happen.
 4. **Spell damage % on body armor requires silk base.** Plate and leather armor never roll spell damage %.
-5. **Spell damage flat rolls only on caster weapons.** Not on jewelry, not on armor — only staff and wand.
-6. **Attack speed % never rolls on attack weapons.** They have base attack speed; the mod rolls on jewelry and gloves.
-7. **Magic find (item rarity) never rolls on weapons.** Rolls on all armor pieces, all jewelry, and the offhand. Thematically, MF is a "lucky gear" stat; a weapon's job is to hit.
+5. **Spell damage flat rolls only on caster weapons.** Not on jewelry, not on armor, not on tomes — only staff and wand. Tomes get a different signature mod (gain-as-extra elemental); they don't infringe on the wand/staff flat-damage identity.
+6. **Attack speed % never rolls on attack weapons.** They have base attack speed; the mod rolls on jewelry, gloves, and quivers.
+7. **Magic find (item rarity) never rolls on weapons.** Rolls on all armor pieces, all jewelry, and every off-hand kind (shield, tome, quiver). Thematically, MF is a "lucky gear" stat; a weapon's job is to hit.
+8. **Tome never rolls block chance.** It's the only off-hand kind without block — the absence is the identity. (Shields and the dual-wield implicit are the two block sources.)
+9. **Quiver requires a bow in the main hand.** Equip-time check rejects/displaces; the stat engine marks an orphaned quiver as broken (zero contribution) until a bow is re-equipped.
+10. **Gain-as-extra elemental rolls only on tomes.** It is to the tome what flat-damage-to-spells is to wand/staff: one signature damage-source family per item category.
 
 ---
 

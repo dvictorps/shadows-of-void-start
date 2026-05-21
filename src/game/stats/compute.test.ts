@@ -69,6 +69,43 @@ function sword(
 	};
 }
 
+function bow(id: string): GeneratedItem {
+	return {
+		id,
+		templateId: "test_bow",
+		templateName: "Test Bow",
+		equipmentType: "weapon",
+		weaponType: "bow",
+		rarity: "normal",
+		name: "Test Bow",
+		itemLevel: 10,
+		baseStats: {},
+		implicits: [],
+		explicits: [],
+		computedStats: {
+			physicalDamage: { min: 5, max: 7 },
+			elementalDamage: [],
+			attackSpeed: 1.0,
+			criticalChance: 5,
+		},
+	};
+}
+
+function quiver(id: string, mods: RolledMod[] = []): GeneratedItem {
+	return {
+		id,
+		templateId: "test_quiver",
+		templateName: "Test Quiver",
+		equipmentType: "quiver",
+		rarity: "rare",
+		name: "Test Quiver",
+		itemLevel: 10,
+		baseStats: {},
+		implicits: [],
+		explicits: mods,
+	};
+}
+
 function wand(id: string, cold: { min: number; max: number }): GeneratedItem {
 	return {
 		id,
@@ -384,6 +421,42 @@ describe("computeCharacterStats — broken state", () => {
 		});
 		expect(stats.brokenItemIds.has("h1")).toBe(true);
 		expect(stats.attributes.strength).toBe(10);
+	});
+
+	it("quiver in off-hand without a bow main hand enters broken state", () => {
+		const eq: EquippedItem[] = [
+			{
+				slot: "weapon",
+				item: sword("sw", { min: 5, max: 7, speed: 1.0, crit: 5 }),
+			},
+			{ slot: "offhand", item: quiver("q", [mod("dexterityFlat", 20)]) },
+		];
+		const stats = computeCharacterStats({
+			classDef: warrior,
+			level: 1,
+			equippedItems: eq,
+		});
+		expect(stats.brokenItemIds.has("q")).toBe(true);
+		// The dex mod must not have applied — class baseline only.
+		expect(stats.attributes.dexterity).toBe(
+			warrior.baseStats.attributes.dexterity,
+		);
+	});
+
+	it("quiver in off-hand WITH a bow main hand is not broken", () => {
+		const eq: EquippedItem[] = [
+			{ slot: "weapon", item: bow("bw") },
+			{ slot: "offhand", item: quiver("q2", [mod("dexterityFlat", 20)]) },
+		];
+		const stats = computeCharacterStats({
+			classDef: warrior,
+			level: 1,
+			equippedItems: eq,
+		});
+		expect(stats.brokenItemIds.has("q2")).toBe(false);
+		expect(stats.attributes.dexterity).toBe(
+			warrior.baseStats.attributes.dexterity + 20,
+		);
 	});
 });
 

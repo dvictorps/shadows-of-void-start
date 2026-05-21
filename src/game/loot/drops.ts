@@ -13,6 +13,8 @@ const ELIGIBLE_EQUIPMENT_TYPES: EquipmentType[] = [
 	"boots",
 	"gloves",
 	"offhand",
+	"tome",
+	"quiver",
 	"ring",
 	"amulet",
 	"belt",

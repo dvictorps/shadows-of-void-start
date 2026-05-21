@@ -676,9 +676,7 @@ function computeArmorStats(
 		}
 	}
 
-	const baseDefense = defenseInfo
-		? (baseStats[defenseInfo.stat] ?? 0)
-		: 0;
+	const baseDefense = defenseInfo ? (baseStats[defenseInfo.stat] ?? 0) : 0;
 	const baseBlock = baseStats.blockChance ?? 0;
 
 	// Emit computedDefenseStats whenever the item has a defensive baseline OR

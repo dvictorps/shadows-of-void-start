@@ -68,6 +68,8 @@ const requirements = v.object({
 const equipmentTypeValidator = v.union(
 	v.literal("weapon"),
 	v.literal("offhand"),
+	v.literal("tome"),
+	v.literal("quiver"),
 	v.literal("helmet"),
 	v.literal("chestplate"),
 	v.literal("boots"),

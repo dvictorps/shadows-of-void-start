@@ -4,6 +4,7 @@ import {
 	DUAL_WIELD_AS_MORE_MULT,
 	DUAL_WIELD_BLOCK_CHANCE_BONUS,
 } from "../combat/constants";
+import { isBow, isQuiver } from "../items/equipment";
 import type { GeneratedItem, RolledMod } from "../items/types";
 import type {
 	ComputedCharacterStats,
@@ -63,6 +64,7 @@ function blankStats(): ComputedCharacterStats {
 		manaOnKill: 0,
 		lifeLeechPercent: 0,
 		magicFind: 0,
+		gainAsExtraSpell: { cold: 0, fire: 0, lightning: 0, void: 0 },
 		brokenItemIds: new Set(),
 	};
 }
@@ -246,6 +248,10 @@ function applyModifierValue(
 		case "fireDamageToAttacksFlat":
 		case "lightningDamageToAttacksFlat":
 		case "voidDamageToAttacksFlat":
+		case "coldDamageToAttacksFlatGlobal":
+		case "fireDamageToAttacksFlatGlobal":
+		case "lightningDamageToAttacksFlatGlobal":
+		case "voidDamageToAttacksFlatGlobal":
 			// Handled in collectGlobalFlatDamage during swing assembly.
 			return;
 
@@ -283,6 +289,19 @@ function applyModifierValue(
 			stats.magicFind += v;
 			return;
 
+		case "tomeGainAsExtraCold":
+			stats.gainAsExtraSpell.cold += v;
+			return;
+		case "tomeGainAsExtraFire":
+			stats.gainAsExtraSpell.fire += v;
+			return;
+		case "tomeGainAsExtraLightning":
+			stats.gainAsExtraSpell.lightning += v;
+			return;
+		case "tomeGainAsExtraVoid":
+			stats.gainAsExtraSpell.void += v;
+			return;
+
 		// Filler / reserved
 		case "stunDurationIncrease":
 		case "reducedAttributeRequirements":
@@ -312,13 +331,25 @@ function collectGlobalFlatDamage(items: EquippedItem[]): GearFlatDamage {
 		for (const mod of item.explicits) {
 			if (mod.modifierId === "physicalDamageFlatGlobal") {
 				flat.physical += mod.value;
-			} else if (mod.modifierId === "coldDamageToAttacksFlat") {
+			} else if (
+				mod.modifierId === "coldDamageToAttacksFlat" ||
+				mod.modifierId === "coldDamageToAttacksFlatGlobal"
+			) {
 				flat.cold += mod.value;
-			} else if (mod.modifierId === "fireDamageToAttacksFlat") {
+			} else if (
+				mod.modifierId === "fireDamageToAttacksFlat" ||
+				mod.modifierId === "fireDamageToAttacksFlatGlobal"
+			) {
 				flat.fire += mod.value;
-			} else if (mod.modifierId === "lightningDamageToAttacksFlat") {
+			} else if (
+				mod.modifierId === "lightningDamageToAttacksFlat" ||
+				mod.modifierId === "lightningDamageToAttacksFlatGlobal"
+			) {
 				flat.lightning += mod.value;
-			} else if (mod.modifierId === "voidDamageToAttacksFlat") {
+			} else if (
+				mod.modifierId === "voidDamageToAttacksFlat" ||
+				mod.modifierId === "voidDamageToAttacksFlatGlobal"
+			) {
 				flat.void += mod.value;
 			}
 		}
@@ -570,6 +601,18 @@ export function computeCharacterStats(
 			}
 		}
 
+		// Folds into the same fixed-point cascade as attribute requirements:
+		// a quiver whose bow becomes broken (and thus excluded from `live`)
+		// breaks too.
+		const mainHandLive = live.find((eq) => eq.slot === "weapon")?.item;
+		if (!mainHandLive || !isBow(mainHandLive)) {
+			for (const eq of input.equippedItems) {
+				if (eq.slot === "offhand" && isQuiver(eq.item)) {
+					newBroken.add(eq.item.id);
+				}
+			}
+		}
+
 		if (newBroken.size === broken.size) {
 			// Stable — no new breaks this round.
 			stats.brokenItemIds = newBroken;
@@ -640,29 +683,37 @@ export function totalCritMultiplier(bonusFromMods: number): number {
  */
 export function describeBrokenReasons(
 	item: {
+		equipmentType?: string;
 		requirements?:
 			| { level?: number; str?: number; dex?: number; int?: number }
 			| undefined;
 	},
 	totals: ComputedCharacterStats,
 	characterLevel: number,
+	mainHandWeaponType?: string,
 ): string[] {
 	const reasons: string[] = [];
 	const reqs = item.requirements;
-	if (!reqs) return reasons;
-	if (reqs.level !== undefined && characterLevel < reqs.level) {
-		reasons.push(`Falta nível ${reqs.level}`);
+	if (reqs) {
+		if (reqs.level !== undefined && characterLevel < reqs.level) {
+			reasons.push(`Falta nível ${reqs.level}`);
+		}
+		if (reqs.str !== undefined && totals.attributes.strength < reqs.str) {
+			reasons.push(`Falta ${reqs.str - totals.attributes.strength} de Força`);
+		}
+		if (reqs.dex !== undefined && totals.attributes.dexterity < reqs.dex) {
+			reasons.push(
+				`Falta ${reqs.dex - totals.attributes.dexterity} de Destreza`,
+			);
+		}
+		if (reqs.int !== undefined && totals.attributes.intelligence < reqs.int) {
+			reasons.push(
+				`Falta ${reqs.int - totals.attributes.intelligence} de Inteligência`,
+			);
+		}
 	}
-	if (reqs.str !== undefined && totals.attributes.strength < reqs.str) {
-		reasons.push(`Falta ${reqs.str - totals.attributes.strength} de Força`);
-	}
-	if (reqs.dex !== undefined && totals.attributes.dexterity < reqs.dex) {
-		reasons.push(`Falta ${reqs.dex - totals.attributes.dexterity} de Destreza`);
-	}
-	if (reqs.int !== undefined && totals.attributes.intelligence < reqs.int) {
-		reasons.push(
-			`Falta ${reqs.int - totals.attributes.intelligence} de Inteligência`,
-		);
+	if (item.equipmentType === "quiver" && mainHandWeaponType !== "bow") {
+		reasons.push("Requer Arco na Mão Principal");
 	}
 	return reasons;
 }

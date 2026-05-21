@@ -36,6 +36,14 @@ export function isTwoHanded(item: GeneratedItem): boolean {
 	return !!item.weaponType && TWO_HANDED.has(item.weaponType);
 }
 
+export function isBow(item: GeneratedItem): boolean {
+	return item.weaponType === "bow";
+}
+
+export function isQuiver(item: GeneratedItem): boolean {
+	return item.equipmentType === "quiver";
+}
+
 export function weaponArchetype(item: GeneratedItem): WeaponArchetype | null {
 	if (!item.weaponType) return null;
 	if (ATTACK_WEAPONS.has(item.weaponType)) return "attack";
@@ -66,6 +74,8 @@ export function validSlotsForItem(item: GeneratedItem): EquippedSlot[] {
 		case "ring":
 			return ["ring1", "ring2"];
 		case "offhand":
+		case "tome":
+		case "quiver":
 			return ["offhand"];
 		case "weapon":
 			if (!item.weaponType) return [];
@@ -92,6 +102,7 @@ export interface EquipPlan {
 		| "wrong-slot"
 		| "mixed-archetype"
 		| "needs-main-hand"
+		| "needs-bow"
 		| "offhand-not-weapon";
 }
 
@@ -100,6 +111,9 @@ export interface EquipPlan {
  * allowed. Used by client (preview) and server (validation). Does not check
  * level/attribute requirements — that's handled separately via the stat
  * engine (callers compute the post-displacement totals then check reqs).
+ *
+ * Off-hand kinds (shield/tome/quiver) and the bow + quiver pairing are
+ * specified in CONTEXT.md → Off-hand and Bow + Quiver.
  */
 export function planEquip({
 	item,
@@ -117,40 +131,54 @@ export function planEquip({
 
 	const displaced: EquipPlan["displaced"] = [];
 
-	// 2H to weapon slot pushes any off-hand out (it can't coexist).
-	if (targetSlot === "weapon" && isTwoHanded(item) && offHand) {
-		displaced.push(offHand);
-	}
-
-	// Equipping to off-hand while main hand is 2H: 2H is displaced (it was
-	// blocking the off-hand anyway).
-	if (targetSlot === "offhand" && mainHand && isTwoHanded(mainHand.item)) {
-		displaced.push(mainHand);
-	}
-
-	// Off-hand weapon: enforce same-archetype with the (post-displacement)
-	// main hand.
-	if (targetSlot === "offhand" && isWeapon(item)) {
-		const newMainHand = displaced.some((d) => d.slot === "weapon")
-			? null
-			: (mainHand ?? null);
-		if (!newMainHand) {
-			return { displaced: [], reject: "needs-main-hand" };
+	if (targetSlot === "weapon") {
+		// 2H weapon to main: normally displaces any off-hand. Bow + quiver is
+		// the lone exception that survives the displacement.
+		if (isTwoHanded(item) && offHand) {
+			const bowAcceptsQuiver = isBow(item) && isQuiver(offHand.item);
+			if (!bowAcceptsQuiver) displaced.push(offHand);
 		}
-		const newArch = weaponArchetype(item);
-		const mainArch = weaponArchetype(newMainHand.item);
-		if (!newArch || !mainArch || newArch !== mainArch) {
-			return { displaced: [], reject: "mixed-archetype" };
+		// 1H weapon to main: a quiver in the off-hand is now an orphan
+		// (quiver requires a bow specifically). Auto-displace it.
+		if (!isTwoHanded(item) && offHand && isQuiver(offHand.item)) {
+			displaced.push(offHand);
 		}
+		// 2H non-bow to main while quiver was off: the off-hand displacement
+		// above already covers this (any off-hand goes when a non-bow 2H lands).
 	}
 
-	// Off-hand non-weapon must be a shield (equipmentType === "offhand").
-	if (
-		targetSlot === "offhand" &&
-		!isWeapon(item) &&
-		item.equipmentType !== "offhand"
-	) {
-		return { displaced: [], reject: "offhand-not-weapon" };
+	if (targetSlot === "offhand") {
+		if (isQuiver(item)) {
+			// Quiver requires a bow main hand. No auto-equip-bow magic — the
+			// player must already have a bow (or sequence the equips).
+			if (!mainHand || !isBow(mainHand.item)) {
+				return { displaced: [], reject: "needs-bow" };
+			}
+		} else {
+			// Non-quiver to off-hand: displace 2H main (bow included, since
+			// non-quiver off-hands can't coexist with bow).
+			if (mainHand && isTwoHanded(mainHand.item)) {
+				displaced.push(mainHand);
+			}
+			if (isWeapon(item)) {
+				const newMainHand = displaced.some((d) => d.slot === "weapon")
+					? null
+					: (mainHand ?? null);
+				if (!newMainHand) {
+					return { displaced: [], reject: "needs-main-hand" };
+				}
+				const newArch = weaponArchetype(item);
+				const mainArch = weaponArchetype(newMainHand.item);
+				if (!newArch || !mainArch || newArch !== mainArch) {
+					return { displaced: [], reject: "mixed-archetype" };
+				}
+			} else if (
+				item.equipmentType !== "offhand" &&
+				item.equipmentType !== "tome"
+			) {
+				return { displaced: [], reject: "offhand-not-weapon" };
+			}
+		}
 	}
 
 	// The current target-slot occupant always displaces too (unless it's
