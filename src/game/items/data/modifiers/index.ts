@@ -5,6 +5,7 @@ import { GLOBAL_DAMAGE_MODIFIERS } from "./global-damage";
 import { MAGIC_FIND_MODIFIERS } from "./magic-find";
 import { RESISTANCE_MODIFIERS } from "./resistances";
 import { SPELL_DAMAGE_MODIFIERS } from "./spell-damage";
+import { TOME_MODIFIERS } from "./tome";
 import { UTILITY_MODIFIERS } from "./utility";
 import { WEAPON_DAMAGE_MODIFIERS } from "./weapon-damage";
 
@@ -17,6 +18,7 @@ export const MODIFIERS = {
 	...ATTRIBUTE_MODIFIERS,
 	...UTILITY_MODIFIERS,
 	...MAGIC_FIND_MODIFIERS,
+	...TOME_MODIFIERS,
 } as const;
 
 export type ModifierId = Extract<keyof typeof MODIFIERS, string>;

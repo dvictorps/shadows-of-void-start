@@ -11,10 +11,12 @@ import { GLOVE_TEMPLATES } from "./gloves";
 import { GREATSWORD_TEMPLATES } from "./greatswords";
 import { HELMET_TEMPLATES } from "./helmets";
 import { MACE_TEMPLATES } from "./maces";
+import { QUIVER_TEMPLATES } from "./quivers";
 import { RING_TEMPLATES } from "./rings";
 import { SHIELD_TEMPLATES } from "./shields";
 import { STAFF_TEMPLATES } from "./staves";
 import { SWORD_TEMPLATES } from "./swords";
+import { TOME_TEMPLATES } from "./tomes";
 import { TWO_HANDED_AXE_TEMPLATES } from "./two-handed-axes";
 import type { EquipmentTemplate } from "./types";
 import { WAND_TEMPLATES } from "./wands";
@@ -37,6 +39,8 @@ export const EQUIPMENT_TEMPLATES: EquipmentTemplate[] = [
 	...GLOVE_TEMPLATES,
 	// Offhand
 	...SHIELD_TEMPLATES,
+	...TOME_TEMPLATES,
+	...QUIVER_TEMPLATES,
 	// Jewelry
 	...RING_TEMPLATES,
 	...AMULET_TEMPLATES,

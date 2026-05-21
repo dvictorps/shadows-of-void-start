@@ -3,6 +3,8 @@
 export const EQUIPMENT_TYPES = {
 	weapon: { id: "weapon", name: "Weapon", slot: "mainHand" },
 	offhand: { id: "offhand", name: "Off-hand", slot: "offHand" },
+	tome: { id: "tome", name: "Tome", slot: "offHand" },
+	quiver: { id: "quiver", name: "Quiver", slot: "offHand" },
 	helmet: { id: "helmet", name: "Helmet", slot: "head" },
 	chestplate: { id: "chestplate", name: "Chestplate", slot: "chest" },
 	boots: { id: "boots", name: "Boots", slot: "feet" },

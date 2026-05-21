@@ -109,6 +109,7 @@ export default function EquipmentPanel({
 	rubys,
 	onOpenInventory,
 }: Props) {
+	const mainHandWeaponType = equippedBySlot.get("weapon")?.data.weaponType;
 	return (
 		<section className="relative rounded-md border border-white/40 p-3">
 			<div className="flex h-full items-center justify-center">
@@ -118,7 +119,12 @@ export default function EquipmentPanel({
 						const broken = entry ? stats.brokenItemIds.has(entry.id) : false;
 						const reasons =
 							broken && entry
-								? describeBrokenReasons(entry.data, stats, characterLevel)
+								? describeBrokenReasons(
+										entry.data,
+										stats,
+										characterLevel,
+										mainHandWeaponType,
+									)
 								: undefined;
 						return (
 							<EquipmentSlot

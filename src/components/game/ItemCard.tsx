@@ -35,6 +35,8 @@ export const BROKEN_GLOW =
 const EQUIPMENT_EMOJI: Record<EquipmentType, string> = {
 	weapon: "⚔️",
 	offhand: "🛡️",
+	tome: "📖",
+	quiver: "🏹",
 	helmet: "🪖",
 	chestplate: "🎽",
 	boots: "👢",

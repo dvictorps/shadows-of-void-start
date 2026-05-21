@@ -1,5 +1,6 @@
 import { localizeImplicit, localizeMod } from "#/game/items/mod-i18n";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
+import { m } from "#/paraglide/messages";
 
 const RARITY_COLORS: Record<ItemRarity, string> = {
 	normal: "#c8c8c8",
@@ -195,7 +196,9 @@ export default function ItemTooltip({
 						</div>
 						{computed?.elementalDamage.map((elem) => (
 							<div key={elem.element} className="flex justify-between">
-								<span style={{ color: LABEL_COLOR }}>{elem.element} Damage</span>
+								<span style={{ color: LABEL_COLOR }}>
+									{elem.element} Damage
+								</span>
 								<span style={{ color: MODIFIED_COLOR }}>
 									{elem.min}-{elem.max}
 								</span>
@@ -203,7 +206,9 @@ export default function ItemTooltip({
 						))}
 						{(computed?.criticalChance ?? stats.criticalChance) != null && (
 							<div className="flex justify-between">
-								<span style={{ color: LABEL_COLOR }}>Critical Strike Chance</span>
+								<span style={{ color: LABEL_COLOR }}>
+									Critical Strike Chance
+								</span>
 								<span
 									style={{
 										color: modifiedStats.has("criticalChance")
@@ -356,37 +361,17 @@ export default function ItemTooltip({
 						>
 							{localizeMod(mod)}
 							{!mod.isGlobalStat && mod.modifierType === "increased" && (
-								<span style={{ color: "rgba(136, 136, 255, 0.5)" }}> (Local)</span>
+								<span style={{ color: "rgba(136, 136, 255, 0.5)" }}>
+									{" "}
+									(Local)
+								</span>
 							)}
 						</div>
 					))}
 				</div>
 			)}
 
-			{/* Requirements */}
-			{item.requirements &&
-				(item.requirements.str ||
-					item.requirements.dex ||
-					item.requirements.int) && (
-					<>
-						<Separator />
-						<div
-							className="px-4 py-1 text-xs uppercase tracking-wider"
-							style={{ color: DIM_COLOR }}
-						>
-							<span>Requires </span>
-							{[
-								item.requirements.level > 1 &&
-									`Level ${item.requirements.level}`,
-								item.requirements.str && `${item.requirements.str} Str`,
-								item.requirements.dex && `${item.requirements.dex} Dex`,
-								item.requirements.int && `${item.requirements.int} Int`,
-							]
-								.filter(Boolean)
-								.join(", ")}
-						</div>
-					</>
-				)}
+			{renderRequirements(item)}
 
 			{/* Item level */}
 			<Separator />
@@ -397,5 +382,36 @@ export default function ItemTooltip({
 				Item Level: <span className="text-white">{item.itemLevel}</span>
 			</div>
 		</div>
+	);
+}
+
+function renderRequirements(item: GeneratedItem) {
+	const reqs = item.requirements;
+	const hasStatReq = !!(reqs && (reqs.str || reqs.dex || reqs.int));
+	const needsBow = item.equipmentType === "quiver";
+	if (!hasStatReq && !needsBow) return null;
+	return (
+		<>
+			<Separator />
+			<div
+				className="px-4 py-1 text-xs uppercase tracking-wider"
+				style={{ color: DIM_COLOR }}
+			>
+				{hasStatReq && reqs && (
+					<div>
+						<span>Requires </span>
+						{[
+							reqs.level > 1 && `Level ${reqs.level}`,
+							reqs.str && `${reqs.str} Str`,
+							reqs.dex && `${reqs.dex} Dex`,
+							reqs.int && `${reqs.int} Int`,
+						]
+							.filter(Boolean)
+							.join(", ")}
+					</div>
+				)}
+				{needsBow && <div>{m.tooltip_requires_bow_in_main_hand()}</div>}
+			</div>
+		</>
 	);
 }

@@ -1,3 +1,28 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  Combat tick orchestrator. Drives the searching/engaged/victory state
+//  machine for the active combat zone. Runs entirely on the client; the
+//  server only sees the resulting recordKill / syncHp / usePotion mutations.
+//
+//  Lifecycle:
+//    activation effect   → resets refs + state when `active` flips
+//    search delay        → spawns an enemy after SEARCH_DELAY_MS (1500ms)
+//    engaged tick        → @ 50ms intervals: leech, barrier recovery,
+//                          alternate-weapon swings, enemy swing, victory/death
+//    victory delay       → clears the enemy after VICTORY_DELAY_MS (800ms),
+//                          then loops back to searching
+//    periodic HP sync    → writes back HP every 10s if it changed
+//
+//  Refs vs state:
+//    Refs (ticker callbacks read these directly to avoid stale closures):
+//      stateRef, enemyRef, playerProgressRef, enemyProgressRef, deadRef,
+//      nextSwingIndexRef, barrierRef, leechRef, playerHpRef, lastSyncedHpRef,
+//      initialHpRef, initialPotionsRef, activeRef
+//    State (drives re-renders):
+//      state, enemy, playerHp, barrier, potions, lastKill, events
+//
+//  Public mutations called: api.combat.{syncHp, recordKill, usePotion}
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { useMutation } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {

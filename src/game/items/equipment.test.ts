@@ -51,6 +51,37 @@ function makeRing(id: string): GeneratedItem {
 	};
 }
 
+function makeTome(id: string): GeneratedItem {
+	return {
+		id,
+		templateId: id,
+		templateName: id,
+		equipmentType: "tome",
+		armorType: "silk",
+		rarity: "normal",
+		name: id,
+		itemLevel: 1,
+		baseStats: {},
+		implicits: [],
+		explicits: [],
+	};
+}
+
+function makeQuiver(id: string): GeneratedItem {
+	return {
+		id,
+		templateId: id,
+		templateName: id,
+		equipmentType: "quiver",
+		rarity: "normal",
+		name: id,
+		itemLevel: 1,
+		baseStats: {},
+		implicits: [],
+		explicits: [],
+	};
+}
+
 describe("validSlotsForItem", () => {
 	it("ring fits ring1 or ring2", () => {
 		expect(validSlotsForItem(makeRing("r"))).toEqual(["ring1", "ring2"]);
@@ -184,5 +215,98 @@ describe("planEquip", () => {
 		});
 		expect(r1.reject).toBeUndefined();
 		expect(r1.displaced).toHaveLength(0);
+	});
+
+	// ── Tome ──
+
+	it("tome fits offhand, no main-hand requirement", () => {
+		expect(validSlotsForItem(makeTome("t"))).toEqual(["offhand"]);
+		const plan = planEquip({
+			item: makeTome("t"),
+			targetSlot: "offhand",
+			currentEquipped: [],
+		});
+		expect(plan.reject).toBeUndefined();
+	});
+
+	it("equipping tome with 2H bow in main hand displaces the bow", () => {
+		const plan = planEquip({
+			item: makeTome("t"),
+			targetSlot: "offhand",
+			currentEquipped: [{ slot: "weapon", item: makeWeapon("bow", "bow") }],
+		});
+		expect(plan.displaced.map((d) => d.slot)).toEqual(["weapon"]);
+	});
+
+	// ── Quiver ──
+
+	it("quiver fits offhand", () => {
+		expect(validSlotsForItem(makeQuiver("q"))).toEqual(["offhand"]);
+	});
+
+	it("quiver requires a bow in main hand", () => {
+		const noMain = planEquip({
+			item: makeQuiver("q"),
+			targetSlot: "offhand",
+			currentEquipped: [],
+		});
+		expect(noMain.reject).toBe("needs-bow");
+
+		const swordMain = planEquip({
+			item: makeQuiver("q"),
+			targetSlot: "offhand",
+			currentEquipped: [{ slot: "weapon", item: makeWeapon("sw", "sword") }],
+		});
+		expect(swordMain.reject).toBe("needs-bow");
+	});
+
+	it("quiver equips cleanly when bow is in main hand", () => {
+		const plan = planEquip({
+			item: makeQuiver("q"),
+			targetSlot: "offhand",
+			currentEquipped: [{ slot: "weapon", item: makeWeapon("bow", "bow") }],
+		});
+		expect(plan.reject).toBeUndefined();
+		expect(plan.displaced).toHaveLength(0);
+	});
+
+	it("equipping bow to weapon slot with quiver in off-hand does NOT displace the quiver", () => {
+		const plan = planEquip({
+			item: makeWeapon("bow2", "bow"),
+			targetSlot: "weapon",
+			currentEquipped: [
+				{ slot: "weapon", item: makeWeapon("bow1", "bow") },
+				{ slot: "offhand", item: makeQuiver("q") },
+			],
+		});
+		// Only the old bow is displaced — quiver stays.
+		expect(plan.displaced.map((d) => d.slot)).toEqual(["weapon"]);
+	});
+
+	it("equipping non-bow 2H to weapon slot with quiver in off-hand displaces the quiver", () => {
+		const plan = planEquip({
+			item: makeWeapon("gs", "greatsword"),
+			targetSlot: "weapon",
+			currentEquipped: [
+				{ slot: "weapon", item: makeWeapon("bow", "bow") },
+				{ slot: "offhand", item: makeQuiver("q") },
+			],
+		});
+		// Standard 2H rule displaces off-hand (the quiver), plus old bow displaces.
+		const slots = plan.displaced.map((d) => d.slot).sort();
+		expect(slots).toEqual(["offhand", "weapon"]);
+	});
+
+	it("equipping non-bow 1H to weapon slot with quiver in off-hand displaces the orphan quiver", () => {
+		const plan = planEquip({
+			item: makeWeapon("sw", "sword"),
+			targetSlot: "weapon",
+			currentEquipped: [
+				{ slot: "weapon", item: makeWeapon("bow", "bow") },
+				{ slot: "offhand", item: makeQuiver("q") },
+			],
+		});
+		const slots = plan.displaced.map((d) => d.slot).sort();
+		expect(slots).toEqual(["offhand", "weapon"]);
 	});
 });

@@ -1,7 +1,26 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  Item lifecycle mutations + queries. The items table is the single source of
+//  truth for item ownership; the character document caches only equip slot
+//  pointers. Transitions: zoneBag → inventory → equipped (and back), plus
+//  permanent discards.
+//
+//  Mutations:
+//    exitZone              ← bag → inventory (kept) / delete (discarded)
+//    pickFromBag           ← single item bag → inventory
+//    discardFromBag        ← permanent delete of a staged drop
+//    discardFromInventory  ← permanent delete of an inventory item
+//    equipItem             ← runs planEquip + requirements check + displacement
+//    unequipItem           ← equipped → inventory (+ auto-displaces orphan quivers)
+//    reorderInventory      ← swap two inventory slots
+//
+//  Queries:
+//    zoneBag, inventory, equipped — by characterId
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { ConvexError, v } from "convex/values"
 import { findClassDefinition } from "../src/game/classes/data"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
-import { isWeapon, planEquip } from "../src/game/items/equipment"
+import { isBow, isQuiver, isWeapon, planEquip } from "../src/game/items/equipment"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, narrowEquippedSlot } from "../src/game/stats/types"
 import {
@@ -313,11 +332,20 @@ export const unequipItem = mutation({
 		const item = equipped.find((it) => it.equippedSlot === args.slot)
 		if (!item) throw new ConvexError("Slot is empty")
 
+		// Bow leaving the main hand orphans any quiver in the off-hand. Capture
+		// it now so we displace it to inventory in the same transaction.
+		const orphanQuiver =
+			args.slot === "weapon" && isBow(item.data)
+				? equipped.find(
+						(it) => it.equippedSlot === "offhand" && isQuiver(it.data),
+					)
+				: undefined
+
 		// Invariant: if main hand is empty, off-hand cannot hold a weapon.
 		// Capture the off-hand weapon now, before any patches, so the promotion
 		// below operates on a clean pre-mutation snapshot.
 		const offhandToPromote =
-			args.slot === "weapon"
+			args.slot === "weapon" && !orphanQuiver
 				? equipped.find(
 						(it) => it.equippedSlot === "offhand" && isWeapon(it.data),
 					)
@@ -327,7 +355,8 @@ export const unequipItem = mutation({
 			ctx,
 			args.characterId,
 		)
-		if (used + 1 > INVENTORY_MAX_SLOTS) {
+		const slotsNeeded = 1 + (orphanQuiver ? 1 : 0)
+		if (used + slotsNeeded > INVENTORY_MAX_SLOTS) {
 			throw new ConvexError("Inventory full — free a slot first")
 		}
 		await ctx.db.patch(item._id, {
@@ -336,7 +365,13 @@ export const unequipItem = mutation({
 			inventorySlot: nextFreeSlot(),
 		})
 
-		if (offhandToPromote) {
+		if (orphanQuiver) {
+			await ctx.db.patch(orphanQuiver._id, {
+				locationKind: "inventory" as const,
+				equippedSlot: undefined,
+				inventorySlot: nextFreeSlot(),
+			})
+		} else if (offhandToPromote) {
 			await ctx.db.patch(offhandToPromote._id, {
 				equippedSlot: "weapon" as const,
 			})

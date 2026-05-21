@@ -1,3 +1,32 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  Item generator — rolls a GeneratedItem from a template + rarity + ilvl.
+//  Pure (deterministic given a seeded RNG). Used by the loot pipeline and by
+//  starter-gear. The public entry point is `generateItem`.
+//
+//  Sections (grep the headers to jump):
+//    ── RNG helpers ──                              randInt, pickRandom, pickWeighted
+//    ── Name generation ──                          rare/legendary/epic naming
+//    ── Value formatting ──                         describes mod values for display
+//    ── Defense label resolution ──                 local defense → armor/evasion/barrier
+//    ── Modifier eligibility ──                     resolves applicableTo against template
+//    ── Synergy system ──                           intelligent rolls for epic/legendary
+//    ── Deterministic epic mod patterns ──          fixed archetypes for epic rolls
+//    ── Rolling logic ──                            rollImplicits, rollExplicits  ← core
+//    ── Compute weapon stats ──                     bakes statEffect mods into computedStats
+//    ── Compute armor stats ──                      same for defense pieces (incl. tomes)
+//    ── Item naming ──                              composes affix names onto template
+//    ── Public API ──                               GenerateItemOptions, generateItem  ← entry
+//
+//  Common tasks:
+//    • Add a new modifier id      →  see `data/modifiers/`; if it has statEffect, also
+//                                    extend computeWeaponStats / computeArmorStats here
+//    • Add a new equipment type   →  Modifier eligibility (groups), Compute armor stats,
+//                                    and `data/templates/`
+//    • Change rarity / mod counts →  see MOD_LIMITS in `types/mods.ts`; consumed by
+//                                    rollExplicits below
+//    • Add a new local statEffect →  case in computeWeaponStats or computeArmorStats
+// ─────────────────────────────────────────────────────────────────────────────
+
 import {
 	getModifierTierForItemLevel,
 	MODIFIERS,
@@ -676,9 +705,7 @@ function computeArmorStats(
 		}
 	}
 
-	const baseDefense = defenseInfo
-		? (baseStats[defenseInfo.stat] ?? 0)
-		: 0;
+	const baseDefense = defenseInfo ? (baseStats[defenseInfo.stat] ?? 0) : 0;
 	const baseBlock = baseStats.blockChance ?? 0;
 
 	// Emit computedDefenseStats whenever the item has a defensive baseline OR

@@ -63,6 +63,7 @@ function tryTranslate(raw: string): string | null {
 	if (msg.includes("wrong-slot")) return m.error_wrong_slot();
 	if (msg.includes("mixed-archetype")) return m.error_mixed_archetype();
 	if (msg.includes("needs-main-hand")) return m.error_needs_main_hand();
+	if (msg.includes("needs-bow")) return m.error_needs_bow();
 	if (msg.includes("offhand-not-weapon")) return m.error_offhand_not_weapon();
 	if (
 		msg.toLowerCase().includes("inventory") &&

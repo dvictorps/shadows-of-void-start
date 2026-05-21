@@ -47,6 +47,7 @@ function statsAttack(
 		manaOnKill: 0,
 		lifeLeechPercent: 0,
 		magicFind: 0,
+		gainAsExtraSpell: { cold: 0, fire: 0, lightning: 0, void: 0 },
 		brokenItemIds: new Set(),
 		...overrides,
 	};
@@ -169,6 +170,87 @@ describe("rollPlayerSwing", () => {
 			random: () => 0.5,
 		});
 		expect(result.amount).toBe(50); // 100 × (1 - 0.5)
+	});
+
+	it("gain-as-extra fires on spell path: adds element chunks from spell damage total", () => {
+		// 100 base cold damage. Tome grants "+20% as extra Fire". Fire chunk =
+		// 100 × 0.20 = 20 → total 120 (50 base + 20 extra... wait 100 base cold).
+		// Total = cold(100) + fire(20) = 120.
+		const result = rollPlayerSwing({
+			swing: swing({
+				physicalDamage: { min: 0, max: 0 },
+				elementalDamage: [{ element: "Cold", min: 100, max: 100 }],
+			}),
+			stats: statsAttack({
+				path: "spell",
+				gainAsExtraSpell: { cold: 0, fire: 20, lightning: 0, void: 0 },
+			}),
+			defender: dummyDefender,
+			random: () => 0.5,
+		});
+		expect(result.amount).toBe(120);
+		expect(result.breakdown.cold).toBe(100);
+		expect(result.breakdown.fire).toBe(20);
+	});
+
+	it("gain-as-extra reads post-increased spell damage total", () => {
+		// 50 base fire damage. +100% increased fire → fire becomes 100. Tome
+		// grants "+10% as extra Cold". Cold chunk = 100 × 0.10 = 10.
+		const result = rollPlayerSwing({
+			swing: swing({
+				physicalDamage: { min: 0, max: 0 },
+				elementalDamage: [{ element: "Fire", min: 50, max: 50 }],
+			}),
+			stats: statsAttack({
+				path: "spell",
+				increased: { ...statsAttack().increased, fire: 100 },
+				gainAsExtraSpell: { cold: 10, fire: 0, lightning: 0, void: 0 },
+			}),
+			defender: dummyDefender,
+			random: () => 0.5,
+		});
+		expect(result.amount).toBe(110);
+		expect(result.breakdown.fire).toBe(100);
+		expect(result.breakdown.cold).toBe(10);
+	});
+
+	it("gain-as-extra extra chunks are mitigated by the target's resistance for that element", () => {
+		// 100 cold spell damage. +20% as extra fire → 20 fire. Defender has
+		// 50% fire resist → fire chunk halved to 10. Cold has 0 resist.
+		const result = rollPlayerSwing({
+			swing: swing({
+				physicalDamage: { min: 0, max: 0 },
+				elementalDamage: [{ element: "Cold", min: 100, max: 100 }],
+			}),
+			stats: statsAttack({
+				path: "spell",
+				gainAsExtraSpell: { cold: 0, fire: 20, lightning: 0, void: 0 },
+			}),
+			defender: {
+				...dummyDefender,
+				resistances: { cold: 0, fire: 50, lightning: 0, void: 0 },
+			},
+			random: () => 0.5,
+		});
+		expect(result.breakdown.fire).toBe(10);
+		expect(result.amount).toBe(110);
+	});
+
+	it("gain-as-extra does NOT fire on attack path", () => {
+		const result = rollPlayerSwing({
+			swing: swing({
+				physicalDamage: { min: 0, max: 0 },
+				elementalDamage: [{ element: "Cold", min: 100, max: 100 }],
+			}),
+			stats: statsAttack({
+				path: "attack",
+				gainAsExtraSpell: { cold: 0, fire: 50, lightning: 0, void: 0 },
+			}),
+			defender: dummyDefender,
+			random: () => 0.5,
+		});
+		expect(result.breakdown.fire).toBe(0);
+		expect(result.amount).toBe(100);
 	});
 });
 
