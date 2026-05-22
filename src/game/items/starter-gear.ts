@@ -6,12 +6,8 @@ import type { GeneratedItem } from "./types";
 // through the random generator. IDs are namespaced with the "starter:" prefix
 // so equipped-item references can distinguish them from rolled items later.
 
-// Starter weapons match the base stats of their T1 dropped counterparts
-// (Iron Sword / Iron Dagger / Apprentice Wand) but carry no implicit. The
-// upgrade incentive is the implicit (accuracy / crit multi / spell damage),
-// not raw weapon damage — that way a fresh character can sustain combat to
-// the first camp on starter gear, but still feels a clear power gain on the
-// first T1 drop.
+// Base stats mirror the T1 dropped equivalents; the upgrade incentive is the
+// implicit, not raw damage.
 
 const rustySword: GeneratedItem = {
 	id: "starter:rusty_sword",

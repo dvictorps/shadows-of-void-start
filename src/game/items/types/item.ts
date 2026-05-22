@@ -92,8 +92,6 @@ export interface GeneratedItem {
 		int?: number;
 	};
 	// Item-local sprite path. Takes precedence over the template's icon when
-	// rendering. Used for hand-authored items (starter gear) whose templateId
-	// isn't registered in `TEMPLATE_BY_ID`. Rolled drops normally leave this
-	// undefined and inherit the icon from their template.
+	// rendering — for hand-authored items (starter gear) without a template.
 	icon?: string;
 }

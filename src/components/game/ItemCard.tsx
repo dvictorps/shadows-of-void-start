@@ -63,9 +63,8 @@ type ItemIcon =
 	| { kind: "emoji"; char: string };
 
 function iconFor(item: GeneratedItem): ItemIcon {
-	// Item-local icon wins — used by hand-authored items (starter gear) whose
-	// templateId isn't in `TEMPLATE_BY_ID`. Falls back to the template's icon
-	// for normal rolled drops, then to per-type emoji.
+	// Hand-authored items (starter gear) carry their own icon since they have
+	// no template entry.
 	if (item.icon) return { kind: "sprite", src: item.icon };
 	const tpl = TEMPLATE_BY_ID.get(item.templateId);
 	if (tpl?.icon) return { kind: "sprite", src: tpl.icon };

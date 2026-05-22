@@ -584,28 +584,15 @@ export function useCombatLoop({
 		playerHpRef.current = optimisticHp;
 		setPlayerHp(optimisticHp);
 		setPotions(prevPotions - 1);
-		// `lastSyncedHpRef` tracks the *server's* known HP. After this potion
-		// the server knows HP at least went up by `heal`, but enemy damage
-		// during the roundtrip is unknown to the server — so for sync purposes
-		// we treat the optimistic value as the new server baseline. The next
-		// periodic sync flushes whatever the real local HP is by then.
 		lastSyncedHpRef.current = optimisticHp;
+		// HP stays at the optimistic value regardless of mutation outcome.
+		// The server's `result.hpCurrent` ignores combat damage that landed
+		// during the roundtrip, so writing it back would revert that damage
+		// (the up-down-up flicker). The periodic sync reconciles drift.
 		try {
 			const result = await consumePotion({ characterId });
-			// Trust the local optimistic HP. The server's `result.hpCurrent`
-			// is the heal applied to whatever HP the server last knew —
-			// which excludes any combat damage during the roundtrip. Writing
-			// it back would revert that damage and create a flicker
-			// (HP up → down → up as the damage tick gets clobbered then
-			// re-applied next swing). Only the potion count is server-truth.
 			setPotions(result.potions);
 		} catch {
-			// Mutation rejected (e.g., server-side "already at full HP" because
-			// the server's HP is stale from low sync frequency). Refund the
-			// potion count locally; leave HP at the optimistic value — combat
-			// damage may have already taken it down, and reverting to a
-			// `prevHp` snapshot would be wrong against that damage. The next
-			// periodic sync reconciles HP with the server.
 			setPotions(prevPotions);
 		}
 	}, [potions, playerHp, maxHp, characterId, consumePotion]);
