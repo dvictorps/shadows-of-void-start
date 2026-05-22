@@ -15,28 +15,67 @@ A central screen that lets the player switch between unlocked acts to farm them 
 ### Node
 A point in the act's DAG. Two kinds exist today:
 
-- **Zone node** — a combat location. The player enters, fights enemies (see Threshold Bar / Zone Boss), leaves, returns later. May be a regular zone, the act-boss node, or future variants.
+- **Zone node** — a combat location. The player enters, fights enemies (see Time Bar / Zone Miniboss), leaves, returns later. May be a regular zone, the act-boss node, or future variants.
 - **City node** — a safe location with no mobs. Houses the act's **vendor** and gives access to the **stash**. Always one city per act, unlocked at act entry (the player starts the act with both the city node and the first zone node visible on the map).
 
 ### Zone
 Synonym for a Zone node. Used in the rest of this document when the distinction from a city is contextual.
 
 A zone has persistent states per character:
-- **Incomplete** — never finished. Threshold bar resets every time the player leaves.
-- **Complete** — the player killed the zone miniboss at least once. Stays this way forever. Re-entering the zone is allowed for farming; the miniboss can be summoned again by refilling the threshold.
+- **Incomplete** — never finished. Time bar resets every time the player leaves.
+- **Complete** — the player killed the zone miniboss at least once. Stays this way forever. Re-entering the zone is allowed for farming; the miniboss can be summoned again by completing the encounter schedule.
 
-A future **Boss pending** state is planned (see "Boss Deferral" below) but not implemented yet — today the threshold filling spawns the miniboss immediately, no pause modal.
+A future **Boss pending** state is planned (see "Boss Deferral" below) but not implemented yet — today the bar filling spawns the miniboss immediately, no pause modal.
 
-### Threshold Bar
-The progress bar shown over the zone view that fills as the player kills mobs. The exact kill count is hidden; only the bar is visible. The threshold is **30 kills**. When it fills, the **next mob spawn is the zone miniboss** (or, in a future iteration, becomes summonable — see "Boss Deferral"). The fill resets to 0 every time the player leaves the zone with the miniboss unsummoned, and also resets to 0 immediately after a miniboss kill so the farming loop can refill.
+### Time Bar
+The progress bar shown over the zone view that represents the player's transit through the zone. The bar advances only during **exploração** (gaps between encounters); it pauses during **combate** and during **acampamento**. When the bar fills (the zone's encounter schedule completes), the **next spawn is the zone miniboss** (or, in a future iteration, becomes summonable — see "Boss Deferral").
+
+The fill resets to 0 every time the player leaves the zone with the miniboss unsummoned, and resets to 0 immediately after a miniboss kill so the farming loop can refill on the next entry.
+
+The bar UI displays the player's progress through the schedule (cumulative exploration time over total scheduled exploration time). The exact remaining time is hidden; only the bar is visible.
+
+### Combat Phases
+Three distinct phases a player can be in inside a zone. They determine the bag retention rules on exit (see Loot Pipeline → Bag retention tiers):
+
+- **Combate** — an enemy is active and the combat tick is running. Player swings, enemy swings, damage is applied.
+- **Exploração** — no enemy on screen, the time bar is advancing. Conceptually, the player is "walking through the zone".
+- **Acampamento** — bar paused, cinematic + modal active. The player is at a safe rest point (either baked into the zone schedule, or summoned via Incenso Etéreo).
+
+### Encounter Schedule
+Each zone declares how many encounters its bar contains and how those encounters are paced. The schedule is generated per entry — every visit rolls a new variation:
+
+- **Encounter count** scales with the zone's position in the act: ~15 in entry zones (forest_starter), ramping up to ~30 in zones adjacent to the boss node.
+- **Gap between normal spawns** is random within zone-declared bounds (e.g., 3–9 seconds of exploration).
+- **Ambush events** are deliberate packs of mobs inserted at random positions in the schedule (1–2 per zone). Each pack is 3–5 mobs back-to-back with very short gaps (~0.8s), heavy magic-rarity rate. Packs interrupt the normal cadence; the UI signals an ambush moment.
+- **Camp positions** are anchored proportionally to schedule length with a small jitter (±1 slot):
+  - `< 20` encounters → 1 camp anchored at ~50%
+  - `≥ 20` encounters → 2 camps anchored at ~33% and ~66%
+- After all scheduled encounters are consumed, the next spawn is the zone miniboss.
+
+The schedule lives as data per zone (`src/game/world/act-1.ts`). The combat engine reads and dispatches events; spawn mechanics use an abstract `spawn event` shape (e.g., `{ size: 1, kind, ... }`) so future multi-enemy combat (NvN) can plug `size: N` ambush events without changing the engine surface.
+
+### Acampamento
+A guaranteed rest point inside the zone. When the schedule reaches a camp slot, in place of the next spawn, the engine triggers a **camp cinematic**: the combat HUD fades out, ambient text fades in (zone-themed: e.g., "Sons da natureza calma...", "Um vento corre...", "O ar fica mais leve."), and finally a modal opens with two options:
+
+- **Retornar à cidade com 100% do loot** — exits the zone via the standard `ExitZoneModal` with the full bag selectable. Player picks freely; nothing is capped or random.
+- **Seguir em frente** — closes the modal; the bar resumes from where it was, the next scheduled encounter spawns. Zone progress is preserved.
+
+Mechanical side effects during the camp:
+- Bar is paused.
+- Passive HP regen and barrier recovery tick naturally during the cinematic and modal time (no special "rest" UI — it's a side effect of being out of combat).
+- The bag is preserved as-is until the player commits to either option.
+
+Camps are the **only** path to retreating with 100% of the bag outside of a boss kill. This is the central economy lever of zone progression: planning around camp positions matters.
+
+A future audio layer will play biome-specific ambient sounds during the cinematic (the project already has hit-sound infra to build on). Until that layer ships, the cinematic is text + fade only.
 
 ### Boss Deferral (planned, not implemented)
-When the threshold bar fills, a pause modal will ask if the player wants to fight the boss now. If they decline, a persistent **"Invoke Boss"** button will appear in the zone UI. This button will survive leaving and re-entering the zone — the boss stays "pending" until killed. Until this lands, the threshold-fill spawn happens automatically on the next mob roll.
+When the time bar fills, a pause modal will ask if the player wants to fight the boss now. If they decline, a persistent **"Invoke Boss"** button will appear in the zone UI. This button will survive leaving and re-entering the zone — the boss stays "pending" until killed. Until this lands, the bar-fill spawn happens automatically on the next mob roll.
 
 ### Zone Miniboss
-A **rare-rarity** monster that spawns at the threshold of a normal zone. Picked uniformly from the zone's `monsterPool` and promoted to rare with 3 random modifiers (see Monster Modifier Pool). Drops better loot than mobs — see drop table. Respawns every time the threshold is refilled, including after the zone is complete (so completed zones remain meaningful for loot farming).
+A **rare-rarity** monster that spawns when the time bar fills in a normal zone. Picked uniformly from the zone's `monsterPool` and promoted to rare with 3 random modifiers (see Monster Modifier Pool). Drops better loot than mobs — see drop table. Respawns every time the bar is filled again, including after the zone is complete (so completed zones remain meaningful for loot farming).
 
-After a miniboss kill the combat scene shows an inline "Zone Complete" panel where the enemy was: **continue farming** (combat resumes, threshold resets) or **retreat** (standard exit-zone flow with the loot picker).
+After a miniboss kill the combat scene shows an inline "Zone Complete" panel where the enemy was: **continue farming** (combat resumes, the bar resets to 0 and the schedule is rerolled) or **retreat** (standard exit-zone flow with the loot picker).
 
 ### Act Boss
 A distinct, more powerful enemy that gates progression to the next act. Lives in the **final node** of the act (a dedicated boss node, not a regular zone). For Act 1, the boss node follows **Model B**:
@@ -134,12 +173,27 @@ When a mob is killed, server rolls drops using:
 ### Potion drops
 Independent of the equipment drop roll, every monster kill rolls a **20% chance to drop a life potion**. Potions are not entities in the items table — they are a count on the character doc — so the drop is **auto-collected**: the server increments `char.potions` directly and notifies the client. If the character is already at the 10-potion cap, the roll is **wasted silently** (no drop event, no overflow, no replacement). This gives runs a sustain stream without committing potions to the bag/inventory pipeline.
 
+### Bag retention tiers
+On exit, the share of the bag the player can keep depends on which **combat phase** the exit was triggered in. Camps are the only path to 100% outside a boss kill:
+
+| Trigger | Phase | Bag retention |
+|---|---|---|
+| Boss kill | n/a | 100% (free pick) |
+| Camp (baked or via Incenso Etéreo) → Retornar | Acampamento | 100% (free pick) |
+| Retreat manual | Exploração | 30% (player picks which 30%) |
+| Retreat manual | Combate | 30% (player picks which 30%) |
+| Teleport Stone | mirrors phase above | 100% / 30% per phase |
+| Death | n/a | 0% (full wipe) |
+
+The **30% cap** (`floor(bag.length × 0.30)`, minimum 1 when bag has ≥1 item) is the punishment for unplanned exits: the player retains agency over *which* items survive, but loses the rest. The camp tier is the rewarded path — it's also the only spot where "Seguir em frente" preserves zone progress (any other exit ends the run).
+
 ### Inventory overflow and exit-modal flow
-On exit from a zone (Retreat / death-respawn does NOT count, that's a wipe), the **exit modal** appears with every staged item.
+On exit from a zone (Retreat / Teleport Stone / Camp Retornar — death-respawn does NOT count, that's a wipe), the **exit modal** appears with every staged item.
 
 - **Default state**: all items marked "keep".
 - **Player toggles** individual cards to mark "discard".
-- **"Get all"** button: marks every item as keep — disabled when total would exceed inventory free slots.
+- **"Get all"** button: marks every item as keep — disabled when total would exceed inventory free slots OR exceed the phase's bag cap (30% in exploração / combate).
+- **Phase cap enforcement**: in exploração or combate, the count of items marked "keep" is capped at `floor(bag.length × 0.30)` (minimum 1). Attempting to exceed it disables the toggle on additional items until something is unmarked.
 - **"Confirm"** with at least one item to discard: secondary warning "These items will be lost forever."
 - **"Confirm"** with zero items kept: warns "All items will be discarded."
 - **"Cancel"** closes the modal and returns the player to the engaged combat view — the zone bag persists, the session is unchanged.
@@ -243,7 +297,7 @@ Mobs use the same rarity ladder as items, with reduced reach:
 
 - **Normal mob** — baseline stats, no modifiers.
 - **Magic mob** — 1-2 modifiers rolled from the monster modifier pool. Slightly tougher than normal.
-- **Rare** — used exclusively for **minibosses** (the threshold spawn). Higher-tier modifier rolls. Drops better loot.
+- **Rare** — used exclusively for **minibosses** (the bar-fill spawn). Higher-tier modifier rolls. Drops better loot.
 - **Legendary / Epic mobs do not exist** — those tiers are reserved for items.
 
 ### Between-zone state
@@ -278,13 +332,24 @@ This naturally produces the PoE "self-sustaining gear" behaviour: a helmet that 
 **Visual signal** — broken items render with a red border (overriding the rarity color), a red `AlertTriangle` icon overlay, and a red warning line at the top of their tooltip: "Falta {N} de {Atributo}", one line per unmet requirement.
 
 ### Active player input
-Combat is otherwise automatic, but the player has **three active controls today**: using a **life potion**, using a **teleport stone**, and (out of combat) using a **wind crystal**.
+Combat is otherwise automatic, but the player has **three active controls today**: using a **life potion**, using a **teleport stone**, and using an **incenso etéreo**.
 
 - **Life Potion**: heals **20% of maximum HP**. Cap 10 carried. Obtained from the city vendor (10 rubys) or as a 20% monster drop (see Loot Pipeline → Potion drops). Potion button lives on the bottom-right of the combat view (next to the health globe) and on the map's status card.
-- **Teleport Stone**: instant return to the city, usable from any view (combat included — panic button). Wipes the active zone bag (you escape but abandon the loot). Uncapped (stockpile what you can afford). Vendor-only, 30 rubys. Button sits to the left of the potion in the combat HUD.
-- **Wind Crystal**: jumps the player to any previously-unlocked node with a fixed travel duration (no movement-speed scaling — you're skipping zones, not walking through them). Uncapped. Vendor-only, 50 rubys. Used from the map view only (clicking an unlocked-but-unconnected node opens a confirmation). Counter sits above the potion button in the combat HUD (display-only there; usage is map-only).
 
-The two travel consumables share the character document's `teleportStones` and `windCrystals` counters. The set of nodes available to wind crystals comes from `unlockedNodes` (see Travel system).
+- **Teleport Stone**: consumed to travel to any previously-visited node (entries in `unlockedNodes`). Single consolidated travel item — replaces the prior "stone-to-city + wind-crystal-to-other-nodes" split. Behavior:
+  - **City destination**: short travel time (3s) and grants the standard heal + potion refill on arrival.
+  - **Other nodes**: full travel time (~12s) and no heal — pure transport.
+  - Respects `isNodeAccessible` — locked nodes (upstream zone not completed) are rejected even if previously visited.
+  - **Bag retention follows the player's current phase** (see Loot Pipeline → Bag retention tiers): camp = 100%, exploração = 30%, combate = 30%. Stone is convenience: it skips the "retreat → map → consumable button" flow, lands the player at the chosen destination directly, and applies the heal/refill if that destination is the city.
+  - Lore: a "memory keeper" — it can only take the player to places whose echo it already carries.
+  - Uncapped. Vendor-only, 40 rubys.
+
+- **Incenso Etéreo**: consumable that triggers the camp cinematic at the player's chosen moment. Used during **exploração**, the next spawn doesn't occur and the modal opens with the same two options as a baked camp (Retornar com 100% / Seguir em frente). May be **activated during combate** and is then **queued** — it doesn't interrupt the current fight; immediately after the current enemy is resolved, the cinematic plays. Activation may also occur mid-ambush; the current mob completes, the remaining mobs in the ambush pack do NOT spawn, the cinematic takes over. **Does NOT activate during a boss fight** (boss = full commitment).
+  - Uncapped. **Drop only — never sold by vendors.** ~2-3% chance from any monster kill (independent roll, like potions). Lives on the character document as a counter (`char.etherealIncense: number`) until used.
+  - Cinematic uses the same structure as baked camps with different flavor text (e.g., "A fumaça arcana se dissipa pelos ares.", "O ar pesado e os sons perturbantes se reduzem à música do ambiente.").
+  - HUD button is the 4th active control in combat; greyed out during boss fight and while a camp cinematic is already active.
+
+The travel consumable is tracked on the character document as `teleportStones`. The wind crystal counter was retired in this consolidation; if any legacy data has it, treat as zero.
 
 Future skills will plug in as additional active controls; these three are the only ones in the MVP.
 
@@ -348,17 +413,16 @@ Legendaries are reachable in Act 1 from any source, but the baseline chance is *
 | Product | Price | Cap |
 |---|---|---|
 | Life Potion | 10 Rubys | 10 |
-| Teleport Stone | 30 Rubys | — |
-| Wind Crystal | 50 Rubys | — |
+| Teleport Stone | 40 Rubys | — |
 
-Potions are capped because they're the active heal control — supply matters for combat balance. Travel consumables are uncapped (player can stockpile arbitrarily many); their gameplay weight comes from the ruby cost, not from rationing.
+Potions are capped because they're the active heal control — supply matters for combat balance. Teleport Stone is uncapped (player can stockpile arbitrarily many); its gameplay weight comes from the ruby cost, not from rationing. **Incenso Etéreo is not sold** — it drops from monsters only (see Active player input → Incenso Etéreo).
 
 The catalog data lives in `src/game/vendor/products.ts`; adding a product means registering an id + price + emoji + (optionally) cap there. `convex/vendor.ts` → `vendorBuy` reads the metadata and walks one code path for all products.
 
 ### Selling rules
 
 - **Only inventory items can be sold.** Equipped gear must be unequipped first. This forces an intentional action before the player loses an item they were actually using.
-- **The vendor does not buy back consumables.** Potions (and future stones/crystals) are a one-way commitment once bought.
+- **The vendor does not buy back consumables.** Potions (and future stones) are a one-way commitment once bought.
 - **Sale is irrevocable.** The item is deleted from the items table and the character is credited Rubys atomically.
 
 ### Vendor price formula
@@ -445,7 +509,7 @@ The epithet is derived from the mods:
 Magic monsters keep the affix-based naming above ("Goblin Furioso da Velocidade"). Only rares get the proper-name treatment.
 
 ### Magic mob spawn rate
-10% of mid-zone spawns are magic; the rest are normal. The threshold spawn (miniboss) is always rare regardless.
+10% of mid-zone spawns are magic; the rest are normal. The bar-fill spawn (miniboss) is always rare regardless. Mobs that are part of an **ambush event** override the 10% baseline with the ambush's own magic rate (~60% per `pack.magicChance` — see Encounter Schedule).
 
 ---
 
@@ -503,7 +567,7 @@ time_seconds = max(0.5, distance / (1 + 2 × movementSpeed/100))
 The 2× coefficient on movement speed is intentional — boots can roll up to ~30% MS in early game and we want the player to *feel* that gear choice on the world map, not see a barely-perceptible improvement. The 0.5s floor keeps travel always visible.
 
 ### Unlocked nodes
-Every time the player arrives at a node (via any travel mechanic) the destination is appended to the character's `unlockedNodes` set. The character starts with `["city"]` on creation. This set is **append-only** — respawn doesn't clear it, leaving the world a one-time discover-then-fast-travel-back. Wind crystals consume the list to validate jump targets; nodes outside the list are inaccessible to crystals even if they're shown on the map.
+Every time the player arrives at a node (via any travel mechanic) the destination is appended to the character's `unlockedNodes` set. The character starts with `["city"]` on creation. This set is **append-only** — respawn doesn't clear it, leaving the world a one-time discover-then-fast-travel-back. Teleport stones consume this list to validate jump targets; nodes outside the list are inaccessible to stones even if they're shown on the map.
 
 ### Progression gating
 A connected combat node is **only travel-eligible if the player has completed the upstream zone**. Concretely:
@@ -511,9 +575,9 @@ A connected combat node is **only travel-eligible if the player has completed th
 - The graph imposes a partial order: the city's only outgoing edge is `forest_starter`, which is its own gate (no upstream); `forest_profunda` requires `forest_starter` complete; `pantano` requires `forest_profunda`; and so on through the linear chain.
 - City is always travel-eligible — it's the safety hub, no upstream gate.
 - Attempting to travel to a locked node surfaces a toast (`"Complete a zona anterior"`); the map's "you are here" pin stays put.
-- Wind crystals still respect this gate — jumping to a locked node is rejected (regardless of `unlockedNodes` membership).
+- Teleport stones still respect this gate — jumping to a locked node is rejected (regardless of `unlockedNodes` membership).
 
-A zone enters the **Complete** state by killing the miniboss at least once (see Zone states). The threshold counter for the current visit lives on the character document; the Complete set is persistent and per-character.
+A zone enters the **Complete** state by killing the miniboss at least once (see Zone states). The time-bar progress for the current visit lives on the character document; the Complete set is persistent and per-character.
 
 ### State on the character document
 Four fields capture the player's location on the act map:
@@ -525,9 +589,9 @@ Four fields capture the player's location on the act map:
 
 ### Behaviour rules
 - **Re-entering the same node is instant.** If the player retreats from a zone and clicks the same node again, no travel — they're already there.
-- **Disconnected nodes can't be travelled to directly** (today). Wind crystals will unlock that path later; for now, clicking an unconnected node surfaces a "no route" toast.
+- **Disconnected nodes can't be travelled to directly** by walking. Teleport stones unlock that path — clicking an unconnected node on the map opens a stone-confirmation if the node is in `unlockedNodes` and not zone-locked. Without a stone, the toast is "no route".
 - **Travel survives refresh.** `travelArrivesAt` lives in the DB. On reload the client recomputes remaining time and schedules `arriveAtTravel` accordingly. Tab closed for longer than the travel? The next load arrives immediately.
-- **No mid-travel actions.** Combat doesn't tick (the character isn't in any zone), `enterZone` rejects while travelling, and there's no cancel button. Future: teleport stones interrupt travel and snap to the city.
+- **No mid-travel actions.** Combat doesn't tick (the character isn't in any zone), `enterZone` rejects while travelling, and there's no cancel button. Future: teleport stones interrupt in-flight travel and re-target to the chosen destination.
 - **Death resets to the city** and clears any in-flight travel.
 
 ### UI

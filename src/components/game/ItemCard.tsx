@@ -63,6 +63,9 @@ type ItemIcon =
 	| { kind: "emoji"; char: string };
 
 function iconFor(item: GeneratedItem): ItemIcon {
+	// Hand-authored items (starter gear) carry their own icon since they have
+	// no template entry.
+	if (item.icon) return { kind: "sprite", src: item.icon };
 	const tpl = TEMPLATE_BY_ID.get(item.templateId);
 	if (tpl?.icon) return { kind: "sprite", src: tpl.icon };
 	if (item.weaponType && WEAPON_EMOJI_OVERRIDE[item.weaponType]) {

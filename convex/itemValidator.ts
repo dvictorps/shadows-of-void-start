@@ -119,4 +119,5 @@ export const generatedItemValidator = v.object({
 	computedStats: v.optional(computedWeaponStats),
 	computedDefenseStats: v.optional(computedDefenseStats),
 	requirements: v.optional(requirements),
+	icon: v.optional(v.string()),
 })

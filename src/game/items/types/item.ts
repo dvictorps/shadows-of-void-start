@@ -91,4 +91,7 @@ export interface GeneratedItem {
 		dex?: number;
 		int?: number;
 	};
+	// Item-local sprite path. Takes precedence over the template's icon when
+	// rendering — for hand-authored items (starter gear) without a template.
+	icon?: string;
 }
