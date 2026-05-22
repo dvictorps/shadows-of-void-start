@@ -579,21 +579,29 @@ export function useCombatLoop({
 	const usePotion = useCallback(async () => {
 		if (potions <= 0 || playerHp >= maxHp) return;
 		const prevPotions = potions;
+		const prevHp = playerHpRef.current;
 		const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
-		const optimisticHp = Math.min(maxHp, playerHpRef.current + heal);
+		const optimisticHp = Math.min(maxHp, prevHp + heal);
+		const appliedHeal = optimisticHp - prevHp;
 		playerHpRef.current = optimisticHp;
 		setPlayerHp(optimisticHp);
 		setPotions(prevPotions - 1);
 		lastSyncedHpRef.current = optimisticHp;
-		// HP stays at the optimistic value regardless of mutation outcome.
-		// The server's `result.hpCurrent` ignores combat damage that landed
-		// during the roundtrip, so writing it back would revert that damage
-		// (the up-down-up flicker). The periodic sync reconciles drift.
+		// On success, keep the local optimistic HP — the server's `hpCurrent`
+		// ignores combat damage that landed during the roundtrip, so writing
+		// it back would revert that damage (the up-down-up flicker).
+		// On failure, subtract only the heal delta we applied; any damage taken
+		// during the roundtrip stays. Forces a re-sync so the server's truth
+		// flows back on the next tick instead of waiting for the 10s interval.
 		try {
 			const result = await consumePotion({ characterId });
 			setPotions(result.potions);
 		} catch {
+			const reverted = Math.max(0, playerHpRef.current - appliedHeal);
+			playerHpRef.current = reverted;
+			setPlayerHp(reverted);
 			setPotions(prevPotions);
+			lastSyncedHpRef.current = -1;
 		}
 	}, [potions, playerHp, maxHp, characterId, consumePotion]);
 
