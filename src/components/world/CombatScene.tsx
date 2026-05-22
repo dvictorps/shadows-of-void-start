@@ -2,7 +2,7 @@ import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import type { MonsterRarity } from "#/game/monsters";
-import { translateMonsterName } from "#/game/world/i18n";
+import { translateEnemyName } from "#/game/world/i18n";
 import type { BossIntroStage, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 import HealthGlobe from "./HealthGlobe";
@@ -305,7 +305,7 @@ export default function CombatScene({
 							className="display-title text-4xl uppercase tracking-[0.15em]"
 							style={{ color: nameColor, textShadow: nameShadow }}
 						>
-							{translateMonsterName(enemy.def, enemy.mods)}
+							{translateEnemyName(enemy)}
 						</div>
 						<div className="text-lg uppercase tracking-[0.2em] text-white/60">
 							Lv {enemy.level}
@@ -331,7 +331,7 @@ export default function CombatScene({
 						<div className="group relative">
 							<motion.img
 								src={enemy.def.sprite}
-								alt={translateMonsterName(enemy.def, enemy.mods)}
+								alt={translateEnemyName(enemy)}
 								draggable={false}
 								className="pointer-events-none h-64 w-64 select-none object-contain"
 								animate={enemyControls}

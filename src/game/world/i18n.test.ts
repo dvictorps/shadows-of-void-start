@@ -1,7 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { findMonster, type MonsterModId } from "#/game/monsters";
 import { overwriteGetLocale } from "#/paraglide/runtime";
-import { translateMonsterName } from "./i18n";
+import {
+	type NameableEnemy,
+	type RareNameSeed,
+	translateEnemyName,
+	translateMonsterName,
+} from "./i18n";
+
+function makeRareEnemy(
+	monsterId: string,
+	mods: MonsterModId[],
+	seed: RareNameSeed,
+): NameableEnemy {
+	const def = findMonster(monsterId);
+	if (!def) throw new Error(`unknown monster ${monsterId}`);
+	return { def, mods, rarity: "rare", nameSeed: seed };
+}
 
 const ORIGINAL_LOCALE_GETTER = () => "pt" as const;
 
@@ -181,5 +196,118 @@ describe("translateMonsterName", () => {
 		withLocale("pt", () => {
 			expect(translateMonsterName(goblin, mods)).toBe("Goblin Furioso");
 		});
+	});
+});
+
+describe("translateEnemyName — rare proper names", () => {
+	// Seed = 0 maps to the first entry in every pool, which makes the expected
+	// output stable as long as the lexicon's first entries don't change. If
+	// reordering a pool, the tests below need a matching update.
+	const ZERO_SEED: RareNameSeed = { primary: 0, secondary: 0, epithet: 0 };
+
+	describe("EN", () => {
+		beforeEach(() => overwriteGetLocale(() => "en"));
+
+		it("compounds first + second word with no space, then comma + epithet", () => {
+			const enemy = makeRareEnemy(
+				"goblin",
+				["monsterIncreasedDamage"],
+				ZERO_SEED,
+			);
+			expect(translateEnemyName(enemy)).toBe("Ironmaw, the Furious");
+		});
+
+		it("epithet pool comes from the prefix mod, not from suffixes", () => {
+			const enemy = makeRareEnemy(
+				"goblin",
+				[
+					"monsterIncreasedEvasion",
+					"monsterIncreasedAttackSpeed",
+					"monsterColdResistance",
+				],
+				ZERO_SEED,
+			);
+			expect(translateEnemyName(enemy)).toBe("Ironmaw, the Elusive");
+		});
+
+		it("two resists collapse into the compound epithet pool", () => {
+			const enemy = makeRareEnemy(
+				"goblin",
+				["monsterMoreArmor", "monsterColdResistance", "monsterFireResistance"],
+				ZERO_SEED,
+			);
+			expect(translateEnemyName(enemy)).toBe("Ironmaw, the Unbroken");
+		});
+	});
+
+	describe("PT", () => {
+		beforeEach(() => overwriteGetLocale(() => "pt"));
+
+		it("joins noun + 'de/do/da X' phrase with comma + masculine epithet", () => {
+			const enemy = makeRareEnemy(
+				"goblin",
+				["monsterIncreasedDamage"],
+				ZERO_SEED,
+			);
+			expect(translateEnemyName(enemy)).toBe("Braço de Sangue, o Furioso");
+		});
+
+		it("epithet stays masculine regardless of monster grammatical gender", () => {
+			// "Serpente" is a feminine word, but the rare epithet refers to the
+			// monster as an entity (genderless) — always masculine.
+			const enemy = makeRareEnemy("serpente", ["monsterMoreArmor"], ZERO_SEED);
+			expect(translateEnemyName(enemy)).toBe("Braço de Sangue, o Blindado");
+		});
+
+		it("compound rule swaps to 'o Inquebrável'-style title", () => {
+			const enemy = makeRareEnemy(
+				"goblin",
+				[
+					"monsterIncreasedLife",
+					"monsterColdResistance",
+					"monsterFireResistance",
+				],
+				ZERO_SEED,
+			);
+			expect(translateEnemyName(enemy)).toBe("Braço de Sangue, o Inquebrável");
+		});
+	});
+
+	it("same seed produces the same name across calls (stable rendering)", () => {
+		overwriteGetLocale(() => "pt");
+		const seed: RareNameSeed = { primary: 0.42, secondary: 0.71, epithet: 0.3 };
+		const enemy = makeRareEnemy("goblin", ["monsterIncreasedDamage"], seed);
+		const a = translateEnemyName(enemy);
+		const b = translateEnemyName(enemy);
+		expect(a).toBe(b);
+	});
+
+	it("different seeds usually produce different names", () => {
+		overwriteGetLocale(() => "en");
+		const e1 = makeRareEnemy("goblin", ["monsterIncreasedDamage"], {
+			primary: 0,
+			secondary: 0,
+			epithet: 0,
+		});
+		const e2 = makeRareEnemy("goblin", ["monsterIncreasedDamage"], {
+			primary: 0.9,
+			secondary: 0.9,
+			epithet: 0.9,
+		});
+		expect(translateEnemyName(e1)).not.toBe(translateEnemyName(e2));
+	});
+
+	it("non-rare enemies fall through to the mod-based renderer", () => {
+		overwriteGetLocale(() => "pt");
+		const def = findMonster("goblin");
+		if (!def) throw new Error("goblin missing");
+		const enemy: NameableEnemy = {
+			def,
+			mods: ["monsterIncreasedDamage"],
+			rarity: "magic",
+			nameSeed: ZERO_SEED,
+		};
+		// Magic still uses the prefix/suffix system — no proper name yet.
+		expect(translateEnemyName(enemy)).toBe("Goblin Furioso");
 	});
 });

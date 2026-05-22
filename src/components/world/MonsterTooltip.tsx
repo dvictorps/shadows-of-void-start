@@ -1,7 +1,7 @@
 import type { MonsterRarity } from "#/game/monsters";
 import {
+	translateEnemyName,
 	translateMonsterModDescription,
-	translateMonsterName,
 } from "#/game/world/i18n";
 import type { Enemy } from "#/hooks/useCombatLoop";
 
@@ -42,7 +42,7 @@ export default function MonsterTooltip({ enemy }: { enemy: Enemy }) {
 				}}
 			>
 				<div className="text-lg" style={{ color }}>
-					{translateMonsterName(enemy.def, enemy.mods)}
+					{translateEnemyName(enemy)}
 				</div>
 				<div
 					className="text-xs uppercase tracking-[0.2em]"

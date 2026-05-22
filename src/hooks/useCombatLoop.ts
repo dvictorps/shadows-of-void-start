@@ -54,6 +54,7 @@ import {
 	scaleMonsterStats,
 } from "#/game/monsters";
 import type { ComputedCharacterStats } from "#/game/stats/types";
+import type { RareNameSeed } from "#/game/world/i18n";
 import { pickRandom } from "#/lib/rng";
 import { playMonsterDeathSfx, playSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
@@ -91,6 +92,10 @@ export type Enemy = {
 	rarity: MonsterRarity;
 	mods: readonly MonsterModId[];
 	scaled: ScaledMonsterStats;
+	// Seeds for the rare proper-name generator. Sampled once on spawn so the
+	// rare's name stays stable across re-renders and locale switches.
+	// Non-rare spawns still carry the field (unused) to keep the shape narrow.
+	nameSeed: RareNameSeed;
 };
 
 function defenderFromEnemy(enemy: Enemy) {
@@ -277,6 +282,11 @@ export function useCombatLoop({
 			zoneKillsRef.current >= KILLS_TO_THRESHOLD ? "rare" : rollMonsterRarity();
 		const mods = rollMonsterMods(modCountForRarity(rarity));
 		const scaled = applyMonsterMods(baseScaled, mods);
+		const nameSeed: RareNameSeed = {
+			primary: Math.random(),
+			secondary: Math.random(),
+			epithet: Math.random(),
+		};
 		const newEnemy: Enemy = {
 			def,
 			currentHp: scaled.hp,
@@ -284,6 +294,7 @@ export function useCombatLoop({
 			rarity,
 			mods,
 			scaled,
+			nameSeed,
 		};
 		enemyRef.current = newEnemy;
 		setEnemy(newEnemy);

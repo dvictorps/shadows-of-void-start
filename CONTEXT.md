@@ -428,6 +428,22 @@ The display name is composed in two different ways depending on the active langu
 
 Adding a new gendered language is purely a lexicon entry — monster data stays language-neutral. Adding a non-gendered language follows the EN shape (no `monsterGender` field, no gendered forms).
 
+### Rare proper names
+
+**Rares don't use the mod-based naming at all** — they get a randomly-composed proper name from two word pools plus a single epithet that hints at their top mod. The full list of rolled mods still appears in the tooltip body; the name itself is identity, not a stat readout. This mirrors how Path of Exile handles its rare monsters.
+
+Each spawn samples three uniform-[0, 1] seeds at spawn time (`Enemy.nameSeed = { primary, secondary, epithet }`). The renderer maps those onto the active locale's pools, so re-renders and locale switches keep the name stable for the spawn's lifetime; only a fresh spawn rolls a new name.
+
+- **English** — first word concatenated with second word, then `, the <Epithet>`: "Stonemaw, the Furious", "Frostfang, the Elusive".
+- **Portuguese** — first noun + a `de`/`do`/`da` phrase, then `, o <Epithet>` (always masculine — monsters are genderless entities; words have gender, but the epithet titles the creature, not the word): "Garra de Aço, o Furioso", "Coração das Sombras, o Inquebrável".
+
+The epithet is derived from the mods:
+
+- Default: the rare's first **prefix** mod selects the epithet pool (Damage → "the Furious / the Vicious / the Cruel / the Savage", etc.). Variants in the pool add variety without breaking the mod-signal.
+- Compound rule (2+ resists): the epithet pool swaps to "the Unbroken / o Inquebrável"-style titles instead of literalizing "Elemental Resistant" in the name.
+
+Magic monsters keep the affix-based naming above ("Goblin Furioso da Velocidade"). Only rares get the proper-name treatment.
+
 ### Magic mob spawn rate
 10% of mid-zone spawns are magic; the rest are normal. The threshold spawn (miniboss) is always rare regardless.
 

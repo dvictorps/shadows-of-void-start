@@ -3,6 +3,7 @@ import {
 	type MonsterDefinition,
 	type MonsterId,
 	type MonsterModId,
+	type MonsterRarity,
 } from "#/game/monsters";
 import { m } from "#/paraglide/messages";
 import { getLocale } from "#/paraglide/runtime";
@@ -17,6 +18,25 @@ import type {
 	SuffixMonsterModId,
 } from "./lexicon/types";
 import type { WorldNode } from "./types";
+
+// Three independent uniform-[0, 1] seeds drive the rare proper-name pick.
+// Held on each spawned Enemy so re-renders / locale switches keep the same
+// name across the spawn's lifetime — and a fresh spawn gets a fresh roll.
+export interface RareNameSeed {
+	primary: number;
+	secondary: number;
+	epithet: number;
+}
+
+// Structural shape — anything carrying these fields can be named. Lets
+// `translateEnemyName` accept the Enemy type from useCombatLoop without
+// importing it directly (and without a circular dep).
+export interface NameableEnemy {
+	def: MonsterDefinition;
+	mods: readonly MonsterModId[];
+	rarity: MonsterRarity;
+	nameSeed: RareNameSeed;
+}
 
 // Lookup table over hand-coded switches: adding a zone is a one-line entry
 // instead of two parallel switch cases. The `description` slot is optional —
@@ -219,6 +239,68 @@ function suffixPhrasePt(noun: string | GenderedNoun): string {
 	if (typeof noun === "string") return noun;
 	const article = noun.gender === "m" ? "do" : "da";
 	return `${article} ${noun.noun}`;
+}
+
+/**
+ * Localized display name for any combat enemy. Normal / magic monsters fall
+ * through to the mod-based renderer (translateMonsterName); rares get a
+ * proper compound name + epithet drawn from the active locale's pool, keyed
+ * by the spawn's nameSeed so re-renders stay stable.
+ */
+export function translateEnemyName(enemy: NameableEnemy): string {
+	if (enemy.rarity === "rare") {
+		const locale = getLocale();
+		const lex = locale === "pt" ? lexiconPt : lexiconEn;
+		const epithetPool = pickRareEpithetPool(enemy.mods, lex);
+		const baseName = composeRareBaseName(enemy.nameSeed, lex, locale);
+		const epithet =
+			epithetPool[
+				Math.floor(enemy.nameSeed.epithet * epithetPool.length) %
+					epithetPool.length
+			];
+		return `${baseName}, ${epithet}`;
+	}
+	return translateMonsterName(enemy.def, enemy.mods);
+}
+
+function composeRareBaseName(
+	seed: RareNameSeed,
+	lex: MonsterNameLexicon,
+	locale: string,
+): string {
+	const first =
+		lex.rareFirstWords[
+			Math.floor(seed.primary * lex.rareFirstWords.length) %
+				lex.rareFirstWords.length
+		];
+	const second =
+		lex.rareSecondWords[
+			Math.floor(seed.secondary * lex.rareSecondWords.length) %
+				lex.rareSecondWords.length
+		];
+	// EN compounds the two words ("Stonemaw"); PT keeps them separate with the
+	// preposition that's already baked into the second-pool entry ("Garra de
+	// Aço").
+	return locale === "pt" ? `${first} ${second}` : `${first}${second}`;
+}
+
+function pickRareEpithetPool(
+	mods: readonly MonsterModId[],
+	lex: MonsterNameLexicon,
+): readonly string[] {
+	// 2+ resists collapse into the compound rule — same precedence as the
+	// magic/normal renderers.
+	let resistCount = 0;
+	let firstPrefix: PrefixMonsterModId | null = null;
+	for (const id of mods) {
+		if (RESIST_MOD_IDS.has(id)) resistCount += 1;
+		else if (isPrefixMod(id) && firstPrefix === null) firstPrefix = id;
+	}
+	if (resistCount >= 2) return lex.rareCompoundEpithets;
+	if (firstPrefix !== null) return lex.rareEpithetsByPrefix[firstPrefix];
+	// Fallback: rares always roll ≥1 prefix per the affix cap, so this branch
+	// shouldn't fire in practice — but keep something safe just in case.
+	return lex.rareCompoundEpithets;
 }
 
 export function translateMonsterModDescription(id: MonsterModId): string {
