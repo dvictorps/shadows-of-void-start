@@ -644,7 +644,7 @@ export function useCombatLoop({
 		lastKill,
 		usePotion,
 		zoneKills,
-		killsToThreshold: encounterPlan.encountersBeforeBoss,
+		encountersBeforeBoss: encounterPlan.encountersBeforeBoss,
 		dismissMinibossModal,
 	};
 }

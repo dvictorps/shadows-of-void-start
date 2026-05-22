@@ -34,6 +34,7 @@ import {
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { ACT_1, findNode } from "#/game/world";
 import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
+import { DEFAULT_ENCOUNTER_PLAN } from "#/game/world/encounter-schedule";
 import { computeTravelTime } from "#/game/world/travel";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
@@ -399,18 +400,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		[currentNode],
 	);
 	const zoneLevel = currentNode?.level ?? character.level;
-	// Fallback plan keeps the type signature satisfied for non-combat views
-	// (city, map) — the hook isn't active there (`active = view === "combat"`),
-	// so the values never run. Combat nodes always carry an encounterPlan in
-	// act-1.ts.
-	const encounterPlan = useMemo(
-		() =>
-			currentNode?.encounterPlan ?? {
-				encountersBeforeBoss: 15,
-				gapBetweenSpawns: { min: 1.5, max: 3 },
-			},
-		[currentNode],
-	);
+	const encounterPlan =
+		currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
 
 	const handlePlayerDeath = useCallback(async () => {
 		try {
@@ -760,7 +751,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						onOpenBag={bagModal.open}
 						onConsumableHover={setConsumableHover}
 						zoneKills={combat.zoneKills}
-						killsToThreshold={combat.killsToThreshold}
+						encountersBeforeBoss={combat.encountersBeforeBoss}
 						onDismissMinibossModal={combat.dismissMinibossModal}
 					/>
 				)}

@@ -62,10 +62,10 @@ type Props = {
 	// Hover bubbles back to the parent so the world's TextLog can describe the
 	// consumable the player is pointing at. Null on mouse leave.
 	onConsumableHover?: (key: ConsumableKey | null) => void;
-	// Zone progression — kills accumulated in this visit and the threshold
-	// at which the miniboss spawns. See CONTEXT.md → Threshold Bar.
+	// Zone progression — kills accumulated in this visit and the encounter
+	// count at which the miniboss spawns. See CONTEXT.md → Time Bar.
 	zoneKills: number;
-	killsToThreshold: number;
+	encountersBeforeBoss: number;
 	// Continue-farming choice on the post-miniboss modal.
 	onDismissMinibossModal: () => void;
 };
@@ -94,12 +94,12 @@ export default function CombatScene({
 	bagCount,
 	onOpenBag,
 	zoneKills,
-	killsToThreshold,
+	encountersBeforeBoss,
 	onDismissMinibossModal,
 	onConsumableHover,
 }: Props) {
 	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
-	const thresholdPct = Math.min(100, (zoneKills / killsToThreshold) * 100);
+	const thresholdPct = Math.min(100, (zoneKills / encountersBeforeBoss) * 100);
 	const enemyEvents = useMemo(
 		() => events.filter((e) => e.target === "enemy"),
 		[events],
@@ -239,7 +239,7 @@ export default function CombatScene({
 				aria-label="Zone threshold"
 				aria-valuenow={zoneKills}
 				aria-valuemin={0}
-				aria-valuemax={killsToThreshold}
+				aria-valuemax={encountersBeforeBoss}
 				className="h-1.5 w-full bg-white/10"
 			>
 				<div
