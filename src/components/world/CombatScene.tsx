@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateEnemyName } from "#/game/world/i18n";
 import type { BossIntroStage, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
@@ -248,6 +248,30 @@ export default function CombatScene({
 	}, [state, enemy, enemyControls]);
 
 	const inCamp = state === "acampamento";
+	// Camp arrival is staged so the transition feels lived-in: the player
+	// still sees "Explorando..." for ~2s, the HUD then fades out over 3s,
+	// the cinematic only mounts once the HUD is gone (T=5s), and the warm
+	// glow rises with the second ambient line (T=8s).
+	const [hudFading, setHudFading] = useState(false);
+	const [cinematicEnabled, setCinematicEnabled] = useState(false);
+	const [glowVisible, setGlowVisible] = useState(false);
+	useEffect(() => {
+		if (!inCamp) {
+			setHudFading(false);
+			setCinematicEnabled(false);
+			setGlowVisible(false);
+			return;
+		}
+		const t1 = window.setTimeout(() => setHudFading(true), 2000);
+		const t2 = window.setTimeout(() => setCinematicEnabled(true), 5000);
+		const t3 = window.setTimeout(() => setGlowVisible(true), 8000);
+		return () => {
+			window.clearTimeout(t1);
+			window.clearTimeout(t2);
+			window.clearTimeout(t3);
+		};
+	}, [inCamp]);
+
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
 			{/* Camp ambience — warm radial glow stands in for the future
@@ -257,7 +281,7 @@ export default function CombatScene({
 			<div
 				aria-hidden
 				className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-[3000ms] ease-out ${
-					inCamp ? "opacity-100" : "opacity-0"
+					glowVisible ? "opacity-100" : "opacity-0"
 				}`}
 				style={{
 					background:
@@ -297,7 +321,7 @@ export default function CombatScene({
 			 * the per-spawn monster level is shown separately on the nameplate). */}
 			<div
 				className={`absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60 transition-opacity duration-[3000ms] ease-out ${
-					inCamp ? "opacity-0" : "opacity-100"
+					hudFading ? "opacity-0" : "opacity-100"
 				}`}
 			>
 				<span>{zoneName}</span>
@@ -307,7 +331,7 @@ export default function CombatScene({
 			{/* Top-right action cluster: loot button then Retreat */}
 			<div
 				className={`absolute top-3 right-3 z-10 flex items-center gap-2 transition-opacity duration-[3000ms] ease-out ${
-					inCamp ? "pointer-events-none opacity-0" : "opacity-100"
+					hudFading ? "pointer-events-none opacity-0" : "opacity-100"
 				}`}
 			>
 				<button
@@ -340,7 +364,7 @@ export default function CombatScene({
 			 * sprite below — only opacity / y animate. */}
 			<div
 				className={`flex h-[120px] flex-col items-center gap-1 px-6 pt-14 transition-opacity duration-[3000ms] ease-out ${
-					inCamp ? "opacity-0" : "opacity-100"
+					hudFading ? "opacity-0" : "opacity-100"
 				}`}
 			>
 				{enemy && (
@@ -374,7 +398,7 @@ export default function CombatScene({
 
 			<div className="relative flex flex-1 flex-col items-center justify-center gap-4">
 				<div className="relative flex flex-1 items-center justify-center">
-					{state === "searching" && (
+					{(state === "searching" || (inCamp && !cinematicEnabled)) && (
 						<p className="animate-pulse text-xs uppercase tracking-[0.25em] text-white/40">
 							{m.searching_enemy()}
 						</p>
@@ -385,7 +409,7 @@ export default function CombatScene({
 							onRetreat={onRetreat}
 						/>
 					)}
-					{state === "acampamento" && (
+					{inCamp && cinematicEnabled && (
 						<CampCinematic
 							zoneId={zoneId}
 							onReturn={onRetreat}
@@ -463,7 +487,7 @@ export default function CombatScene({
 			{/* Bottom HUD: HP globe + XP bar + teleport stone + (wind-crystal counter / potion) */}
 			<div
 				className={`relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4 transition-opacity duration-[3000ms] ease-out ${
-					inCamp ? "pointer-events-none opacity-0" : "opacity-100"
+					hudFading ? "pointer-events-none opacity-0" : "opacity-100"
 				}`}
 			>
 				<div className="relative">

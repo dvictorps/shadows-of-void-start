@@ -9,10 +9,13 @@ import { m } from "#/paraglide/messages";
 
 type Stage = 0 | 1 | 2 | "fading_out" | "panel";
 
-// Long holds on each ambient line — the moment is supposed to feel earned,
-// not skipped through. 3 lines × 5s ≈ 15s of text, then a deliberate gap
-// before the decision panel appears.
-const STAGE_HOLD_MS = 5000;
+// Per-line holds — middle line gets the longest beat. Total ~10s of text,
+// then a deliberate gap before the decision panel.
+const STAGE_HOLD_MS: Record<0 | 1 | 2, number> = {
+	0: 3000,
+	1: 4000,
+	2: 3000,
+};
 const TEXT_EXIT_MS = 1200;
 const POST_TEXT_PAUSE_MS = 1000;
 
@@ -48,9 +51,10 @@ export default function CampCinematic({
 			);
 			return () => window.clearTimeout(id);
 		}
+		const hold = STAGE_HOLD_MS[stage];
 		const id = window.setTimeout(
 			() => setStage((prev) => (prev in NEXT_STAGE ? NEXT_STAGE[prev as 0 | 1 | 2] : prev)),
-			STAGE_HOLD_MS,
+			hold,
 		);
 		return () => window.clearTimeout(id);
 	}, [stage]);
