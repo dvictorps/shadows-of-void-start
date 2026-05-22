@@ -17,6 +17,15 @@ const RARITY_NAMEPLATE_COLOR: Record<MonsterRarity, string> = {
 	rare: "#ffff77",
 };
 
+// Glow reinforces rarity. Normal keeps only a readability shadow; magic/rare
+// add a color-matched halo. Rare's halo is stronger to preserve its drama
+// even though it shares the staging spotlight with the boss intro cascade.
+const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
+	normal: "0 2px 4px rgba(0, 0, 0, 0.9)",
+	magic: "0 0 14px rgba(136, 136, 255, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
+	rare: "0 0 18px rgba(255, 255, 119, 0.7), 0 2px 4px rgba(0, 0, 0, 0.9)",
+};
+
 export type ConsumableKey = "potion" | "teleport" | "wind_crystal";
 
 type Props = {
@@ -129,18 +138,31 @@ export default function CombatScene({
 		return null;
 	}, [playerEvents]);
 	const nameColor = enemy ? RARITY_NAMEPLATE_COLOR[enemy.rarity] : "#ffffff";
+	const nameShadow = enemy
+		? RARITY_NAMEPLATE_SHADOW[enemy.rarity]
+		: RARITY_NAMEPLATE_SHADOW.normal;
+	// Micro-stagger for non-rare reveals: sprite → name → hp in ~160ms total.
+	// Rares are paced by the boss intro cascade (sprite/name/hp stages), so
+	// any extra delay here would compound and feel sluggish.
+	const isRareEnemy = enemy?.rarity === "rare";
+	const nameplateDelay = isRareEnemy ? 0 : 0.08;
+	const hpBarDelay = isRareEnemy ? 0 : 0.16;
 
 	// Staged reveal for rare minibosses. The nameplate appears at stage "name",
 	// the HP bar at stage "hp". The sprite is always shown once the spawn
 	// transitions out of "searching". For non-boss spawns (bossIntroStage is
 	// null), everything appears together as before.
+	// On victory, both fade out alongside the sprite so the exit mirrors the
+	// entrance instead of the nameplate/bar popping out when the enemy unmounts.
 	const showNameplate =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
+		state !== "victory" &&
 		(state !== "boss_intro" || bossIntroStage !== "sprite");
 	const showHpBar =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
+		state !== "victory" &&
 		(state !== "boss_intro" || bossIntroStage === "hp");
 
 	// Sprite-level controls drive both the entrance animation and the in-combat
@@ -158,15 +180,23 @@ export default function CombatScene({
 		if (!enemy) return;
 		if (!wasNull) return;
 		const isRare = enemy.rarity === "rare";
+		// Non-rare entrance uses a "fading from the dark" feel — slight y
+		// offset + blur — instead of the rare's bold scale-down. Keeps the
+		// rare's cinematic entrance distinctive.
 		enemyControls.set({
 			opacity: 0,
 			scale: isRare ? 1.2 : 1,
 			x: 0,
-			filter: "brightness(1) saturate(1) hue-rotate(0deg)",
+			y: isRare ? 0 : 8,
+			filter: isRare
+				? "brightness(1) saturate(1) hue-rotate(0deg)"
+				: "brightness(1) saturate(1) blur(4px)",
 		});
 		enemyControls.start({
 			opacity: 1,
 			scale: 1,
+			y: 0,
+			filter: "brightness(1) saturate(1) hue-rotate(0deg)",
 			transition: { duration: isRare ? 0.7 : 0.4, ease: "easeOut" },
 		});
 	}, [enemy, enemyControls]);
@@ -186,9 +216,20 @@ export default function CombatScene({
 	}, [lastDamagingHit, enemyControls]);
 
 	useEffect(() => {
-		if (state !== "victory") return;
-		enemyControls.start({ opacity: 0, transition: { duration: 0.5 } });
-	}, [state, enemyControls]);
+		if (state !== "victory" || !enemy) return;
+		// Mirror the entrance: non-rare "falls back into the dark" (y down +
+		// blur), rare keeps a clean fade so we don't add unrelated motion to
+		// the boss exit. easeIn pairs with the entrance's easeOut.
+		const isRare = enemy.rarity === "rare";
+		enemyControls.start({
+			opacity: 0,
+			y: isRare ? 0 : 8,
+			filter: isRare
+				? "brightness(1) saturate(1) hue-rotate(0deg)"
+				: "brightness(1) saturate(1) blur(4px)",
+			transition: { duration: 0.5, ease: "easeIn" },
+		});
+	}, [state, enemy, enemyControls]);
 
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
@@ -247,16 +288,22 @@ export default function CombatScene({
 				{enemy && (
 					<motion.div
 						className="flex flex-col items-center gap-1"
-						initial={false}
+						initial={{ opacity: 0, y: 8 }}
 						animate={{
 							opacity: showNameplate ? 1 : 0,
 							y: showNameplate ? 0 : 8,
 						}}
-						transition={{ duration: 0.45, ease: "easeOut" }}
+						transition={{
+							duration: 0.45,
+							ease: "easeOut",
+							// Stagger applies only to the reveal — keeping it on the
+							// fade-out would make the nameplate linger past the sprite.
+							delay: showNameplate ? nameplateDelay : 0,
+						}}
 					>
 						<div
 							className="display-title text-4xl uppercase tracking-[0.15em]"
-							style={{ color: nameColor }}
+							style={{ color: nameColor, textShadow: nameShadow }}
 						>
 							{translateMonsterName(enemy.def, enemy.mods)}
 						</div>
@@ -332,9 +379,13 @@ export default function CombatScene({
 				{enemy && state !== "miniboss_victory" && (
 					<motion.div
 						className="flex w-full justify-center"
-						initial={false}
+						initial={{ opacity: 0, y: -6 }}
 						animate={{ opacity: showHpBar ? 1 : 0, y: showHpBar ? 0 : -6 }}
-						transition={{ duration: 0.45, ease: "easeOut" }}
+						transition={{
+							duration: 0.45,
+							ease: "easeOut",
+							delay: showHpBar ? hpBarDelay : 0,
+						}}
 					>
 						<EnemyHpBar current={enemy.currentHp} max={enemy.scaled.hp} />
 					</motion.div>
