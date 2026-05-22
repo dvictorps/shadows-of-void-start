@@ -115,17 +115,37 @@ const PT_EXPLICIT_FORMATTERS: Record<string, ModFormatter> = {
 	globalCriticalChanceIncrease: (m) => `+${m.value}% de Chance Crítica`,
 	criticalStrikeMultiplierFlat: (m) => `+${m.value}% de Multiplicador Crítico`,
 
-	// Flat damage to attacks (range — uses formatValue for min-max)
+	// Flat damage to attacks (range — uses formatValue for min-max).
+	// The *Global variants are the jewelry/quiver versions of the same mod —
+	// same displayFormat, different slot pool; PT renders identically.
 	physicalDamageFlatGlobal: (m) =>
 		`+${formatValue(m)} de Dano Físico em Ataques`,
 	coldDamageToAttacksFlat: (m) =>
 		`+${formatValue(m)} de Dano de Frio em Ataques`,
+	coldDamageToAttacksFlatGlobal: (m) =>
+		`+${formatValue(m)} de Dano de Frio em Ataques`,
 	fireDamageToAttacksFlat: (m) =>
+		`+${formatValue(m)} de Dano de Fogo em Ataques`,
+	fireDamageToAttacksFlatGlobal: (m) =>
 		`+${formatValue(m)} de Dano de Fogo em Ataques`,
 	lightningDamageToAttacksFlat: (m) =>
 		`+${formatValue(m)} de Dano de Raio em Ataques`,
+	lightningDamageToAttacksFlatGlobal: (m) =>
+		`+${formatValue(m)} de Dano de Raio em Ataques`,
 	voidDamageToAttacksFlat: (m) =>
 		`+${formatValue(m)} de Dano de Vácuo em Ataques`,
+	voidDamageToAttacksFlatGlobal: (m) =>
+		`+${formatValue(m)} de Dano de Vácuo em Ataques`,
+
+	// Tome-exclusive gain-as-extra elemental
+	tomeGainAsExtraCold: (m) =>
+		`Ganha ${m.value}% do Dano de Conjuração como Dano de Frio Adicional`,
+	tomeGainAsExtraFire: (m) =>
+		`Ganha ${m.value}% do Dano de Conjuração como Dano de Fogo Adicional`,
+	tomeGainAsExtraLightning: (m) =>
+		`Ganha ${m.value}% do Dano de Conjuração como Dano de Raio Adicional`,
+	tomeGainAsExtraVoid: (m) =>
+		`Ganha ${m.value}% do Dano de Conjuração como Dano de Vácuo Adicional`,
 
 	// Flat damage to spells (caster weapons, range)
 	coldDamageFlat: (m) => `+${formatValue(m)} de Dano de Frio em Conjurações`,
