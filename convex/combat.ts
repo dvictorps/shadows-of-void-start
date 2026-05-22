@@ -12,8 +12,9 @@
 //    enterZone             ← issue a new zoneSession, wipe any prior bag
 //    startTravel           ← begin time-gated node transition
 //    arriveAtTravel        ← commit arrival + append to unlockedNodes
-//    useTeleportStone      ← panic return to city (wipes bag, refunds nothing)
-//    useWindCrystal        ← jump to any unlocked node (vendor-only, fixed time)
+//    useTeleportStone      ← travel to any unlocked node (city: short hop + heal/refill;
+//                            others: standard skip-zones travel). Wipes the zone bag if
+//                            used mid-zone. Consolidates the retired useWindCrystal.
 //
 //  Trust model: client-driven event triggers (recordKill, syncHp). Layered
 //  hardening is deferred — see docs/security/threat-model.md.
@@ -34,7 +35,10 @@ import {
 	applyXpGain,
 } from "../src/game/progression/levels"
 import { computeCharacterStats } from "../src/game/stats/compute"
-import { WIND_CRYSTAL_TRAVEL_SECONDS } from "../src/game/combat/constants"
+import {
+	TELEPORT_STONE_TRAVEL_SECONDS_CITY,
+	TELEPORT_STONE_TRAVEL_SECONDS_NON_CITY,
+} from "../src/game/combat/constants"
 import { ACT_1, findNode, isNodeAccessible } from "../src/game/world"
 import { computeTravelTime } from "../src/game/world/travel"
 import {
@@ -423,11 +427,31 @@ export const arriveAtTravel = mutation({
 	},
 })
 
-// Teleport stone — instant return to the city, usable anywhere (map, zone,
-// combat). Wipes the current zone bag if one's active (panic-button trade
-// off: you escape but you abandon the loot). Decrements the consumable.
+// Teleport stone — single travel consumable for skipping geography. Takes
+// the player to any previously-visited node (`unlockedNodes`). The wind
+// crystal was consolidated into this in feat/stone-consolidation; the
+// `windCrystals` schema field stays for legacy data but no longer drives
+// any mutation.
+//
+// Two branches:
+//   - destinationNodeId omitted / "city" — short hop home with heal +
+//     potion refill on arrival. Same contract as the legacy "panic
+//     button" return.
+//   - destinationNodeId is a non-city unlocked node — set travel state
+//     (arrival cascades through the existing arriveAtTravel flow). No
+//     heal/refill; this is a transport, not a respite.
+//
+// In both cases the active zone bag is wiped if present — using the stone
+// from inside a zone is still a panic exit. The bag-retention tier work
+// (camp / exploration / combat caps) lands in a later PR; until then the
+// stone keeps its existing wipe behavior.
 export const useTeleportStone = mutation({
-	args: { characterId: v.id("characters") },
+	args: {
+		characterId: v.id("characters"),
+		// Optional for backward-compat with call sites that haven't been
+		// updated yet — undefined is interpreted as `"city"`.
+		destinationNodeId: v.optional(v.string()),
+	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
@@ -436,99 +460,77 @@ export const useTeleportStone = mutation({
 		const stones = char.teleportStones ?? 0
 		if (stones <= 0) throw new ConvexError("No teleport stones")
 
+		const destinationNodeId = args.destinationNodeId ?? "city"
+		const fromId = char.currentLocation ?? "city"
+
+		// Destination validation runs for non-city targets only. "city" is
+		// always available (seeded into `unlockedNodes` on character creation,
+		// no zone-gate upstream).
+		if (destinationNodeId !== "city") {
+			if (char.travelDestination !== undefined)
+				throw new ConvexError("Already traveling")
+			if (fromId === destinationNodeId)
+				throw new ConvexError("Already at destination")
+
+			const destNode = findNode(ACT_1, destinationNodeId)
+			if (!destNode)
+				throw new ConvexError(`Unknown destination: ${destinationNodeId}`)
+
+			const unlocked = char.unlockedNodes ?? ["city"]
+			if (!unlocked.includes(destinationNodeId))
+				throw new ConvexError("Destination not yet unlocked")
+
+			if (!isNodeAccessible(destNode, char.completedZones))
+				throw new ConvexError("zone-locked")
+		}
+
 		if (char.currentZoneSession) {
 			await deleteZoneBag(ctx, char.currentZoneSession)
 		}
 
-		// Arriving at the city heals + refills potion to ≥1 — same contract as
-		// enterCity / respawnDead. Without this the panic-return drops you in
-		// the city at whatever HP you had, defeating the "safety" semantic.
-		const classDef = findClassDefinition(char.classId)
-		const equippedItems = await loadEquippedSet(ctx, args.characterId)
-		const stats = computeCharacterStats({
-			classDef,
-			level: char.level,
-			equippedItems,
-		})
-		const maxHp = stats.maxLife
-		const potions = char.potions ?? 0
-		const refilledPotions = potions === 0 ? 1 : potions
+		// City arrival is the original "safety hub" contract: heal + refill
+		// potion to at least 1, instant arrival (no travel state). Non-city
+		// arrivals route through the standard travel flow so the progress bar
+		// works and `arriveAtTravel` commits the location change.
+		if (destinationNodeId === "city") {
+			const classDef = findClassDefinition(char.classId)
+			const equippedItems = await loadEquippedSet(ctx, args.characterId)
+			const stats = computeCharacterStats({
+				classDef,
+				level: char.level,
+				equippedItems,
+			})
+			const maxHp = stats.maxLife
+			const potions = char.potions ?? 0
+			const refilledPotions = potions === 0 ? 1 : potions
 
-		// "city" is in `unlockedNodes` by invariant (seeded on character
-		// create), so no append needed.
-		await ctx.db.patch(args.characterId, {
-			teleportStones: stones - 1,
-			hpCurrent: maxHp,
-			potions: refilledPotions,
-			currentLocation: "city",
-			currentZoneSession: undefined,
-			travelDestination: undefined,
-			travelStartedAt: undefined,
-			travelArrivesAt: undefined,
-		})
-		return { teleportStones: stones - 1 }
-	},
-})
+			const startedAt = Date.now()
+			const arrivesAt =
+				startedAt + TELEPORT_STONE_TRAVEL_SECONDS_CITY * 1000
 
-// Wind crystal — jump to any unlocked node with a fixed (movement-speed-
-// independent) travel duration. Conceptually you're skipping zones rather
-// than walking them; mechanically it routes through the same travel state
-// as `startTravel` so the existing arrival flow + progress bar work
-// unchanged. Map-view only (no usage during combat or in transit).
-export const useWindCrystal = mutation({
-	args: {
-		characterId: v.id("characters"),
-		destinationNodeId: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const authUser = await authComponent.getAuthUser(ctx)
-		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
-
-		const crystals = char.windCrystals ?? 0
-		if (crystals <= 0) throw new ConvexError("No wind crystals")
-		if (char.travelDestination !== undefined)
-			throw new ConvexError("Already traveling")
-
-		const fromId = char.currentLocation ?? "city"
-		if (fromId === args.destinationNodeId)
-			throw new ConvexError("Already at destination")
-
-		const destNode = findNode(ACT_1, args.destinationNodeId)
-		if (!destNode)
-			throw new ConvexError(`Unknown destination: ${args.destinationNodeId}`)
-
-		const unlocked = char.unlockedNodes ?? ["city"]
-		if (!unlocked.includes(args.destinationNodeId))
-			throw new ConvexError("Destination not yet unlocked")
-
-		if (!isNodeAccessible(destNode, char.completedZones))
-			throw new ConvexError("zone-locked")
-
-		// Wind crystal is map-only by UI contract, so reaching here with an
-		// active zone session means it's orphaned (e.g. the user closed the
-		// retreat-loot modal without resolving). Treat it like the teleport
-		// stone's panic-button: drop the bag and clear the flag so the travel
-		// flow doesn't trip the next mutation. Becomes a no-op once retreat
-		// itself closes the session.
-		if (char.currentZoneSession) {
-			await deleteZoneBag(ctx, char.currentZoneSession)
+			await ctx.db.patch(args.characterId, {
+				teleportStones: stones - 1,
+				hpCurrent: maxHp,
+				potions: refilledPotions,
+				currentZoneSession: undefined,
+				travelDestination: "city",
+				travelStartedAt: startedAt,
+				travelArrivesAt: arrivesAt,
+			})
+			return { teleportStones: stones - 1, startedAt, arrivesAt }
 		}
 
 		const startedAt = Date.now()
-		const arrivesAt = startedAt + WIND_CRYSTAL_TRAVEL_SECONDS * 1000
+		const arrivesAt =
+			startedAt + TELEPORT_STONE_TRAVEL_SECONDS_NON_CITY * 1000
 
 		await ctx.db.patch(args.characterId, {
-			windCrystals: crystals - 1,
+			teleportStones: stones - 1,
 			currentZoneSession: undefined,
-			travelDestination: args.destinationNodeId,
+			travelDestination: destinationNodeId,
 			travelStartedAt: startedAt,
 			travelArrivesAt: arrivesAt,
 		})
-		return {
-			windCrystals: crystals - 1,
-			startedAt,
-			arrivesAt,
-		}
+		return { teleportStones: stones - 1, startedAt, arrivesAt }
 	},
 })

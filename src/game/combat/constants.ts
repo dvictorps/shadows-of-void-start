@@ -29,9 +29,12 @@ export const POTION_DROP_CHANCE = 0.2;
 export const DUAL_WIELD_AS_MORE_MULT = 1.1;
 export const DUAL_WIELD_BLOCK_CHANCE_BONUS = 10;
 
-// Travel consumables — vendor-only (no drops). Teleport stones instantly
-// return the player to the city; wind crystals jump to any previously-
-// unlocked node with a fixed travel duration (no MS scaling — you're
-// skipping zones, not walking them). Neither has a carry cap: the player
-// can stockpile arbitrarily many, limited only by ruby income.
-export const WIND_CRYSTAL_TRAVEL_SECONDS = 3;
+// Teleport Stone — the single travel consumable (the wind crystal was
+// consolidated into this in feat/stone-consolidation). Stone takes the
+// player to any previously-visited node (entries in `unlockedNodes`).
+// Two travel times depending on destination: a short hop home, and the
+// standard skip-zones duration for elsewhere. Neither uses movement-speed
+// scaling — you're skipping geography, not walking it. Uncapped supply,
+// price-gated only.
+export const TELEPORT_STONE_TRAVEL_SECONDS_CITY = 1.5;
+export const TELEPORT_STONE_TRAVEL_SECONDS_NON_CITY = 3;
