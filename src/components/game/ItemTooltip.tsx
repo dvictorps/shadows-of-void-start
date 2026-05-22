@@ -27,19 +27,16 @@ const MODIFIED_COLOR = "#8888ff";
 const LABEL_COLOR = "rgba(255, 255, 255, 0.45)";
 const DIM_COLOR = "rgba(255, 255, 255, 0.35)";
 
+const ELEMENT_NAME: Record<string, () => string> = {
+	Cold: m.element_cold,
+	Fire: m.element_fire,
+	Lightning: m.element_lightning,
+	Void: m.element_void,
+};
+
 function elementDamageLabel(element: string): string {
-	switch (element) {
-		case "Cold":
-			return m.tooltip_cold_damage();
-		case "Fire":
-			return m.tooltip_fire_damage();
-		case "Lightning":
-			return m.tooltip_lightning_damage();
-		case "Void":
-			return m.tooltip_void_damage();
-		default:
-			return `${element} Damage`;
-	}
+	const name = ELEMENT_NAME[element]?.() ?? element;
+	return m.tooltip_damage_line({ element: name });
 }
 
 function Separator() {

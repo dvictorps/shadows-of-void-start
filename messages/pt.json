@@ -280,10 +280,7 @@
   "stats_magic_find": "Raridade de Item",
 
   "tooltip_physical_damage": "Dano Físico",
-  "tooltip_cold_damage": "Dano de Frio",
-  "tooltip_fire_damage": "Dano de Fogo",
-  "tooltip_lightning_damage": "Dano de Raio",
-  "tooltip_void_damage": "Dano de Vácuo",
+  "tooltip_damage_line": "Dano de {element}",
   "tooltip_critical_strike_chance": "Chance Crítica",
   "tooltip_attacks_per_second": "Ataques por Segundo",
   "tooltip_armour": "Armadura",

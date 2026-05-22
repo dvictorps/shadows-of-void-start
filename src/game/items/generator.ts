@@ -164,7 +164,7 @@ function formatRangeDescription(
 
 type DefenseStatKey = "armor" | "evasion" | "barrier";
 
-const DEFENSE_LABELS: Record<
+export const DEFENSE_LABELS: Record<
 	string,
 	{ stat: DefenseStatKey; flat: string; pct: string }
 > = {
@@ -173,7 +173,7 @@ const DEFENSE_LABELS: Record<
 	silk: { stat: "barrier", flat: "Barrier", pct: "Barrier" },
 };
 
-function resolveDefenseFormat(
+export function resolveDefenseFormat(
 	modId: string,
 	displayFormat: string,
 	armorType?: string,

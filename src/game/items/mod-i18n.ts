@@ -1,57 +1,26 @@
 import { getLocale } from "#/paraglide/runtime";
 import { MODIFIERS, type ModifierId } from "./data/modifiers";
+import { type DEFENSE_LABELS, resolveDefenseFormat } from "./generator";
 import type { GeneratedItem, RolledImplicit, RolledMod } from "./types";
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Mod localization — renders explicit RolledMod values to the active locale at
-//  display time. EN derives from MODIFIERS[id].displayFormat; PT uses a per-id
-//  formatter table. Both branches share the slot-aware defense resolver so a
-//  +X local defense roll renders as Armor/Evasion/Barrier (Armadura/Evasão/
-//  Barreira) per the item's armorType — no longer baked at generation time.
-//
-//  The stored `mod.description` field is legacy data: kept for back-compat
-//  with items already in the database, but ignored by the tooltip.
-//
-//  Implicits still translate via regex match on their stored description.
-//  Migrating implicits to render-at-display requires template-level
-//  displayFormat in RolledImplicit, deferred to a future cleanup.
-// ─────────────────────────────────────────────────────────────────────────────
+// Renders explicit RolledMod values to the active locale at display time. EN
+// reuses MODIFIERS[id].displayFormat and the same slot-aware resolver as the
+// generator. PT keeps a per-id formatter table because gender/word-order don't
+// translate well from the EN displayFormat. Slot-aware defense mods read
+// item.armorType to pick Armor/Evasion/Barrier (Armadura/Evasão/Barreira).
 
-// ── Slot-aware defense labels (mirrors generator.ts DEFENSE_LABELS) ──
+type ArmorBase = keyof typeof DEFENSE_LABELS;
 
-type ArmorBase = "plate" | "leather" | "silk";
-
-interface DefenseWords {
-	flat: string;
-	pct: string;
-}
-
-const EN_DEFENSE_WORDS: Record<ArmorBase, DefenseWords> = {
-	plate: { flat: "Armor", pct: "Armor" },
-	leather: { flat: "Evasion Rating", pct: "Evasion" },
-	silk: { flat: "Barrier", pct: "Barrier" },
-};
-
-const PT_DEFENSE_WORDS: Record<ArmorBase, DefenseWords> = {
+const PT_DEFENSE_WORDS: Record<ArmorBase, { flat: string; pct: string }> = {
 	plate: { flat: "Armadura", pct: "Armadura" },
 	leather: { flat: "Evasão", pct: "Evasão" },
 	silk: { flat: "Barreira", pct: "Barreira" },
 };
 
-function resolveDefenseWord(
-	item: GeneratedItem,
-	op: "flat" | "pct",
-	locale: "en" | "pt",
-): string {
-	const table = locale === "pt" ? PT_DEFENSE_WORDS : EN_DEFENSE_WORDS;
+function ptDefenseWord(item: GeneratedItem, op: "flat" | "pct"): string {
 	const armorType = item.armorType as ArmorBase | undefined;
-	if (!armorType || !table[armorType]) {
-		return locale === "pt" ? "Defesa" : "Defense";
-	}
-	return table[armorType][op];
+	return armorType ? PT_DEFENSE_WORDS[armorType][op] : "Defesa";
 }
-
-// ── Value formatting (single value or min-max range) ──
 
 function formatValue(mod: RolledMod): string {
 	if (mod.minValue != null && mod.maxValue != null) {
@@ -60,29 +29,44 @@ function formatValue(mod: RolledMod): string {
 	return String(mod.value);
 }
 
-// ── PT explicit formatters (keyed by modifierId) ──
-
+// Factories for repeated PT damage templates — share the formatter across the
+// weapon-local mod and its jewelry/quiver *Global twin (identical EN
+// displayFormat, identical PT output).
 type ModFormatter = (mod: RolledMod, item: GeneratedItem) => string;
 
+const ptPhysDamageToAttacks: ModFormatter = (m) =>
+	`+${formatValue(m)} de Dano Físico em Ataques`;
+
+const ptElementalToAttacks =
+	(element: string): ModFormatter =>
+	(m) =>
+		`+${formatValue(m)} de Dano de ${element} em Ataques`;
+
+const ptElementalToSpells =
+	(element: string): ModFormatter =>
+	(m) =>
+		`+${formatValue(m)} de Dano de ${element} em Conjurações`;
+
+const ptTomeGainAsExtra =
+	(element: string): ModFormatter =>
+	(m) =>
+		`Ganha ${m.value}% do Dano de Conjuração como Dano de ${element} Adicional`;
+
 const PT_EXPLICIT_FORMATTERS: Record<string, ModFormatter> = {
-	// Attributes
 	strengthFlat: (m) => `+${m.value} de Força`,
 	dexterityFlat: (m) => `+${m.value} de Destreza`,
 	intelligenceFlat: (m) => `+${m.value} de Inteligência`,
 
-	// Life / mana
 	healthFlat: (m) => `+${m.value} de Vida`,
 	manaFlat: (m) => `+${m.value} de Mana`,
 	healthRegenFlat: (m) => `+${m.value} de Regen. de Vida por segundo`,
 	manaRegenFlat: (m) => `+${m.value} de Regen. de Mana por segundo`,
 
-	// Resistances
 	coldResistance: (m) => `+${m.value}% de Resistência ao Frio`,
 	fireResistance: (m) => `+${m.value}% de Resistência ao Fogo`,
 	lightningResistance: (m) => `+${m.value}% de Resistência ao Raio`,
 	voidResistance: (m) => `+${m.value}% de Resistência ao Vácuo`,
 
-	// Defenses (flat)
 	armorFlat: (m) => `+${m.value} de Armadura`,
 	evasionFlat: (m) => `+${m.value} de Evasão`,
 	barrierFlat: (m) => `+${m.value} de Barreira`,
@@ -90,12 +74,10 @@ const PT_EXPLICIT_FORMATTERS: Record<string, ModFormatter> = {
 	thornsDamageFlat: (m) => `${m.value} de Dano Refletido`,
 	blockChanceIncrease: (m) => `+${m.value}% de Chance de Bloqueio`,
 
-	// Defenses (global %)
 	globalArmorIncrease: (m) => `+${m.value}% de Armadura`,
 	globalEvasionIncrease: (m) => `+${m.value}% de Evasão`,
 	globalBarrierIncrease: (m) => `+${m.value}% de Barreira`,
 
-	// Damage increased %
 	globalPhysicalDamageIncrease: (m) => `+${m.value}% de Dano Físico`,
 	globalColdDamageIncrease: (m) => `+${m.value}% de Dano de Frio`,
 	globalFireDamageIncrease: (m) => `+${m.value}% de Dano de Fogo`,
@@ -107,66 +89,42 @@ const PT_EXPLICIT_FORMATTERS: Record<string, ModFormatter> = {
 	globalMeleeDamageIncrease: (m) => `+${m.value}% de Dano Corpo a Corpo`,
 	globalSpellDamageIncrease: (m) => `+${m.value}% de Dano de Conjuração`,
 
-	// Speed
 	globalAttackSpeedIncrease: (m) => `+${m.value}% de Velocidade de Ataque`,
 	globalCastSpeedIncrease: (m) => `+${m.value}% de Velocidade de Conjuração`,
 
-	// Crit
 	globalCriticalChanceIncrease: (m) => `+${m.value}% de Chance Crítica`,
 	criticalStrikeMultiplierFlat: (m) => `+${m.value}% de Multiplicador Crítico`,
 
-	// Flat damage to attacks (range — uses formatValue for min-max).
-	// The *Global variants are the jewelry/quiver versions of the same mod —
-	// same displayFormat, different slot pool; PT renders identically.
-	physicalDamageFlatGlobal: (m) =>
-		`+${formatValue(m)} de Dano Físico em Ataques`,
-	coldDamageToAttacksFlat: (m) =>
-		`+${formatValue(m)} de Dano de Frio em Ataques`,
-	coldDamageToAttacksFlatGlobal: (m) =>
-		`+${formatValue(m)} de Dano de Frio em Ataques`,
-	fireDamageToAttacksFlat: (m) =>
-		`+${formatValue(m)} de Dano de Fogo em Ataques`,
-	fireDamageToAttacksFlatGlobal: (m) =>
-		`+${formatValue(m)} de Dano de Fogo em Ataques`,
-	lightningDamageToAttacksFlat: (m) =>
-		`+${formatValue(m)} de Dano de Raio em Ataques`,
-	lightningDamageToAttacksFlatGlobal: (m) =>
-		`+${formatValue(m)} de Dano de Raio em Ataques`,
-	voidDamageToAttacksFlat: (m) =>
-		`+${formatValue(m)} de Dano de Vácuo em Ataques`,
-	voidDamageToAttacksFlatGlobal: (m) =>
-		`+${formatValue(m)} de Dano de Vácuo em Ataques`,
+	physicalDamageFlat: ptPhysDamageToAttacks,
+	physicalDamageFlatGlobal: ptPhysDamageToAttacks,
+	coldDamageToAttacksFlat: ptElementalToAttacks("Frio"),
+	coldDamageToAttacksFlatGlobal: ptElementalToAttacks("Frio"),
+	fireDamageToAttacksFlat: ptElementalToAttacks("Fogo"),
+	fireDamageToAttacksFlatGlobal: ptElementalToAttacks("Fogo"),
+	lightningDamageToAttacksFlat: ptElementalToAttacks("Raio"),
+	lightningDamageToAttacksFlatGlobal: ptElementalToAttacks("Raio"),
+	voidDamageToAttacksFlat: ptElementalToAttacks("Vácuo"),
+	voidDamageToAttacksFlatGlobal: ptElementalToAttacks("Vácuo"),
 
-	// Tome-exclusive gain-as-extra elemental
-	tomeGainAsExtraCold: (m) =>
-		`Ganha ${m.value}% do Dano de Conjuração como Dano de Frio Adicional`,
-	tomeGainAsExtraFire: (m) =>
-		`Ganha ${m.value}% do Dano de Conjuração como Dano de Fogo Adicional`,
-	tomeGainAsExtraLightning: (m) =>
-		`Ganha ${m.value}% do Dano de Conjuração como Dano de Raio Adicional`,
-	tomeGainAsExtraVoid: (m) =>
-		`Ganha ${m.value}% do Dano de Conjuração como Dano de Vácuo Adicional`,
+	coldDamageFlat: ptElementalToSpells("Frio"),
+	fireDamageFlat: ptElementalToSpells("Fogo"),
+	lightningDamageFlat: ptElementalToSpells("Raio"),
+	voidDamageFlat: ptElementalToSpells("Vácuo"),
 
-	// Flat damage to spells (caster weapons, range)
-	coldDamageFlat: (m) => `+${formatValue(m)} de Dano de Frio em Conjurações`,
-	fireDamageFlat: (m) => `+${formatValue(m)} de Dano de Fogo em Conjurações`,
-	lightningDamageFlat: (m) =>
-		`+${formatValue(m)} de Dano de Raio em Conjurações`,
-	voidDamageFlat: (m) => `+${formatValue(m)} de Dano de Vácuo em Conjurações`,
-
-	// Local weapon mods
-	physicalDamageFlat: (m) => `+${formatValue(m)} de Dano Físico`,
 	physicalDamageIncrease: (m) => `+${m.value}% de Dano Físico`,
 	attackSpeedIncrease: (m) => `+${m.value}% de Velocidade de Ataque`,
 	criticalChanceIncrease: (m) => `+${m.value}% de Chance Crítica`,
 
-	// Local defense (slot-aware: Armadura / Evasão / Barreira per armorType)
 	localDefenseFlat: (m, item) =>
-		`+${m.value} de ${resolveDefenseWord(item, "flat", "pt")}`,
+		`+${m.value} de ${ptDefenseWord(item, "flat")}`,
 	localDefenseIncrease: (m, item) =>
-		`+${m.value}% de ${resolveDefenseWord(item, "pct", "pt")}`,
+		`+${m.value}% de ${ptDefenseWord(item, "pct")}`,
 
-	// Utility
+	tomeGainAsExtraCold: ptTomeGainAsExtra("Frio"),
+	tomeGainAsExtraFire: ptTomeGainAsExtra("Fogo"),
+	tomeGainAsExtraLightning: ptTomeGainAsExtra("Raio"),
+	tomeGainAsExtraVoid: ptTomeGainAsExtra("Vácuo"),
+
 	movementSpeedIncrease: (m) => `+${m.value}% de Velocidade de Movimento`,
 	lifeGainOnHitFlat: (m) => `+${m.value} de Vida no Acerto`,
 	manaGainOnHitFlat: (m) => `+${m.value} de Mana no Acerto`,
@@ -176,32 +134,20 @@ const PT_EXPLICIT_FORMATTERS: Record<string, ModFormatter> = {
 	stunDurationIncrease: (m) => `+${m.value}% de Duração do Atordoamento`,
 	reducedAttributeRequirements: (m) => `${m.value}% de Redução em Requisitos`,
 
-	// Magic find
 	itemRarityIncreasePrefix: (m) => `+${m.value}% de Raridade de Itens`,
 	itemRarityIncreaseSuffix: (m) => `+${m.value}% de Raridade de Itens`,
 };
 
-// ── EN render path (derive from MODIFIERS, apply slot-aware substitution) ──
-
 function renderEn(mod: RolledMod, item: GeneratedItem): string {
 	const modDef = MODIFIERS[mod.modifierId as ModifierId];
-	if (!modDef) return mod.description; // legacy / unknown mod id
-	let displayFormat = modDef.displayFormat;
-	if (mod.modifierId === "localDefenseFlat") {
-		displayFormat = displayFormat.replace(
-			"Defense",
-			resolveDefenseWord(item, "flat", "en"),
-		);
-	} else if (mod.modifierId === "localDefenseIncrease") {
-		displayFormat = displayFormat.replace(
-			"Defense",
-			resolveDefenseWord(item, "pct", "en"),
-		);
-	}
+	if (!modDef) return mod.description;
+	const displayFormat = resolveDefenseFormat(
+		mod.modifierId,
+		modDef.displayFormat,
+		item.armorType,
+	);
 	return displayFormat.replace("{value}", formatValue(mod));
 }
-
-// ── Public API ──
 
 export function localizeMod(mod: RolledMod, item: GeneratedItem): string {
 	if (getLocale() === "pt") {
@@ -211,18 +157,13 @@ export function localizeMod(mod: RolledMod, item: GeneratedItem): string {
 	return renderEn(mod, item);
 }
 
-// ── Implicits ──
-// Implicits don't carry a displayFormat on RolledImplicit (the template owns
-// it), so the renderer can't look it up at display time. PT translates by
-// pattern matching the stored EN description. Fragile for new patterns but the
-// implicit pool is small. Migrating implicits to render-at-display requires
-// adding displayFormat to RolledImplicit — deferred to a future cleanup.
-
+// Implicits translate via regex match on the stored EN description because
+// their displayFormat lives on the template, not on RolledImplicit. Migrating
+// to render-at-display needs displayFormat on RolledImplicit — deferred.
 const PT_IMPLICIT_PATTERNS: Array<{
 	test: RegExp;
 	render: (value: number, match: RegExpMatchArray) => string;
 }> = [
-	// Resistances
 	{
 		test: /^\+\d+% Cold Resistance$/i,
 		render: (v) => `+${v}% de Resistência ao Frio`,
@@ -243,7 +184,6 @@ const PT_IMPLICIT_PATTERNS: Array<{
 		test: /^\+\d+% to all Elemental Resistances$/i,
 		render: (v) => `+${v}% a todas Resistências Elementais`,
 	},
-	// Attributes
 	{
 		test: /^\+\d+ to all Attributes$/i,
 		render: (v) => `+${v} a todos Atributos`,
@@ -251,44 +191,28 @@ const PT_IMPLICIT_PATTERNS: Array<{
 	{ test: /^\+\d+ Strength$/i, render: (v) => `+${v} de Força` },
 	{ test: /^\+\d+ Dexterity$/i, render: (v) => `+${v} de Destreza` },
 	{ test: /^\+\d+ Intelligence$/i, render: (v) => `+${v} de Inteligência` },
-	// Life / Mana / Barrier — current templates use the "to Maximum X" phrasing.
-	{
-		test: /^\+\d+ to Maximum Life$/i,
-		render: (v) => `+${v} de Vida Máxima`,
-	},
-	{
-		test: /^\+\d+ to Maximum Mana$/i,
-		render: (v) => `+${v} de Mana Máxima`,
-	},
+	{ test: /^\+\d+ to Maximum Life$/i, render: (v) => `+${v} de Vida Máxima` },
+	{ test: /^\+\d+ to Maximum Mana$/i, render: (v) => `+${v} de Mana Máxima` },
 	{
 		test: /^\+\d+ to Maximum Barrier$/i,
 		render: (v) => `+${v} de Barreira Máxima`,
 	},
-	// Legacy phrasing (older items rolled before templates added the "to").
+	// Legacy phrasing — older items rolled before templates added "to Maximum".
 	{ test: /^\+\d+ Maximum Life$/i, render: (v) => `+${v} de Vida Máxima` },
 	{ test: /^\+\d+ Maximum Mana$/i, render: (v) => `+${v} de Mana Máxima` },
-	// Accuracy — sword/dagger/etc. implicits use "Rating"; bare "Accuracy" stays
-	// for legacy items.
-	{
-		test: /^\+\d+ Accuracy Rating$/i,
-		render: (v) => `+${v} de Precisão`,
-	},
+	{ test: /^\+\d+ Accuracy Rating$/i, render: (v) => `+${v} de Precisão` },
 	{ test: /^\+\d+ Accuracy$/i, render: (v) => `+${v} de Precisão` },
-	// Flat defenses (legacy)
 	{ test: /^\+\d+ Armor$/i, render: (v) => `+${v} de Armadura` },
 	{ test: /^\+\d+ Evasion$/i, render: (v) => `+${v} de Evasão` },
 	{ test: /^\+\d+ Barrier$/i, render: (v) => `+${v} de Barreira` },
-	// Block (shields)
 	{
 		test: /^\+\d+% Block Chance$/i,
 		render: (v) => `+${v}% de Chance de Bloqueio`,
 	},
-	// Crit multiplier (daggers)
 	{
 		test: /^\+\d+% Critical Strike Multiplier$/i,
 		render: (v) => `+${v}% de Multiplicador Crítico`,
 	},
-	// Speed (boots / quivers)
 	{
 		test: /^\+\d+% Movement Speed$/i,
 		render: (v) => `+${v}% de Velocidade de Movimento`,
@@ -297,7 +221,6 @@ const PT_IMPLICIT_PATTERNS: Array<{
 		test: /^\+\d+% increased Attack Speed$/i,
 		render: (v) => `+${v}% de Velocidade de Ataque`,
 	},
-	// Spell damage (silk armor / tomes)
 	{
 		test: /^\+\d+% Spell Damage$/i,
 		render: (v) => `+${v}% de Dano de Conjuração`,

@@ -280,10 +280,7 @@
   "stats_magic_find": "Magic Find",
 
   "tooltip_physical_damage": "Physical Damage",
-  "tooltip_cold_damage": "Cold Damage",
-  "tooltip_fire_damage": "Fire Damage",
-  "tooltip_lightning_damage": "Lightning Damage",
-  "tooltip_void_damage": "Void Damage",
+  "tooltip_damage_line": "{element} Damage",
   "tooltip_critical_strike_chance": "Critical Strike Chance",
   "tooltip_attacks_per_second": "Attacks per Second",
   "tooltip_armour": "Armour",
