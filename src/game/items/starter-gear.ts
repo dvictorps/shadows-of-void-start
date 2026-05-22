@@ -12,6 +12,8 @@ import type { GeneratedItem } from "./types";
 const rustySword: GeneratedItem = {
 	id: "starter:rusty_sword",
 	templateId: "rusty_sword",
+	nameBase: "sword",
+	nameModifier: "rusty",
 	equipmentType: "weapon",
 	weaponType: "sword",
 	rarity: "normal",
@@ -36,6 +38,8 @@ const rustySword: GeneratedItem = {
 const rustyDagger: GeneratedItem = {
 	id: "starter:rusty_dagger",
 	templateId: "rusty_dagger",
+	nameBase: "dagger",
+	nameModifier: "rusty",
 	equipmentType: "weapon",
 	weaponType: "dagger",
 	rarity: "normal",
@@ -62,6 +66,8 @@ const rustyDagger: GeneratedItem = {
 const crackedWand: GeneratedItem = {
 	id: "starter:cracked_wand",
 	templateId: "cracked_wand",
+	nameBase: "wand",
+	nameModifier: "cracked",
 	equipmentType: "weapon",
 	weaponType: "wand",
 	rarity: "normal",

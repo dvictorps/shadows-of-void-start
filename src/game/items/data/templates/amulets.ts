@@ -3,7 +3,10 @@ import type { EquipmentTemplate } from "./types";
 // Amulets — one base per attribute type, no tier progression
 export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 	{
-		id: "gold_amulet",		equipmentType: "amulet",
+		id: "gold_amulet",
+		nameBase: "amulet",
+		nameModifier: "prismatic",
+		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -18,7 +21,10 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/amuleto.png",
 	},
 	{
-		id: "jade_amulet",		equipmentType: "amulet",
+		id: "jade_amulet",
+		nameBase: "amulet",
+		nameModifier: "jade",
+		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -33,7 +39,10 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/amuletoEsmeralda.png",
 	},
 	{
-		id: "amber_amulet",		equipmentType: "amulet",
+		id: "amber_amulet",
+		nameBase: "amulet",
+		nameModifier: "amber",
+		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -48,7 +57,10 @@ export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/amuletoSombrio.png",
 	},
 	{
-		id: "lapis_amulet",		equipmentType: "amulet",
+		id: "lapis_amulet",
+		nameBase: "amulet",
+		nameModifier: "lapis",
+		equipmentType: "amulet",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},

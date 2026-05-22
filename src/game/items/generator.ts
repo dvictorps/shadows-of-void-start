@@ -710,6 +710,8 @@ export function generateItem(options: GenerateItemOptions): GeneratedItem {
 	return {
 		id: crypto.randomUUID(),
 		templateId: template.id,
+		nameBase: template.nameBase,
+		nameModifier: template.nameModifier,
 		equipmentType: template.equipmentType,
 		weaponType: template.weaponType,
 		armorType: template.armorType,

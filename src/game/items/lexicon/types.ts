@@ -3,22 +3,39 @@ import type {
 	GrammaticalGender,
 } from "#/game/i18n/lexicon-shared";
 
-import type { ModifierId } from "../data/modifiers";
+import type {
+	PrefixModifierId,
+	SuffixModifierId,
+} from "../data/modifiers/affix-ids";
+import type { TemplateBaseId, TemplateModifierId } from "./template-ids";
 
 // Re-exported so per-locale lexicons don't have to know about the shared
 // primitives' path.
 export type { GenderedForm, GrammaticalGender };
 
-// Item-naming lexicon contract — one implementation per locale. Template
-// names stay loosely keyed (EquipmentTemplate.id is `string`, not a literal
-// union) but modifier-keyed records are tightened to ModifierId so a new
-// affix that forgets a lexicon entry fails at compile time, not at runtime.
+// PT bases carry grammatical gender to drive adjective concord on the
+// modifier; EN bases omit it (no inflection).
+export interface BaseEntry {
+	name: string;
+	gender?: GrammaticalGender;
+}
 
+// PT modifiers are either invariant phrases ("de Ferro", "do Soldado") or
+// gendered adjectives ("Sagrado/Sagrada"). EN modifiers are always invariant.
+export type ModifierForm = string | GenderedForm;
+
+// Decomposed naming lexicon. Every template id reduces to a (base, modifier)
+// tuple; the renderer composes them per locale. Records keyed by the literal
+// unions enforce coverage at compile time — a new base/modifier without a
+// lexicon entry is a build error.
 export interface ItemNameLexicon {
-	templateNames: Record<string, string>;
-	prefixForms: Partial<Record<ModifierId, string | GenderedForm>>;
-	suffixPhrases: Partial<Record<ModifierId, string>>;
+	bases: Record<TemplateBaseId, BaseEntry>;
+	modifiers: Record<TemplateModifierId, ModifierForm>;
+	// Magic-item affix forms, separate from the template-name modifiers.
+	// Partial because tomes / quivers expose modifier ids that never roll as
+	// rolled affixes (drift-safe via the union types).
+	prefixForms: Partial<Record<PrefixModifierId, ModifierForm>>;
+	suffixPhrases: Partial<Record<SuffixModifierId, string>>;
 	rareFirstWords: readonly string[];
 	rareSecondWords: readonly string[];
-	templateGender?: Record<string, GrammaticalGender>;
 }

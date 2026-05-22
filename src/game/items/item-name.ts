@@ -2,23 +2,27 @@ import { pickGendered } from "#/game/i18n/lexicon-shared";
 import { getLocale } from "#/paraglide/runtime";
 import { lexiconEn } from "./lexicon/en";
 import { lexiconPt } from "./lexicon/pt";
+import type {
+	TemplateBaseId,
+	TemplateModifierId,
+} from "./lexicon/template-ids";
 import type { ItemNameLexicon } from "./lexicon/types";
 import type { GeneratedItem } from "./types";
 
-// Localized display name for an item. Renders at display time from
-// templateId + explicits + item.id (UUID). Stays stable across renders
-// and locale switches — only the strings change.
+// Localized display name for an item, rendered at display time from
+// templateId / nameBase / nameModifier / explicits / item.id.
 //
-// Rarity dispatch:
-//   normal               → template name
-//   magic                → prefix + base + suffix (locale-specific order)
-//   rare/legendary/epic  → two-word proper name seeded by item.id (UUID),
-//                          so each item carries the same name forever
-//                          even though no name is stored on the row.
+// Composition (all rarities except rare+):
+//   1. Base name = `<modifier> <base>` (EN) or `<base> <modifier>` (PT,
+//      modifier inflects to base.gender if it's an adjective).
+//   2. Magic items also append the rolled prefix + suffix:
+//        EN: `<prefix> <base name> <suffix>`
+//        PT: `<base name> <prefix-gendered> <suffix>`
 //
-// Unknown ids (template/modifier missing from the active lexicon) fall
-// back to the id string — a deliberately ugly signal that the lexicon
-// needs an entry.
+// Rare/legendary/epic skip the base composition entirely and use a UUID-
+// seeded two-word proper name from the locale's rare pools. Same item.id →
+// same name forever; locale switch picks the equivalent slot in the other
+// pool.
 
 type Locale = "en" | "pt";
 
@@ -26,47 +30,85 @@ function selectLexicon(locale: Locale): ItemNameLexicon {
 	return locale === "pt" ? lexiconPt : lexiconEn;
 }
 
+function currentLocale(): Locale {
+	return getLocale() === "pt" ? "pt" : "en";
+}
+
 export function translateItemName(item: GeneratedItem): string {
-	const locale: Locale = getLocale() === "pt" ? "pt" : "en";
+	const locale = currentLocale();
 	const lex = selectLexicon(locale);
-	const base = lex.templateNames[item.templateId] ?? item.templateId;
-	if (item.rarity === "normal") return base;
-	if (item.rarity === "magic") return renderMagicName(item, lex, locale, base);
-	return renderProperName(item, lex);
+	if (
+		item.rarity === "rare" ||
+		item.rarity === "legendary" ||
+		item.rarity === "epic"
+	) {
+		return renderProperName(item, lex);
+	}
+	const baseName = renderBaseName(item, lex, locale);
+	if (item.rarity === "normal") return baseName;
+	return appendMagicAffixes(item, lex, locale, baseName);
 }
 
 // Public for the tooltip subtitle on rare+ items (template name underneath
 // the generated proper name).
 export function translateTemplateName(item: GeneratedItem): string {
-	const lex = selectLexicon(getLocale() === "pt" ? "pt" : "en");
-	return lex.templateNames[item.templateId] ?? item.templateId;
+	const locale = currentLocale();
+	return renderBaseName(item, selectLexicon(locale), locale);
 }
 
-function renderMagicName(
+function renderBaseName(
 	item: GeneratedItem,
 	lex: ItemNameLexicon,
 	locale: Locale,
-	base: string,
+): string {
+	if (!item.nameBase) return item.templateId;
+	const baseEntry = lex.bases[item.nameBase as TemplateBaseId];
+	if (!baseEntry) return item.templateId;
+	const baseName = baseEntry.name;
+	if (item.nameModifier == null) return baseName;
+	const modifier = lex.modifiers[item.nameModifier as TemplateModifierId];
+	if (!modifier) return baseName;
+	const gender = baseEntry.gender ?? "m";
+	const modifierWord = pickGendered(modifier, gender);
+	return locale === "pt"
+		? `${baseName} ${modifierWord}`
+		: `${modifierWord} ${baseName}`;
+}
+
+function appendMagicAffixes(
+	item: GeneratedItem,
+	lex: ItemNameLexicon,
+	locale: Locale,
+	baseName: string,
 ): string {
 	const prefix = item.explicits.find((e) => e.affixType === "prefix");
 	const suffix = item.explicits.find((e) => e.affixType === "suffix");
 	const gender =
-		locale === "pt" ? (lex.templateGender?.[item.templateId] ?? "m") : "m";
+		locale === "pt" && item.nameBase
+			? (lex.bases[item.nameBase as TemplateBaseId]?.gender ?? "m")
+			: "m";
 	const prefixWord = prefix
-		? (() => {
-				const form = lex.prefixForms[prefix.modifierId];
-				return form ? pickGendered(form, gender) : prefix.modifierId;
-			})()
+		? (renderAffixPrefix(lex, prefix.modifierId, gender) ?? prefix.modifierId)
 		: null;
 	const suffixWord = suffix
-		? (lex.suffixPhrases[suffix.modifierId] ?? suffix.modifierId)
+		? (lex.suffixPhrases[suffix.modifierId as keyof typeof lex.suffixPhrases] ??
+			suffix.modifierId)
 		: null;
-
 	const parts =
 		locale === "pt"
-			? [base, prefixWord, suffixWord]
-			: [prefixWord, base, suffixWord];
+			? [baseName, prefixWord, suffixWord]
+			: [prefixWord, baseName, suffixWord];
 	return parts.filter((p): p is string => p != null).join(" ");
+}
+
+function renderAffixPrefix(
+	lex: ItemNameLexicon,
+	modifierId: string,
+	gender: "m" | "f",
+): string | null {
+	const form = lex.prefixForms[modifierId as keyof typeof lex.prefixForms];
+	if (form == null) return null;
+	return pickGendered(form, gender);
 }
 
 function renderProperName(item: GeneratedItem, lex: ItemNameLexicon): string {

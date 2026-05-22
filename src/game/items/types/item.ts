@@ -76,6 +76,15 @@ export interface ComputedDefenseStats {
 export interface GeneratedItem {
 	id: string;
 	templateId: string;
+	// Naming decomposition copied from the template so the renderer can
+	// compose the display name without re-loading the template. Typed as
+	// `string` here (not the narrow union) because the Convex validator
+	// stores them as plain strings — the literal-union enforcement lives in
+	// the lexicon/template files themselves. Optional because items rolled
+	// before the decomposition refactor don't carry these fields; the
+	// renderer falls back to the templateId string for those legacy rows.
+	nameBase?: string;
+	nameModifier?: string | null;
 	// Legacy fields — items rolled before the lexicon refactor cached the EN
 	// display name here. New rolls omit them; consumers must use
 	// translateItemName / translateTemplateName (display-time, locale-aware).

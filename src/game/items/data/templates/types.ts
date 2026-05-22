@@ -1,4 +1,8 @@
 import type {
+	TemplateBaseId,
+	TemplateModifierId,
+} from "../../lexicon/template-ids";
+import type {
 	ArmorType,
 	BaseStatKey,
 	EquipmentType,
@@ -17,6 +21,13 @@ export interface ImplicitDefinition {
 
 export interface EquipmentTemplate {
 	id: string;
+	// Naming decomposition for the lexicon system — see
+	// src/game/items/lexicon/{en,pt}.ts. The renderer composes the display
+	// name as `<base> <modifier>` (PT, with gender concord) or
+	// `<modifier> <base>` (EN). `nameModifier` is null for bases that stand
+	// alone (none today, but kept open for future plain bases like "Crown").
+	nameBase: TemplateBaseId;
+	nameModifier: TemplateModifierId | null;
 	equipmentType: EquipmentType;
 	weaponType?: WeaponType;
 	armorType?: ArmorType;
