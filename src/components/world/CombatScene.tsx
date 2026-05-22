@@ -584,9 +584,7 @@ function FloatingDamage({
 	// Single direction angle biased upward for normal hits and crits alike —
 	// the crit signal is the red color + "!!!" suffix, not a special arc.
 	const angle = -Math.PI / 2 + (seed - 0.5) * 1.8;
-	// MISS / BLOCK labels float higher so they read clearly past the enemy
-	// hit-box; damage numbers stay closer to the impact point.
-	const distance = isLabel ? 110 : 70;
+	const distance = 70;
 	const endX = Math.cos(angle) * distance;
 	const endY = Math.sin(angle) * distance;
 	const startOffset = 24;
