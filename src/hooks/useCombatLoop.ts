@@ -420,7 +420,11 @@ export function useCombatLoop({
 						isCrit: result.isCrit,
 						weaponType: swing.weaponType,
 					});
-					playSfx("hit.wav", { volume: 0.3, pitchVariance: 0.1 });
+					playSfx("hit.wav", {
+						volume: 0.3,
+						pitchVariance: 0.1,
+						exclusive: true,
+					});
 
 					// Spawn a leech instance based on the physical chunk landed.
 					// (For MVP we leech on physical only; elemental leech is a future
@@ -495,7 +499,11 @@ export function useCombatLoop({
 					playerHpRef.current = result.newLife;
 					setPlayerHp(result.newLife);
 					pushEvent({ amount: attack.amount, target: "player" });
-					playSfx("tomandoHit.wav", { volume: 0.3, pitchVariance: 0.1 });
+					playSfx("tomandoHit.wav", {
+						volume: 0.3,
+						pitchVariance: 0.1,
+						exclusive: true,
+					});
 
 					if (result.newLife <= 0 && !deadRef.current) {
 						deadRef.current = true;

@@ -21,6 +21,7 @@ type Props = {
 	classDef: CharacterClassDefinition | null;
 	stats: ComputedCharacterStats;
 	hpOverride?: number;
+	barrierOverride?: number;
 	potionsOverride?: number;
 	teleportStones: number;
 	windCrystals: number;
@@ -48,6 +49,7 @@ export default function StatusCard({
 	classDef,
 	stats,
 	hpOverride,
+	barrierOverride,
 	potionsOverride,
 	teleportStones,
 	windCrystals,
@@ -63,7 +65,10 @@ export default function StatusCard({
 	const xp = character.xp ?? 0;
 	const xpNeeded = xpToNextLevel(character.level);
 	const xpPct = Math.min(100, (xp / xpNeeded) * 100);
-	const barrier = stats.maxBarrier;
+	const maxBarrier = stats.maxBarrier;
+	// Outside combat the barrier always shows full; mid-combat the live value
+	// from the combat hook overrides it.
+	const barrier = barrierOverride ?? maxBarrier;
 	const canUsePotion = !!onUsePotion && potions > 0 && hp < maxHp;
 	// Clicking from the city would consume a stone for a no-op, so disable.
 	const canUseTeleportStone =
@@ -199,7 +204,12 @@ export default function StatusCard({
 						</Tooltip>
 					</div>
 
-					<HealthGlobe hp={hp} maxHp={maxHp} barrier={barrier} />
+					<HealthGlobe
+						hp={hp}
+						maxHp={maxHp}
+						barrier={barrier}
+						maxBarrier={maxBarrier}
+					/>
 				</div>
 			</div>
 		</section>

@@ -37,6 +37,8 @@ type Props = {
 	events: DamageEvent[];
 	playerHp: number;
 	maxHp: number;
+	barrier: number;
+	maxBarrier: number;
 	xp: number;
 	xpNeeded: number;
 	// XP from the most recent kill — fires a floating popup when state goes
@@ -73,6 +75,8 @@ export default function CombatScene({
 	events,
 	playerHp,
 	maxHp,
+	barrier,
+	maxBarrier,
 	xp,
 	xpNeeded,
 	lastKillXp,
@@ -119,6 +123,15 @@ export default function CombatScene({
 		}
 		return null;
 	}, [enemyEvents]);
+	// Latest event where the player actually took damage. Drives the lighter
+	// health-globe shake — miss/block don't trigger it.
+	const lastPlayerHit = useMemo(() => {
+		for (let i = playerEvents.length - 1; i >= 0; i--) {
+			const e = playerEvents[i];
+			if (!e.isMiss && !e.isBlocked) return e;
+		}
+		return null;
+	}, [playerEvents]);
 	const nameColor = enemy ? RARITY_NAMEPLATE_COLOR[enemy.rarity] : "#ffffff";
 
 	// Staged reveal for rare minibosses. The nameplate appears at stage "name",
@@ -313,7 +326,14 @@ export default function CombatScene({
 			{/* Bottom HUD: HP globe + XP bar + teleport stone + (wind-crystal counter / potion) */}
 			<div className="relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4">
 				<div className="relative">
-					<HealthGlobe hp={playerHp} maxHp={maxHp} size="md" />
+					<HealthGlobe
+						hp={playerHp}
+						maxHp={maxHp}
+						barrier={barrier}
+						maxBarrier={maxBarrier}
+						size="xl"
+						hitToken={lastPlayerHit?.id ?? null}
+					/>
 					{/* Damage popups over the globe */}
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
 						<AnimatePresence>

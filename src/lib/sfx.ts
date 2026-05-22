@@ -8,6 +8,13 @@ type SfxOptions = {
 	volume?: number;
 	/** Random pitch jitter in [-x, +x] applied via playbackRate. 0.1 = ±10%. */
 	pitchVariance?: number;
+	/**
+	 * Force a single instance per path — incoming plays restart the existing
+	 * clip instead of layering a new one on top. Use for high-frequency events
+	 * (player swing landing) where overlapping copies stack into a muddy
+	 * "three at once" sound at high attack speed.
+	 */
+	exclusive?: boolean;
 };
 
 const POOL_SIZE = 4;
@@ -15,11 +22,22 @@ const SFX_BASE = "/assets/sounds/sfx";
 
 const audioPools = new Map<string, HTMLAudioElement[]>();
 
-function getFromPool(path: string): HTMLAudioElement {
+function getFromPool(path: string, exclusive: boolean): HTMLAudioElement {
 	let pool = audioPools.get(path);
 	if (!pool) {
 		pool = [];
 		audioPools.set(path, pool);
+	}
+	if (exclusive) {
+		// Single-slot mode: always restart the same instance, never layer.
+		if (pool.length === 0) {
+			const audio = new Audio(path);
+			audio.preload = "auto";
+			pool.push(audio);
+		}
+		const audio = pool[0];
+		audio.currentTime = 0;
+		return audio;
 	}
 	for (const audio of pool) {
 		if (audio.paused || audio.ended) {
@@ -47,7 +65,7 @@ function getFromPool(path: string): HTMLAudioElement {
  */
 export function playSfx(path: string, opts: SfxOptions = {}): void {
 	if (typeof window === "undefined") return;
-	const audio = getFromPool(`${SFX_BASE}/${path}`);
+	const audio = getFromPool(`${SFX_BASE}/${path}`, opts.exclusive === true);
 	audio.volume = Math.max(0, Math.min(1, opts.volume ?? 1));
 	const variance = opts.pitchVariance ?? 0;
 	audio.playbackRate =
