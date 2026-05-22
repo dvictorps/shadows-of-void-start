@@ -250,6 +250,20 @@ export default function CombatScene({
 	const inCamp = state === "acampamento";
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
+			{/* Camp ambience — warm radial glow stands in for the future
+			 * campfire background art + audio (see in-progress.md). Slow
+			 * fade matches the HUD fade so the room "warms up" together.
+			 */}
+			<div
+				aria-hidden
+				className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-[1500ms] ease-out ${
+					inCamp ? "opacity-100" : "opacity-0"
+				}`}
+				style={{
+					background:
+						"radial-gradient(ellipse at center, rgba(252, 165, 60, 0.28) 0%, rgba(220, 100, 30, 0.12) 35%, transparent 70%)",
+				}}
+			/>
 			{/* See CONTEXT.md → Time Bar. The bar itself stays full-opacity
 			 * even during a camp — players need to see where they paused. */}
 			<div
@@ -449,7 +463,7 @@ export default function CombatScene({
 			{/* Bottom HUD: HP globe + XP bar + teleport stone + (wind-crystal counter / potion) */}
 			<div
 				className={`relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4 transition-opacity duration-[1500ms] ease-out ${
-					inCamp ? "pointer-events-none opacity-15" : "opacity-100"
+					inCamp ? "pointer-events-none opacity-0" : "opacity-100"
 				}`}
 			>
 				<div className="relative">

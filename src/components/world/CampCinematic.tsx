@@ -44,17 +44,20 @@ export default function CampCinematic({
 	}, [stage]);
 
 	return (
-		<div className="flex flex-col items-center gap-6 px-6 text-center">
-			<div className="flex h-16 items-center justify-center">
+		<div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
+			<div className="flex h-24 items-center justify-center">
 				<AnimatePresence mode="wait">
 					{stage !== "panel" && (
 						<motion.p
 							key={stage}
-							initial={{ opacity: 0, y: 6 }}
+							initial={{ opacity: 0, y: 8 }}
 							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -6 }}
+							exit={{ opacity: 0, y: -8 }}
 							transition={{ duration: 1.2, ease: "easeOut" }}
-							className="display-title text-xl tracking-wide text-white/80"
+							className="display-title max-w-2xl text-3xl tracking-wide text-amber-50/90"
+							style={{
+								textShadow: "0 0 24px rgba(252, 165, 60, 0.35)",
+							}}
 						>
 							{lines[stage]}
 						</motion.p>
@@ -71,15 +74,15 @@ export default function CampCinematic({
 						className="flex flex-col items-center gap-5"
 					>
 						<div
-							className="display-title text-3xl uppercase tracking-[0.2em]"
+							className="display-title text-5xl uppercase tracking-[0.2em]"
 							style={{
 								color: "#ffd966",
-								textShadow: "0 0 16px rgba(255, 217, 102, 0.45)",
+								textShadow: "0 0 20px rgba(255, 217, 102, 0.55)",
 							}}
 						>
 							{m.camp_title()}
 						</div>
-						<p className="max-w-xs text-center text-sm text-white/70">
+						<p className="max-w-sm text-center text-base text-amber-50/80">
 							{m.camp_subtitle()}
 						</p>
 						<div className="flex gap-3">
