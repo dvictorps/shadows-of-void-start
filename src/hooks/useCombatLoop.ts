@@ -56,6 +56,7 @@ import {
 } from "#/game/monsters";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import {
+	rollCampThresholdsMs,
 	rollSpawnGapMs,
 	type ZoneEncounterPlan,
 } from "#/game/world/encounter-schedule";
@@ -73,7 +74,8 @@ type CombatState =
 	| "boss_intro"
 	| "engaged"
 	| "victory"
-	| "miniboss_victory";
+	| "miniboss_victory"
+	| "acampamento";
 
 // Three-stage dramatic spawn for rare minibosses. The ticker stays paused
 // (gated on state === "engaged") for the full intro, so the player can't
@@ -193,14 +195,22 @@ export function useCombatLoop({
 	const lastSyncedHpRef = useRef(initialHp);
 
 	// Time-bar progress: cumulative out-of-combat (calmaria) ms. Ticks only
-	// while state === "searching" — combat and (future) camps pause it. When
-	// it hits `calmariaBudgetSeconds * 1000`, the next spawn becomes the
-	// miniboss. Client-only by design — leaving the zone restarts the
-	// progression (per CONTEXT.md → Time Bar).
+	// while state === "searching" — combat and camps pause it. When it hits
+	// `calmariaBudgetSeconds * 1000`, the next spawn becomes the miniboss.
+	// Client-only by design — leaving the zone restarts the progression
+	// (per CONTEXT.md → Time Bar).
 	const calmariaBudgetMs = encounterPlan.calmariaBudgetSeconds * 1000;
 	const [calmariaElapsedMs, setCalmariaElapsedMs] = useState(0);
 	const calmariaElapsedMsRef = useRef(0);
 	calmariaElapsedMsRef.current = calmariaElapsedMs;
+
+	// Camp thresholds (ms of cumulative calmaria) where the camp cinematic
+	// fires. Rolled once per zone activation with jitter so the trigger
+	// instant isn't perfectly decodable. The `nextCampIndexRef` advances
+	// as each camp triggers — when it equals the array length, all camps
+	// for this run are spent.
+	const campThresholdsMsRef = useRef<number[]>([]);
+	const nextCampIndexRef = useRef(0);
 
 	const syncHp = useMutation(api.combat.syncHp);
 	const recordKill = useMutation(api.combat.recordKill);
@@ -219,6 +229,11 @@ export function useCombatLoop({
 			if (killed.rarity === "rare") {
 				calmariaElapsedMsRef.current = 0;
 				setCalmariaElapsedMs(0);
+				// Re-roll camps so the farming loop gets fresh thresholds —
+				// player who kept going after the miniboss should still get
+				// the rhythm of camps in the same session.
+				campThresholdsMsRef.current = rollCampThresholdsMs(encounterPlan);
+				nextCampIndexRef.current = 0;
 			}
 			recordKill({
 				characterId,
@@ -261,6 +276,8 @@ export function useCombatLoop({
 			// Time bar is client-only — fresh entry always starts at 0.
 			calmariaElapsedMsRef.current = 0;
 			setCalmariaElapsedMs(0);
+			campThresholdsMsRef.current = rollCampThresholdsMs(encounterPlan);
+			nextCampIndexRef.current = 0;
 			setBossIntroStage(null);
 			stateRef.current = "searching";
 			setState("searching");
@@ -274,7 +291,9 @@ export function useCombatLoop({
 	// ── Calmaria ticker — drives the time bar ──
 	// The post-miniboss flag holds the ticker through the victory→searching
 	// transition so the drained bar doesn't gain a single tick before the
-	// reset commits.
+	// reset commits. After bumping calmaria, check if a camp threshold was
+	// crossed — if so, transition to "acampamento" and pause the spawn
+	// machinery.
 	useTicker(
 		active && state === "searching" && !lastKillWasMinibossRef.current,
 		CALMARIA_TICK_MS,
@@ -282,8 +301,27 @@ export function useCombatLoop({
 			const next = calmariaElapsedMsRef.current + CALMARIA_TICK_MS;
 			calmariaElapsedMsRef.current = next;
 			setCalmariaElapsedMs(next);
+
+			const nextCampThreshold =
+				campThresholdsMsRef.current[nextCampIndexRef.current];
+			if (
+				nextCampThreshold !== undefined &&
+				next >= nextCampThreshold &&
+				next < calmariaBudgetMs
+			) {
+				nextCampIndexRef.current += 1;
+				stateRef.current = "acampamento";
+				setState("acampamento");
+			}
 		},
 	);
+
+	// Player chose "Seguir em frente" on the camp modal. Resume the loop.
+	const dismissCamp = useCallback(() => {
+		if (stateRef.current !== "acampamento") return;
+		stateRef.current = "searching";
+		setState("searching");
+	}, []);
 
 	// ── Search delay → spawn enemy ──
 	// Each entry into "searching" rolls a fresh calmaria duration from the
@@ -659,5 +697,6 @@ export function useCombatLoop({
 		calmariaElapsedMs,
 		calmariaBudgetMs,
 		dismissMinibossModal,
+		dismissCamp,
 	};
 }

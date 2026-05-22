@@ -5,6 +5,7 @@ import type { MonsterRarity } from "#/game/monsters";
 import { translateEnemyName } from "#/game/world/i18n";
 import type { BossIntroStage, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
+import CampCinematic from "./CampCinematic";
 import HealthGlobe from "./HealthGlobe";
 import HitFx from "./HitFx";
 import MonsterTooltip from "./MonsterTooltip";
@@ -36,7 +37,8 @@ type Props = {
 		| "boss_intro"
 		| "engaged"
 		| "victory"
-		| "miniboss_victory";
+		| "miniboss_victory"
+		| "acampamento";
 	bossIntroStage: BossIntroStage;
 	enemy: Enemy | null;
 	events: DamageEvent[];
@@ -69,6 +71,10 @@ type Props = {
 	calmariaBudgetMs: number;
 	// Continue-farming choice on the post-miniboss modal.
 	onDismissMinibossModal: () => void;
+	// Acampamento overlay — fired by the combat loop when the calmaria timer
+	// crosses a zone's camp threshold. See CONTEXT.md → Acampamento.
+	zoneId: string;
+	onDismissCamp: () => void;
 };
 
 export default function CombatScene({
@@ -97,6 +103,8 @@ export default function CombatScene({
 	calmariaElapsedMs,
 	calmariaBudgetMs,
 	onDismissMinibossModal,
+	zoneId,
+	onDismissCamp,
 	onConsumableHover,
 }: Props) {
 	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
@@ -237,6 +245,13 @@ export default function CombatScene({
 
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
+			{state === "acampamento" && (
+				<CampCinematic
+					zoneId={zoneId}
+					onReturn={onRetreat}
+					onContinue={onDismissCamp}
+				/>
+			)}
 			{/* See CONTEXT.md → Time Bar. */}
 			<div
 				role="progressbar"

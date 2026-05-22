@@ -24,6 +24,14 @@ export interface ZoneEncounterPlan {
 	calmariaBudgetSeconds: number;
 	/** Random calmaria between spawns (seconds). Each spawn rolls its own gap. */
 	gapBetweenSpawns: { min: number; max: number };
+	/**
+	 * Camp positions as fractions of the budget (0–1). Each entry triggers a
+	 * camp cinematic when cumulative calmaria crosses
+	 * `calmariaBudgetSeconds × fraction` (with a small jitter applied on
+	 * activation). 1 camp for early zones, 2 for late zones — anchored at
+	 * ~50% or at ~33%/~66% respectively. See CONTEXT.md → Acampamento.
+	 */
+	campFractions: readonly number[];
 }
 
 /**
@@ -35,10 +43,32 @@ export interface ZoneEncounterPlan {
 export const DEFAULT_ENCOUNTER_PLAN: ZoneEncounterPlan = {
 	calmariaBudgetSeconds: 35,
 	gapBetweenSpawns: { min: 1.5, max: 3 },
+	campFractions: [0.5],
 };
 
 /** Roll a fresh calmaria duration (ms) for the next spawn. */
 export function rollSpawnGapMs(plan: ZoneEncounterPlan): number {
 	const { min, max } = plan.gapBetweenSpawns;
 	return randInt(Math.round(min * 1000), Math.round(max * 1000));
+}
+
+// Jitter applied to each camp anchor on activation so the player can't decode
+// the exact instant a camp fires. Small enough that a 50% anchor stays safely
+// away from boss-spawn (≤80%) and from zone start (≥20%).
+const CAMP_JITTER = 0.03;
+
+/**
+ * Sort the camp anchor fractions into the actual cumulative-calmaria
+ * thresholds (ms) where each camp will fire. Called once per zone activation
+ * so the same camp anchor can fire at slightly different times across runs.
+ */
+export function rollCampThresholdsMs(plan: ZoneEncounterPlan): number[] {
+	const budgetMs = plan.calmariaBudgetSeconds * 1000;
+	return plan.campFractions
+		.map((fraction) => {
+			const jittered =
+				fraction + (Math.random() * 2 - 1) * CAMP_JITTER;
+			return Math.round(jittered * budgetMs);
+		})
+		.sort((a, b) => a - b);
 }

@@ -752,6 +752,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						calmariaElapsedMs={combat.calmariaElapsedMs}
 						calmariaBudgetMs={combat.calmariaBudgetMs}
 						onDismissMinibossModal={combat.dismissMinibossModal}
+						zoneId={currentNode.id}
+						onDismissCamp={combat.dismissCamp}
 					/>
 				)}
 				<TextLog message={logMessage} tone={logTone} />
