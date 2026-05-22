@@ -28,14 +28,11 @@ const monsterGender: Record<MonsterId, "m" | "f"> = {
 	criatura_do_vazio: "f",
 };
 
-// "Resistente" was the previous Life mod; it collided with the elemental
-// compound ("Resistente a Elementos"). "Robusto/Robusta" sidesteps that and
-// also reads more naturally as a creature descriptor.
 const prefixAdj: Record<PrefixMonsterModId, GenderedForm> = {
 	monsterIncreasedLife: { m: "Robusto", f: "Robusta" },
 	monsterIncreasedDamage: { m: "Furioso", f: "Furiosa" },
 	monsterIncreasedEvasion: { m: "Esquivo", f: "Esquiva" },
-	monsterAdditionalBarrier: { m: "Barreirado", f: "Barreirada" },
+	monsterAdditionalBarrier: { m: "Protegido", f: "Protegida" },
 	monsterMoreArmor: { m: "Blindado", f: "Blindada" },
 };
 

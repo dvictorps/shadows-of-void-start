@@ -6,7 +6,7 @@ import {
 	type MonsterRarity,
 } from "#/game/monsters";
 import { m } from "#/paraglide/messages";
-import { getLocale } from "#/paraglide/runtime";
+import { getLocale, type Locale } from "#/paraglide/runtime";
 import { lexiconEn } from "./lexicon/en";
 import { lexiconPt } from "./lexicon/pt";
 import type {
@@ -141,33 +141,46 @@ export function translateMonsterName(
 	return renderEn(base, mods, lexiconEn);
 }
 
+interface PartitionedMods {
+	prefixIds: PrefixMonsterModId[];
+	suffixIds: SuffixMonsterModId[];
+	resists: SuffixMonsterModId[];
+}
+
+// Splits a mod list into its three lexical buckets. Resist mods are pulled
+// out of `suffixIds` because they participate in the compound-name rule (2+
+// collapse into "Elemental Resistant" / "Resistente a Elementos") that the
+// per-locale renderers apply differently.
+function partitionMods(mods: readonly MonsterModId[]): PartitionedMods {
+	const prefixIds: PrefixMonsterModId[] = [];
+	const suffixIds: SuffixMonsterModId[] = [];
+	const resists: SuffixMonsterModId[] = [];
+	for (const id of mods) {
+		if (RESIST_MOD_IDS.has(id)) {
+			// All RESIST_MOD_IDS entries are SuffixMonsterModId by construction
+			// (see the set's declaration below); the cast just propagates that.
+			resists.push(id as SuffixMonsterModId);
+		} else if (isPrefixMod(id)) {
+			prefixIds.push(id);
+		} else if (isSuffixMod(id)) {
+			suffixIds.push(id);
+		}
+	}
+	return { prefixIds, suffixIds, resists };
+}
+
 function renderEn(
 	base: string,
 	mods: readonly MonsterModId[],
 	lex: MonsterNameLexicon,
 ): string {
-	const prefixes: string[] = [];
-	const suffixes: string[] = [];
-	const resists: MonsterModId[] = [];
+	const { prefixIds, suffixIds, resists } = partitionMods(mods);
+	const prefixes = prefixIds.map((id) => formAsString(lex.prefixAdj[id]));
+	const suffixes = suffixIds.map((id) => nounAsString(lex.suffixNoun[id]));
 
-	for (const id of mods) {
-		if (RESIST_MOD_IDS.has(id)) {
-			resists.push(id);
-			continue;
-		}
-		if (isPrefixMod(id)) {
-			prefixes.push(formAsString(lex.prefixAdj[id]));
-		} else if (isSuffixMod(id)) {
-			suffixes.push(nounAsString(lex.suffixNoun[id]));
-		}
-	}
-
-	if (resists.length >= 2) {
-		prefixes.push(lex.compoundAdj);
-	} else if (resists.length === 1) {
-		const id = resists[0];
-		if (isSuffixMod(id)) suffixes.push(nounAsString(lex.suffixNoun[id]));
-	}
+	if (resists.length >= 2) prefixes.push(lex.compoundAdj);
+	else if (resists.length === 1)
+		suffixes.push(nounAsString(lex.suffixNoun[resists[0]]));
 
 	let result = base;
 	if (prefixes.length > 0) result = `${prefixes.join(" ")} ${result}`;
@@ -188,29 +201,17 @@ function renderPt(
 ): string {
 	const lex = lexiconPt;
 	const gender = lex.monsterGender?.[def.id as MonsterId] ?? "m";
+	const { prefixIds, suffixIds, resists } = partitionMods(mods);
+	const adjectives = prefixIds.map((id) =>
+		pickGendered(lex.prefixAdj[id], gender),
+	);
+	const suffixPhrases = suffixIds.map((id) =>
+		suffixPhrasePt(lex.suffixNoun[id]),
+	);
 
-	const adjectives: string[] = [];
-	const suffixPhrases: string[] = [];
-	const resists: MonsterModId[] = [];
-
-	for (const id of mods) {
-		if (RESIST_MOD_IDS.has(id)) {
-			resists.push(id);
-			continue;
-		}
-		if (isPrefixMod(id)) {
-			adjectives.push(pickGendered(lex.prefixAdj[id], gender));
-		} else if (isSuffixMod(id)) {
-			suffixPhrases.push(suffixPhrasePt(lex.suffixNoun[id]));
-		}
-	}
-
-	if (resists.length >= 2) {
-		adjectives.push(lex.compoundAdj);
-	} else if (resists.length === 1) {
-		const id = resists[0];
-		if (isSuffixMod(id)) suffixPhrases.push(suffixPhrasePt(lex.suffixNoun[id]));
-	}
+	if (resists.length >= 2) adjectives.push(lex.compoundAdj);
+	else if (resists.length === 1)
+		suffixPhrases.push(suffixPhrasePt(lex.suffixNoun[resists[0]]));
 
 	let result = base;
 	if (adjectives.length > 0) result = `${result} ${adjectives.join(" ")}`;
@@ -254,10 +255,7 @@ export function translateEnemyName(enemy: NameableEnemy): string {
 		const epithetPool = pickRareEpithetPool(enemy.mods, lex);
 		const baseName = composeRareBaseName(enemy.nameSeed, lex, locale);
 		const epithet =
-			epithetPool[
-				Math.floor(enemy.nameSeed.epithet * epithetPool.length) %
-					epithetPool.length
-			];
+			epithetPool[Math.floor(enemy.nameSeed.epithet * epithetPool.length)];
 		return `${baseName}, ${epithet}`;
 	}
 	return translateMonsterName(enemy.def, enemy.mods);
@@ -266,17 +264,13 @@ export function translateEnemyName(enemy: NameableEnemy): string {
 function composeRareBaseName(
 	seed: RareNameSeed,
 	lex: MonsterNameLexicon,
-	locale: string,
+	locale: Locale,
 ): string {
 	const first =
-		lex.rareFirstWords[
-			Math.floor(seed.primary * lex.rareFirstWords.length) %
-				lex.rareFirstWords.length
-		];
+		lex.rareFirstWords[Math.floor(seed.primary * lex.rareFirstWords.length)];
 	const second =
 		lex.rareSecondWords[
-			Math.floor(seed.secondary * lex.rareSecondWords.length) %
-				lex.rareSecondWords.length
+			Math.floor(seed.secondary * lex.rareSecondWords.length)
 		];
 	// EN compounds the two words ("Stonemaw"); PT keeps them separate with the
 	// preposition that's already baked into the second-pool entry ("Garra de

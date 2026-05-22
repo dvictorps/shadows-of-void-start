@@ -164,6 +164,8 @@ export default function CombatScene({
 		state !== "miniboss_victory" &&
 		state !== "victory" &&
 		(state !== "boss_intro" || bossIntroStage === "hp");
+	// Read once per render — both the nameplate text and the img alt need it.
+	const enemyDisplayName = enemy ? translateEnemyName(enemy) : "";
 
 	// Sprite-level controls drive both the entrance animation and the in-combat
 	// shake. Three effects mutate them, ordered by lifecycle: spawn entrance →
@@ -305,7 +307,7 @@ export default function CombatScene({
 							className="display-title text-4xl uppercase tracking-[0.15em]"
 							style={{ color: nameColor, textShadow: nameShadow }}
 						>
-							{translateEnemyName(enemy)}
+							{enemyDisplayName}
 						</div>
 						<div className="text-lg uppercase tracking-[0.2em] text-white/60">
 							Lv {enemy.level}
@@ -331,7 +333,7 @@ export default function CombatScene({
 						<div className="group relative">
 							<motion.img
 								src={enemy.def.sprite}
-								alt={translateEnemyName(enemy)}
+								alt={enemyDisplayName}
 								draggable={false}
 								className="pointer-events-none h-64 w-64 select-none object-contain"
 								animate={enemyControls}
