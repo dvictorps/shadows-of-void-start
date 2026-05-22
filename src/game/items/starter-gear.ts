@@ -6,6 +6,13 @@ import type { GeneratedItem } from "./types";
 // through the random generator. IDs are namespaced with the "starter:" prefix
 // so equipped-item references can distinguish them from rolled items later.
 
+// Starter weapons match the base stats of their T1 dropped counterparts
+// (Iron Sword / Iron Dagger / Apprentice Wand) but carry no implicit. The
+// upgrade incentive is the implicit (accuracy / crit multi / spell damage),
+// not raw weapon damage — that way a fresh character can sustain combat to
+// the first camp on starter gear, but still feels a clear power gain on the
+// first T1 drop.
+
 const rustySword: GeneratedItem = {
 	id: "starter:rusty_sword",
 	templateId: "rusty_sword",
@@ -15,18 +22,19 @@ const rustySword: GeneratedItem = {
 	rarity: "normal",
 	name: "Rusty Sword",
 	itemLevel: 1,
+	icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	baseStats: {
-		minDamage: 1,
-		maxDamage: 5,
-		attackSpeed: 1.0,
+		minDamage: 3,
+		maxDamage: 7,
+		attackSpeed: 1.5,
 		criticalChance: 5,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 1, max: 5 },
+		physicalDamage: { min: 3, max: 7 },
 		elementalDamage: [],
-		attackSpeed: 1.0,
+		attackSpeed: 1.5,
 		criticalChance: 5,
 	},
 };
@@ -40,19 +48,22 @@ const rustyDagger: GeneratedItem = {
 	rarity: "normal",
 	name: "Rusty Dagger",
 	itemLevel: 1,
+	// No icon: daggers have no sprite assets in `public/assets/sprites/armas/`
+	// at the moment (gap also affects all dropped dagger tiers). Falls back to
+	// the emoji override. Add a sprite + populate this field when art lands.
 	baseStats: {
-		minDamage: 1,
-		maxDamage: 3,
-		attackSpeed: 1.6,
-		criticalChance: 8,
+		minDamage: 2,
+		maxDamage: 5,
+		attackSpeed: 1.7,
+		criticalChance: 6.5,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 1, max: 3 },
+		physicalDamage: { min: 2, max: 5 },
 		elementalDamage: [],
-		attackSpeed: 1.6,
-		criticalChance: 8,
+		attackSpeed: 1.7,
+		criticalChance: 6.5,
 	},
 };
 
@@ -65,19 +76,20 @@ const crackedWand: GeneratedItem = {
 	rarity: "normal",
 	name: "Cracked Wand",
 	itemLevel: 1,
+	icon: "/assets/sprites/armas/caster/varinha.png",
 	baseStats: {
-		minDamage: 1,
-		maxDamage: 3,
+		minDamage: 2,
+		maxDamage: 6,
 		attackSpeed: 1.4,
-		criticalChance: 6,
+		criticalChance: 7,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 1, max: 3 },
+		physicalDamage: { min: 2, max: 6 },
 		elementalDamage: [],
 		attackSpeed: 1.4,
-		criticalChance: 6,
+		criticalChance: 7,
 	},
 };
 
