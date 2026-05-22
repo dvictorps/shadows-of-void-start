@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { type CSSProperties, useEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateMonsterName } from "#/game/world/i18n";
 import type { BossIntroStage, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
@@ -8,10 +8,6 @@ import { m } from "#/paraglide/messages";
 import HealthGlobe from "./HealthGlobe";
 import HitFx from "./HitFx";
 import MonsterTooltip from "./MonsterTooltip";
-
-const ENEMY_SPRITE_STYLE: CSSProperties = {
-	animation: "fadeIn 400ms ease-out",
-};
 
 // Rarity-tinted nameplate colors mirror the item rarity palette so the
 // player reads "blue = magic, yellow = rare" consistently across UI.
@@ -147,7 +143,34 @@ export default function CombatScene({
 		state !== "miniboss_victory" &&
 		(state !== "boss_intro" || bossIntroStage === "hp");
 
+	// Sprite-level controls drive both the entrance animation and the in-combat
+	// shake. Three effects mutate them, ordered by lifecycle: spawn entrance →
+	// damage shake → victory fade. Mixing the entrance into framer-motion's
+	// `initial` prop wouldn't survive same-monster respawns (key collision), so
+	// the entrance is imperative: detect the null → non-null transition on
+	// `enemy` and re-issue set+start every fresh spawn.
 	const enemyControls = useAnimationControls();
+	const prevEnemyRef = useRef<Enemy | null>(null);
+
+	useLayoutEffect(() => {
+		const wasNull = prevEnemyRef.current === null;
+		prevEnemyRef.current = enemy;
+		if (!enemy) return;
+		if (!wasNull) return;
+		const isRare = enemy.rarity === "rare";
+		enemyControls.set({
+			opacity: 0,
+			scale: isRare ? 1.2 : 1,
+			x: 0,
+			filter: "brightness(1) saturate(1) hue-rotate(0deg)",
+		});
+		enemyControls.start({
+			opacity: 1,
+			scale: 1,
+			transition: { duration: isRare ? 0.7 : 0.4, ease: "easeOut" },
+		});
+	}, [enemy, enemyControls]);
+
 	useEffect(() => {
 		if (!lastDamagingHit) return;
 		const amp = lastDamagingHit.isCrit ? 6 : 4;
@@ -161,6 +184,11 @@ export default function CombatScene({
 			transition: { duration: 0.2, times: [0, 0.2, 0.4, 0.6, 0.8, 1] },
 		});
 	}, [lastDamagingHit, enemyControls]);
+
+	useEffect(() => {
+		if (state !== "victory") return;
+		enemyControls.start({ opacity: 0, transition: { duration: 0.5 } });
+	}, [state, enemyControls]);
 
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
@@ -212,14 +240,19 @@ export default function CombatScene({
 				</button>
 			</div>
 
-			{/* Enemy nameplate: name on top, level directly below */}
-			<div className="flex flex-col items-center gap-1 px-6 pt-14">
-				{showNameplate && enemy ? (
+			{/* Enemy nameplate slot. Reserves a fixed height so the nameplate
+			 * appearing during boss_intro (or any spawn) doesn't reflow the
+			 * sprite below — only opacity / y animate. */}
+			<div className="flex h-[120px] flex-col items-center gap-1 px-6 pt-14">
+				{enemy && (
 					<motion.div
 						className="flex flex-col items-center gap-1"
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ duration: 0.3 }}
+						initial={false}
+						animate={{
+							opacity: showNameplate ? 1 : 0,
+							y: showNameplate ? 0 : 8,
+						}}
+						transition={{ duration: 0.45, ease: "easeOut" }}
 					>
 						<div
 							className="display-title text-4xl uppercase tracking-[0.15em]"
@@ -231,8 +264,6 @@ export default function CombatScene({
 							Lv {enemy.level}
 						</div>
 					</motion.div>
-				) : (
-					<div className="h-[40px]" />
 				)}
 			</div>
 
@@ -252,27 +283,11 @@ export default function CombatScene({
 					{enemy && state !== "searching" && state !== "miniboss_victory" && (
 						<div className="group relative">
 							<motion.img
-								key={enemy.def.id}
 								src={enemy.def.sprite}
 								alt={translateMonsterName(enemy.def, enemy.mods)}
 								draggable={false}
-								className={`pointer-events-none h-64 w-64 select-none object-contain transition-opacity duration-500 ${
-									state === "victory" ? "opacity-0" : "opacity-100"
-								}`}
-								style={state === "boss_intro" ? undefined : ENEMY_SPRITE_STYLE}
-								initial={
-									state === "boss_intro"
-										? { opacity: 0, scale: 0.8 }
-										: undefined
-								}
-								animate={
-									state === "boss_intro"
-										? { opacity: 1, scale: 1 }
-										: enemyControls
-								}
-								transition={
-									state === "boss_intro" ? { duration: 0.5 } : undefined
-								}
+								className="pointer-events-none h-64 w-64 select-none object-contain"
+								animate={enemyControls}
 							/>
 							<AnimatePresence>
 								{lastSwingHit && (
@@ -311,12 +326,15 @@ export default function CombatScene({
 					</div>
 				</div>
 
-				{showHpBar && enemy && (
+				{/* HP bar slot. Always reserved when an enemy is present so the
+				 * sprite above doesn't shift when the bar fades in during
+				 * boss_intro stage 3. */}
+				{enemy && state !== "miniboss_victory" && (
 					<motion.div
 						className="flex w-full justify-center"
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						transition={{ duration: 0.4 }}
+						initial={false}
+						animate={{ opacity: showHpBar ? 1 : 0, y: showHpBar ? 0 : -6 }}
+						transition={{ duration: 0.45, ease: "easeOut" }}
 					>
 						<EnemyHpBar current={enemy.currentHp} max={enemy.scaled.hp} />
 					</motion.div>
@@ -566,7 +584,9 @@ function FloatingDamage({
 	// Single direction angle biased upward for normal hits and crits alike —
 	// the crit signal is the red color + "!!!" suffix, not a special arc.
 	const angle = -Math.PI / 2 + (seed - 0.5) * 1.8;
-	const distance = 70;
+	// MISS / BLOCK labels float higher so they read clearly past the enemy
+	// hit-box; damage numbers stay closer to the impact point.
+	const distance = isLabel ? 110 : 70;
 	const endX = Math.cos(angle) * distance;
 	const endY = Math.sin(angle) * distance;
 	const startOffset = 24;

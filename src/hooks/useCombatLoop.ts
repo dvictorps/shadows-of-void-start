@@ -75,8 +75,12 @@ type CombatState =
 export type BossIntroStage = "sprite" | "name" | "hp" | null;
 
 const BOSS_INTRO_STAGE_MS: Record<Exclude<BossIntroStage, null>, number> = {
-	sprite: 500,
-	name: 300,
+	// Each value is how long the stage holds BEFORE advancing — so it must be
+	// at least as long as the visual transition kicked off when the stage
+	// becomes active. Sprite enters with scale 1.2 → 1.0 over ~700 ms, then
+	// the nameplate fades + slides in over ~400 ms, then the HP bar.
+	sprite: 750,
+	name: 500,
 	hp: 500,
 };
 
@@ -484,7 +488,7 @@ export function useCombatLoop({
 				if (attack.isMiss) {
 					pushEvent({ amount: 0, target: "player", isMiss: true });
 					playSfx("esquiva.wav", {
-						volume: 0.3,
+						volume: 0.5,
 						pitchVariance: 0.1,
 						exclusive: true,
 					});
@@ -493,7 +497,7 @@ export function useCombatLoop({
 					// thorns purposes (handled below).
 					pushEvent({ amount: 0, target: "player", isBlocked: true });
 					playSfx("block.wav", {
-						volume: 0.35,
+						volume: 0.5,
 						pitchVariance: 0.1,
 						exclusive: true,
 					});
