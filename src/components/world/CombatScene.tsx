@@ -249,31 +249,45 @@ export default function CombatScene({
 
 	const inCamp = state === "acampamento";
 	// Camp arrival is staged so the transition feels lived-in: the player
-	// still sees "Explorando..." for ~2s, the HUD then fades out over 3s,
-	// the cinematic only mounts once the HUD is gone (T=5s), and the warm
-	// glow rises with the second ambient line (T=8s).
+	// still sees "Explorando..." for ~1.5s, the HUD then fades out over
+	// 2.5s, the cinematic only mounts once the HUD is gone (T=4s). The
+	// warm glow rises with the decision panel — driven by a callback from
+	// CampCinematic, not a separate timer.
 	const [hudFading, setHudFading] = useState(false);
 	const [cinematicEnabled, setCinematicEnabled] = useState(false);
 	const [glowVisible, setGlowVisible] = useState(false);
+	const [campSkipped, setCampSkipped] = useState(false);
 	useEffect(() => {
 		if (!inCamp) {
 			setHudFading(false);
 			setCinematicEnabled(false);
 			setGlowVisible(false);
+			setCampSkipped(false);
 			return;
 		}
-		const t1 = window.setTimeout(() => setHudFading(true), 2000);
-		const t2 = window.setTimeout(() => setCinematicEnabled(true), 5000);
-		const t3 = window.setTimeout(() => setGlowVisible(true), 8000);
+		const t1 = window.setTimeout(() => setHudFading(true), 1500);
+		const t2 = window.setTimeout(() => setCinematicEnabled(true), 4000);
 		return () => {
 			window.clearTimeout(t1);
 			window.clearTimeout(t2);
-			window.clearTimeout(t3);
 		};
 	}, [inCamp]);
 
+	// Click anywhere on the combat section while a camp is staging skips
+	// straight to the decision panel. Button clicks inside the panel are
+	// unaffected — the skip handler no-ops once campSkipped flips.
+	const handleSectionClick = () => {
+		if (!inCamp || campSkipped) return;
+		setCampSkipped(true);
+		setHudFading(true);
+		setCinematicEnabled(true);
+	};
+
 	return (
-		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
+		<section
+			onClick={handleSectionClick}
+			className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black"
+		>
 			{/* Camp ambience — warm radial glow stands in for the future
 			 * campfire background art + audio (see in-progress.md). Slow
 			 * fade matches the HUD fade so the room "warms up" together.
@@ -320,7 +334,7 @@ export default function CombatScene({
 			{/* Zone label + static zone level (the area's intrinsic difficulty;
 			 * the per-spawn monster level is shown separately on the nameplate). */}
 			<div
-				className={`absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60 transition-opacity duration-[3000ms] ease-out ${
+				className={`absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60 transition-opacity duration-[2500ms] ease-out ${
 					hudFading ? "opacity-0" : "opacity-100"
 				}`}
 			>
@@ -330,7 +344,7 @@ export default function CombatScene({
 
 			{/* Top-right action cluster: loot button then Retreat */}
 			<div
-				className={`absolute top-3 right-3 z-10 flex items-center gap-2 transition-opacity duration-[3000ms] ease-out ${
+				className={`absolute top-3 right-3 z-10 flex items-center gap-2 transition-opacity duration-[2500ms] ease-out ${
 					hudFading ? "pointer-events-none opacity-0" : "opacity-100"
 				}`}
 			>
@@ -363,7 +377,7 @@ export default function CombatScene({
 			 * appearing during boss_intro (or any spawn) doesn't reflow the
 			 * sprite below — only opacity / y animate. */}
 			<div
-				className={`flex h-[120px] flex-col items-center gap-1 px-6 pt-14 transition-opacity duration-[3000ms] ease-out ${
+				className={`flex h-[120px] flex-col items-center gap-1 px-6 pt-14 transition-opacity duration-[2500ms] ease-out ${
 					hudFading ? "opacity-0" : "opacity-100"
 				}`}
 			>
@@ -412,8 +426,10 @@ export default function CombatScene({
 					{inCamp && cinematicEnabled && (
 						<CampCinematic
 							zoneId={zoneId}
+							skip={campSkipped}
 							onReturn={onRetreat}
 							onContinue={onDismissCamp}
+							onPanelShow={() => setGlowVisible(true)}
 						/>
 					)}
 					{enemy &&
@@ -486,7 +502,7 @@ export default function CombatScene({
 
 			{/* Bottom HUD: HP globe + XP bar + teleport stone + (wind-crystal counter / potion) */}
 			<div
-				className={`relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4 transition-opacity duration-[3000ms] ease-out ${
+				className={`relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4 transition-opacity duration-[2500ms] ease-out ${
 					hudFading ? "pointer-events-none opacity-0" : "opacity-100"
 				}`}
 			>

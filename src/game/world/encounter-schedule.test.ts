@@ -50,27 +50,29 @@ describe("rollCampThresholdsMs", () => {
 	const plan: ZoneEncounterPlan = {
 		calmariaBudgetSeconds: 35,
 		gapBetweenSpawns: { min: 1.5, max: 3 },
-		campFractions: [0.33, 0.66],
+		campFractions: [0.5],
 	};
 
-	it("returns thresholds in ms sorted ascending", () => {
+	it("anchors the threshold near its fraction (±10% jitter)", () => {
+		const budgetMs = plan.calmariaBudgetSeconds * 1000; // 35000
 		for (let i = 0; i < 100; i++) {
-			const thresholds = rollCampThresholdsMs(plan);
-			expect(thresholds).toHaveLength(2);
-			expect(thresholds[0]).toBeLessThan(thresholds[1]);
+			const [threshold] = rollCampThresholdsMs(plan);
+			// 0.5 ± 0.10 → 0.40–0.60 → 14000–21000
+			expect(threshold).toBeGreaterThanOrEqual(0.4 * budgetMs);
+			expect(threshold).toBeLessThanOrEqual(0.6 * budgetMs);
 		}
 	});
 
-	it("anchors each threshold near its fraction (±3% jitter)", () => {
-		const budgetMs = plan.calmariaBudgetSeconds * 1000; // 35000
+	it("returns multiple thresholds sorted ascending", () => {
+		const multi: ZoneEncounterPlan = {
+			calmariaBudgetSeconds: 60,
+			gapBetweenSpawns: { min: 1.5, max: 3 },
+			campFractions: [0.33, 0.66],
+		};
 		for (let i = 0; i < 100; i++) {
-			const [low, high] = rollCampThresholdsMs(plan);
-			// 0.33 ± 0.03 → 0.30–0.36 → 10500–12600
-			expect(low).toBeGreaterThanOrEqual(0.3 * budgetMs);
-			expect(low).toBeLessThanOrEqual(0.36 * budgetMs);
-			// 0.66 ± 0.03 → 0.63–0.69 → 22050–24150
-			expect(high).toBeGreaterThanOrEqual(0.63 * budgetMs);
-			expect(high).toBeLessThanOrEqual(0.69 * budgetMs);
+			const thresholds = rollCampThresholdsMs(multi);
+			expect(thresholds).toHaveLength(2);
+			expect(thresholds[0]).toBeLessThan(thresholds[1]);
 		}
 	});
 

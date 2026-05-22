@@ -53,9 +53,9 @@ export function rollSpawnGapMs(plan: ZoneEncounterPlan): number {
 }
 
 // Jitter applied to each camp anchor on activation so the player can't decode
-// the exact instant a camp fires. Small enough that a 50% anchor stays safely
-// away from boss-spawn (≤80%) and from zone start (≥20%).
-const CAMP_JITTER = 0.03;
+// the exact instant a camp fires. With anchors in [0.33, 0.66] range a ±10%
+// scatter keeps every roll safely between 20% and 80% of the budget.
+const CAMP_JITTER = 0.1;
 
 /**
  * Sort the camp anchor fractions into the actual cumulative-calmaria

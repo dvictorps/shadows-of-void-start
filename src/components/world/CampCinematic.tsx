@@ -9,12 +9,10 @@ import { m } from "#/paraglide/messages";
 
 type Stage = 0 | 1 | 2 | "fading_out" | "panel";
 
-// Per-line holds — middle line gets the longest beat. Total ~10s of text,
-// then a deliberate gap before the decision panel.
 const STAGE_HOLD_MS: Record<0 | 1 | 2, number> = {
-	0: 3000,
-	1: 4000,
-	2: 3000,
+	0: 2000,
+	1: 3000,
+	2: 2000,
 };
 const TEXT_EXIT_MS = 1200;
 const POST_TEXT_PAUSE_MS = 1000;
@@ -27,23 +25,35 @@ const NEXT_STAGE: Record<0 | 1 | 2, Stage> = {
 
 type Props = {
 	zoneId: string;
+	skip: boolean;
 	onReturn: () => void;
 	onContinue: () => void;
+	// Fires once when the decision panel mounts. Lets the parent time the
+	// camp ambience (warm glow) to the panel's arrival.
+	onPanelShow: () => void;
 };
 
 export default function CampCinematic({
 	zoneId,
+	skip,
 	onReturn,
 	onContinue,
+	onPanelShow,
 }: Props) {
 	const [stage, setStage] = useState<Stage>(0);
 	const lines = translateCampLines(zoneId);
 
 	useEffect(() => {
-		if (stage === "panel") return;
-		// `fading_out` waits for the last line's exit animation to fully play,
-		// then sits an extra POST_TEXT_PAUSE_MS in silence before the panel
-		// fades in. Lets the comfy moment breathe.
+		if (skip && stage !== "panel") {
+			setStage("panel");
+		}
+	}, [skip, stage]);
+
+	useEffect(() => {
+		if (stage === "panel") {
+			onPanelShow();
+			return;
+		}
 		if (stage === "fading_out") {
 			const id = window.setTimeout(
 				() => setStage("panel"),
@@ -51,28 +61,30 @@ export default function CampCinematic({
 			);
 			return () => window.clearTimeout(id);
 		}
-		const hold = STAGE_HOLD_MS[stage];
 		const id = window.setTimeout(
-			() => setStage((prev) => (prev in NEXT_STAGE ? NEXT_STAGE[prev as 0 | 1 | 2] : prev)),
-			hold,
+			() =>
+				setStage((prev) =>
+					prev in NEXT_STAGE ? NEXT_STAGE[prev as 0 | 1 | 2] : prev,
+				),
+			STAGE_HOLD_MS[stage],
 		);
 		return () => window.clearTimeout(id);
-	}, [stage]);
+	}, [stage, onPanelShow]);
 
 	return (
-		<div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
-			<div className="flex h-24 items-center justify-center">
+		<div className="relative z-10 flex flex-col items-center gap-6 px-6 text-center">
+			<div className="flex h-16 items-center justify-center">
 				<AnimatePresence mode="wait">
 					{stage !== "panel" && stage !== "fading_out" && (
 						<motion.p
 							key={stage}
-							initial={{ opacity: 0, y: 8 }}
+							initial={{ opacity: 0, y: 6 }}
 							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -8 }}
+							exit={{ opacity: 0, y: -6 }}
 							transition={{ duration: TEXT_EXIT_MS / 1000, ease: "easeOut" }}
-							className="display-title max-w-2xl text-3xl tracking-wide text-amber-50/90"
+							className="display-title text-xl tracking-wide text-amber-50/90"
 							style={{
-								textShadow: "0 0 24px rgba(252, 165, 60, 0.35)",
+								textShadow: "0 0 18px rgba(252, 165, 60, 0.3)",
 							}}
 						>
 							{lines[stage]}
@@ -90,15 +102,15 @@ export default function CampCinematic({
 						className="flex flex-col items-center gap-5"
 					>
 						<div
-							className="display-title text-5xl uppercase tracking-[0.2em]"
+							className="display-title text-3xl uppercase tracking-[0.2em]"
 							style={{
 								color: "#ffd966",
-								textShadow: "0 0 20px rgba(255, 217, 102, 0.55)",
+								textShadow: "0 0 16px rgba(255, 217, 102, 0.45)",
 							}}
 						>
 							{m.camp_title()}
 						</div>
-						<p className="max-w-sm text-center text-base text-amber-50/80">
+						<p className="max-w-xs text-center text-sm text-amber-50/80">
 							{m.camp_subtitle()}
 						</p>
 						<div className="flex gap-3">

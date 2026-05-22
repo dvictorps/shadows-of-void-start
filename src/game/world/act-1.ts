@@ -63,7 +63,7 @@ export const ACT_1: Act = {
 			encounterPlan: {
 				calmariaBudgetSeconds: 45,
 				gapBetweenSpawns: { min: 1.25, max: 2.75 },
-				campFractions: [0.33, 0.66],
+				campFractions: [0.5],
 			},
 		},
 		{
@@ -81,7 +81,7 @@ export const ACT_1: Act = {
 			encounterPlan: {
 				calmariaBudgetSeconds: 47,
 				gapBetweenSpawns: { min: 1.25, max: 2.5 },
-				campFractions: [0.33, 0.66],
+				campFractions: [0.5],
 			},
 		},
 		{
@@ -99,7 +99,7 @@ export const ACT_1: Act = {
 			encounterPlan: {
 				calmariaBudgetSeconds: 50,
 				gapBetweenSpawns: { min: 1, max: 2.5 },
-				campFractions: [0.33, 0.66],
+				campFractions: [0.5],
 			},
 		},
 		{
@@ -114,7 +114,7 @@ export const ACT_1: Act = {
 			encounterPlan: {
 				calmariaBudgetSeconds: 50,
 				gapBetweenSpawns: { min: 1, max: 2.25 },
-				campFractions: [0.33, 0.66],
+				campFractions: [0.5],
 			},
 		},
 	],
