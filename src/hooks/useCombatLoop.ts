@@ -458,6 +458,11 @@ export function useCombatLoop({
 						isCrit: false,
 						isMiss: true,
 					});
+					playSfx("errarHit.wav", {
+						volume: 0.25,
+						pitchVariance: 0.1,
+						exclusive: true,
+					});
 				}
 			}
 
@@ -478,10 +483,20 @@ export function useCombatLoop({
 				});
 				if (attack.isMiss) {
 					pushEvent({ amount: 0, target: "player", isMiss: true });
+					playSfx("esquiva.wav", {
+						volume: 0.3,
+						pitchVariance: 0.1,
+						exclusive: true,
+					});
 				} else if (attack.isBlocked) {
 					// Block → no damage to barrier/life, but the hit still "lands" for
 					// thorns purposes (handled below).
 					pushEvent({ amount: 0, target: "player", isBlocked: true });
+					playSfx("block.wav", {
+						volume: 0.35,
+						pitchVariance: 0.1,
+						exclusive: true,
+					});
 				} else if (attack.amount > 0) {
 					// Apply to barrier first, then life.
 					const { state: nextBarrier, lifeOverflow } = damageBarrier(
