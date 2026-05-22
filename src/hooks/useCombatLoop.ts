@@ -5,7 +5,8 @@
 //
 //  Lifecycle:
 //    activation effect   → resets refs + state when `active` flips
-//    search delay        → spawns an enemy after SEARCH_DELAY_MS (1500ms)
+//    search delay        → spawns an enemy after a per-zone-rolled gap
+//                          (encounterPlan.gapBetweenSpawns)
 //    engaged tick        → @ 50ms intervals: leech, barrier recovery,
 //                          alternate-weapon swings, enemy swing, victory/death
 //    victory delay       → clears the enemy after VICTORY_DELAY_MS (800ms),
@@ -54,6 +55,10 @@ import {
 	scaleMonsterStats,
 } from "#/game/monsters";
 import type { ComputedCharacterStats } from "#/game/stats/types";
+import {
+	rollSpawnGapMs,
+	type ZoneEncounterPlan,
+} from "#/game/world/encounter-schedule";
 import type { RareNameSeed } from "#/game/world/i18n";
 import { pickRandom } from "#/lib/rng";
 import { playMonsterDeathSfx, playSfx } from "#/lib/sfx";
@@ -118,13 +123,11 @@ type Params = {
 	initialZoneKills: number;
 	monsterPool: readonly MonsterId[];
 	zoneLevel: number;
+	encounterPlan: ZoneEncounterPlan;
 	active: boolean;
 	onPlayerDeath: () => void;
 };
 
-const KILLS_TO_THRESHOLD = 30;
-
-const SEARCH_DELAY_MS = 1500;
 const VICTORY_DELAY_MS = 800;
 const TICK_INTERVAL_MS = 50;
 // Periodic sync is insurance against a mid-combat refresh — the deactivation
@@ -142,6 +145,7 @@ export function useCombatLoop({
 	initialZoneKills,
 	monsterPool,
 	zoneLevel,
+	encounterPlan,
 	active,
 	onPlayerDeath,
 }: Params) {
@@ -269,17 +273,32 @@ export function useCombatLoop({
 	}, [active, characterId, syncHp]);
 
 	// ── Search delay → spawn enemy ──
-	useDelay(active && state === "searching", SEARCH_DELAY_MS, () => {
+	// Each entry into "searching" rolls a fresh calmaria duration from the
+	// zone's encounter plan (`gapBetweenSpawns`). useDelay re-creates its
+	// timer when delayMs changes, so the new value takes effect immediately
+	// when state transitions back to "searching".
+	const [nextSpawnGapMs, setNextSpawnGapMs] = useState(() =>
+		rollSpawnGapMs(encounterPlan),
+	);
+	useEffect(() => {
+		if (state === "searching") {
+			setNextSpawnGapMs(rollSpawnGapMs(encounterPlan));
+		}
+	}, [state, encounterPlan]);
+
+	useDelay(active && state === "searching", nextSpawnGapMs, () => {
 		const pick = pickRandom(monsterPool);
 		if (!pick) return;
 		const def = findMonster(pick);
 		if (!def) return;
 		const level = rollMonsterLevel(zoneLevel);
 		const baseScaled = scaleMonsterStats(def, level);
-		// Threshold fill forces the next spawn to be the miniboss (rare).
-		// See CONTEXT.md → Threshold Bar.
+		// Schedule full → next spawn is the miniboss (rare). See
+		// CONTEXT.md → Time Bar.
 		const rarity =
-			zoneKillsRef.current >= KILLS_TO_THRESHOLD ? "rare" : rollMonsterRarity();
+			zoneKillsRef.current >= encounterPlan.encountersBeforeBoss
+				? "rare"
+				: rollMonsterRarity();
 		const mods = rollMonsterMods(modCountForRarity(rarity));
 		const scaled = applyMonsterMods(baseScaled, mods);
 		const nameSeed: RareNameSeed = {
@@ -625,7 +644,7 @@ export function useCombatLoop({
 		lastKill,
 		usePotion,
 		zoneKills,
-		killsToThreshold: KILLS_TO_THRESHOLD,
+		killsToThreshold: encounterPlan.encountersBeforeBoss,
 		dismissMinibossModal,
 	};
 }

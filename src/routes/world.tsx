@@ -399,6 +399,18 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		[currentNode],
 	);
 	const zoneLevel = currentNode?.level ?? character.level;
+	// Fallback plan keeps the type signature satisfied for non-combat views
+	// (city, map) — the hook isn't active there (`active = view === "combat"`),
+	// so the values never run. Combat nodes always carry an encounterPlan in
+	// act-1.ts.
+	const encounterPlan = useMemo(
+		() =>
+			currentNode?.encounterPlan ?? {
+				encountersBeforeBoss: 15,
+				gapBetweenSpawns: { min: 1.5, max: 3 },
+			},
+		[currentNode],
+	);
 
 	const handlePlayerDeath = useCallback(async () => {
 		try {
@@ -428,6 +440,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		initialZoneKills: character.currentZoneKills ?? 0,
 		monsterPool,
 		zoneLevel,
+		encounterPlan,
 		// Pause combat while the loot picker is open so the player can't die
 		// mid-selection from a goblin they've already retreated from.
 		active: view === "combat" && !exitModal.isOpen,

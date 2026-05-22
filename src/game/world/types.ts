@@ -1,4 +1,5 @@
 import type { MonsterId } from "../monsters";
+import type { ZoneEncounterPlan } from "./encounter-schedule";
 
 export type NodeKind = "city" | "combat" | "boss";
 
@@ -28,6 +29,9 @@ export interface WorldNode {
 	// city and on entry zones (always accessible). See CONTEXT.md →
 	// Travel system → Progression gating.
 	gatedBy?: string[];
+	// Encounter pacing — replaces the hard-coded threshold + spawn delay.
+	// Only set for combat nodes. See `encounter-schedule.ts`.
+	encounterPlan?: ZoneEncounterPlan;
 }
 
 export interface Act {

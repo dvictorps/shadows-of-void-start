@@ -24,6 +24,10 @@ export const ACT_1: Act = {
 			],
 			monsterPool: ["goblin", "macaco", "morcego", "serpente"],
 			level: 1,
+			encounterPlan: {
+				encountersBeforeBoss: 15,
+				gapBetweenSpawns: { min: 1.5, max: 3 },
+			},
 		},
 		{
 			id: "forest_profunda",
@@ -37,6 +41,10 @@ export const ACT_1: Act = {
 			monsterPool: ["goblin", "macaco", "morcego", "serpente"],
 			level: 2,
 			gatedBy: ["forest_starter"],
+			encounterPlan: {
+				encountersBeforeBoss: 18,
+				gapBetweenSpawns: { min: 1.5, max: 3 },
+			},
 		},
 		{
 			id: "pantano",
@@ -50,6 +58,10 @@ export const ACT_1: Act = {
 			monsterPool: ["slime", "zumbi"],
 			level: 4,
 			gatedBy: ["forest_profunda"],
+			encounterPlan: {
+				encountersBeforeBoss: 22,
+				gapBetweenSpawns: { min: 1.25, max: 2.75 },
+			},
 		},
 		{
 			id: "cripta",
@@ -63,6 +75,10 @@ export const ACT_1: Act = {
 			monsterPool: ["esqueleto", "esqueleto_armadurado", "esqueleto_lanca"],
 			level: 7,
 			gatedBy: ["pantano"],
+			encounterPlan: {
+				encountersBeforeBoss: 25,
+				gapBetweenSpawns: { min: 1.25, max: 2.5 },
+			},
 		},
 		{
 			id: "castelo",
@@ -76,6 +92,10 @@ export const ACT_1: Act = {
 			monsterPool: ["vampiro", "lich"],
 			level: 10,
 			gatedBy: ["cripta"],
+			encounterPlan: {
+				encountersBeforeBoss: 28,
+				gapBetweenSpawns: { min: 1, max: 2.5 },
+			},
 		},
 		{
 			id: "fenda_vazio",
@@ -86,6 +106,10 @@ export const ACT_1: Act = {
 			monsterPool: ["olho_do_vazio", "criatura_do_vazio"],
 			level: 14,
 			gatedBy: ["castelo"],
+			encounterPlan: {
+				encountersBeforeBoss: 30,
+				gapBetweenSpawns: { min: 1, max: 2.25 },
+			},
 		},
 	],
 };
