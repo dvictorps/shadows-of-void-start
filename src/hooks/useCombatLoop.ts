@@ -62,7 +62,23 @@ import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
 import { useDelay } from "./useDelay";
 import { useTicker } from "./useTicker";
 
-type CombatState = "searching" | "engaged" | "victory" | "miniboss_victory";
+type CombatState =
+	| "searching"
+	| "boss_intro"
+	| "engaged"
+	| "victory"
+	| "miniboss_victory";
+
+// Three-stage dramatic spawn for rare minibosses. The ticker stays paused
+// (gated on state === "engaged") for the full intro, so the player can't
+// pre-empt the build-up and the boss can't swing before its HP bar shows.
+export type BossIntroStage = "sprite" | "name" | "hp" | null;
+
+const BOSS_INTRO_STAGE_MS: Record<Exclude<BossIntroStage, null>, number> = {
+	sprite: 500,
+	name: 300,
+	hp: 500,
+};
 
 export type Enemy = {
 	def: MonsterDefinition;
@@ -122,6 +138,7 @@ export function useCombatLoop({
 }: Params) {
 	const maxHp = stats.maxLife;
 	const [state, setState] = useState<CombatState>("searching");
+	const [bossIntroStage, setBossIntroStage] = useState<BossIntroStage>(null);
 	const [enemy, setEnemy] = useState<Enemy | null>(null);
 	const [playerHp, setPlayerHp] = useState(initialHp);
 	const [barrier, setBarrier] = useState(() =>
@@ -232,6 +249,7 @@ export function useCombatLoop({
 			nextSwingIndexRef.current = 0;
 			zoneKillsRef.current = initialZoneKillsRef.current;
 			setZoneKills(initialZoneKillsRef.current);
+			setBossIntroStage(null);
 			stateRef.current = "searching";
 			setState("searching");
 		} else if (!active && wasActive && !deadRef.current) {
@@ -268,8 +286,39 @@ export function useCombatLoop({
 		playerProgressRef.current = 0;
 		enemyProgressRef.current = 0;
 		nextSwingIndexRef.current = 0;
-		setState("engaged");
+		// Rare minibosses get a staged reveal (sprite → name → HP bar) before
+		// combat starts. Regular spawns engage immediately.
+		if (rarity === "rare") {
+			setBossIntroStage("sprite");
+			stateRef.current = "boss_intro";
+			setState("boss_intro");
+		} else {
+			setBossIntroStage(null);
+			stateRef.current = "engaged";
+			setState("engaged");
+		}
 	});
+
+	// ── Boss intro stages → cascade into engaged ──
+	useDelay(
+		active && state === "boss_intro" && bossIntroStage === "sprite",
+		BOSS_INTRO_STAGE_MS.sprite,
+		() => setBossIntroStage("name"),
+	);
+	useDelay(
+		active && state === "boss_intro" && bossIntroStage === "name",
+		BOSS_INTRO_STAGE_MS.name,
+		() => setBossIntroStage("hp"),
+	);
+	useDelay(
+		active && state === "boss_intro" && bossIntroStage === "hp",
+		BOSS_INTRO_STAGE_MS.hp,
+		() => {
+			setBossIntroStage(null);
+			stateRef.current = "engaged";
+			setState("engaged");
+		},
+	);
 
 	// ── Victory pause → back to searching (or pause for miniboss modal) ──
 	useDelay(active && state === "victory", VICTORY_DELAY_MS, () => {
@@ -446,10 +495,11 @@ export function useCombatLoop({
 					playerHpRef.current = result.newLife;
 					setPlayerHp(result.newLife);
 					pushEvent({ amount: attack.amount, target: "player" });
+					playSfx("tomandoHit.wav", { volume: 0.3, pitchVariance: 0.1 });
 
 					if (result.newLife <= 0 && !deadRef.current) {
 						deadRef.current = true;
-						playSfx("death.wav");
+						playSfx("morte.wav");
 						queueMicrotask(() => onPlayerDeath());
 					}
 				}
@@ -522,6 +572,7 @@ export function useCombatLoop({
 
 	return {
 		state,
+		bossIntroStage,
 		enemy,
 		playerHp,
 		barrier: barrierSnapshot,

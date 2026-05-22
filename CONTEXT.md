@@ -36,7 +36,7 @@ When the threshold bar fills, a pause modal will ask if the player wants to figh
 ### Zone Miniboss
 A **rare-rarity** monster that spawns at the threshold of a normal zone. Picked uniformly from the zone's `monsterPool` and promoted to rare with 3 random modifiers (see Monster Modifier Pool). Drops better loot than mobs — see drop table. Respawns every time the threshold is refilled, including after the zone is complete (so completed zones remain meaningful for loot farming).
 
-After a miniboss kill the player gets a small modal: **continue farming** (combat resumes, threshold resets) or **retreat** (standard exit-zone flow with the loot picker).
+After a miniboss kill the combat scene shows an inline "Zone Complete" panel where the enemy was: **continue farming** (combat resumes, threshold resets) or **retreat** (standard exit-zone flow with the loot picker).
 
 ### Act Boss
 A distinct, more powerful enemy that gates progression to the next act. Lives in the **final node** of the act (a dedicated boss node, not a regular zone). For Act 1, the boss node follows **Model B**:
@@ -411,6 +411,15 @@ Starter pool (Act 1):
 The pool will grow with later acts (on-hit effects, summons, auras), but Act 1 stays minimal.
 
 Mods are picked **distinct** within a single monster (no duplicates). Magnitudes are **fixed** per mod (no per-roll variation) in the current iteration — variance comes from which mods land, not from how strong they roll.
+
+### Affix split and naming
+
+Each mod is tagged **prefix** or **suffix**:
+
+- **Prefixes (adjectival)**: Increased Life, Increased Damage, Increased Evasion, Additional Barrier, More Armor.
+- **Suffixes (noun)**: Increased Attack Speed, Increased Accuracy, the four elemental resistances.
+
+A spawn rolls **at most 2 prefixes and 2 suffixes**, so a 3-mod rare always mixes both affixes. The localized name renders PoE-style: `prefix prefix Base of suffix-noun`. With **two or more elemental resistances** on the same spawn, they collapse into a single "Elemental Resistant" prefix instead of stacking into a noisy suffix list ("of Frost and Storm" → "Elemental Resistant Goblin").
 
 ### Magic mob spawn rate
 10% of mid-zone spawns are magic; the rest are normal. The threshold spawn (miniboss) is always rare regardless.

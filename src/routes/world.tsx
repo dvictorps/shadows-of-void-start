@@ -735,6 +735,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						zoneName={translateNodeName(currentNode)}
 						zoneLevel={zoneLevel}
 						state={combat.state}
+						bossIntroStage={combat.bossIntroStage}
 						enemy={combat.enemy}
 						events={combat.events}
 						playerHp={combat.playerHp}

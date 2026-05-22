@@ -57,10 +57,36 @@ describe("rollMonsterMods", () => {
 		expect(rollMonsterMods(-1)).toEqual([]);
 	});
 
-	it("caps at pool size when count exceeds available mods", () => {
+	it("caps at the affix cap (max 2+2) when count exceeds available mods", () => {
 		const poolSize = Object.keys(MONSTER_MODIFIERS).length;
 		const picked = rollMonsterMods(poolSize + 5);
-		expect(picked).toHaveLength(poolSize);
+		// 2 prefixes + 2 suffixes per spawn, regardless of how high `count` is.
+		expect(picked).toHaveLength(4);
+		const prefixes = picked.filter(
+			(id) => MONSTER_MODIFIERS[id].affixType === "prefix",
+		);
+		const suffixes = picked.filter(
+			(id) => MONSTER_MODIFIERS[id].affixType === "suffix",
+		);
+		expect(prefixes).toHaveLength(2);
+		expect(suffixes).toHaveLength(2);
+	});
+
+	it("never rolls 3+ of the same affix in a single spawn", () => {
+		// 200 rolls @ 3 mods each is enough to surface a violation if the cap
+		// is broken — without the cap, ~30% of rolls would draw 3 prefixes
+		// from the 5-prefix / 6-suffix pool.
+		for (let trial = 0; trial < 200; trial++) {
+			const picked = rollMonsterMods(3);
+			let prefixes = 0;
+			let suffixes = 0;
+			for (const id of picked) {
+				if (MONSTER_MODIFIERS[id].affixType === "prefix") prefixes += 1;
+				else suffixes += 1;
+			}
+			expect(prefixes).toBeLessThanOrEqual(2);
+			expect(suffixes).toBeLessThanOrEqual(2);
+		}
 	});
 });
 

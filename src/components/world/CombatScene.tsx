@@ -1,10 +1,9 @@
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { type CSSProperties, useEffect, useMemo } from "react";
-import Modal from "#/components/Modal";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateMonsterName } from "#/game/world/i18n";
-import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
+import type { BossIntroStage, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 import HealthGlobe from "./HealthGlobe";
 import HitFx from "./HitFx";
@@ -27,7 +26,13 @@ export type ConsumableKey = "potion" | "teleport" | "wind_crystal";
 type Props = {
 	zoneName: string;
 	zoneLevel: number;
-	state: "searching" | "engaged" | "victory" | "miniboss_victory";
+	state:
+		| "searching"
+		| "boss_intro"
+		| "engaged"
+		| "victory"
+		| "miniboss_victory";
+	bossIntroStage: BossIntroStage;
 	enemy: Enemy | null;
 	events: DamageEvent[];
 	playerHp: number;
@@ -63,6 +68,7 @@ export default function CombatScene({
 	zoneName,
 	zoneLevel,
 	state,
+	bossIntroStage,
 	enemy,
 	events,
 	playerHp,
@@ -114,6 +120,19 @@ export default function CombatScene({
 		return null;
 	}, [enemyEvents]);
 	const nameColor = enemy ? RARITY_NAMEPLATE_COLOR[enemy.rarity] : "#ffffff";
+
+	// Staged reveal for rare minibosses. The nameplate appears at stage "name",
+	// the HP bar at stage "hp". The sprite is always shown once the spawn
+	// transitions out of "searching". For non-boss spawns (bossIntroStage is
+	// null), everything appears together as before.
+	const showNameplate =
+		enemy !== null &&
+		state !== "miniboss_victory" &&
+		(state !== "boss_intro" || bossIntroStage !== "sprite");
+	const showHpBar =
+		enemy !== null &&
+		state !== "miniboss_victory" &&
+		(state !== "boss_intro" || bossIntroStage === "hp");
 
 	const enemyControls = useAnimationControls();
 	useEffect(() => {
@@ -182,8 +201,13 @@ export default function CombatScene({
 
 			{/* Enemy nameplate: name on top, level directly below */}
 			<div className="flex flex-col items-center gap-1 px-6 pt-14">
-				{enemy ? (
-					<>
+				{showNameplate && enemy ? (
+					<motion.div
+						className="flex flex-col items-center gap-1"
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ duration: 0.3 }}
+					>
 						<div
 							className="display-title text-4xl uppercase tracking-[0.15em]"
 							style={{ color: nameColor }}
@@ -193,7 +217,7 @@ export default function CombatScene({
 						<div className="text-lg uppercase tracking-[0.2em] text-white/60">
 							Lv {enemy.level}
 						</div>
-					</>
+					</motion.div>
 				) : (
 					<div className="h-[40px]" />
 				)}
@@ -206,7 +230,13 @@ export default function CombatScene({
 							{m.searching_enemy()}
 						</p>
 					)}
-					{enemy && state !== "searching" && (
+					{state === "miniboss_victory" && (
+						<ZoneCompletePanel
+							onContinue={onDismissMinibossModal}
+							onRetreat={onRetreat}
+						/>
+					)}
+					{enemy && state !== "searching" && state !== "miniboss_victory" && (
 						<div className="group relative">
 							<motion.img
 								key={enemy.def.id}
@@ -216,8 +246,20 @@ export default function CombatScene({
 								className={`pointer-events-none h-64 w-64 select-none object-contain transition-opacity duration-500 ${
 									state === "victory" ? "opacity-0" : "opacity-100"
 								}`}
-								style={ENEMY_SPRITE_STYLE}
-								animate={enemyControls}
+								style={state === "boss_intro" ? undefined : ENEMY_SPRITE_STYLE}
+								initial={
+									state === "boss_intro"
+										? { opacity: 0, scale: 0.8 }
+										: undefined
+								}
+								animate={
+									state === "boss_intro"
+										? { opacity: 1, scale: 1 }
+										: enemyControls
+								}
+								transition={
+									state === "boss_intro" ? { duration: 0.5 } : undefined
+								}
 							/>
 							<AnimatePresence>
 								{lastSwingHit && (
@@ -256,8 +298,15 @@ export default function CombatScene({
 					</div>
 				</div>
 
-				{enemy && (
-					<EnemyHpBar current={enemy.currentHp} max={enemy.scaled.hp} />
+				{showHpBar && enemy && (
+					<motion.div
+						className="flex w-full justify-center"
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ duration: 0.4 }}
+					>
+						<EnemyHpBar current={enemy.currentHp} max={enemy.scaled.hp} />
+					</motion.div>
 				)}
 			</div>
 
@@ -352,40 +401,56 @@ export default function CombatScene({
 					</button>
 				</div>
 			</div>
-
-			{/* Post-miniboss modal — appears after the victory delay when the
-			 * killed enemy was rare. Continue resumes the farming loop; Retreat
-			 * triggers the standard exit-zone flow. See CONTEXT.md → Zone Miniboss. */}
-			<Modal
-				isOpen={state === "miniboss_victory"}
-				onClose={onDismissMinibossModal}
-				dismissible={false}
-				title={m.miniboss_modal_title()}
-				hideHeaderClose
-			>
-				<div className="flex flex-col items-center gap-4 px-4 py-2">
-					<p className="text-center text-sm text-white/70">
-						{m.miniboss_modal_body()}
-					</p>
-					<div className="flex gap-3">
-						<button
-							type="button"
-							onClick={onDismissMinibossModal}
-							className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
-						>
-							{m.miniboss_modal_continue()}
-						</button>
-						<button
-							type="button"
-							onClick={onRetreat}
-							className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
-						>
-							{m.miniboss_modal_retreat()}
-						</button>
-					</div>
-				</div>
-			</Modal>
 		</section>
+	);
+}
+
+// Inline replacement for the post-miniboss modal. Renders in the central
+// enemy area so the player stays in-scene to make the continue/retreat
+// choice. See CONTEXT.md → Zone Miniboss.
+function ZoneCompletePanel({
+	onContinue,
+	onRetreat,
+}: {
+	onContinue: () => void;
+	onRetreat: () => void;
+}) {
+	return (
+		<motion.div
+			className="flex flex-col items-center gap-5 px-6"
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			transition={{ duration: 0.3 }}
+		>
+			<div
+				className="display-title text-4xl uppercase tracking-[0.2em]"
+				style={{
+					color: "#ffd966",
+					textShadow: "0 0 16px rgba(255, 217, 102, 0.45)",
+				}}
+			>
+				{m.zone_complete_title()}
+			</div>
+			<p className="max-w-xs text-center text-sm text-white/70">
+				{m.miniboss_modal_body()}
+			</p>
+			<div className="flex gap-3">
+				<button
+					type="button"
+					onClick={onContinue}
+					className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+				>
+					{m.miniboss_modal_continue()}
+				</button>
+				<button
+					type="button"
+					onClick={onRetreat}
+					className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+				>
+					{m.miniboss_modal_retreat()}
+				</button>
+			</div>
+		</motion.div>
 	);
 }
 
