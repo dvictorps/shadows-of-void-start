@@ -12,7 +12,7 @@
 // encounters before the miniboss, and the gap range each one is rolled
 // from.
 
-import { randInt } from "#/lib/rng";
+import { randInt, randSymmetric } from "#/lib/rng";
 
 export interface ZoneEncounterPlan {
 	/**
@@ -65,10 +65,8 @@ const CAMP_JITTER = 0.03;
 export function rollCampThresholdsMs(plan: ZoneEncounterPlan): number[] {
 	const budgetMs = plan.calmariaBudgetSeconds * 1000;
 	return plan.campFractions
-		.map((fraction) => {
-			const jittered =
-				fraction + (Math.random() * 2 - 1) * CAMP_JITTER;
-			return Math.round(jittered * budgetMs);
-		})
+		.map((fraction) =>
+			Math.round((fraction + randSymmetric(CAMP_JITTER)) * budgetMs),
+		)
 		.sort((a, b) => a - b);
 }

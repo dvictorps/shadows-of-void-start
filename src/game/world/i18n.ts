@@ -81,6 +81,52 @@ export function translateNodeDescription(node: WorldNode): string | null {
 	return NODE_I18N[node.id]?.description?.() ?? null;
 }
 
+// Three ambient lines per zone that fade in during the camp cinematic. Falls
+// back to a neutral set when a zone has no entry. See CONTEXT.md → Acampamento.
+const CAMP_LINES_I18N: Record<
+	string,
+	[() => string, () => string, () => string]
+> = {
+	forest_starter: [
+		m.camp_line_forest_starter_1,
+		m.camp_line_forest_starter_2,
+		m.camp_line_forest_starter_3,
+	],
+	forest_profunda: [
+		m.camp_line_forest_profunda_1,
+		m.camp_line_forest_profunda_2,
+		m.camp_line_forest_profunda_3,
+	],
+	pantano: [
+		m.camp_line_pantano_1,
+		m.camp_line_pantano_2,
+		m.camp_line_pantano_3,
+	],
+	cripta: [m.camp_line_cripta_1, m.camp_line_cripta_2, m.camp_line_cripta_3],
+	castelo: [
+		m.camp_line_castelo_1,
+		m.camp_line_castelo_2,
+		m.camp_line_castelo_3,
+	],
+	fenda_vazio: [
+		m.camp_line_fenda_vazio_1,
+		m.camp_line_fenda_vazio_2,
+		m.camp_line_fenda_vazio_3,
+	],
+};
+
+const CAMP_LINES_FALLBACK: [() => string, () => string, () => string] = [
+	m.camp_line_fallback_1,
+	m.camp_line_fallback_2,
+	m.camp_line_fallback_3,
+];
+
+/** Three ambient lines for the zone's camp cinematic, locale-resolved. */
+export function translateCampLines(zoneId: string): [string, string, string] {
+	const entry = CAMP_LINES_I18N[zoneId] ?? CAMP_LINES_FALLBACK;
+	return [entry[0](), entry[1](), entry[2]()];
+}
+
 const MONSTER_I18N: Record<MonsterId, () => string> = {
 	goblin: m.monster_goblin,
 	slime: m.monster_slime,

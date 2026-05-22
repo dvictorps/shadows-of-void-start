@@ -290,10 +290,7 @@ export function useCombatLoop({
 
 	// ── Calmaria ticker — drives the time bar ──
 	// The post-miniboss flag holds the ticker through the victory→searching
-	// transition so the drained bar doesn't gain a single tick before the
-	// reset commits. After bumping calmaria, check if a camp threshold was
-	// crossed — if so, transition to "acampamento" and pause the spawn
-	// machinery.
+	// transition so the drained bar doesn't gain a tick before reset commits.
 	useTicker(
 		active && state === "searching" && !lastKillWasMinibossRef.current,
 		CALMARIA_TICK_MS,
@@ -302,6 +299,8 @@ export function useCombatLoop({
 			calmariaElapsedMsRef.current = next;
 			setCalmariaElapsedMs(next);
 
+			// Camp fires only if the budget hasn't filled yet — at the budget
+			// boundary the boss-spawn check wins on the next spawn instead.
 			const nextCampThreshold =
 				campThresholdsMsRef.current[nextCampIndexRef.current];
 			if (
