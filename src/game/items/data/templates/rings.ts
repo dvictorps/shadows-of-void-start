@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const RING_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "cobalt_ring",
-		name: "Cobalt Ring",
+		nameBase: "ring",
+		nameModifier: "cobalt",
 		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -21,7 +22,8 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "garnet_ring",
-		name: "Garnet Ring",
+		nameBase: "ring",
+		nameModifier: "garnet",
 		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -38,7 +40,8 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "topaz_ring",
-		name: "Topaz Ring",
+		nameBase: "ring",
+		nameModifier: "topaz",
 		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -55,7 +58,8 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "obsidian_ring",
-		name: "Obsidian Ring",
+		nameBase: "ring",
+		nameModifier: "obsidian",
 		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -72,7 +76,8 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "coral_ring",
-		name: "Coral Ring",
+		nameBase: "ring",
+		nameModifier: "coral",
 		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -89,7 +94,8 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "lapis_ring",
-		name: "Lapis Ring",
+		nameBase: "ring",
+		nameModifier: "lapis",
 		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },

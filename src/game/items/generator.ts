@@ -67,78 +67,6 @@ function pickWeighted<T>(items: T[], getWeight: (item: T) => number): T {
 	return items[items.length - 1];
 }
 
-// ── Name generation for rare/legendary/epic ──
-
-const NAME_FIRST = [
-	"Doom",
-	"Storm",
-	"Grim",
-	"Soul",
-	"Death",
-	"Mind",
-	"Dragon",
-	"Eagle",
-	"Phoenix",
-	"Rune",
-	"Viper",
-	"Kraken",
-	"Havoc",
-	"Gale",
-	"Dusk",
-	"Blood",
-	"Shadow",
-	"Wrath",
-	"Spirit",
-	"Blight",
-	"Dread",
-	"Rage",
-	"Spite",
-	"Void",
-	"Plague",
-	"Skull",
-	"Foe",
-	"Bone",
-	"Ash",
-	"Thorn",
-];
-
-const NAME_SECOND = [
-	"Mark",
-	"Shelter",
-	"Bane",
-	"Grasp",
-	"Edge",
-	"Turn",
-	"Song",
-	"Roar",
-	"Call",
-	"Star",
-	"Keep",
-	"Bite",
-	"Wound",
-	"Strike",
-	"Haven",
-	"Gutter",
-	"Knell",
-	"Breaker",
-	"Whisper",
-	"Rend",
-	"Scar",
-	"Pyre",
-	"Reach",
-	"Span",
-	"Coil",
-	"Trail",
-	"Veil",
-	"Crown",
-	"Thirst",
-	"Shatter",
-];
-
-function generateName(): string {
-	return `${pickRandom(NAME_FIRST)} ${pickRandom(NAME_SECOND)}`;
-}
-
 // ── Value formatting ──
 
 function formatValue(value: number): string {
@@ -569,7 +497,6 @@ function rollExplicits(
 
 		mods.push({
 			modifierId: modId,
-			modifierName: mod.name,
 			affixType: mod.affixType,
 			modifierType: mod.modifierType,
 			isGlobalStat: mod.isGlobalStat ?? false,
@@ -735,28 +662,6 @@ function computeArmorStats(
 	return result;
 }
 
-// ── Item naming ──
-
-function buildItemName(
-	rarity: ItemRarity,
-	template: EquipmentTemplate,
-	explicits: RolledMod[],
-): string {
-	if (rarity === "normal") return template.name;
-
-	if (rarity === "magic") {
-		const prefix = explicits.find((m) => m.affixType === "prefix");
-		const suffix = explicits.find((m) => m.affixType === "suffix");
-		const parts: string[] = [];
-		if (prefix) parts.push(prefix.modifierName);
-		parts.push(template.name);
-		if (suffix) parts.push(suffix.modifierName);
-		return parts.join(" ");
-	}
-
-	return generateName();
-}
-
 // ── Public API ──
 
 export interface GenerateItemOptions {
@@ -805,12 +710,12 @@ export function generateItem(options: GenerateItemOptions): GeneratedItem {
 	return {
 		id: crypto.randomUUID(),
 		templateId: template.id,
-		templateName: template.name,
+		nameBase: template.nameBase,
+		nameModifier: template.nameModifier,
 		equipmentType: template.equipmentType,
 		weaponType: template.weaponType,
 		armorType: template.armorType,
 		rarity: options.rarity,
-		name: buildItemName(options.rarity, template, explicits),
 		itemLevel,
 		baseStats,
 		implicits,

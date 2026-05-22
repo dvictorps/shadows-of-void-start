@@ -6,7 +6,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	// ── Plate Gloves ──
 	{
 		id: "plate_gloves_t1",
-		name: "Iron Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "iron",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 1,
@@ -17,7 +18,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t2",
-		name: "Copper Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "copper",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 4,
@@ -28,7 +30,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t3",
-		name: "Bronze Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "bronze",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 7,
@@ -39,7 +42,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t4",
-		name: "Steel Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "steel",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 10,
@@ -50,7 +54,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t5",
-		name: "War Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "war",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 14,
@@ -61,7 +66,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t6",
-		name: "Soldier's Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "soldiers",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 24,
@@ -72,7 +78,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t7",
-		name: "Knight's Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "knights",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 28,
@@ -83,7 +90,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t8",
-		name: "Damascus Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "damascus",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 32,
@@ -94,7 +102,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t9",
-		name: "Warden Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "warden",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 36,
@@ -105,7 +114,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t10",
-		name: "Champion Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "champion",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 40,
@@ -116,7 +126,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t11",
-		name: "Templar Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "templar",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 44,
@@ -127,7 +138,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t12",
-		name: "Relic Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "relic",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 48,
@@ -138,7 +150,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t13",
-		name: "Runed Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "runed",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 52,
@@ -149,7 +162,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t14",
-		name: "Hallowed Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "hallowed",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 56,
@@ -160,7 +174,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t15",
-		name: "Exalted Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "exalted",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 60,
@@ -171,7 +186,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t16",
-		name: "Archon Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "archon",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 64,
@@ -182,7 +198,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t17",
-		name: "Sovereign Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "sovereign",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 68,
@@ -193,7 +210,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t18",
-		name: "Eternal Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "eternal",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 72,
@@ -204,7 +222,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t19",
-		name: "Ascendant Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "ascendant",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 76,
@@ -215,7 +234,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t20",
-		name: "Celestial Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "celestial",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 80,
@@ -226,7 +246,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_gloves_t21",
-		name: "Void-Forged Plate Gauntlets",
+		nameBase: "plate_gauntlets",
+		nameModifier: "void_forged",
 		equipmentType: "gloves",
 		armorType: "plate",
 		dropLevel: 83,
@@ -239,7 +260,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	// ── Leather Gloves ──
 	{
 		id: "leather_gloves_t1",
-		name: "Rawhide Gloves",
+		nameBase: "gloves",
+		nameModifier: "rawhide",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 1,
@@ -250,7 +272,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t2",
-		name: "Tanned Gloves",
+		nameBase: "gloves",
+		nameModifier: "tanned",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 4,
@@ -261,7 +284,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t3",
-		name: "Cured Gloves",
+		nameBase: "gloves",
+		nameModifier: "cured",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 7,
@@ -272,7 +296,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t4",
-		name: "Studded Gloves",
+		nameBase: "gloves",
+		nameModifier: "studded",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 10,
@@ -283,7 +308,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t5",
-		name: "Hardened Gloves",
+		nameBase: "gloves",
+		nameModifier: "hardened",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 14,
@@ -294,7 +320,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t6",
-		name: "Ranger's Gloves",
+		nameBase: "gloves",
+		nameModifier: "rangers",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 24,
@@ -305,7 +332,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t7",
-		name: "Scout's Gloves",
+		nameBase: "gloves",
+		nameModifier: "scouts",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 28,
@@ -316,7 +344,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t8",
-		name: "Treated Gloves",
+		nameBase: "gloves",
+		nameModifier: "treated",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 32,
@@ -327,7 +356,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t9",
-		name: "Warden Gloves",
+		nameBase: "gloves",
+		nameModifier: "warden",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 36,
@@ -338,7 +368,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t10",
-		name: "Champion Gloves",
+		nameBase: "gloves",
+		nameModifier: "champion",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 40,
@@ -349,7 +380,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t11",
-		name: "Templar Gloves",
+		nameBase: "gloves",
+		nameModifier: "templar",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 44,
@@ -360,7 +392,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t12",
-		name: "Relic Gloves",
+		nameBase: "gloves",
+		nameModifier: "relic",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 48,
@@ -371,7 +404,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t13",
-		name: "Runed Gloves",
+		nameBase: "gloves",
+		nameModifier: "runed",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 52,
@@ -382,7 +416,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t14",
-		name: "Hallowed Gloves",
+		nameBase: "gloves",
+		nameModifier: "hallowed",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 56,
@@ -393,7 +428,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t15",
-		name: "Exalted Gloves",
+		nameBase: "gloves",
+		nameModifier: "exalted",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 60,
@@ -404,7 +440,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t16",
-		name: "Archon Gloves",
+		nameBase: "gloves",
+		nameModifier: "archon",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 64,
@@ -415,7 +452,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t17",
-		name: "Sovereign Gloves",
+		nameBase: "gloves",
+		nameModifier: "sovereign",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 68,
@@ -426,7 +464,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t18",
-		name: "Eternal Gloves",
+		nameBase: "gloves",
+		nameModifier: "eternal",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 72,
@@ -437,7 +476,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t19",
-		name: "Ascendant Gloves",
+		nameBase: "gloves",
+		nameModifier: "ascendant",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 76,
@@ -448,7 +488,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t20",
-		name: "Celestial Gloves",
+		nameBase: "gloves",
+		nameModifier: "celestial",
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 80,
@@ -459,7 +500,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_gloves_t21",
-		name: "Void-Touched Leather Gloves",
+		nameBase: "void_touched_leather_gloves",
+		nameModifier: null,
 		equipmentType: "gloves",
 		armorType: "leather",
 		dropLevel: 83,
@@ -472,7 +514,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	// ── Silk Gloves ──
 	{
 		id: "silk_gloves_t1",
-		name: "Linen Wraps",
+		nameBase: "wraps",
+		nameModifier: "linen",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 1,
@@ -483,7 +526,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t2",
-		name: "Cotton Wraps",
+		nameBase: "wraps",
+		nameModifier: "cotton",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 4,
@@ -494,7 +538,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t3",
-		name: "Woven Wraps",
+		nameBase: "wraps",
+		nameModifier: "woven",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 7,
@@ -505,7 +550,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t4",
-		name: "Fine Wraps",
+		nameBase: "wraps",
+		nameModifier: "fine",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 10,
@@ -516,7 +562,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t5",
-		name: "Enchanted Wraps",
+		nameBase: "wraps",
+		nameModifier: "enchanted",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 14,
@@ -527,7 +574,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t6",
-		name: "Mystic Wraps",
+		nameBase: "wraps",
+		nameModifier: "mystic",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 24,
@@ -538,7 +586,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t7",
-		name: "Arcane Wraps",
+		nameBase: "wraps",
+		nameModifier: "arcane",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 28,
@@ -549,7 +598,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t8",
-		name: "Sage Wraps",
+		nameBase: "wraps",
+		nameModifier: "sage",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 32,
@@ -560,7 +610,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t9",
-		name: "Warden Wraps",
+		nameBase: "wraps",
+		nameModifier: "warden",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 36,
@@ -571,7 +622,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t10",
-		name: "Oracle Wraps",
+		nameBase: "wraps",
+		nameModifier: "oracle",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 40,
@@ -582,7 +634,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t11",
-		name: "Templar Wraps",
+		nameBase: "wraps",
+		nameModifier: "templar",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 44,
@@ -593,7 +646,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t12",
-		name: "Relic Wraps",
+		nameBase: "wraps",
+		nameModifier: "relic",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 48,
@@ -604,7 +658,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t13",
-		name: "Runed Wraps",
+		nameBase: "wraps",
+		nameModifier: "runed",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 52,
@@ -615,7 +670,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t14",
-		name: "Hallowed Wraps",
+		nameBase: "wraps",
+		nameModifier: "hallowed",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 56,
@@ -626,7 +682,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t15",
-		name: "Exalted Wraps",
+		nameBase: "wraps",
+		nameModifier: "exalted",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 60,
@@ -637,7 +694,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t16",
-		name: "Archon Wraps",
+		nameBase: "wraps",
+		nameModifier: "archon",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 64,
@@ -648,7 +706,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t17",
-		name: "Sovereign Wraps",
+		nameBase: "wraps",
+		nameModifier: "sovereign",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 68,
@@ -659,7 +718,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t18",
-		name: "Eternal Wraps",
+		nameBase: "wraps",
+		nameModifier: "eternal",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 72,
@@ -670,7 +730,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t19",
-		name: "Ascendant Wraps",
+		nameBase: "wraps",
+		nameModifier: "ascendant",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 76,
@@ -681,7 +742,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t20",
-		name: "Celestial Wraps",
+		nameBase: "wraps",
+		nameModifier: "celestial",
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 80,
@@ -692,7 +754,8 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_gloves_t21",
-		name: "Void-Woven Silk Wraps",
+		nameBase: "void_woven_silk_wraps",
+		nameModifier: null,
 		equipmentType: "gloves",
 		armorType: "silk",
 		dropLevel: 83,

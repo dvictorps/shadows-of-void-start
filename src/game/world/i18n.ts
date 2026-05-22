@@ -7,12 +7,11 @@ import {
 } from "#/game/monsters";
 import { m } from "#/paraglide/messages";
 import { getLocale, type Locale } from "#/paraglide/runtime";
+import { type GenderedForm, pickGendered } from "../i18n/lexicon-shared";
 import { lexiconEn } from "./lexicon/en";
 import { lexiconPt } from "./lexicon/pt";
 import type {
-	GenderedForm,
 	GenderedNoun,
-	GrammaticalGender,
 	MonsterNameLexicon,
 	PrefixMonsterModId,
 	SuffixMonsterModId,
@@ -265,13 +264,6 @@ function renderPt(
 		result = `${result} ${suffixPhrases.join(" e ")}`;
 	}
 	return result;
-}
-
-function pickGendered(
-	form: string | GenderedForm,
-	gender: GrammaticalGender,
-): string {
-	return typeof form === "string" ? form : form[gender];
 }
 
 function nounAsString(noun: string | GenderedNoun): string {

@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "axe_t1",
-		name: "Iron Axe",
+		nameBase: "axe",
+		nameModifier: "iron",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 1,
@@ -20,7 +21,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t2",
-		name: "Copper Hatchet",
+		nameBase: "hatchet",
+		nameModifier: "copper",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 4,
@@ -36,7 +38,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t3",
-		name: "Bronze Axe",
+		nameBase: "axe",
+		nameModifier: "bronze",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 7,
@@ -52,7 +55,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t4",
-		name: "Steel Hatchet",
+		nameBase: "hatchet",
+		nameModifier: "steel",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 10,
@@ -68,7 +72,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t5",
-		name: "War Axe",
+		nameBase: "axe",
+		nameModifier: "war",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 14,
@@ -84,7 +89,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t6",
-		name: "Soldier's Cleaver",
+		nameBase: "cleaver",
+		nameModifier: "soldiers",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 24,
@@ -100,7 +106,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t7",
-		name: "Knight's Axe",
+		nameBase: "axe",
+		nameModifier: "knights",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 28,
@@ -116,7 +123,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t8",
-		name: "Damascus Hatchet",
+		nameBase: "hatchet",
+		nameModifier: "damascus",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 32,
@@ -132,7 +140,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t9",
-		name: "Warden Axe",
+		nameBase: "axe",
+		nameModifier: "warden",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 36,
@@ -148,7 +157,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t10",
-		name: "Champion Cleaver",
+		nameBase: "cleaver",
+		nameModifier: "champion",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 40,
@@ -164,7 +174,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t11",
-		name: "Templar Axe",
+		nameBase: "axe",
+		nameModifier: "templar",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 44,
@@ -180,7 +191,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t12",
-		name: "Relic Hatchet",
+		nameBase: "hatchet",
+		nameModifier: "relic",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 48,
@@ -196,7 +208,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t13",
-		name: "Runed Axe",
+		nameBase: "axe",
+		nameModifier: "runed",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 52,
@@ -212,7 +225,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t14",
-		name: "Hallowed Cleaver",
+		nameBase: "cleaver",
+		nameModifier: "hallowed",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 56,
@@ -228,7 +242,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t15",
-		name: "Exalted Axe",
+		nameBase: "axe",
+		nameModifier: "exalted",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 60,
@@ -244,7 +259,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t16",
-		name: "Archon Hatchet",
+		nameBase: "hatchet",
+		nameModifier: "archon",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 64,
@@ -260,7 +276,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t17",
-		name: "Sovereign Axe",
+		nameBase: "axe",
+		nameModifier: "sovereign",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 68,
@@ -276,7 +293,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t18",
-		name: "Eternal Cleaver",
+		nameBase: "cleaver",
+		nameModifier: "eternal",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 72,
@@ -292,7 +310,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t19",
-		name: "Ascendant Axe",
+		nameBase: "axe",
+		nameModifier: "ascendant",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 76,
@@ -308,7 +327,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t20",
-		name: "Celestial Hatchet",
+		nameBase: "hatchet",
+		nameModifier: "celestial",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 80,
@@ -324,7 +344,8 @@ export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "axe_t21",
-		name: "Void-Touched Axe",
+		nameBase: "axe",
+		nameModifier: "void_touched",
 		equipmentType: "weapon",
 		weaponType: "axe",
 		dropLevel: 83,

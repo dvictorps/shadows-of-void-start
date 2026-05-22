@@ -1,3 +1,4 @@
+import type { TemplateModifierId } from "../../lexicon/template-ids";
 import type { EquipmentTemplate } from "./types";
 
 // Bow-bound: enforced at equip-time and via broken-state in the stat engine.
@@ -8,8 +9,31 @@ interface QuiverTierSpec {
 	dexReq: number;
 	implicitMin: number;
 	implicitMax: number;
-	name: string;
 }
+
+const QUIVER_MODIFIERS: readonly TemplateModifierId[] = [
+	"hide",
+	"tanned",
+	"hunters",
+	"rangers",
+	"skirmisher",
+	"scouts",
+	"marksman",
+	"treated",
+	"warden",
+	"champion",
+	"templar",
+	"relic",
+	"runed",
+	"hallowed",
+	"exalted",
+	"archon",
+	"sovereign",
+	"eternal",
+	"ascendant",
+	"celestial",
+	"void_touched",
+];
 
 const QUIVER_TIERS: QuiverTierSpec[] = [
 	{
@@ -18,7 +42,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 10,
 		implicitMin: 3,
 		implicitMax: 5,
-		name: "Hide Quiver",
 	},
 	{
 		tier: 2,
@@ -26,7 +49,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 14,
 		implicitMin: 3,
 		implicitMax: 5,
-		name: "Tanned Quiver",
 	},
 	{
 		tier: 3,
@@ -34,7 +56,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 18,
 		implicitMin: 4,
 		implicitMax: 6,
-		name: "Hunter's Quiver",
 	},
 	{
 		tier: 4,
@@ -42,7 +63,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 22,
 		implicitMin: 4,
 		implicitMax: 6,
-		name: "Ranger's Quiver",
 	},
 	{
 		tier: 5,
@@ -50,7 +70,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 28,
 		implicitMin: 4,
 		implicitMax: 7,
-		name: "Skirmisher Quiver",
 	},
 	{
 		tier: 6,
@@ -58,7 +77,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 44,
 		implicitMin: 5,
 		implicitMax: 7,
-		name: "Scout's Quiver",
 	},
 	{
 		tier: 7,
@@ -66,7 +84,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 50,
 		implicitMin: 5,
 		implicitMax: 8,
-		name: "Marksman Quiver",
 	},
 	{
 		tier: 8,
@@ -74,7 +91,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 58,
 		implicitMin: 6,
 		implicitMax: 8,
-		name: "Treated Quiver",
 	},
 	{
 		tier: 9,
@@ -82,7 +98,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 64,
 		implicitMin: 6,
 		implicitMax: 9,
-		name: "Warden Quiver",
 	},
 	{
 		tier: 10,
@@ -90,7 +105,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 70,
 		implicitMin: 6,
 		implicitMax: 10,
-		name: "Champion Quiver",
 	},
 	{
 		tier: 11,
@@ -98,7 +112,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 78,
 		implicitMin: 7,
 		implicitMax: 10,
-		name: "Templar Quiver",
 	},
 	{
 		tier: 12,
@@ -106,7 +119,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 84,
 		implicitMin: 7,
 		implicitMax: 11,
-		name: "Relic Quiver",
 	},
 	{
 		tier: 13,
@@ -114,7 +126,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 90,
 		implicitMin: 8,
 		implicitMax: 11,
-		name: "Runed Quiver",
 	},
 	{
 		tier: 14,
@@ -122,7 +133,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 98,
 		implicitMin: 8,
 		implicitMax: 12,
-		name: "Hallowed Quiver",
 	},
 	{
 		tier: 15,
@@ -130,7 +140,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 104,
 		implicitMin: 8,
 		implicitMax: 12,
-		name: "Exalted Quiver",
 	},
 	{
 		tier: 16,
@@ -138,7 +147,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 110,
 		implicitMin: 9,
 		implicitMax: 13,
-		name: "Archon Quiver",
 	},
 	{
 		tier: 17,
@@ -146,7 +154,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 118,
 		implicitMin: 9,
 		implicitMax: 13,
-		name: "Sovereign Quiver",
 	},
 	{
 		tier: 18,
@@ -154,7 +161,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 124,
 		implicitMin: 9,
 		implicitMax: 14,
-		name: "Eternal Quiver",
 	},
 	{
 		tier: 19,
@@ -162,7 +168,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 130,
 		implicitMin: 10,
 		implicitMax: 14,
-		name: "Ascendant Quiver",
 	},
 	{
 		tier: 20,
@@ -170,7 +175,6 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 138,
 		implicitMin: 10,
 		implicitMax: 15,
-		name: "Celestial Quiver",
 	},
 	{
 		tier: 21,
@@ -178,13 +182,13 @@ const QUIVER_TIERS: QuiverTierSpec[] = [
 		dexReq: 142,
 		implicitMin: 10,
 		implicitMax: 15,
-		name: "Void-Touched Quiver",
 	},
 ];
 
 export const QUIVER_TEMPLATES: EquipmentTemplate[] = QUIVER_TIERS.map((t) => ({
 	id: `quiver_t${t.tier}`,
-	name: t.name,
+	nameBase: "quiver",
+	nameModifier: QUIVER_MODIFIERS[t.tier - 1],
 	equipmentType: "quiver",
 	dropLevel: t.dropLevel,
 	requirements: { level: t.dropLevel, dex: t.dexReq },

@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "staff_t1",
-		name: "Apprentice Staff",
+		nameBase: "staff",
+		nameModifier: "apprentice",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 1,
@@ -27,7 +28,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t2",
-		name: "Acolyte Staff",
+		nameBase: "staff",
+		nameModifier: "acolyte",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 4,
@@ -50,7 +52,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t3",
-		name: "Scholar's Staff",
+		nameBase: "staff",
+		nameModifier: "scholars",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 7,
@@ -73,7 +76,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t4",
-		name: "Mystic Staff",
+		nameBase: "staff",
+		nameModifier: "mystic",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 10,
@@ -96,7 +100,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t5",
-		name: "Invoker's Staff",
+		nameBase: "staff",
+		nameModifier: "invokers",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 14,
@@ -119,7 +124,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t6",
-		name: "Channeler's Staff",
+		nameBase: "staff",
+		nameModifier: "channelers",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 24,
@@ -142,7 +148,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t7",
-		name: "Conjurer's Staff",
+		nameBase: "staff",
+		nameModifier: "conjurers",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 28,
@@ -165,7 +172,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t8",
-		name: "Sage Staff",
+		nameBase: "staff",
+		nameModifier: "sage",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 32,
@@ -188,7 +196,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t9",
-		name: "Warden Staff",
+		nameBase: "staff",
+		nameModifier: "warden",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 36,
@@ -211,7 +220,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t10",
-		name: "Oracle Staff",
+		nameBase: "staff",
+		nameModifier: "oracle",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 40,
@@ -234,7 +244,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t11",
-		name: "Templar Staff",
+		nameBase: "staff",
+		nameModifier: "templar",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 44,
@@ -257,7 +268,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t12",
-		name: "Relic Staff",
+		nameBase: "staff",
+		nameModifier: "relic",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 48,
@@ -280,7 +292,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t13",
-		name: "Runed Staff",
+		nameBase: "staff",
+		nameModifier: "runed",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 52,
@@ -303,7 +316,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t14",
-		name: "Hallowed Staff",
+		nameBase: "staff",
+		nameModifier: "hallowed",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 56,
@@ -326,7 +340,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t15",
-		name: "Exalted Staff",
+		nameBase: "staff",
+		nameModifier: "exalted",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 60,
@@ -349,7 +364,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t16",
-		name: "Archon Staff",
+		nameBase: "staff",
+		nameModifier: "archon",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 64,
@@ -372,7 +388,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t17",
-		name: "Sovereign Staff",
+		nameBase: "staff",
+		nameModifier: "sovereign",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 68,
@@ -395,7 +412,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t18",
-		name: "Eternal Staff",
+		nameBase: "staff",
+		nameModifier: "eternal",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 72,
@@ -418,7 +436,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t19",
-		name: "Ascendant Staff",
+		nameBase: "staff",
+		nameModifier: "ascendant",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 76,
@@ -441,7 +460,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t20",
-		name: "Celestial Staff",
+		nameBase: "staff",
+		nameModifier: "celestial",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 80,
@@ -464,7 +484,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "staff_t21",
-		name: "Void-Touched Staff",
+		nameBase: "staff",
+		nameModifier: "void_touched",
 		equipmentType: "weapon",
 		weaponType: "staff",
 		dropLevel: 83,

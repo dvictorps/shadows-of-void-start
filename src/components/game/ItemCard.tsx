@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ItemTooltip from "#/components/game/ItemTooltip";
 import { TEMPLATE_BY_ID } from "#/game/items/data/templates";
+import { translateItemName } from "#/game/items/item-name";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 import type { EquipmentType, WeaponType } from "#/game/items/types/base";
 
@@ -224,7 +225,7 @@ export default function ItemCard({
 				// inventory/bag items that are view-only.
 				style={{ width, height }}
 				className={cardClasses}
-				aria-label={item.name}
+				aria-label={translateItemName(item)}
 			>
 				{(() => {
 					const icon = iconFor(item);

@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "twoHandedAxe_t1",
-		name: "Iron Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "iron",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 1,
@@ -20,7 +21,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t2",
-		name: "Copper Battleaxe",
+		nameBase: "battleaxe",
+		nameModifier: "copper",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 4,
@@ -36,7 +38,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t3",
-		name: "Bronze Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "bronze",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 7,
@@ -52,7 +55,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t4",
-		name: "Steel Battleaxe",
+		nameBase: "battleaxe",
+		nameModifier: "steel",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 10,
@@ -68,7 +72,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t5",
-		name: "War Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "war",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 14,
@@ -84,7 +89,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t6",
-		name: "Soldier's Battleaxe",
+		nameBase: "battleaxe",
+		nameModifier: "soldiers",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 24,
@@ -100,7 +106,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t7",
-		name: "Knight's Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "knights",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 28,
@@ -116,7 +123,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t8",
-		name: "Damascus Battleaxe",
+		nameBase: "battleaxe",
+		nameModifier: "damascus",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 32,
@@ -132,7 +140,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t9",
-		name: "Warden Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "warden",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 36,
@@ -148,7 +157,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t10",
-		name: "Champion Battleaxe",
+		nameBase: "battleaxe",
+		nameModifier: "champion",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 40,
@@ -164,7 +174,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t11",
-		name: "Templar Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "templar",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 44,
@@ -180,7 +191,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t12",
-		name: "Relic Battleaxe",
+		nameBase: "battleaxe",
+		nameModifier: "relic",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 48,
@@ -196,7 +208,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t13",
-		name: "Runed Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "runed",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 52,
@@ -212,7 +225,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t14",
-		name: "Hallowed Battleaxe",
+		nameBase: "battleaxe",
+		nameModifier: "hallowed",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 56,
@@ -228,7 +242,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t15",
-		name: "Exalted Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "exalted",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 60,
@@ -244,7 +259,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t16",
-		name: "Archon Battleaxe",
+		nameBase: "battleaxe",
+		nameModifier: "archon",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 64,
@@ -260,7 +276,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t17",
-		name: "Sovereign Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "sovereign",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 68,
@@ -276,7 +293,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t18",
-		name: "Eternal Battleaxe",
+		nameBase: "battleaxe",
+		nameModifier: "eternal",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 72,
@@ -292,7 +310,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t19",
-		name: "Ascendant Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "ascendant",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 76,
@@ -308,7 +327,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t20",
-		name: "Celestial Battleaxe",
+		nameBase: "battleaxe",
+		nameModifier: "celestial",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 80,
@@ -324,7 +344,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "twoHandedAxe_t21",
-		name: "Void-Touched Greataxe",
+		nameBase: "greataxe",
+		nameModifier: "void_touched",
 		equipmentType: "weapon",
 		weaponType: "twoHandedAxe",
 		dropLevel: 83,

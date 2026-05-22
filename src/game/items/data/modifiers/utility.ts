@@ -3,9 +3,7 @@ import { createStandardTiers } from "../../types";
 
 export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 	movementSpeedIncrease: {
-		id: "movementSpeedIncrease",
-		name: "of Speed",
-		affixType: "suffix",
+		id: "movementSpeedIncrease",		affixType: "suffix",
 		modifierType: "increased",
 		category: "utility",
 		applicableTo: ["boots"],
@@ -16,9 +14,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(5, 8, 25, 30),
 	},
 	lifeLeechPercent: {
-		id: "lifeLeechPercent",
-		name: "of Leeching",
-		affixType: "suffix",
+		id: "lifeLeechPercent",		affixType: "suffix",
 		modifierType: "flat",
 		category: "utility",
 		applicableTo: ["allAttackWeapons", "ring", "amulet", "gloves"],
@@ -31,9 +27,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 
 	// ── Niche / filler mods (no tags — no synergy pull) ──
 	stunDurationIncrease: {
-		id: "stunDurationIncrease",
-		name: "of Stunning",
-		affixType: "suffix",
+		id: "stunDurationIncrease",		affixType: "suffix",
 		modifierType: "increased",
 		category: "utility",
 		applicableTo: ["weapon", "ring", "amulet", "belt"],
@@ -43,9 +37,7 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(5, 10, 31, 35),
 	},
 	reducedAttributeRequirements: {
-		id: "reducedAttributeRequirements",
-		name: "of the Worthy",
-		affixType: "suffix",
+		id: "reducedAttributeRequirements",		affixType: "suffix",
 		modifierType: "flat",
 		category: "utility",
 		applicableTo: ["allArmor"],

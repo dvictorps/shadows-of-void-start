@@ -3,9 +3,7 @@ import { createStandardTiers } from "../../types";
 
 export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 	coldResistance: {
-		id: "coldResistance",
-		name: "of Frost Resistance",
-		affixType: "suffix",
+		id: "coldResistance",		affixType: "suffix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry", "tome", "quiver"],
@@ -15,9 +13,7 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 	fireResistance: {
-		id: "fireResistance",
-		name: "of Flame Resistance",
-		affixType: "suffix",
+		id: "fireResistance",		affixType: "suffix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry", "tome", "quiver"],
@@ -27,9 +23,7 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 	lightningResistance: {
-		id: "lightningResistance",
-		name: "of Storm Resistance",
-		affixType: "suffix",
+		id: "lightningResistance",		affixType: "suffix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry", "tome", "quiver"],
@@ -39,9 +33,7 @@ export const RESISTANCE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 	voidResistance: {
-		id: "voidResistance",
-		name: "of Void Resistance",
-		affixType: "suffix",
+		id: "voidResistance",		affixType: "suffix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry", "tome", "quiver"],

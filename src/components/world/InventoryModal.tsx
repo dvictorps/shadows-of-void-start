@@ -14,6 +14,7 @@ import { useMutation } from "convex/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
+import { translateItemName } from "#/game/items/item-name";
 import Modal from "#/components/Modal";
 import ItemContextMenu, {
 	type MenuAction,
@@ -399,7 +400,7 @@ export default function InventoryModal({
 		const doc = inventory.find((it) => it._id === itemId);
 		if (!doc) return;
 		const ok = await confirm({
-			title: m.inventory_discard_title({ name: doc.data.name }),
+			title: m.inventory_discard_title({ name: translateItemName(doc.data) }),
 			message: m.inventory_discard_message(),
 			confirmLabel: m.inventory_discard_action(),
 			cancelLabel: m.cancel(),

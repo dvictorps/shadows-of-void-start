@@ -33,7 +33,10 @@ export interface RolledImplicit {
 
 export interface RolledMod {
 	modifierId: string;
-	modifierName: string;
+	// Legacy field — items rolled before the lexicon refactor carry the EN
+	// affix name here. New rolls omit it; the renderer reads modifierId and
+	// resolves the display string through lexicon/{en,pt}.ts.
+	modifierName?: string;
 	affixType: AffixType;
 	modifierType: string;
 	isGlobalStat: boolean;
@@ -73,12 +76,24 @@ export interface ComputedDefenseStats {
 export interface GeneratedItem {
 	id: string;
 	templateId: string;
-	templateName: string;
+	// Naming decomposition copied from the template so the renderer can
+	// compose the display name without re-loading the template. Typed as
+	// `string` here (not the narrow union) because the Convex validator
+	// stores them as plain strings — the literal-union enforcement lives in
+	// the lexicon/template files themselves. Optional because items rolled
+	// before the decomposition refactor don't carry these fields; the
+	// renderer falls back to the templateId string for those legacy rows.
+	nameBase?: string;
+	nameModifier?: string | null;
+	// Legacy fields — items rolled before the lexicon refactor cached the EN
+	// display name here. New rolls omit them; consumers must use
+	// translateItemName / translateTemplateName (display-time, locale-aware).
+	templateName?: string;
+	name?: string;
 	equipmentType: EquipmentType;
 	weaponType?: WeaponType;
 	armorType?: ArmorType;
 	rarity: ItemRarity;
-	name: string;
 	itemLevel: number;
 	baseStats: Partial<Record<BaseStatKey, number>>;
 	implicits: RolledImplicit[];

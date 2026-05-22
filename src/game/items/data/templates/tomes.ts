@@ -1,3 +1,4 @@
+import type { TemplateModifierId } from "../../lexicon/template-ids";
 import type { EquipmentTemplate } from "./types";
 
 // Barrier values mirror silk_shield_t* so a same-tier tome and silk shield
@@ -9,8 +10,33 @@ interface TomeTierSpec {
 	barrier: number;
 	implicitMin: number;
 	implicitMax: number;
-	name: string;
 }
+
+// Tier-indexed modifier ids (tier N uses MODIFIERS[N - 1]). Mirrored against
+// the EN display strings via lexicon/en.ts.
+const TOME_MODIFIERS: readonly TemplateModifierId[] = [
+	"apprentice",
+	"acolyte",
+	"initiate",
+	"scholars",
+	"adept",
+	"magister",
+	"mystic",
+	"arcane",
+	"sage",
+	"oracle",
+	"hierophant",
+	"templar",
+	"runed",
+	"hallowed",
+	"exalted",
+	"archon",
+	"sovereign",
+	"eternal",
+	"ascendant",
+	"celestial",
+	"void_inscribed",
+];
 
 const TOME_TIERS: TomeTierSpec[] = [
 	{
@@ -20,7 +46,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 12,
 		implicitMin: 10,
 		implicitMax: 15,
-		name: "Apprentice Tome",
 	},
 	{
 		tier: 2,
@@ -29,7 +54,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 26,
 		implicitMin: 11,
 		implicitMax: 16,
-		name: "Acolyte Tome",
 	},
 	{
 		tier: 3,
@@ -38,7 +62,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 38,
 		implicitMin: 12,
 		implicitMax: 17,
-		name: "Initiate Tome",
 	},
 	{
 		tier: 4,
@@ -47,7 +70,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 50,
 		implicitMin: 13,
 		implicitMax: 19,
-		name: "Scholar's Tome",
 	},
 	{
 		tier: 5,
@@ -56,7 +78,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 65,
 		implicitMin: 14,
 		implicitMax: 20,
-		name: "Adept Tome",
 	},
 	{
 		tier: 6,
@@ -65,7 +86,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 80,
 		implicitMin: 15,
 		implicitMax: 22,
-		name: "Magister Tome",
 	},
 	{
 		tier: 7,
@@ -74,7 +94,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 97,
 		implicitMin: 16,
 		implicitMax: 23,
-		name: "Mystic Tome",
 	},
 	{
 		tier: 8,
@@ -83,7 +102,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 114,
 		implicitMin: 17,
 		implicitMax: 25,
-		name: "Arcane Tome",
 	},
 	{
 		tier: 9,
@@ -92,7 +110,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 131,
 		implicitMin: 18,
 		implicitMax: 26,
-		name: "Sage Tome",
 	},
 	{
 		tier: 10,
@@ -101,7 +118,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 149,
 		implicitMin: 19,
 		implicitMax: 28,
-		name: "Oracle Tome",
 	},
 	{
 		tier: 11,
@@ -110,7 +126,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 168,
 		implicitMin: 20,
 		implicitMax: 29,
-		name: "Hierophant Tome",
 	},
 	{
 		tier: 12,
@@ -119,7 +134,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 186,
 		implicitMin: 21,
 		implicitMax: 31,
-		name: "Templar Tome",
 	},
 	{
 		tier: 13,
@@ -128,7 +142,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 205,
 		implicitMin: 22,
 		implicitMax: 32,
-		name: "Runed Tome",
 	},
 	{
 		tier: 14,
@@ -137,7 +150,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 223,
 		implicitMin: 23,
 		implicitMax: 34,
-		name: "Hallowed Tome",
 	},
 	{
 		tier: 15,
@@ -146,7 +158,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 241,
 		implicitMin: 24,
 		implicitMax: 35,
-		name: "Exalted Tome",
 	},
 	{
 		tier: 16,
@@ -155,7 +166,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 257,
 		implicitMin: 25,
 		implicitMax: 37,
-		name: "Archon Tome",
 	},
 	{
 		tier: 17,
@@ -164,7 +174,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 274,
 		implicitMin: 26,
 		implicitMax: 38,
-		name: "Sovereign Tome",
 	},
 	{
 		tier: 18,
@@ -173,7 +182,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 289,
 		implicitMin: 27,
 		implicitMax: 39,
-		name: "Eternal Tome",
 	},
 	{
 		tier: 19,
@@ -182,7 +190,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 301,
 		implicitMin: 28,
 		implicitMax: 39,
-		name: "Ascendant Tome",
 	},
 	{
 		tier: 20,
@@ -191,7 +198,6 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 308,
 		implicitMin: 29,
 		implicitMax: 40,
-		name: "Celestial Tome",
 	},
 	{
 		tier: 21,
@@ -200,13 +206,13 @@ const TOME_TIERS: TomeTierSpec[] = [
 		barrier: 308,
 		implicitMin: 30,
 		implicitMax: 40,
-		name: "Void-Inscribed Tome",
 	},
 ];
 
 export const TOME_TEMPLATES: EquipmentTemplate[] = TOME_TIERS.map((t) => ({
 	id: `tome_t${t.tier}`,
-	name: t.name,
+	nameBase: "tome",
+	nameModifier: TOME_MODIFIERS[t.tier - 1],
 	equipmentType: "tome",
 	armorType: "silk",
 	dropLevel: t.dropLevel,

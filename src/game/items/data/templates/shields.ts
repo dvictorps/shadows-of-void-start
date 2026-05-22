@@ -7,7 +7,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	// ── Plate Shields (Tower Shields) ──
 	{
 		id: "plate_shield_t1",
-		name: "Iron Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "iron",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 1,
@@ -25,7 +26,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t2",
-		name: "Copper Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "copper",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 4,
@@ -43,7 +45,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t3",
-		name: "Bronze Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "bronze",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 7,
@@ -61,7 +64,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t4",
-		name: "Steel Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "steel",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 10,
@@ -79,7 +83,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t5",
-		name: "War Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "war",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 14,
@@ -97,7 +102,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t6",
-		name: "Soldier's Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "soldiers",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 24,
@@ -115,7 +121,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t7",
-		name: "Knight's Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "knights",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 28,
@@ -133,7 +140,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t8",
-		name: "Damascus Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "damascus",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 32,
@@ -151,7 +159,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t9",
-		name: "Warden Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "warden",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 36,
@@ -169,7 +178,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t10",
-		name: "Champion Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "champion",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 40,
@@ -187,7 +197,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t11",
-		name: "Templar Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "templar",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 44,
@@ -205,7 +216,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t12",
-		name: "Relic Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "relic",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 48,
@@ -223,7 +235,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t13",
-		name: "Runed Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "runed",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 52,
@@ -241,7 +254,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t14",
-		name: "Hallowed Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "hallowed",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 56,
@@ -259,7 +273,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t15",
-		name: "Exalted Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "exalted",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 60,
@@ -277,7 +292,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t16",
-		name: "Archon Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "archon",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 64,
@@ -295,7 +311,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t17",
-		name: "Sovereign Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "sovereign",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 68,
@@ -313,7 +330,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t18",
-		name: "Eternal Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "eternal",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 72,
@@ -331,7 +349,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t19",
-		name: "Ascendant Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "ascendant",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 76,
@@ -349,7 +368,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t20",
-		name: "Celestial Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "celestial",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 80,
@@ -367,7 +387,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_shield_t21",
-		name: "Void-Forged Tower Shield",
+		nameBase: "tower_shield",
+		nameModifier: "void_forged",
 		equipmentType: "offhand",
 		armorType: "plate",
 		dropLevel: 83,
@@ -387,7 +408,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	// ── Leather Shields (Bucklers) ──
 	{
 		id: "leather_shield_t1",
-		name: "Rawhide Buckler",
+		nameBase: "buckler",
+		nameModifier: "rawhide",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 1,
@@ -405,7 +427,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t2",
-		name: "Tanned Buckler",
+		nameBase: "buckler",
+		nameModifier: "tanned",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 4,
@@ -423,7 +446,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t3",
-		name: "Cured Buckler",
+		nameBase: "buckler",
+		nameModifier: "cured",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 7,
@@ -441,7 +465,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t4",
-		name: "Studded Buckler",
+		nameBase: "buckler",
+		nameModifier: "studded",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 10,
@@ -459,7 +484,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t5",
-		name: "Hardened Buckler",
+		nameBase: "buckler",
+		nameModifier: "hardened",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 14,
@@ -477,7 +503,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t6",
-		name: "Ranger's Buckler",
+		nameBase: "buckler",
+		nameModifier: "rangers",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 24,
@@ -495,7 +522,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t7",
-		name: "Scout's Buckler",
+		nameBase: "buckler",
+		nameModifier: "scouts",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 28,
@@ -513,7 +541,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t8",
-		name: "Treated Buckler",
+		nameBase: "buckler",
+		nameModifier: "treated",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 32,
@@ -531,7 +560,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t9",
-		name: "Warden Buckler",
+		nameBase: "buckler",
+		nameModifier: "warden",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 36,
@@ -549,7 +579,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t10",
-		name: "Champion Buckler",
+		nameBase: "buckler",
+		nameModifier: "champion",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 40,
@@ -567,7 +598,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t11",
-		name: "Templar Buckler",
+		nameBase: "buckler",
+		nameModifier: "templar",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 44,
@@ -585,7 +617,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t12",
-		name: "Relic Buckler",
+		nameBase: "buckler",
+		nameModifier: "relic",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 48,
@@ -603,7 +636,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t13",
-		name: "Runed Buckler",
+		nameBase: "buckler",
+		nameModifier: "runed",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 52,
@@ -621,7 +655,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t14",
-		name: "Hallowed Buckler",
+		nameBase: "buckler",
+		nameModifier: "hallowed",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 56,
@@ -639,7 +674,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t15",
-		name: "Exalted Buckler",
+		nameBase: "buckler",
+		nameModifier: "exalted",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 60,
@@ -657,7 +693,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t16",
-		name: "Archon Buckler",
+		nameBase: "buckler",
+		nameModifier: "archon",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 64,
@@ -675,7 +712,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t17",
-		name: "Sovereign Buckler",
+		nameBase: "buckler",
+		nameModifier: "sovereign",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 68,
@@ -693,7 +731,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t18",
-		name: "Eternal Buckler",
+		nameBase: "buckler",
+		nameModifier: "eternal",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 72,
@@ -711,7 +750,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t19",
-		name: "Ascendant Buckler",
+		nameBase: "buckler",
+		nameModifier: "ascendant",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 76,
@@ -729,7 +769,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t20",
-		name: "Celestial Buckler",
+		nameBase: "buckler",
+		nameModifier: "celestial",
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 80,
@@ -747,7 +788,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_shield_t21",
-		name: "Void-Touched Buckler",
+		nameBase: "void_touched_buckler",
+		nameModifier: null,
 		equipmentType: "offhand",
 		armorType: "leather",
 		dropLevel: 83,
@@ -767,7 +809,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	// ── Silk Shields (Wards) ──
 	{
 		id: "silk_shield_t1",
-		name: "Linen Ward",
+		nameBase: "ward",
+		nameModifier: "linen",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 1,
@@ -785,7 +828,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t2",
-		name: "Cotton Ward",
+		nameBase: "ward",
+		nameModifier: "cotton",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 4,
@@ -803,7 +847,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t3",
-		name: "Woven Ward",
+		nameBase: "ward",
+		nameModifier: "woven",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 7,
@@ -821,7 +866,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t4",
-		name: "Fine Ward",
+		nameBase: "ward",
+		nameModifier: "fine",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 10,
@@ -839,7 +885,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t5",
-		name: "Enchanted Ward",
+		nameBase: "ward",
+		nameModifier: "enchanted",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 14,
@@ -857,7 +904,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t6",
-		name: "Mystic Ward",
+		nameBase: "ward",
+		nameModifier: "mystic",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 24,
@@ -875,7 +923,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t7",
-		name: "Arcane Ward",
+		nameBase: "ward",
+		nameModifier: "arcane",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 28,
@@ -893,7 +942,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t8",
-		name: "Sage Ward",
+		nameBase: "ward",
+		nameModifier: "sage",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 32,
@@ -911,7 +961,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t9",
-		name: "Oracle Ward",
+		nameBase: "ward",
+		nameModifier: "oracle",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 36,
@@ -929,7 +980,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t10",
-		name: "Seer Ward",
+		nameBase: "ward",
+		nameModifier: "seer",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 40,
@@ -947,7 +999,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t11",
-		name: "Templar Ward",
+		nameBase: "ward",
+		nameModifier: "templar",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 44,
@@ -965,7 +1018,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t12",
-		name: "Relic Ward",
+		nameBase: "ward",
+		nameModifier: "relic",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 48,
@@ -983,7 +1037,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t13",
-		name: "Runed Ward",
+		nameBase: "ward",
+		nameModifier: "runed",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 52,
@@ -1001,7 +1056,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t14",
-		name: "Hallowed Ward",
+		nameBase: "ward",
+		nameModifier: "hallowed",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 56,
@@ -1019,7 +1075,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t15",
-		name: "Exalted Ward",
+		nameBase: "ward",
+		nameModifier: "exalted",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 60,
@@ -1037,7 +1094,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t16",
-		name: "Archon Ward",
+		nameBase: "ward",
+		nameModifier: "archon",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 64,
@@ -1055,7 +1113,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t17",
-		name: "Sovereign Ward",
+		nameBase: "ward",
+		nameModifier: "sovereign",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 68,
@@ -1073,7 +1132,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t18",
-		name: "Eternal Ward",
+		nameBase: "ward",
+		nameModifier: "eternal",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 72,
@@ -1091,7 +1151,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t19",
-		name: "Ascendant Ward",
+		nameBase: "ward",
+		nameModifier: "ascendant",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 76,
@@ -1109,7 +1170,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t20",
-		name: "Celestial Ward",
+		nameBase: "ward",
+		nameModifier: "celestial",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 80,
@@ -1127,7 +1189,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_shield_t21",
-		name: "Void-Woven Ward",
+		nameBase: "ward",
+		nameModifier: "void_woven",
 		equipmentType: "offhand",
 		armorType: "silk",
 		dropLevel: 83,

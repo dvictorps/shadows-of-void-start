@@ -16,7 +16,10 @@ const rolledImplicit = v.object({
 
 const rolledMod = v.object({
 	modifierId: v.string(),
-	modifierName: v.string(),
+	// Legacy field — items rolled before the lexicon refactor carry the EN
+	// affix name here. New rolls omit it; consumers resolve the display string
+	// from modifierId through the lexicon at render time.
+	modifierName: v.optional(v.string()),
 	affixType: v.union(v.literal("prefix"), v.literal("suffix")),
 	modifierType: v.string(),
 	isGlobalStat: v.boolean(),
@@ -100,7 +103,17 @@ const armorTypeValidator = v.union(
 export const generatedItemValidator = v.object({
 	id: v.string(),
 	templateId: v.string(),
-	templateName: v.string(),
+	// Naming decomposition copied from the template at roll time. Optional
+	// because items rolled before the decomposition refactor don't carry
+	// these fields; the renderer falls back to the templateId string for
+	// those legacy rows.
+	nameBase: v.optional(v.string()),
+	nameModifier: v.optional(v.union(v.string(), v.null())),
+	// Legacy fields — items rolled before the lexicon refactor cached the EN
+	// display name here. New rolls omit them; consumers must call
+	// translateItemName / translateTemplateName at render time.
+	templateName: v.optional(v.string()),
+	name: v.optional(v.string()),
 	equipmentType: equipmentTypeValidator,
 	weaponType: v.optional(weaponTypeValidator),
 	armorType: v.optional(armorTypeValidator),
@@ -111,7 +124,6 @@ export const generatedItemValidator = v.object({
 		v.literal("legendary"),
 		v.literal("epic"),
 	),
-	name: v.string(),
 	itemLevel: v.number(),
 	baseStats,
 	implicits: v.array(rolledImplicit),

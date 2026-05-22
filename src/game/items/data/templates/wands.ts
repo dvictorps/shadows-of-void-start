@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "wand_t1",
-		name: "Apprentice Wand",
+		nameBase: "wand",
+		nameModifier: "apprentice",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 1,
@@ -27,7 +28,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t2",
-		name: "Acolyte Wand",
+		nameBase: "wand",
+		nameModifier: "acolyte",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 4,
@@ -50,7 +52,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t3",
-		name: "Scholar's Wand",
+		nameBase: "wand",
+		nameModifier: "scholars",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 7,
@@ -73,7 +76,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t4",
-		name: "Mystic Wand",
+		nameBase: "wand",
+		nameModifier: "mystic",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 10,
@@ -96,7 +100,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t5",
-		name: "Invoker's Wand",
+		nameBase: "wand",
+		nameModifier: "invokers",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 14,
@@ -119,7 +124,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t6",
-		name: "Channeler's Wand",
+		nameBase: "wand",
+		nameModifier: "channelers",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 24,
@@ -142,7 +148,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t7",
-		name: "Conjurer's Wand",
+		nameBase: "wand",
+		nameModifier: "conjurers",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 28,
@@ -165,7 +172,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t8",
-		name: "Sage Wand",
+		nameBase: "wand",
+		nameModifier: "sage",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 32,
@@ -188,7 +196,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t9",
-		name: "Warden Wand",
+		nameBase: "wand",
+		nameModifier: "warden",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 36,
@@ -211,7 +220,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t10",
-		name: "Oracle Wand",
+		nameBase: "wand",
+		nameModifier: "oracle",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 40,
@@ -234,7 +244,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t11",
-		name: "Templar Wand",
+		nameBase: "wand",
+		nameModifier: "templar",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 44,
@@ -257,7 +268,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t12",
-		name: "Relic Wand",
+		nameBase: "wand",
+		nameModifier: "relic",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 48,
@@ -280,7 +292,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t13",
-		name: "Runed Wand",
+		nameBase: "wand",
+		nameModifier: "runed",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 52,
@@ -303,7 +316,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t14",
-		name: "Hallowed Wand",
+		nameBase: "wand",
+		nameModifier: "hallowed",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 56,
@@ -326,7 +340,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t15",
-		name: "Exalted Wand",
+		nameBase: "wand",
+		nameModifier: "exalted",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 60,
@@ -349,7 +364,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t16",
-		name: "Archon Wand",
+		nameBase: "wand",
+		nameModifier: "archon",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 64,
@@ -372,7 +388,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t17",
-		name: "Sovereign Wand",
+		nameBase: "wand",
+		nameModifier: "sovereign",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 68,
@@ -395,7 +412,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t18",
-		name: "Eternal Wand",
+		nameBase: "wand",
+		nameModifier: "eternal",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 72,
@@ -418,7 +436,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t19",
-		name: "Ascendant Wand",
+		nameBase: "wand",
+		nameModifier: "ascendant",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 76,
@@ -441,7 +460,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t20",
-		name: "Celestial Wand",
+		nameBase: "wand",
+		nameModifier: "celestial",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 80,
@@ -464,7 +484,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "wand_t21",
-		name: "Void-Touched Wand",
+		nameBase: "wand",
+		nameModifier: "void_touched",
 		equipmentType: "weapon",
 		weaponType: "wand",
 		dropLevel: 83,
