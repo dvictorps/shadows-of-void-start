@@ -256,7 +256,7 @@ export default function CombatScene({
 			 */}
 			<div
 				aria-hidden
-				className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-[1500ms] ease-out ${
+				className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-[3000ms] ease-out ${
 					inCamp ? "opacity-100" : "opacity-0"
 				}`}
 				style={{
@@ -296,7 +296,7 @@ export default function CombatScene({
 			{/* Zone label + static zone level (the area's intrinsic difficulty;
 			 * the per-spawn monster level is shown separately on the nameplate). */}
 			<div
-				className={`absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60 transition-opacity duration-[1500ms] ease-out ${
+				className={`absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60 transition-opacity duration-[3000ms] ease-out ${
 					inCamp ? "opacity-0" : "opacity-100"
 				}`}
 			>
@@ -306,7 +306,7 @@ export default function CombatScene({
 
 			{/* Top-right action cluster: loot button then Retreat */}
 			<div
-				className={`absolute top-3 right-3 z-10 flex items-center gap-2 transition-opacity duration-[1500ms] ease-out ${
+				className={`absolute top-3 right-3 z-10 flex items-center gap-2 transition-opacity duration-[3000ms] ease-out ${
 					inCamp ? "pointer-events-none opacity-0" : "opacity-100"
 				}`}
 			>
@@ -339,7 +339,7 @@ export default function CombatScene({
 			 * appearing during boss_intro (or any spawn) doesn't reflow the
 			 * sprite below — only opacity / y animate. */}
 			<div
-				className={`flex h-[120px] flex-col items-center gap-1 px-6 pt-14 transition-opacity duration-[1500ms] ease-out ${
+				className={`flex h-[120px] flex-col items-center gap-1 px-6 pt-14 transition-opacity duration-[3000ms] ease-out ${
 					inCamp ? "opacity-0" : "opacity-100"
 				}`}
 			>
@@ -462,7 +462,7 @@ export default function CombatScene({
 
 			{/* Bottom HUD: HP globe + XP bar + teleport stone + (wind-crystal counter / potion) */}
 			<div
-				className={`relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4 transition-opacity duration-[1500ms] ease-out ${
+				className={`relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4 transition-opacity duration-[3000ms] ease-out ${
 					inCamp ? "pointer-events-none opacity-0" : "opacity-100"
 				}`}
 			>

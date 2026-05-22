@@ -7,17 +7,19 @@ import { useEffect, useState } from "react";
 import { translateCampLines } from "#/game/world/i18n";
 import { m } from "#/paraglide/messages";
 
-type Stage = 0 | 1 | 2 | "panel";
+type Stage = 0 | 1 | 2 | "fading_out" | "panel";
 
 // Long holds on each ambient line — the moment is supposed to feel earned,
-// not skipped through. 3 stages × ~3s ≈ ~9s before the decision panel
-// appears. The text fade is also slow to match.
-const STAGE_HOLD_MS = 3000;
+// not skipped through. 3 lines × 5s ≈ 15s of text, then a deliberate gap
+// before the decision panel appears.
+const STAGE_HOLD_MS = 5000;
+const TEXT_EXIT_MS = 1200;
+const POST_TEXT_PAUSE_MS = 1000;
 
-const NEXT_STAGE: Record<Exclude<Stage, "panel">, Stage> = {
+const NEXT_STAGE: Record<0 | 1 | 2, Stage> = {
 	0: 1,
 	1: 2,
-	2: "panel",
+	2: "fading_out",
 };
 
 type Props = {
@@ -36,8 +38,18 @@ export default function CampCinematic({
 
 	useEffect(() => {
 		if (stage === "panel") return;
+		// `fading_out` waits for the last line's exit animation to fully play,
+		// then sits an extra POST_TEXT_PAUSE_MS in silence before the panel
+		// fades in. Lets the comfy moment breathe.
+		if (stage === "fading_out") {
+			const id = window.setTimeout(
+				() => setStage("panel"),
+				TEXT_EXIT_MS + POST_TEXT_PAUSE_MS,
+			);
+			return () => window.clearTimeout(id);
+		}
 		const id = window.setTimeout(
-			() => setStage((prev) => (prev === "panel" ? prev : NEXT_STAGE[prev])),
+			() => setStage((prev) => (prev in NEXT_STAGE ? NEXT_STAGE[prev as 0 | 1 | 2] : prev)),
 			STAGE_HOLD_MS,
 		);
 		return () => window.clearTimeout(id);
@@ -47,13 +59,13 @@ export default function CampCinematic({
 		<div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
 			<div className="flex h-24 items-center justify-center">
 				<AnimatePresence mode="wait">
-					{stage !== "panel" && (
+					{stage !== "panel" && stage !== "fading_out" && (
 						<motion.p
 							key={stage}
 							initial={{ opacity: 0, y: 8 }}
 							animate={{ opacity: 1, y: 0 }}
 							exit={{ opacity: 0, y: -8 }}
-							transition={{ duration: 1.2, ease: "easeOut" }}
+							transition={{ duration: TEXT_EXIT_MS / 1000, ease: "easeOut" }}
 							className="display-title max-w-2xl text-3xl tracking-wide text-amber-50/90"
 							style={{
 								textShadow: "0 0 24px rgba(252, 165, 60, 0.35)",
