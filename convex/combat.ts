@@ -479,6 +479,12 @@ export const useTeleportStone = mutation({
 			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000
 
 		if (destinationNodeId === "city") {
+			// Heal + potion refill are applied *immediately* on use, not on
+			// arrival via `arriveAtTravel`. This is intentional: the player is
+			// in mid-travel for ~1.5s (panic exit from combat), and the
+			// "safety" semantic requires that they can't keep taking damage
+			// or die during the trip. Treat the city stone as the moment of
+			// safety, not the arrival.
 			const classDef = findClassDefinition(char.classId)
 			const equippedItems = await loadEquippedSet(ctx, args.characterId)
 			const stats = computeCharacterStats({
