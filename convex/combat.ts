@@ -489,8 +489,6 @@ export const useWindCrystal = mutation({
 		if (crystals <= 0) throw new ConvexError("No wind crystals")
 		if (char.travelDestination !== undefined)
 			throw new ConvexError("Already traveling")
-		if (char.currentZoneSession !== undefined)
-			throw new ConvexError("Cannot use wind crystal during combat")
 
 		const fromId = char.currentLocation ?? "city"
 		if (fromId === args.destinationNodeId)
@@ -507,11 +505,22 @@ export const useWindCrystal = mutation({
 		if (!isNodeAccessible(destNode, char.completedZones))
 			throw new ConvexError("zone-locked")
 
+		// Wind crystal is map-only by UI contract, so reaching here with an
+		// active zone session means it's orphaned (e.g. the user closed the
+		// retreat-loot modal without resolving). Treat it like the teleport
+		// stone's panic-button: drop the bag and clear the flag so the travel
+		// flow doesn't trip the next mutation. Becomes a no-op once retreat
+		// itself closes the session.
+		if (char.currentZoneSession) {
+			await deleteZoneBag(ctx, char.currentZoneSession)
+		}
+
 		const startedAt = Date.now()
 		const arrivesAt = startedAt + WIND_CRYSTAL_TRAVEL_SECONDS * 1000
 
 		await ctx.db.patch(args.characterId, {
 			windCrystals: crystals - 1,
+			currentZoneSession: undefined,
 			travelDestination: args.destinationNodeId,
 			travelStartedAt: startedAt,
 			travelArrivesAt: arrivesAt,
