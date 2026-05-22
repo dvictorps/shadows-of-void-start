@@ -1,4 +1,8 @@
-import type { MonsterDefinition, MonsterId } from "#/game/monsters";
+import type {
+	MonsterDefinition,
+	MonsterId,
+	MonsterModId,
+} from "#/game/monsters";
 import { m } from "#/paraglide/messages";
 import type { WorldNode } from "./types";
 
@@ -62,10 +66,72 @@ const MONSTER_I18N: Record<MonsterId, () => string> = {
 };
 
 /**
- * Resolve a monster's display name through the active locale. Falls back to
- * the data's canonical `name` for unknown ids (defensive against persisted
- * data referencing a deleted monster).
+ * Resolve a monster's display name through the active locale. When `mods`
+ * are provided, their localized names are prefixed onto the base name
+ * (PoE-style: "Storm-Hardened Goblin", "Storm-Hardened Vicious Tough Goblin").
+ * Up to 3 prefixes — even if more mods land, the head of the list wins.
+ * Falls back to the data's canonical `name` for unknown ids.
  */
-export function translateMonsterName(def: MonsterDefinition): string {
-	return MONSTER_I18N[def.id as MonsterId]?.() ?? def.name;
+export function translateMonsterName(
+	def: MonsterDefinition,
+	mods?: readonly MonsterModId[],
+): string {
+	const base = MONSTER_I18N[def.id as MonsterId]?.() ?? def.name;
+	if (!mods || mods.length === 0) return base;
+	const prefixes = mods.slice(0, 3).map(translateMonsterModName).join(" ");
+	return `${prefixes} ${base}`;
+}
+
+export function translateMonsterModName(id: MonsterModId): string {
+	switch (id) {
+		case "monsterIncreasedLife":
+			return m.monster_mod_increased_life();
+		case "monsterIncreasedDamage":
+			return m.monster_mod_increased_damage();
+		case "monsterIncreasedAttackSpeed":
+			return m.monster_mod_increased_attack_speed();
+		case "monsterIncreasedEvasion":
+			return m.monster_mod_increased_evasion();
+		case "monsterIncreasedAccuracy":
+			return m.monster_mod_increased_accuracy();
+		case "monsterColdResistance":
+			return m.monster_mod_cold_resistance();
+		case "monsterFireResistance":
+			return m.monster_mod_fire_resistance();
+		case "monsterLightningResistance":
+			return m.monster_mod_lightning_resistance();
+		case "monsterVoidResistance":
+			return m.monster_mod_void_resistance();
+		case "monsterAdditionalBarrier":
+			return m.monster_mod_additional_barrier();
+		case "monsterMoreArmor":
+			return m.monster_mod_more_armor();
+	}
+}
+
+export function translateMonsterModDescription(id: MonsterModId): string {
+	switch (id) {
+		case "monsterIncreasedLife":
+			return m.monster_mod_increased_life_desc();
+		case "monsterIncreasedDamage":
+			return m.monster_mod_increased_damage_desc();
+		case "monsterIncreasedAttackSpeed":
+			return m.monster_mod_increased_attack_speed_desc();
+		case "monsterIncreasedEvasion":
+			return m.monster_mod_increased_evasion_desc();
+		case "monsterIncreasedAccuracy":
+			return m.monster_mod_increased_accuracy_desc();
+		case "monsterColdResistance":
+			return m.monster_mod_cold_resistance_desc();
+		case "monsterFireResistance":
+			return m.monster_mod_fire_resistance_desc();
+		case "monsterLightningResistance":
+			return m.monster_mod_lightning_resistance_desc();
+		case "monsterVoidResistance":
+			return m.monster_mod_void_resistance_desc();
+		case "monsterAdditionalBarrier":
+			return m.monster_mod_additional_barrier_desc();
+		case "monsterMoreArmor":
+			return m.monster_mod_more_armor_desc();
+	}
 }

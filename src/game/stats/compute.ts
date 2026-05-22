@@ -466,6 +466,10 @@ function buildSwing(
 	return {
 		source,
 		itemId: item.id,
+		// Path determination already ensured this item is a weapon; the fallback
+		// keeps the type non-optional on the SwingProfile side without forcing
+		// callers to handle "weaponless swing" cases that the engine prevents.
+		weaponType: item.weaponType ?? "sword",
 		physicalDamage: phys,
 		elementalDamage: elem,
 		baseCritChance: cs?.criticalChance ?? 5,

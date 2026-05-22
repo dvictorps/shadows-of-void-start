@@ -1,12 +1,13 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { type CSSProperties, useMemo } from "react";
+import { type CSSProperties, useEffect, useMemo } from "react";
 import Modal from "#/components/Modal";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateMonsterName } from "#/game/world/i18n";
 import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 import HealthGlobe from "./HealthGlobe";
+import HitFx from "./HitFx";
 import MonsterTooltip from "./MonsterTooltip";
 
 const ENEMY_SPRITE_STYLE: CSSProperties = {
@@ -94,7 +95,40 @@ export default function CombatScene({
 		() => events.filter((e) => e.target === "player"),
 		[events],
 	);
+	// Latest event the player landed on the enemy with a weapon. Drives the
+	// HitFx mount (renders even on block, per design — block animates the
+	// visual but the enemy reaction below skips).
+	const lastSwingHit = useMemo(() => {
+		for (let i = enemyEvents.length - 1; i >= 0; i--) {
+			const e = enemyEvents[i];
+			if (e.weaponType && !e.isMiss) return e;
+		}
+		return null;
+	}, [enemyEvents]);
+	// Latest event that actually damaged the enemy. Drives the shake + flash.
+	const lastDamagingHit = useMemo(() => {
+		for (let i = enemyEvents.length - 1; i >= 0; i--) {
+			const e = enemyEvents[i];
+			if (!e.isMiss && !e.isBlocked) return e;
+		}
+		return null;
+	}, [enemyEvents]);
 	const nameColor = enemy ? RARITY_NAMEPLATE_COLOR[enemy.rarity] : "#ffffff";
+
+	const enemyControls = useAnimationControls();
+	useEffect(() => {
+		if (!lastDamagingHit) return;
+		const amp = lastDamagingHit.isCrit ? 6 : 4;
+		enemyControls.start({
+			x: [0, -amp, amp, -Math.round(amp * 0.7), Math.round(amp * 0.5), 0],
+			filter: [
+				"brightness(1) saturate(1) hue-rotate(0deg)",
+				"brightness(1.8) saturate(2) hue-rotate(320deg)",
+				"brightness(1) saturate(1) hue-rotate(0deg)",
+			],
+			transition: { duration: 0.2, times: [0, 0.2, 0.4, 0.6, 0.8, 1] },
+		});
+	}, [lastDamagingHit, enemyControls]);
 
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
@@ -154,7 +188,7 @@ export default function CombatScene({
 							className="display-title text-4xl uppercase tracking-[0.15em]"
 							style={{ color: nameColor }}
 						>
-							{translateMonsterName(enemy.def)}
+							{translateMonsterName(enemy.def, enemy.mods)}
 						</div>
 						<div className="text-lg uppercase tracking-[0.2em] text-white/60">
 							Lv {enemy.level}
@@ -174,16 +208,26 @@ export default function CombatScene({
 					)}
 					{enemy && state !== "searching" && (
 						<div className="group relative">
-							<img
+							<motion.img
 								key={enemy.def.id}
 								src={enemy.def.sprite}
-								alt={translateMonsterName(enemy.def)}
+								alt={translateMonsterName(enemy.def, enemy.mods)}
 								draggable={false}
 								className={`pointer-events-none h-64 w-64 select-none object-contain transition-opacity duration-500 ${
 									state === "victory" ? "opacity-0" : "opacity-100"
 								}`}
 								style={ENEMY_SPRITE_STYLE}
+								animate={enemyControls}
 							/>
+							<AnimatePresence>
+								{lastSwingHit && (
+									<HitFx
+										key={lastSwingHit.id}
+										weaponType={lastSwingHit.weaponType ?? "sword"}
+										isCrit={lastSwingHit.isCrit}
+									/>
+								)}
+							</AnimatePresence>
 							{enemy.rarity !== "normal" && (
 								<div className="-translate-x-1/2 pointer-events-none absolute top-full left-1/2 z-20 mt-2 hidden group-hover:block">
 									<MonsterTooltip enemy={enemy} />

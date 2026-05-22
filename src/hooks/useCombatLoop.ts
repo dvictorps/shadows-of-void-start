@@ -55,6 +55,7 @@ import {
 } from "#/game/monsters";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import { pickRandom } from "#/lib/rng";
+import { playMonsterDeathSfx, playSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
@@ -179,6 +180,7 @@ export function useCombatLoop({
 			stateRef.current = "victory";
 			setLastKill({ xp: xpGained, potion: false });
 			setState("victory");
+			playMonsterDeathSfx(killed.def.id);
 			// Optimistic threshold bump. Miniboss kill resets the counter so the
 			// bar visibly drains and the farming loop restarts.
 			lastKillWasMinibossRef.current = killed.rarity === "rare";
@@ -367,7 +369,9 @@ export function useCombatLoop({
 						amount: result.amount,
 						target: "enemy",
 						isCrit: result.isCrit,
+						weaponType: swing.weaponType,
 					});
+					playSfx("hit.wav", { volume: 0.3, pitchVariance: 0.1 });
 
 					// Spawn a leech instance based on the physical chunk landed.
 					// (For MVP we leech on physical only; elemental leech is a future
@@ -445,6 +449,7 @@ export function useCombatLoop({
 
 					if (result.newLife <= 0 && !deadRef.current) {
 						deadRef.current = true;
+						playSfx("death.wav");
 						queueMicrotask(() => onPlayerDeath());
 					}
 				}

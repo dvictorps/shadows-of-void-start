@@ -57,6 +57,7 @@ function swing(args: Partial<SwingProfile> = {}): SwingProfile {
 	return {
 		source: "mainHand",
 		itemId: "w1",
+		weaponType: "sword",
 		physicalDamage: { min: 10, max: 10 },
 		elementalDamage: [],
 		baseCritChance: 0,

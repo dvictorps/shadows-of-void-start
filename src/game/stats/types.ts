@@ -64,6 +64,8 @@ export interface SwingProfile {
 	 * state per-weapon and to pick local mods at hit time.
 	 */
 	itemId: string;
+	/** Weapon type that produced this swing — drives the hit-fx category in the UI. */
+	weaponType: import("../items/types/base").WeaponType;
 	/** Physical damage range from this weapon (already includes local mods). */
 	physicalDamage: { min: number; max: number };
 	/** Elemental flat damage entries baked into this weapon (attack: per element). */
