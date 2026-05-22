@@ -419,7 +419,14 @@ Each mod is tagged **prefix** or **suffix**:
 - **Prefixes (adjectival)**: Increased Life, Increased Damage, Increased Evasion, Additional Barrier, More Armor.
 - **Suffixes (noun)**: Increased Attack Speed, Increased Accuracy, the four elemental resistances.
 
-A spawn rolls **at most 2 prefixes and 2 suffixes**, so a 3-mod rare always mixes both affixes. The localized name renders PoE-style: `prefix prefix Base of suffix-noun`. With **two or more elemental resistances** on the same spawn, they collapse into a single "Elemental Resistant" prefix instead of stacking into a noisy suffix list ("of Frost and Storm" → "Elemental Resistant Goblin").
+A spawn rolls **at most 2 prefixes and 2 suffixes**, so a 3-mod rare always mixes both affixes. With **two or more elemental resistances** on the same spawn, they collapse into a single compound adjective ("Elemental Resistant" / "Resistente a Elementos") instead of stacking individual suffixes.
+
+The display name is composed in two different ways depending on the active language — that's why each language owns its own lexicon, not the monster data:
+
+- **English (`src/game/world/lexicon/en.ts`)** — PoE-style: `<prefix> <prefix> <Base> of <noun> and <noun>`. Adjectives stack before the base; the compound rolls into the prefix stack ("Armored Elemental Resistant Goblin").
+- **Portuguese (`src/game/world/lexicon/pt.ts`)** — adjectives trail the base and agree with the monster's grammatical gender. Suffix nouns carry their own gender so the renderer can pick the right article ("do Frio", masculine; "da Velocidade", feminine). Two suffix phrases join with " e ". The compound ("Resistente a Elementos") trails the regular adjectives. Examples: "Goblin Furioso da Velocidade e do Frio", "Serpente Blindada Resistente a Elementos".
+
+Adding a new gendered language is purely a lexicon entry — monster data stays language-neutral. Adding a non-gendered language follows the EN shape (no `monsterGender` field, no gendered forms).
 
 ### Magic mob spawn rate
 10% of mid-zone spawns are magic; the rest are normal. The threshold spawn (miniboss) is always rare regardless.
