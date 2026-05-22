@@ -3,7 +3,7 @@ import { rollSpawnGapMs, type ZoneEncounterPlan } from "./encounter-schedule";
 
 describe("rollSpawnGapMs", () => {
 	const plan: ZoneEncounterPlan = {
-		encountersBeforeBoss: 15,
+		calmariaBudgetSeconds: 35,
 		gapBetweenSpawns: { min: 1.5, max: 3 },
 	};
 
@@ -18,7 +18,7 @@ describe("rollSpawnGapMs", () => {
 
 	it("collapses to a constant when min === max", () => {
 		const fixed: ZoneEncounterPlan = {
-			encountersBeforeBoss: 15,
+			calmariaBudgetSeconds: 35,
 			gapBetweenSpawns: { min: 2, max: 2 },
 		};
 		for (let i = 0; i < 50; i++) {
@@ -28,7 +28,7 @@ describe("rollSpawnGapMs", () => {
 
 	it("varies across calls when the range is wide", () => {
 		const wide: ZoneEncounterPlan = {
-			encountersBeforeBoss: 15,
+			calmariaBudgetSeconds: 35,
 			gapBetweenSpawns: { min: 1, max: 10 },
 		};
 		const samples = new Set<number>();

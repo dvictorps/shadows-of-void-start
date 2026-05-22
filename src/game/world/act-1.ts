@@ -25,7 +25,7 @@ export const ACT_1: Act = {
 			monsterPool: ["goblin", "macaco", "morcego", "serpente"],
 			level: 1,
 			encounterPlan: {
-				encountersBeforeBoss: 15,
+				calmariaBudgetSeconds: 35,
 				gapBetweenSpawns: { min: 1.5, max: 3 },
 			},
 		},
@@ -42,7 +42,7 @@ export const ACT_1: Act = {
 			level: 2,
 			gatedBy: ["forest_starter"],
 			encounterPlan: {
-				encountersBeforeBoss: 18,
+				calmariaBudgetSeconds: 42,
 				gapBetweenSpawns: { min: 1.5, max: 3 },
 			},
 		},
@@ -59,7 +59,7 @@ export const ACT_1: Act = {
 			level: 4,
 			gatedBy: ["forest_profunda"],
 			encounterPlan: {
-				encountersBeforeBoss: 22,
+				calmariaBudgetSeconds: 45,
 				gapBetweenSpawns: { min: 1.25, max: 2.75 },
 			},
 		},
@@ -76,7 +76,7 @@ export const ACT_1: Act = {
 			level: 7,
 			gatedBy: ["pantano"],
 			encounterPlan: {
-				encountersBeforeBoss: 25,
+				calmariaBudgetSeconds: 47,
 				gapBetweenSpawns: { min: 1.25, max: 2.5 },
 			},
 		},
@@ -93,7 +93,7 @@ export const ACT_1: Act = {
 			level: 10,
 			gatedBy: ["cripta"],
 			encounterPlan: {
-				encountersBeforeBoss: 28,
+				calmariaBudgetSeconds: 50,
 				gapBetweenSpawns: { min: 1, max: 2.5 },
 			},
 		},
@@ -107,7 +107,7 @@ export const ACT_1: Act = {
 			level: 14,
 			gatedBy: ["castelo"],
 			encounterPlan: {
-				encountersBeforeBoss: 30,
+				calmariaBudgetSeconds: 50,
 				gapBetweenSpawns: { min: 1, max: 2.25 },
 			},
 		},

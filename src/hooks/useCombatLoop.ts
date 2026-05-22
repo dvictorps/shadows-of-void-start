@@ -120,7 +120,6 @@ type Params = {
 	stats: ComputedCharacterStats;
 	initialHp: number;
 	initialPotions: number;
-	initialZoneKills: number;
 	monsterPool: readonly MonsterId[];
 	zoneLevel: number;
 	encounterPlan: ZoneEncounterPlan;
@@ -142,7 +141,6 @@ export function useCombatLoop({
 	stats,
 	initialHp,
 	initialPotions,
-	initialZoneKills,
 	monsterPool,
 	zoneLevel,
 	encounterPlan,
@@ -190,13 +188,15 @@ export function useCombatLoop({
 	playerHpRef.current = playerHp;
 	const lastSyncedHpRef = useRef(initialHp);
 
-	// Server is the source of truth (resets on enterZone, persists with the
-	// character); the ref tracks intra-session changes between server sync.
-	const [zoneKills, setZoneKills] = useState(initialZoneKills);
-	const zoneKillsRef = useRef(initialZoneKills);
-	zoneKillsRef.current = zoneKills;
-	const initialZoneKillsRef = useRef(initialZoneKills);
-	initialZoneKillsRef.current = initialZoneKills;
+	// Time-bar progress: cumulative out-of-combat (calmaria) ms. Ticks only
+	// while state === "searching" — combat and (future) camps pause it. When
+	// it hits `calmariaBudgetSeconds * 1000`, the next spawn becomes the
+	// miniboss. Client-only by design — leaving the zone restarts the
+	// progression (per CONTEXT.md → Time Bar).
+	const calmariaBudgetMs = encounterPlan.calmariaBudgetSeconds * 1000;
+	const [calmariaElapsedMs, setCalmariaElapsedMs] = useState(0);
+	const calmariaElapsedMsRef = useRef(0);
+	calmariaElapsedMsRef.current = calmariaElapsedMs;
 
 	const syncHp = useMutation(api.combat.syncHp);
 	const recordKill = useMutation(api.combat.recordKill);
@@ -215,12 +215,10 @@ export function useCombatLoop({
 			// bar visibly drains and the farming loop restarts.
 			lastKillWasMinibossRef.current = killed.rarity === "rare";
 			if (killed.rarity === "rare") {
-				zoneKillsRef.current = 0;
-				setZoneKills(0);
-			} else {
-				const next = zoneKillsRef.current + 1;
-				zoneKillsRef.current = next;
-				setZoneKills(next);
+				// Miniboss down — drain the time bar so the farming loop can
+				// refill on the next entry into "searching".
+				calmariaElapsedMsRef.current = 0;
+				setCalmariaElapsedMs(0);
 			}
 			recordKill({
 				characterId,
@@ -260,8 +258,9 @@ export function useCombatLoop({
 			setLastKill(null);
 			leechRef.current = [];
 			nextSwingIndexRef.current = 0;
-			zoneKillsRef.current = initialZoneKillsRef.current;
-			setZoneKills(initialZoneKillsRef.current);
+			// Time bar is client-only — fresh entry always starts at 0.
+			calmariaElapsedMsRef.current = 0;
+			setCalmariaElapsedMs(0);
 			setBossIntroStage(null);
 			stateRef.current = "searching";
 			setState("searching");
@@ -271,6 +270,21 @@ export function useCombatLoop({
 		}
 		activeRef.current = active;
 	}, [active, characterId, syncHp]);
+
+	// ── Calmaria ticker — drives the time bar ──
+	// Increments `calmariaElapsedMs` while the player is between encounters.
+	// Combat pauses it (state !== "searching"). The miniboss-spawn condition
+	// below reads `calmariaElapsedMsRef` against the budget.
+	const CALMARIA_TICK_MS = 50;
+	useTicker(
+		active && state === "searching" && !lastKillWasMinibossRef.current,
+		CALMARIA_TICK_MS,
+		() => {
+			const next = calmariaElapsedMsRef.current + CALMARIA_TICK_MS;
+			calmariaElapsedMsRef.current = next;
+			setCalmariaElapsedMs(next);
+		},
+	);
 
 	// ── Search delay → spawn enemy ──
 	// Each entry into "searching" rolls a fresh calmaria duration from the
@@ -293,10 +307,10 @@ export function useCombatLoop({
 		if (!def) return;
 		const level = rollMonsterLevel(zoneLevel);
 		const baseScaled = scaleMonsterStats(def, level);
-		// Schedule full → next spawn is the miniboss (rare). See
+		// Time bar full → next spawn is the miniboss (rare). See
 		// CONTEXT.md → Time Bar.
 		const rarity =
-			zoneKillsRef.current >= encounterPlan.encountersBeforeBoss
+			calmariaElapsedMsRef.current >= calmariaBudgetMs
 				? "rare"
 				: rollMonsterRarity();
 		const mods = rollMonsterMods(modCountForRarity(rarity));
@@ -643,8 +657,8 @@ export function useCombatLoop({
 		events,
 		lastKill,
 		usePotion,
-		zoneKills,
-		encountersBeforeBoss: encounterPlan.encountersBeforeBoss,
+		calmariaElapsedMs,
+		calmariaBudgetMs,
 		dismissMinibossModal,
 	};
 }

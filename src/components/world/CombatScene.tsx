@@ -62,10 +62,11 @@ type Props = {
 	// Hover bubbles back to the parent so the world's TextLog can describe the
 	// consumable the player is pointing at. Null on mouse leave.
 	onConsumableHover?: (key: ConsumableKey | null) => void;
-	// Zone progression — kills accumulated in this visit and the encounter
-	// count at which the miniboss spawns. See CONTEXT.md → Time Bar.
-	zoneKills: number;
-	encountersBeforeBoss: number;
+	// Zone progression — cumulative calmaria (out-of-combat) ms vs. the zone's
+	// time budget. Bar fills smoothly during searching, pauses in combat.
+	// See CONTEXT.md → Time Bar.
+	calmariaElapsedMs: number;
+	calmariaBudgetMs: number;
 	// Continue-farming choice on the post-miniboss modal.
 	onDismissMinibossModal: () => void;
 };
@@ -93,13 +94,16 @@ export default function CombatScene({
 	onRetreat,
 	bagCount,
 	onOpenBag,
-	zoneKills,
-	encountersBeforeBoss,
+	calmariaElapsedMs,
+	calmariaBudgetMs,
 	onDismissMinibossModal,
 	onConsumableHover,
 }: Props) {
 	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
-	const thresholdPct = Math.min(100, (zoneKills / encountersBeforeBoss) * 100);
+	const thresholdPct =
+		calmariaBudgetMs > 0
+			? Math.min(100, (calmariaElapsedMs / calmariaBudgetMs) * 100)
+			: 0;
 	const enemyEvents = useMemo(
 		() => events.filter((e) => e.target === "enemy"),
 		[events],
@@ -233,17 +237,17 @@ export default function CombatScene({
 
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
-			{/* See CONTEXT.md → Threshold Bar. */}
+			{/* See CONTEXT.md → Time Bar. */}
 			<div
 				role="progressbar"
-				aria-label="Zone threshold"
-				aria-valuenow={zoneKills}
+				aria-label="Zone time progress"
+				aria-valuenow={Math.round(calmariaElapsedMs)}
 				aria-valuemin={0}
-				aria-valuemax={encountersBeforeBoss}
+				aria-valuemax={calmariaBudgetMs}
 				className="h-1.5 w-full bg-white/10"
 			>
 				<div
-					className="h-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 transition-[width] duration-300"
+					className="h-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 transition-[width] duration-100 ease-linear"
 					style={{ width: `${thresholdPct}%` }}
 				/>
 			</div>

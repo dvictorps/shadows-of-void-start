@@ -428,7 +428,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
 		initialPotions: character.potions ?? 0,
-		initialZoneKills: character.currentZoneKills ?? 0,
 		monsterPool,
 		zoneLevel,
 		encounterPlan,
@@ -750,8 +749,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						bagCount={zoneBag?.length ?? 0}
 						onOpenBag={bagModal.open}
 						onConsumableHover={setConsumableHover}
-						zoneKills={combat.zoneKills}
-						encountersBeforeBoss={combat.encountersBeforeBoss}
+						calmariaElapsedMs={combat.calmariaElapsedMs}
+						calmariaBudgetMs={combat.calmariaBudgetMs}
 						onDismissMinibossModal={combat.dismissMinibossModal}
 					/>
 				)}

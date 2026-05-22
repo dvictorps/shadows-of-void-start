@@ -15,8 +15,13 @@
 import { randInt } from "#/lib/rng";
 
 export interface ZoneEncounterPlan {
-	/** Number of regular kills the player must clear before the miniboss spawns. */
-	encountersBeforeBoss: number;
+	/**
+	 * Total calmaria (out-of-combat) seconds the player accumulates before the
+	 * miniboss spawns. The number of regular mobs faced varies with the rolled
+	 * gaps — at gap range 1.5–3s, a 35s budget averages ~15 encounters but
+	 * can swing ±3. Time is the fixed contract; mob count is the variable.
+	 */
+	calmariaBudgetSeconds: number;
 	/** Random calmaria between spawns (seconds). Each spawn rolls its own gap. */
 	gapBetweenSpawns: { min: number; max: number };
 }
@@ -28,7 +33,7 @@ export interface ZoneEncounterPlan {
  * sites.
  */
 export const DEFAULT_ENCOUNTER_PLAN: ZoneEncounterPlan = {
-	encountersBeforeBoss: 15,
+	calmariaBudgetSeconds: 35,
 	gapBetweenSpawns: { min: 1.5, max: 3 },
 };
 
