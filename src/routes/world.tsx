@@ -751,6 +751,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						onConsumableHover={setConsumableHover}
 						calmariaElapsedMs={combat.calmariaElapsedMs}
 						calmariaBudgetMs={combat.calmariaBudgetMs}
+						campThresholdsMs={combat.campThresholdsMs}
 						onDismissMinibossModal={combat.dismissMinibossModal}
 						zoneId={currentNode.id}
 						onDismissCamp={combat.dismissCamp}

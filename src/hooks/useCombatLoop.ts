@@ -208,8 +208,13 @@ export function useCombatLoop({
 	// fires. Rolled once per zone activation with jitter so the trigger
 	// instant isn't perfectly decodable. The `nextCampIndexRef` advances
 	// as each camp triggers — when it equals the array length, all camps
-	// for this run are spent.
-	const campThresholdsMsRef = useRef<number[]>([]);
+	// for this run are spent. State mirror so the bar can render markers
+	// at each camp position; ref is what the ticker reads to avoid stale
+	// closures.
+	const [campThresholdsMs, setCampThresholdsMs] = useState<readonly number[]>(
+		[],
+	);
+	const campThresholdsMsRef = useRef<readonly number[]>([]);
 	const nextCampIndexRef = useRef(0);
 
 	const syncHp = useMutation(api.combat.syncHp);
@@ -232,7 +237,9 @@ export function useCombatLoop({
 				// Re-roll camps so the farming loop gets fresh thresholds —
 				// player who kept going after the miniboss should still get
 				// the rhythm of camps in the same session.
-				campThresholdsMsRef.current = rollCampThresholdsMs(encounterPlan);
+				const freshCamps = rollCampThresholdsMs(encounterPlan);
+				campThresholdsMsRef.current = freshCamps;
+				setCampThresholdsMs(freshCamps);
 				nextCampIndexRef.current = 0;
 			}
 			recordKill({
@@ -276,7 +283,9 @@ export function useCombatLoop({
 			// Time bar is client-only — fresh entry always starts at 0.
 			calmariaElapsedMsRef.current = 0;
 			setCalmariaElapsedMs(0);
-			campThresholdsMsRef.current = rollCampThresholdsMs(encounterPlan);
+			const freshCamps = rollCampThresholdsMs(encounterPlan);
+			campThresholdsMsRef.current = freshCamps;
+			setCampThresholdsMs(freshCamps);
 			nextCampIndexRef.current = 0;
 			setBossIntroStage(null);
 			stateRef.current = "searching";
@@ -695,6 +704,7 @@ export function useCombatLoop({
 		usePotion,
 		calmariaElapsedMs,
 		calmariaBudgetMs,
+		campThresholdsMs,
 		dismissMinibossModal,
 		dismissCamp,
 	};

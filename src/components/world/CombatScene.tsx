@@ -66,9 +66,12 @@ type Props = {
 	onConsumableHover?: (key: ConsumableKey | null) => void;
 	// Zone progression — cumulative calmaria (out-of-combat) ms vs. the zone's
 	// time budget. Bar fills smoothly during searching, pauses in combat.
-	// See CONTEXT.md → Time Bar.
+	// `campThresholdsMs` carries the actual rolled positions for the run so
+	// the bar can render markers where each camp will fire.
+	// See CONTEXT.md → Time Bar / Acampamento.
 	calmariaElapsedMs: number;
 	calmariaBudgetMs: number;
+	campThresholdsMs: readonly number[];
 	// Continue-farming choice on the post-miniboss modal.
 	onDismissMinibossModal: () => void;
 	// Acampamento overlay — fired by the combat loop when the calmaria timer
@@ -102,6 +105,7 @@ export default function CombatScene({
 	onOpenBag,
 	calmariaElapsedMs,
 	calmariaBudgetMs,
+	campThresholdsMs,
 	onDismissMinibossModal,
 	zoneId,
 	onDismissCamp,
@@ -243,38 +247,55 @@ export default function CombatScene({
 		});
 	}, [state, enemy, enemyControls]);
 
+	const inCamp = state === "acampamento";
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
-			{state === "acampamento" && (
-				<CampCinematic
-					zoneId={zoneId}
-					onReturn={onRetreat}
-					onContinue={onDismissCamp}
-				/>
-			)}
-			{/* See CONTEXT.md → Time Bar. */}
+			{/* See CONTEXT.md → Time Bar. The bar itself stays full-opacity
+			 * even during a camp — players need to see where they paused. */}
 			<div
 				role="progressbar"
 				aria-label="Zone time progress"
 				aria-valuenow={Math.round(calmariaElapsedMs)}
 				aria-valuemin={0}
 				aria-valuemax={calmariaBudgetMs}
-				className="h-1.5 w-full bg-white/10"
+				className="relative h-2 w-full bg-white/10"
 			>
 				<div
 					className="h-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 transition-[width] duration-100 ease-linear"
 					style={{ width: `${thresholdPct}%` }}
 				/>
+				{campThresholdsMs.map((thresholdMs) => {
+					const left =
+						calmariaBudgetMs > 0
+							? (thresholdMs / calmariaBudgetMs) * 100
+							: 0;
+					return (
+						<span
+							key={thresholdMs}
+							aria-hidden
+							className="-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/2 h-3 w-1 bg-amber-200 shadow-[0_0_6px_rgba(252,211,77,0.85)]"
+							style={{ left: `${left}%` }}
+						/>
+					);
+				})}
 			</div>
 			{/* Zone label + static zone level (the area's intrinsic difficulty;
 			 * the per-spawn monster level is shown separately on the nameplate). */}
-			<div className="absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60">
+			<div
+				className={`absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60 transition-opacity duration-[1500ms] ease-out ${
+					inCamp ? "opacity-0" : "opacity-100"
+				}`}
+			>
 				<span>{zoneName}</span>
 				<span className="text-base text-white/40">LV {zoneLevel}</span>
 			</div>
 
 			{/* Top-right action cluster: loot button then Retreat */}
-			<div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+			<div
+				className={`absolute top-3 right-3 z-10 flex items-center gap-2 transition-opacity duration-[1500ms] ease-out ${
+					inCamp ? "pointer-events-none opacity-0" : "opacity-100"
+				}`}
+			>
 				<button
 					type="button"
 					onClick={onOpenBag}
@@ -303,7 +324,11 @@ export default function CombatScene({
 			{/* Enemy nameplate slot. Reserves a fixed height so the nameplate
 			 * appearing during boss_intro (or any spawn) doesn't reflow the
 			 * sprite below — only opacity / y animate. */}
-			<div className="flex h-[120px] flex-col items-center gap-1 px-6 pt-14">
+			<div
+				className={`flex h-[120px] flex-col items-center gap-1 px-6 pt-14 transition-opacity duration-[1500ms] ease-out ${
+					inCamp ? "opacity-0" : "opacity-100"
+				}`}
+			>
 				{enemy && (
 					<motion.div
 						className="flex flex-col items-center gap-1"
@@ -346,7 +371,17 @@ export default function CombatScene({
 							onRetreat={onRetreat}
 						/>
 					)}
-					{enemy && state !== "searching" && state !== "miniboss_victory" && (
+					{state === "acampamento" && (
+						<CampCinematic
+							zoneId={zoneId}
+							onReturn={onRetreat}
+							onContinue={onDismissCamp}
+						/>
+					)}
+					{enemy &&
+						state !== "searching" &&
+						state !== "miniboss_victory" &&
+						state !== "acampamento" && (
 						<div className="group relative">
 							<motion.img
 								src={enemy.def.sprite}
@@ -412,7 +447,11 @@ export default function CombatScene({
 			</div>
 
 			{/* Bottom HUD: HP globe + XP bar + teleport stone + (wind-crystal counter / potion) */}
-			<div className="relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4">
+			<div
+				className={`relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4 transition-opacity duration-[1500ms] ease-out ${
+					inCamp ? "pointer-events-none opacity-15" : "opacity-100"
+				}`}
+			>
 				<div className="relative">
 					<HealthGlobe
 						hp={playerHp}
