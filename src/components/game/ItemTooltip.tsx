@@ -27,6 +27,18 @@ const MODIFIED_COLOR = "#8888ff";
 const LABEL_COLOR = "rgba(255, 255, 255, 0.45)";
 const DIM_COLOR = "rgba(255, 255, 255, 0.35)";
 
+const ELEMENT_NAME: Record<string, () => string> = {
+	Cold: m.element_cold,
+	Fire: m.element_fire,
+	Lightning: m.element_lightning,
+	Void: m.element_void,
+};
+
+function elementDamageLabel(element: string): string {
+	const name = ELEMENT_NAME[element]?.() ?? element;
+	return m.tooltip_damage_line({ element: name });
+}
+
 function Separator() {
 	return (
 		<div className="my-1 flex items-center gap-1.5 px-2">
@@ -181,7 +193,9 @@ export default function ItemTooltip({
 				<>
 					<div className="space-y-0.5 px-4 py-1">
 						<div className="flex justify-between">
-							<span style={{ color: LABEL_COLOR }}>Physical Damage</span>
+							<span style={{ color: LABEL_COLOR }}>
+								{m.tooltip_physical_damage()}
+							</span>
 							<span
 								style={{
 									color: modifiedStats.has("physicalDamage")
@@ -197,7 +211,7 @@ export default function ItemTooltip({
 						{computed?.elementalDamage.map((elem) => (
 							<div key={elem.element} className="flex justify-between">
 								<span style={{ color: LABEL_COLOR }}>
-									{elem.element} Damage
+									{elementDamageLabel(elem.element)}
 								</span>
 								<span style={{ color: MODIFIED_COLOR }}>
 									{elem.min}-{elem.max}
@@ -207,7 +221,7 @@ export default function ItemTooltip({
 						{(computed?.criticalChance ?? stats.criticalChance) != null && (
 							<div className="flex justify-between">
 								<span style={{ color: LABEL_COLOR }}>
-									Critical Strike Chance
+									{m.tooltip_critical_strike_chance()}
 								</span>
 								<span
 									style={{
@@ -227,7 +241,9 @@ export default function ItemTooltip({
 						)}
 						{(computed?.attackSpeed ?? stats.attackSpeed) != null && (
 							<div className="flex justify-between">
-								<span style={{ color: LABEL_COLOR }}>Attacks per Second</span>
+								<span style={{ color: LABEL_COLOR }}>
+									{m.tooltip_attacks_per_second()}
+								</span>
 								<span
 									style={{
 										color: modifiedStats.has("attackSpeed")
@@ -249,7 +265,9 @@ export default function ItemTooltip({
 				<>
 					<div className="space-y-0.5 px-4 py-1">
 						<div className="flex justify-between">
-							<span style={{ color: LABEL_COLOR }}>Critical Strike Chance</span>
+							<span style={{ color: LABEL_COLOR }}>
+								{m.tooltip_critical_strike_chance()}
+							</span>
 							<span className="text-white">
 								{stats.criticalChance.toFixed(1)}%
 							</span>
@@ -268,7 +286,7 @@ export default function ItemTooltip({
 					<div className="space-y-0.5 px-4 py-1">
 						{"armor" in stats && (
 							<div className="flex justify-between">
-								<span style={{ color: LABEL_COLOR }}>Armour</span>
+								<span style={{ color: LABEL_COLOR }}>{m.tooltip_armour()}</span>
 								<span
 									style={{
 										color:
@@ -283,7 +301,9 @@ export default function ItemTooltip({
 						)}
 						{"evasion" in stats && (
 							<div className="flex justify-between">
-								<span style={{ color: LABEL_COLOR }}>Evasion Rating</span>
+								<span style={{ color: LABEL_COLOR }}>
+									{m.tooltip_evasion_rating()}
+								</span>
 								<span
 									style={{
 										color:
@@ -299,7 +319,7 @@ export default function ItemTooltip({
 						)}
 						{"barrier" in stats && (
 							<div className="flex justify-between">
-								<span style={{ color: LABEL_COLOR }}>Barrier</span>
+								<span style={{ color: LABEL_COLOR }}>{m.stats_barrier()}</span>
 								<span
 									style={{
 										color:
@@ -315,7 +335,9 @@ export default function ItemTooltip({
 						)}
 						{"blockChance" in stats && (
 							<div className="flex justify-between">
-								<span style={{ color: LABEL_COLOR }}>Block Chance</span>
+								<span style={{ color: LABEL_COLOR }}>
+									{m.tooltip_block_chance()}
+								</span>
 								<span
 									style={{
 										color:
@@ -359,11 +381,11 @@ export default function ItemTooltip({
 							key={`${mod.modifierId}:${mod.value}:${mod.tier}`}
 							style={{ color: MODIFIED_COLOR }}
 						>
-							{localizeMod(mod)}
+							{localizeMod(mod, item)}
 							{!mod.isGlobalStat && mod.modifierType === "increased" && (
 								<span style={{ color: "rgba(136, 136, 255, 0.5)" }}>
 									{" "}
-									(Local)
+									{m.mod_local_suffix()}
 								</span>
 							)}
 						</div>
@@ -379,7 +401,8 @@ export default function ItemTooltip({
 				className="px-4 py-1 pb-2 text-xs uppercase tracking-wider"
 				style={{ color: DIM_COLOR }}
 			>
-				Item Level: <span className="text-white">{item.itemLevel}</span>
+				{m.tooltip_item_level()}:{" "}
+				<span className="text-white">{item.itemLevel}</span>
 			</div>
 		</div>
 	);
@@ -399,12 +422,12 @@ function renderRequirements(item: GeneratedItem) {
 			>
 				{hasStatReq && reqs && (
 					<div>
-						<span>Requires </span>
+						<span>{m.tooltip_requires()} </span>
 						{[
-							reqs.level > 1 && `Level ${reqs.level}`,
-							reqs.str && `${reqs.str} Str`,
-							reqs.dex && `${reqs.dex} Dex`,
-							reqs.int && `${reqs.int} Int`,
+							reqs.level > 1 && m.tooltip_level_value({ value: reqs.level }),
+							reqs.str && m.tooltip_req_strength({ value: reqs.str }),
+							reqs.dex && m.tooltip_req_dexterity({ value: reqs.dex }),
+							reqs.int && m.tooltip_req_intelligence({ value: reqs.int }),
 						]
 							.filter(Boolean)
 							.join(", ")}

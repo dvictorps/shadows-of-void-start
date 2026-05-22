@@ -97,6 +97,62 @@ The cinematic was designed to include ambient sound cues per biome ("Sons da nat
 
 ---
 
+## Item tooltip i18n + item name lexicon (NEXT)
+
+**Status**: PR1 in progress on branch `feat/tooltip-i18n`. PR2 not started. Mirrors the pattern from `feat/per-locale-monster-name-renderer` (commit `e304c76`) — same render-at-display + per-locale lexicon shape that monsters already use.
+
+**Why**: today the item tooltip mixes localized mod descriptions (PT via `mod-i18n.ts`) with hardcoded English labels (Physical Damage, Armour, Item Level, Requires) and English item names baked at generation time. Three concrete bugs:
+
+1. Static labels in `src/components/game/ItemTooltip.tsx` ignore the active locale entirely.
+2. PT formatter for `localDefenseFlat`/`localDefenseIncrease` always renders "Defesa", ignoring the item's `armorType` — so a leather glove with +20 evasion shows "+20 de Defesa" instead of "+20 de Evasão". In EN the same path resolves correctly because `resolveDefenseFormat` (`generator.ts:176`) bakes the right word into `mod.description` at roll time; the PT formatter is keyed by `modifierId` and never sees `armorType`.
+3. Item names (`item.name`) are frozen as English strings at generation. Switching to PT does nothing — same shape as the bug the monster-naming PR fixed for enemies. Bonus: commit `4436da0` silently reverted the PT jewelry rename from `ee15ce2` — having names inline in templates is fragile.
+
+### PR1: Tooltip labels + slot-aware mod renderer (this branch)
+
+**Branch**: `feat/tooltip-i18n` (based on origin/master).
+
+- Replace hardcoded labels in `ItemTooltip.tsx` with `m.*` calls. Reuse existing keys (`stats_armor`, `element_cold`, `attribute_strength`) where shape matches; add new keys for tooltip-specific contexts (e.g. `tooltip_attacks_per_second` separate from `stats_attack_speed`, since the former is a rate stat and the latter is the `% increased` mod label).
+- Refactor `localizeMod(mod)` → `localizeMod(mod, item)`. PT formatter for `localDefenseFlat`/`localDefenseIncrease` reads `item.armorType` and picks `Armadura`/`Evasão`/`Barreira` from a small lookup table.
+- **Migrate both locales to render-at-display-time**. EN stops trusting `mod.description` and re-renders from `modifierId + value + item` the same way PT does. The slot-aware resolver (`resolveDefenseFormat`) gets duplicated/moved into the display layer. `mod.description` stays on the stored shape (legacy data) but is no longer consumed by the tooltip.
+- `(Local)` keeps the same string in both locales (chave nova `m.mod_local_suffix()`).
+- No schema migration.
+
+**Validation**:
+- `npx tsc --noEmit`, `npx vitest run`
+- Manual: drop a plate helmet with `+X local defense` → "+X de Armadura" / "+X Armour". Same mod on a leather glove → "+X de Evasão" / "+X Evasion Rating". Same on a silk chest → "+X de Barreira" / "+X Barrier". Toggle language in Settings — every tooltip string flips locale without touching the items.
+
+### PR2: Item name lexicon refactor
+
+**Branch**: suggested `feat/item-name-lexicon`, based on PR1.
+
+Mirrors `src/game/world/lexicon/`. New directory `src/game/items/lexicon/{en,pt}.ts`.
+
+- **EN lexicon shape**: `{ TEMPLATE_NAMES: Record<templateId, string>, PREFIX: Record<modId, string>, SUFFIX: Record<modId, string>, NAME_FIRST: string[], NAME_SECOND: string[] }`.
+- **PT lexicon shape**: `{ TEMPLATE_NAMES: Record<templateId, { name: string, gender: "m" | "f" }>, PREFIX: Record<modId, { m: string, f: string }>, SUFFIX: Record<modId, string>, PRIMEIRO: string[], SEGUNDO: string[] }`. Suffix string carries its own `da`/`do`/`das` particle; `SEGUNDO[]` carries its connector too (e.g. `"da Tempestade"`, `"do Vazio"`).
+- **Renderer**: single `translateItemName(item)` in `src/game/items/item-name.ts` (or similar). Dispatch on `getLocale()`, then on `item.rarity`:
+  - Normal: `templateName`.
+  - Magic: PT composes `${templateName} ${prefix-gendered} ${suffix}` ("Espada de Ferro Pesada da Rapidez"); EN composes `${prefix} ${templateName} ${suffix}` ("Heavy Iron Sword of Swiftness"). Prefix picks the gender form per `TEMPLATE_NAMES_PT[templateId].gender`.
+  - Rare/Legendary/Epic: `${pool1[idx0]} ${pool2[idx1]}` where `idx0 = floor(hash(item.id, 0) * pool1.length)` and same for `idx1`. Result: "Lâmina da Tempestade" / "Doom Mark". **No `nameSeed` stored** — derived deterministically from `item.id` (UUID), so a single item renders the same proper name forever, and legacy items get a name without migration.
+- **Delete `name` from templates** (`data/templates/*.ts`) — language-neutral. Adding a new locale = one new lexicon file.
+- **Delete `name` from modifier definitions** (`data/modifiers/*.ts`). `RolledMod.modifierName` becomes `v.optional()` in the items validator (legacy items still parse; new items can omit it).
+- **Delete `buildItemName` from `generator.ts`** — naming migrates entirely to the display layer.
+- `item.name` on `GeneratedItem` becomes optional/legacy; new items don't populate it (or populate with `translateItemName(item, "en")` for log-friendly debugging — TBD when implementing).
+- Lexicon EN + PT shipped together — no bilingual interim. Estimate: ~200 template entries × 2 locales, ~50 modifier prefix/suffix entries × 2 locales, two 30-word pools × 2 locales. Mechanical, reviewable line-by-line.
+
+**Validation**:
+- `npx tsc --noEmit`, `npx vitest run`
+- Manual: each rarity (normal, magic, rare, legendary, epic) for at least one weapon, one armor, one jewelry, one offhand. Toggle locale — same item, name flips PT↔EN. Same rare item across sessions/page reloads — name stays the same (seed comes from UUID).
+- Spot-check gender agreement: same prefix on a feminine template ("Espada Pesada") and a masculine template ("Elmo Pesado").
+
+### Risks / conflicts
+
+- **Shared with planned "rarity-tinted card primitive" refactor** (entry below): both touch `ItemTooltip.tsx`. Land the i18n PRs first — they're higher signal — then the card primitive can refactor structure without worrying about the label set.
+- **`mod.description` becomes legacy** after PR1. Anywhere else in the codebase that reads it (admin panel, debug logs, tests) needs to either re-render via `localizeMod` or accept stale strings on legacy items.
+- **No schema migration** for PR2 because the seed is derived from UUID — but the items validator still needs to accept items WITHOUT `modifierName`/`name` (make those `v.optional()`).
+- **Shared file with parallel combat feature**: `messages/{pt,en}.json`. PR1 inserts new keys grouped near existing `stats_*` (mid-file) to avoid line-adjacency merge conflicts with feature work appending at the end.
+
+---
+
 ## Shared rarity-tinted card primitive (low priority refactor)
 
 **Status**: Planned, not started.
