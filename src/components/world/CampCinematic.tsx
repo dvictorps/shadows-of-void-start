@@ -82,10 +82,7 @@ export default function CampCinematic({
 							animate={{ opacity: 1, y: 0 }}
 							exit={{ opacity: 0, y: -6 }}
 							transition={{ duration: TEXT_EXIT_MS / 1000, ease: "easeOut" }}
-							className="display-title text-xl tracking-wide text-amber-50/90"
-							style={{
-								textShadow: "0 0 18px rgba(252, 165, 60, 0.3)",
-							}}
+							className="display-title text-xl tracking-wide text-white/80"
 						>
 							{lines[stage]}
 						</motion.p>
@@ -110,7 +107,7 @@ export default function CampCinematic({
 						>
 							{m.camp_title()}
 						</div>
-						<p className="max-w-xs text-center text-sm text-amber-50/80">
+						<p className="max-w-xs text-center text-sm text-white/70">
 							{m.camp_subtitle()}
 						</p>
 						<div className="flex gap-3">

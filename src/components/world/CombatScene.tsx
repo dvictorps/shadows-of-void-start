@@ -250,18 +250,16 @@ export default function CombatScene({
 	const inCamp = state === "acampamento";
 	// Camp arrival is staged so the transition feels lived-in: the player
 	// still sees "Explorando..." for ~1.5s, the HUD then fades out over
-	// 2.5s, the cinematic only mounts once the HUD is gone (T=4s). The
-	// warm glow rises with the decision panel — driven by a callback from
-	// CampCinematic, not a separate timer.
+	// 2.5s, the cinematic only mounts once the HUD is gone (T=4s). When
+	// the decision panel mounts (onPanelShow callback below) the HUD fades
+	// back in alongside it — same "panel + HUD" presence as ZoneCompletePanel.
 	const [hudFading, setHudFading] = useState(false);
 	const [cinematicEnabled, setCinematicEnabled] = useState(false);
-	const [glowVisible, setGlowVisible] = useState(false);
 	const [campSkipped, setCampSkipped] = useState(false);
 	useEffect(() => {
 		if (!inCamp) {
 			setHudFading(false);
 			setCinematicEnabled(false);
-			setGlowVisible(false);
 			setCampSkipped(false);
 			return;
 		}
@@ -288,20 +286,6 @@ export default function CombatScene({
 			onClick={handleSectionClick}
 			className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black"
 		>
-			{/* Camp ambience — warm radial glow stands in for the future
-			 * campfire background art + audio (see in-progress.md). Slow
-			 * fade matches the HUD fade so the room "warms up" together.
-			 */}
-			<div
-				aria-hidden
-				className={`pointer-events-none absolute inset-0 z-0 transition-opacity duration-[3000ms] ease-out ${
-					glowVisible ? "opacity-100" : "opacity-0"
-				}`}
-				style={{
-					background:
-						"radial-gradient(ellipse at center, rgba(252, 165, 60, 0.28) 0%, rgba(220, 100, 30, 0.12) 35%, transparent 70%)",
-				}}
-			/>
 			{/* See CONTEXT.md → Time Bar. The bar itself stays full-opacity
 			 * even during a camp — players need to see where they paused. */}
 			<div
@@ -429,7 +413,7 @@ export default function CombatScene({
 							skip={campSkipped}
 							onReturn={onRetreat}
 							onContinue={onDismissCamp}
-							onPanelShow={() => setGlowVisible(true)}
+							onPanelShow={() => setHudFading(false)}
 						/>
 					)}
 					{enemy &&
