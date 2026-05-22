@@ -35,10 +35,7 @@ import {
 	applyXpGain,
 } from "../src/game/progression/levels"
 import { computeCharacterStats } from "../src/game/stats/compute"
-import {
-	TELEPORT_STONE_TRAVEL_SECONDS_CITY,
-	TELEPORT_STONE_TRAVEL_SECONDS_NON_CITY,
-} from "../src/game/combat/constants"
+import { teleportStoneTravelSeconds } from "../src/game/combat/constants"
 import { ACT_1, findNode, isNodeAccessible } from "../src/game/world"
 import { computeTravelTime } from "../src/game/world/travel"
 import {
@@ -429,22 +426,10 @@ export const arriveAtTravel = mutation({
 
 // Teleport stone — single travel consumable for skipping geography. Takes
 // the player to any previously-visited node (`unlockedNodes`). The wind
-// crystal was consolidated into this in feat/stone-consolidation; the
-// `windCrystals` schema field stays for legacy data but no longer drives
-// any mutation.
-//
-// Two branches:
-//   - destinationNodeId omitted / "city" — short hop home with heal +
-//     potion refill on arrival. Same contract as the legacy "panic
-//     button" return.
-//   - destinationNodeId is a non-city unlocked node — set travel state
-//     (arrival cascades through the existing arriveAtTravel flow). No
-//     heal/refill; this is a transport, not a respite.
-//
-// In both cases the active zone bag is wiped if present — using the stone
-// from inside a zone is still a panic exit. The bag-retention tier work
-// (camp / exploration / combat caps) lands in a later PR; until then the
-// stone keeps its existing wipe behavior.
+// crystal was consolidated into this; `windCrystals` schema field stays
+// for legacy data only. City arrival heals + refills potion (the original
+// "safety hub" contract); other nodes just transport. Wipes the zone bag
+// on use — bag-retention tiers land in a later PR.
 export const useTeleportStone = mutation({
 	args: {
 		characterId: v.id("characters"),
@@ -461,24 +446,25 @@ export const useTeleportStone = mutation({
 		if (stones <= 0) throw new ConvexError("No teleport stones")
 
 		const destinationNodeId = args.destinationNodeId ?? "city"
-		const fromId = char.currentLocation ?? "city"
 
 		// Destination validation runs for non-city targets only. "city" is
 		// always available (seeded into `unlockedNodes` on character creation,
-		// no zone-gate upstream).
+		// no zone-gate upstream). Checks are ordered cheapest-first so a bad
+		// id fails before we walk ACT_1.nodes via findNode.
 		if (destinationNodeId !== "city") {
 			if (char.travelDestination !== undefined)
 				throw new ConvexError("Already traveling")
+			const fromId = char.currentLocation ?? "city"
 			if (fromId === destinationNodeId)
 				throw new ConvexError("Already at destination")
-
-			const destNode = findNode(ACT_1, destinationNodeId)
-			if (!destNode)
-				throw new ConvexError(`Unknown destination: ${destinationNodeId}`)
 
 			const unlocked = char.unlockedNodes ?? ["city"]
 			if (!unlocked.includes(destinationNodeId))
 				throw new ConvexError("Destination not yet unlocked")
+
+			const destNode = findNode(ACT_1, destinationNodeId)
+			if (!destNode)
+				throw new ConvexError(`Unknown destination: ${destinationNodeId}`)
 
 			if (!isNodeAccessible(destNode, char.completedZones))
 				throw new ConvexError("zone-locked")
@@ -488,10 +474,10 @@ export const useTeleportStone = mutation({
 			await deleteZoneBag(ctx, char.currentZoneSession)
 		}
 
-		// City arrival is the original "safety hub" contract: heal + refill
-		// potion to at least 1, instant arrival (no travel state). Non-city
-		// arrivals route through the standard travel flow so the progress bar
-		// works and `arriveAtTravel` commits the location change.
+		const startedAt = Date.now()
+		const arrivesAt =
+			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000
+
 		if (destinationNodeId === "city") {
 			const classDef = findClassDefinition(char.classId)
 			const equippedItems = await loadEquippedSet(ctx, args.characterId)
@@ -500,17 +486,12 @@ export const useTeleportStone = mutation({
 				level: char.level,
 				equippedItems,
 			})
-			const maxHp = stats.maxLife
 			const potions = char.potions ?? 0
 			const refilledPotions = potions === 0 ? 1 : potions
 
-			const startedAt = Date.now()
-			const arrivesAt =
-				startedAt + TELEPORT_STONE_TRAVEL_SECONDS_CITY * 1000
-
 			await ctx.db.patch(args.characterId, {
 				teleportStones: stones - 1,
-				hpCurrent: maxHp,
+				hpCurrent: stats.maxLife,
 				potions: refilledPotions,
 				currentZoneSession: undefined,
 				travelDestination: "city",
@@ -519,10 +500,6 @@ export const useTeleportStone = mutation({
 			})
 			return { teleportStones: stones - 1, startedAt, arrivesAt }
 		}
-
-		const startedAt = Date.now()
-		const arrivesAt =
-			startedAt + TELEPORT_STONE_TRAVEL_SECONDS_NON_CITY * 1000
 
 		await ctx.db.patch(args.characterId, {
 			teleportStones: stones - 1,

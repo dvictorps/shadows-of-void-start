@@ -21,10 +21,7 @@ import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
 import VendorModal from "#/components/world/VendorModal";
 import { findClassDefinition } from "#/game/classes/data";
-import {
-	TELEPORT_STONE_TRAVEL_SECONDS_CITY,
-	TELEPORT_STONE_TRAVEL_SECONDS_NON_CITY,
-} from "#/game/combat/constants";
+import { teleportStoneTravelSeconds } from "#/game/combat/constants";
 import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { xpToNextLevel } from "#/game/progression/levels";
@@ -273,11 +270,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		if (stones <= 0) return;
 		const destinationNodeId = args.destinationNodeId ?? "city";
 		const startedAt = Date.now();
-		const travelSeconds =
-			destinationNodeId === "city"
-				? TELEPORT_STONE_TRAVEL_SECONDS_CITY
-				: TELEPORT_STONE_TRAVEL_SECONDS_NON_CITY;
-		const arrivesAt = startedAt + travelSeconds * 1000;
+		const arrivesAt =
+			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000;
 		applyCharacterDelta(localStore, args.characterId, {
 			teleportStones: stones - 1,
 			currentZoneSession: undefined,

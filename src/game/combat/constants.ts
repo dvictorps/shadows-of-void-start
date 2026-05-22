@@ -38,3 +38,12 @@ export const DUAL_WIELD_BLOCK_CHANCE_BONUS = 10;
 // price-gated only.
 export const TELEPORT_STONE_TRAVEL_SECONDS_CITY = 1.5;
 export const TELEPORT_STONE_TRAVEL_SECONDS_NON_CITY = 3;
+
+// Server (`convex/combat.ts:useTeleportStone`) and client (optimistic update
+// in `world.tsx`) both compute travel duration from the destination — keep
+// them in lockstep via this helper.
+export function teleportStoneTravelSeconds(destinationNodeId: string): number {
+	return destinationNodeId === "city"
+		? TELEPORT_STONE_TRAVEL_SECONDS_CITY
+		: TELEPORT_STONE_TRAVEL_SECONDS_NON_CITY;
+}
