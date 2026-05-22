@@ -15,6 +15,11 @@ import type { ItemNameLexicon } from "./types";
 
 export const lexiconPt: ItemNameLexicon = {
 	templateNames: {
+		// starter weapons (hand-crafted, see starter-gear.ts)
+		rusty_sword: "Espada Enferrujada",
+		rusty_dagger: "Adaga Enferrujada",
+		cracked_wand: "Varinha Rachada",
+
 		// swords
 		sword_t1: "Espada de Ferro",
 		sword_t2: "Lâmina de Cobre",
@@ -598,6 +603,11 @@ export const lexiconPt: ItemNameLexicon = {
 		silk_belt: "Cinto de Seda",
 	},
 	templateGender: {
+		// starter weapons
+		rusty_sword: "f",
+		rusty_dagger: "f",
+		cracked_wand: "f",
+
 		// swords
 		sword_t1: "f",
 		sword_t2: "f",

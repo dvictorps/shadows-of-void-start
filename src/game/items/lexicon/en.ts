@@ -7,6 +7,11 @@ import type { ItemNameLexicon } from "./types";
 
 export const lexiconEn: ItemNameLexicon = {
 	templateNames: {
+		// starter weapons (hand-crafted, see starter-gear.ts)
+		rusty_sword: "Rusty Sword",
+		rusty_dagger: "Rusty Dagger",
+		cracked_wand: "Cracked Wand",
+
 		// swords
 		sword_t1: "Iron Sword",
 		sword_t2: "Copper Blade",

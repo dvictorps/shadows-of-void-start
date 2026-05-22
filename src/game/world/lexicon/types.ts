@@ -5,7 +5,12 @@
 
 import type { MonsterId, MonsterModId } from "#/game/monsters";
 
-export type GrammaticalGender = "m" | "f";
+import type {
+	GenderedForm,
+	GrammaticalGender,
+} from "../../i18n/lexicon-shared";
+
+export type { GenderedForm, GrammaticalGender };
 
 // Adjectival mods (PoE-style "Tough <Base>" / "<Base> Furioso"). The cap on
 // what counts as a prefix is set in game data (MONSTER_MODIFIERS[id].affixType
@@ -58,11 +63,6 @@ export interface MonsterNameLexicon {
 	// Epithets used when 2+ elemental resistances collapse into the compound
 	// rule. Same variety mechanism.
 	rareCompoundEpithets: readonly string[];
-}
-
-export interface GenderedForm {
-	m: string;
-	f: string;
 }
 
 export interface GenderedNoun {

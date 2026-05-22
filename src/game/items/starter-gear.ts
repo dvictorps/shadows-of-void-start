@@ -12,11 +12,9 @@ import type { GeneratedItem } from "./types";
 const rustySword: GeneratedItem = {
 	id: "starter:rusty_sword",
 	templateId: "rusty_sword",
-	templateName: "Rusty Sword",
 	equipmentType: "weapon",
 	weaponType: "sword",
 	rarity: "normal",
-	name: "Rusty Sword",
 	itemLevel: 1,
 	icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	baseStats: {
@@ -38,11 +36,9 @@ const rustySword: GeneratedItem = {
 const rustyDagger: GeneratedItem = {
 	id: "starter:rusty_dagger",
 	templateId: "rusty_dagger",
-	templateName: "Rusty Dagger",
 	equipmentType: "weapon",
 	weaponType: "dagger",
 	rarity: "normal",
-	name: "Rusty Dagger",
 	itemLevel: 1,
 	// No icon: daggers have no sprite assets in `public/assets/sprites/armas/`
 	// at the moment (gap also affects all dropped dagger tiers). Falls back to
@@ -66,11 +62,9 @@ const rustyDagger: GeneratedItem = {
 const crackedWand: GeneratedItem = {
 	id: "starter:cracked_wand",
 	templateId: "cracked_wand",
-	templateName: "Cracked Wand",
 	equipmentType: "weapon",
 	weaponType: "wand",
 	rarity: "normal",
-	name: "Cracked Wand",
 	itemLevel: 1,
 	icon: "/assets/sprites/armas/caster/varinha.png",
 	baseStats: {
