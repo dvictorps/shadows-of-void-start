@@ -578,23 +578,34 @@ export function useCombatLoop({
 
 	const usePotion = useCallback(async () => {
 		if (potions <= 0 || playerHp >= maxHp) return;
-		const prevHp = playerHpRef.current;
 		const prevPotions = potions;
 		const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
-		const optimisticHp = Math.min(maxHp, prevHp + heal);
+		const optimisticHp = Math.min(maxHp, playerHpRef.current + heal);
 		playerHpRef.current = optimisticHp;
 		setPlayerHp(optimisticHp);
 		setPotions(prevPotions - 1);
+		// `lastSyncedHpRef` tracks the *server's* known HP. After this potion
+		// the server knows HP at least went up by `heal`, but enemy damage
+		// during the roundtrip is unknown to the server — so for sync purposes
+		// we treat the optimistic value as the new server baseline. The next
+		// periodic sync flushes whatever the real local HP is by then.
 		lastSyncedHpRef.current = optimisticHp;
 		try {
 			const result = await consumePotion({ characterId });
-			playerHpRef.current = result.hpCurrent;
-			setPlayerHp(result.hpCurrent);
+			// Trust the local optimistic HP. The server's `result.hpCurrent`
+			// is the heal applied to whatever HP the server last knew —
+			// which excludes any combat damage during the roundtrip. Writing
+			// it back would revert that damage and create a flicker
+			// (HP up → down → up as the damage tick gets clobbered then
+			// re-applied next swing). Only the potion count is server-truth.
 			setPotions(result.potions);
-			lastSyncedHpRef.current = result.hpCurrent;
 		} catch {
-			playerHpRef.current = prevHp;
-			setPlayerHp(prevHp);
+			// Mutation rejected (e.g., server-side "already at full HP" because
+			// the server's HP is stale from low sync frequency). Refund the
+			// potion count locally; leave HP at the optimistic value — combat
+			// damage may have already taken it down, and reverting to a
+			// `prevHp` snapshot would be wrong against that damage. The next
+			// periodic sync reconciles HP with the server.
 			setPotions(prevPotions);
 		}
 	}, [potions, playerHp, maxHp, characterId, consumePotion]);
