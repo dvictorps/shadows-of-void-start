@@ -197,8 +197,11 @@ export function rollPlayerSwing({
 
 interface EnemyAttackArgs {
 	enemyLevel: number;
-	// Pre-scaled by `scaleMonsterStats` at spawn — damage.ts stays decoupled
-	// from MonsterDefinition and the scaling curve.
+	// Pre-scaled by `scaleMonsterStats` (+ monster mods) at spawn — damage.ts
+	// stays decoupled from MonsterDefinition and the scaling curve. `accuracy`
+	// defaults to `level × 10` upstream; monster mods like Increased Accuracy
+	// fold into this value.
+	enemyAccuracy: number;
 	physicalDamage: { min: number; max: number };
 	elementalDamage: readonly MonsterElementDamage[];
 	defender: DefenderProfile;
@@ -213,12 +216,12 @@ interface EnemyAttackArgs {
  */
 export function rollEnemyAttack({
 	enemyLevel,
+	enemyAccuracy,
 	physicalDamage,
 	elementalDamage,
 	defender,
 	random = Math.random,
 }: EnemyAttackArgs): RolledSwing {
-	const enemyAccuracy = enemyLevel * 10;
 	const hit = random() <= hitChance(enemyAccuracy, defender.evasion);
 	if (!hit) {
 		return {

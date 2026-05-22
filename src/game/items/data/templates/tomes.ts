@@ -24,8 +24,8 @@ const TOME_TIERS: TomeTierSpec[] = [
 	},
 	{
 		tier: 2,
-		dropLevel: 8,
-		intReq: 18,
+		dropLevel: 4,
+		intReq: 14,
 		barrier: 26,
 		implicitMin: 11,
 		implicitMax: 16,
@@ -33,8 +33,8 @@ const TOME_TIERS: TomeTierSpec[] = [
 	},
 	{
 		tier: 3,
-		dropLevel: 12,
-		intReq: 24,
+		dropLevel: 7,
+		intReq: 18,
 		barrier: 38,
 		implicitMin: 12,
 		implicitMax: 17,
@@ -42,8 +42,8 @@ const TOME_TIERS: TomeTierSpec[] = [
 	},
 	{
 		tier: 4,
-		dropLevel: 16,
-		intReq: 30,
+		dropLevel: 10,
+		intReq: 22,
 		barrier: 50,
 		implicitMin: 13,
 		implicitMax: 19,
@@ -51,8 +51,8 @@ const TOME_TIERS: TomeTierSpec[] = [
 	},
 	{
 		tier: 5,
-		dropLevel: 20,
-		intReq: 38,
+		dropLevel: 14,
+		intReq: 28,
 		barrier: 65,
 		implicitMin: 14,
 		implicitMax: 20,

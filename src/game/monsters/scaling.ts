@@ -11,6 +11,13 @@ export interface ScaledMonsterStats {
 	elementalDamage: MonsterElementDamage[];
 	attackSpeed: number;
 	xpReward: number;
+	// Defensive baseline. `accuracy` defaults to `level × 10` (CONTEXT.md →
+	// Defenses → Evasion + Accuracy). Other defaults are 0. Monster modifiers
+	// add to these at spawn time.
+	armor: number;
+	evasion: number;
+	accuracy: number;
+	resistances: { cold: number; fire: number; lightning: number; void: number };
 }
 
 export function monsterScaleFactor(level: number): number {
@@ -18,7 +25,7 @@ export function monsterScaleFactor(level: number): number {
 	return MONSTER_SCALING_BASE ** (clamped - 1);
 }
 
-function scaleRange(
+export function scaleRange(
 	range: { min: number; max: number },
 	factor: number,
 ): { min: number; max: number } {
@@ -32,6 +39,7 @@ export function scaleMonsterStats(
 	level: number,
 ): ScaledMonsterStats {
 	const factor = monsterScaleFactor(level);
+	const clampedLevel = Math.max(1, level);
 	return {
 		hp: Math.max(1, Math.round(def.baseStats.hp * factor)),
 		physicalDamage: scaleRange(def.baseStats.physicalDamage, factor),
@@ -41,5 +49,9 @@ export function scaleMonsterStats(
 		}),
 		attackSpeed: def.baseStats.attackSpeed,
 		xpReward: Math.max(1, Math.round(def.xpReward * factor)),
+		armor: 0,
+		evasion: 0,
+		accuracy: clampedLevel * 10,
+		resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
 	};
 }

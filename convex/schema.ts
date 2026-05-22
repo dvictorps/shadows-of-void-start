@@ -51,6 +51,14 @@ export default defineSchema({
 		// any travel mechanic). Wind crystals can only jump to nodes in this
 		// list. Persisted append-only; respawn doesn't clear it.
 		unlockedNodes: v.optional(v.array(v.string())),
+		// Zone progression — see CONTEXT.md → Zone states + Progression gating.
+		// `completedZones` is append-only: a node enters once the player kills
+		// its rare miniboss. Drives the travel-gate check.
+		completedZones: v.optional(v.array(v.string())),
+		// Threshold counter for the current visit. Increments on each kill,
+		// fills at 30, resets to 0 on miniboss kill OR on leaving the zone
+		// with the miniboss unsummoned.
+		currentZoneKills: v.optional(v.number()),
 	}).index("by_authUserId", ["authUserId"]),
 
 	// All items live here — drops, inventory, equipped, stash. Location is

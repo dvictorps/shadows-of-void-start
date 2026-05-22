@@ -28,8 +28,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Copper Tower Shield",
 		equipmentType: "offhand",
 		armorType: "plate",
-		dropLevel: 8,
-		requirements: { level: 8, str: 18 },
+		dropLevel: 4,
+		requirements: { level: 4, str: 14 },
 		baseStats: { armor: 44, blockChance: 22 },
 		implicits: [
 			{
@@ -46,8 +46,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Bronze Tower Shield",
 		equipmentType: "offhand",
 		armorType: "plate",
-		dropLevel: 12,
-		requirements: { level: 12, str: 24 },
+		dropLevel: 7,
+		requirements: { level: 7, str: 18 },
 		baseStats: { armor: 66, blockChance: 23 },
 		implicits: [
 			{
@@ -64,8 +64,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Steel Tower Shield",
 		equipmentType: "offhand",
 		armorType: "plate",
-		dropLevel: 16,
-		requirements: { level: 16, str: 30 },
+		dropLevel: 10,
+		requirements: { level: 10, str: 22 },
 		baseStats: { armor: 92, blockChance: 23 },
 		implicits: [
 			{
@@ -82,8 +82,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "War Tower Shield",
 		equipmentType: "offhand",
 		armorType: "plate",
-		dropLevel: 20,
-		requirements: { level: 20, str: 38 },
+		dropLevel: 14,
+		requirements: { level: 14, str: 28 },
 		baseStats: { armor: 122, blockChance: 24 },
 		implicits: [
 			{
@@ -408,8 +408,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Tanned Buckler",
 		equipmentType: "offhand",
 		armorType: "leather",
-		dropLevel: 8,
-		requirements: { level: 8, dex: 18 },
+		dropLevel: 4,
+		requirements: { level: 4, dex: 14 },
 		baseStats: { evasion: 44, blockChance: 22 },
 		implicits: [
 			{
@@ -426,8 +426,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Cured Buckler",
 		equipmentType: "offhand",
 		armorType: "leather",
-		dropLevel: 12,
-		requirements: { level: 12, dex: 24 },
+		dropLevel: 7,
+		requirements: { level: 7, dex: 18 },
 		baseStats: { evasion: 66, blockChance: 23 },
 		implicits: [
 			{
@@ -444,8 +444,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Studded Buckler",
 		equipmentType: "offhand",
 		armorType: "leather",
-		dropLevel: 16,
-		requirements: { level: 16, dex: 30 },
+		dropLevel: 10,
+		requirements: { level: 10, dex: 22 },
 		baseStats: { evasion: 92, blockChance: 23 },
 		implicits: [
 			{
@@ -462,8 +462,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Hardened Buckler",
 		equipmentType: "offhand",
 		armorType: "leather",
-		dropLevel: 20,
-		requirements: { level: 20, dex: 38 },
+		dropLevel: 14,
+		requirements: { level: 14, dex: 28 },
 		baseStats: { evasion: 122, blockChance: 24 },
 		implicits: [
 			{
@@ -788,8 +788,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Cotton Ward",
 		equipmentType: "offhand",
 		armorType: "silk",
-		dropLevel: 8,
-		requirements: { level: 8, int: 18 },
+		dropLevel: 4,
+		requirements: { level: 4, int: 14 },
 		baseStats: { barrier: 26, blockChance: 22 },
 		implicits: [
 			{
@@ -806,8 +806,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Woven Ward",
 		equipmentType: "offhand",
 		armorType: "silk",
-		dropLevel: 12,
-		requirements: { level: 12, int: 24 },
+		dropLevel: 7,
+		requirements: { level: 7, int: 18 },
 		baseStats: { barrier: 38, blockChance: 23 },
 		implicits: [
 			{
@@ -824,8 +824,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Fine Ward",
 		equipmentType: "offhand",
 		armorType: "silk",
-		dropLevel: 16,
-		requirements: { level: 16, int: 30 },
+		dropLevel: 10,
+		requirements: { level: 10, int: 22 },
 		baseStats: { barrier: 50, blockChance: 23 },
 		implicits: [
 			{
@@ -842,8 +842,8 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		name: "Enchanted Ward",
 		equipmentType: "offhand",
 		armorType: "silk",
-		dropLevel: 20,
-		requirements: { level: 20, int: 38 },
+		dropLevel: 14,
+		requirements: { level: 14, int: 28 },
 		baseStats: { barrier: 65, blockChance: 24 },
 		implicits: [
 			{

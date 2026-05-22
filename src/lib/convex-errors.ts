@@ -65,6 +65,7 @@ function tryTranslate(raw: string): string | null {
 	if (msg.includes("needs-main-hand")) return m.error_needs_main_hand();
 	if (msg.includes("needs-bow")) return m.error_needs_bow();
 	if (msg.includes("offhand-not-weapon")) return m.error_offhand_not_weapon();
+	if (msg.includes("zone-locked")) return m.error_zone_locked();
 	if (
 		msg.toLowerCase().includes("inventory") &&
 		/full|overflow|free a slot/i.test(msg)

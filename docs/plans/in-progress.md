@@ -6,6 +6,45 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ---
 
+## Shared rarity-tinted card primitive (low priority refactor)
+
+**Status**: Planned, not started.
+
+**Why**: `src/components/world/MonsterTooltip.tsx` (added in `feat/zone-progression`) and `src/components/game/ItemTooltip.tsx` (in master) share non-trivial structure: identical `RARITY_COLORS` and `HEADER_BG` tables, identical `Separator` JSX, identical outer shell (tinted border + glow + `boxShadow` recipe + header-with-bg). The first two RARITY_COLORS rows of MonsterTooltip are a strict subset of ItemTooltip's 5-row map.
+
+### Scope
+
+- Lift `Separator` from `ItemTooltip` into a shared location (`src/components/ui/Separator.tsx` or similar).
+- Centralize rarity-color tables (`RARITY_COLORS`, `HEADER_BG`) into a single source — perhaps `src/game/items/rarity-style.ts` re-exported by both tooltips.
+- Optionally extract a `RarityCard` primitive (top accent line + tinted border + glow + header). Both tooltips consume it and add their own body content.
+
+### Why deferred
+
+The duplication is real but small enough that the refactor takes a focused PR. Doing it inline would have bloated `feat/zone-progression`. The current shape is correct; this is purely about reducing parallel maintenance.
+
+---
+
+## Native monster barrier (NEXT after zone progression)
+
+**Status**: Planned, not started. Triggered by introducing the "Additional Barrier" monster modifier in the zone-progression PR — see CONTEXT.md → Monster Modifier Pool.
+
+**Why**: today the "Additional Barrier" monster mod is folded into HP as a placeholder because monsters have no barrier mechanism. The player has barrier (pool above HP, 6s recovery timer, full refill — see CONTEXT.md → Defenses → Barrier). Monsters should have the same shape so the mod's flavour matches its identity ("barrier above HP", not "more HP").
+
+### Scope
+
+- Add `barrier` and `barrierRecoveryRemaining` fields to the live enemy state (mirror of the player's `BarrierState`).
+- Reuse `damageBarrier()` / `tickBarrierRecovery()` from `src/game/combat/barrier.ts` on the enemy side of the combat tick.
+- `ScaledMonsterStats` already has `barrier` post-zone-progression PR; populate it from the mod application instead of folding into HP.
+- Update `monsterAdditionalBarrier` mod to grant a real barrier pool (e.g., +30% of HP as barrier).
+- UI: render a thin blue strip above the enemy HP bar when barrier > 0 (mirror the player's HealthGlobe barrier ring).
+
+### Validation
+
+- `npx tsc --noEmit`, `npx vitest run`
+- Manual: roll a magic mob with Additional Barrier. Confirm barrier pool absorbs first, refills 6s after empty, doesn't refill while above zero.
+
+---
+
 ## Add Tome and Quiver as new off-hand types (MAX PRIORITY)
 
 **Status**: Planned, not started. **Top of the queue** — next PR after `feat/new-assets`.

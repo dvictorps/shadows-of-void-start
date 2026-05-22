@@ -23,6 +23,11 @@ export interface WorldNode {
 	// Zone level — drives monster instance level (±1) and drop ilvl. Only set
 	// for combat / boss nodes.
 	level?: number;
+	// Progression gate — the destination is only travel-eligible if every
+	// listed node id is in the character's completedZones set. Omitted on
+	// city and on entry zones (always accessible). See CONTEXT.md →
+	// Travel system → Progression gating.
+	gatedBy?: string[];
 }
 
 export interface Act {

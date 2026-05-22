@@ -1,13 +1,19 @@
 import {
+	Castle,
+	Check,
+	Droplets,
 	Home,
+	Lock,
 	type LucideIcon,
 	MapPin,
 	Settings,
 	Skull,
+	Tornado,
+	TreePine,
 	Trees,
 } from "lucide-react";
 import { useMemo } from "react";
-import type { Act, WorldNode } from "#/game/world";
+import { type Act, isNodeAccessible, type WorldNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
 import { m } from "#/paraglide/messages";
 
@@ -18,6 +24,7 @@ type Props = {
 	hoveredNodeId: string | null;
 	currentLocationNodeId: string;
 	unlockedNodeIds: ReadonlySet<string>;
+	completedZoneIds: ReadonlySet<string>;
 	onOpenSettings: () => void;
 };
 
@@ -27,6 +34,16 @@ const NODE_ICONS: Record<WorldNode["kind"], LucideIcon> = {
 	boss: Skull,
 };
 
+// Per-node-id icon overrides — themed to the zone's flavour. Falls back to
+// NODE_ICONS[kind] when no override is set.
+const NODE_ICON_OVERRIDES: Record<string, LucideIcon> = {
+	forest_profunda: TreePine,
+	pantano: Droplets,
+	cripta: Skull,
+	castelo: Castle,
+	fenda_vazio: Tornado,
+};
+
 export default function MapScene({
 	act,
 	onEnterNode,
@@ -34,6 +51,7 @@ export default function MapScene({
 	hoveredNodeId,
 	currentLocationNodeId,
 	unlockedNodeIds,
+	completedZoneIds,
 	onOpenSettings,
 }: Props) {
 	const edges = useMemo(() => buildEdges(act.nodes), [act.nodes]);
@@ -65,12 +83,17 @@ export default function MapScene({
 			{act.nodes.map((node) => {
 				const reachableByWindCrystal =
 					!connectedIds.has(node.id) && unlockedNodeIds.has(node.id);
+				const isComplete = completedZoneIds.has(node.id);
+				const isLocked =
+					node.kind !== "city" && !isNodeAccessible(node, completedZoneIds);
 				return (
 					<MapNode
 						key={node.id}
 						node={node}
 						hovered={hoveredNodeId === node.id}
 						isCurrent={node.id === currentLocationNodeId}
+						isComplete={isComplete}
+						isLocked={isLocked}
 						reachableByWindCrystal={reachableByWindCrystal}
 						onEnter={() => onEnterNode(node.id)}
 						onHover={() => onHoverNode(node.id)}
@@ -118,6 +141,8 @@ function MapNode({
 	node,
 	hovered,
 	isCurrent,
+	isComplete,
+	isLocked,
 	reachableByWindCrystal,
 	onEnter,
 	onHover,
@@ -126,20 +151,22 @@ function MapNode({
 	node: WorldNode;
 	hovered: boolean;
 	isCurrent: boolean;
+	isComplete: boolean;
+	isLocked: boolean;
 	reachableByWindCrystal: boolean;
 	onEnter: () => void;
 	onHover: () => void;
 	onLeave: () => void;
 }) {
-	const Icon = NODE_ICONS[node.kind];
+	const Icon = NODE_ICON_OVERRIDES[node.id] ?? NODE_ICONS[node.kind];
 	// Wind-crystal-reachable nodes (unlocked but not connected to currentLocation)
 	// get a cyan tint so the player knows the click will offer the crystal flow
 	// instead of just being a no-route dead-click.
-	const borderClass = hovered
-		? "border-white text-white shadow-[0_0_12px_rgba(255,255,255,0.5)]"
-		: reachableByWindCrystal
-			? "border-cyan-400/70 text-cyan-200/80 hover:border-cyan-300"
-			: "border-white/40 text-white/70 hover:border-white/80";
+	const borderClass = pickBorderClass({
+		isLocked,
+		hovered,
+		reachableByWindCrystal,
+	});
 	return (
 		<div
 			style={{
@@ -167,6 +194,47 @@ function MapNode({
 					strokeWidth={1.5}
 				/>
 			)}
+			{isComplete && (
+				<NodeBadge icon={Check} colorClass="text-green-400" strokeWidth={3} />
+			)}
+			{isLocked && (
+				<NodeBadge icon={Lock} colorClass="text-red-400" strokeWidth={2} />
+			)}
 		</div>
+	);
+}
+
+function pickBorderClass({
+	isLocked,
+	hovered,
+	reachableByWindCrystal,
+}: {
+	isLocked: boolean;
+	hovered: boolean;
+	reachableByWindCrystal: boolean;
+}): string {
+	if (isLocked) return "border-white/15 text-white/30";
+	if (hovered)
+		return "border-white text-white shadow-[0_0_12px_rgba(255,255,255,0.5)]";
+	if (reachableByWindCrystal)
+		return "border-cyan-400/70 text-cyan-200/80 hover:border-cyan-300";
+	return "border-white/40 text-white/70 hover:border-white/80";
+}
+
+function NodeBadge({
+	icon: Icon,
+	colorClass,
+	strokeWidth,
+}: {
+	icon: LucideIcon;
+	colorClass: string;
+	strokeWidth: number;
+}) {
+	return (
+		<Icon
+			aria-hidden
+			className={`-bottom-2 -right-2 pointer-events-none absolute h-4 w-4 rounded-full bg-black p-0.5 ${colorClass}`}
+			strokeWidth={strokeWidth}
+		/>
 	);
 }

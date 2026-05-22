@@ -78,15 +78,13 @@ export interface RollDropParams {
 }
 
 /**
- * Rolls a single drop for a monster kill. Returns null when nothing drops.
- * For mobs that drop multiple items (minibosses, act bosses), call multiple
- * times and apply guaranteed-rarity overrides at the call site.
+ * Rolls a single item at a forced rarity. Used for guaranteed-rarity slots
+ * (e.g., the miniboss's guaranteed Rare). Skips the drop-chance gate.
  */
-export function rollDrop(params: RollDropParams): GeneratedItem | null {
-	const table = DROP_TABLE[params.monsterRarity];
-	if (Math.random() > table.dropChance) return null;
-
-	const rarity = pickRarity(table.rarity);
+function rollItemAtRarity(
+	rarity: ItemRarity,
+	monsterLevel: number,
+): GeneratedItem | null {
 	const equipmentType = pickRandom(ELIGIBLE_EQUIPMENT_TYPES);
 	if (!equipmentType) return null;
 
@@ -94,30 +92,53 @@ export function rollDrop(params: RollDropParams): GeneratedItem | null {
 	// any template of the right equipment type whose dropLevel allows it at
 	// this ilvl. Weapon subtype variety and armor-base diversity emerge for
 	// free from the existing template pool.
-	const candidates = templatesForType(equipmentType, params.monsterLevel);
+	let candidates = templatesForType(equipmentType, monsterLevel);
 	if (candidates.length === 0) {
 		// Fallback — no template eligible at this level for this type. Try any
 		// template of the same type ignoring dropLevel; if still none, bail.
-		const anyOfType = EQUIPMENT_TEMPLATES.filter(
+		candidates = EQUIPMENT_TEMPLATES.filter(
 			(t) => t.equipmentType === equipmentType,
 		);
-		if (anyOfType.length === 0) return null;
-		const pick = pickRandom(anyOfType);
-		if (!pick) return null;
-		return generateItem({
-			rarity,
-			itemLevel: params.monsterLevel,
-			templateId: pick.id,
-		});
+		if (candidates.length === 0) return null;
 	}
-
 	const template = pickRandom(candidates);
 	if (!template) return null;
 	return generateItem({
 		rarity,
-		itemLevel: params.monsterLevel,
+		itemLevel: monsterLevel,
 		templateId: template.id,
 	});
+}
+
+/**
+ * Rolls a single drop for a monster kill. Returns null when nothing drops.
+ * For mobs that drop multiple items (minibosses, act bosses), use the
+ * dedicated `rollMinibossDrops` instead.
+ */
+export function rollDrop(params: RollDropParams): GeneratedItem | null {
+	const table = DROP_TABLE[params.monsterRarity];
+	if (Math.random() > table.dropChance) return null;
+	const rarity = pickRarity(table.rarity);
+	return rollItemAtRarity(rarity, params.monsterLevel);
+}
+
+/**
+ * Rolls the miniboss drop set per CONTEXT.md → Loot Pipeline → Drop rates:
+ * two items, one guaranteed Rare and one rolled via the rare-tier table
+ * (30 Normal / 55 Magic / 15 Rare).
+ */
+export function rollMinibossDrops(params: {
+	monsterLevel: number;
+}): GeneratedItem[] {
+	const drops: GeneratedItem[] = [];
+	const guaranteed = rollItemAtRarity("rare", params.monsterLevel);
+	if (guaranteed) drops.push(guaranteed);
+	const second = rollDrop({
+		monsterRarity: "rare",
+		monsterLevel: params.monsterLevel,
+	});
+	if (second) drops.push(second);
+	return drops;
 }
 
 /**

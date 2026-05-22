@@ -41,9 +41,15 @@ import type { LeechInstance } from "#/game/combat/leech";
 import { createLeechInstance, tickLeechInstances } from "#/game/combat/leech";
 import { rollMonsterLevel } from "#/game/loot/drops";
 import {
+	applyMonsterMods,
 	findMonster,
 	type MonsterDefinition,
 	type MonsterId,
+	type MonsterModId,
+	type MonsterRarity,
+	modCountForRarity,
+	rollMonsterMods,
+	rollMonsterRarity,
 	type ScaledMonsterStats,
 	scaleMonsterStats,
 } from "#/game/monsters";
@@ -55,28 +61,24 @@ import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
 import { useDelay } from "./useDelay";
 import { useTicker } from "./useTicker";
 
-type CombatState = "searching" | "engaged" | "victory";
+type CombatState = "searching" | "engaged" | "victory" | "miniboss_victory";
 
 export type Enemy = {
 	def: MonsterDefinition;
 	currentHp: number;
 	level: number;
+	rarity: MonsterRarity;
+	mods: readonly MonsterModId[];
 	scaled: ScaledMonsterStats;
 };
 
-/**
- * Defender profile the damage engine expects when the player attacks. Normal
- * mobs have no defensive stats yet — minibosses with rolled modifiers (see
- * CONTEXT.md "Monster Modifier Pool") will surface armor / evasion /
- * resistances here once the modifier roller lands.
- */
 function defenderFromEnemy(enemy: Enemy) {
 	return {
-		armor: 0,
-		evasion: 0,
-		accuracy: 0,
+		armor: enemy.scaled.armor,
+		evasion: enemy.scaled.evasion,
+		accuracy: enemy.scaled.accuracy,
 		level: enemy.level,
-		resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
+		resistances: enemy.scaled.resistances,
 	};
 }
 
@@ -87,11 +89,14 @@ type Params = {
 	stats: ComputedCharacterStats;
 	initialHp: number;
 	initialPotions: number;
+	initialZoneKills: number;
 	monsterPool: readonly MonsterId[];
 	zoneLevel: number;
 	active: boolean;
 	onPlayerDeath: () => void;
 };
+
+const KILLS_TO_THRESHOLD = 30;
 
 const SEARCH_DELAY_MS = 1500;
 const VICTORY_DELAY_MS = 800;
@@ -108,6 +113,7 @@ export function useCombatLoop({
 	stats,
 	initialHp,
 	initialPotions,
+	initialZoneKills,
 	monsterPool,
 	zoneLevel,
 	active,
@@ -126,6 +132,10 @@ export function useCombatLoop({
 		potion: boolean;
 	} | null>(null);
 	const { events, push: pushEvent } = useDamageEvents();
+
+	// Read by the victory-delay handler — state and lastKill have already been
+	// reset by then, so we can't recover the rarity from them.
+	const lastKillWasMinibossRef = useRef(false);
 
 	// Refs the interval callbacks read directly for mid-tick state visibility.
 	const stateRef = useRef(state);
@@ -149,6 +159,14 @@ export function useCombatLoop({
 	playerHpRef.current = playerHp;
 	const lastSyncedHpRef = useRef(initialHp);
 
+	// Server is the source of truth (resets on enterZone, persists with the
+	// character); the ref tracks intra-session changes between server sync.
+	const [zoneKills, setZoneKills] = useState(initialZoneKills);
+	const zoneKillsRef = useRef(initialZoneKills);
+	zoneKillsRef.current = zoneKills;
+	const initialZoneKillsRef = useRef(initialZoneKills);
+	initialZoneKillsRef.current = initialZoneKills;
+
 	const syncHp = useMutation(api.combat.syncHp);
 	const recordKill = useMutation(api.combat.recordKill);
 	const consumePotion = useMutation(api.combat.usePotion);
@@ -161,10 +179,22 @@ export function useCombatLoop({
 			stateRef.current = "victory";
 			setLastKill({ xp: xpGained, potion: false });
 			setState("victory");
+			// Optimistic threshold bump. Miniboss kill resets the counter so the
+			// bar visibly drains and the farming loop restarts.
+			lastKillWasMinibossRef.current = killed.rarity === "rare";
+			if (killed.rarity === "rare") {
+				zoneKillsRef.current = 0;
+				setZoneKills(0);
+			} else {
+				const next = zoneKillsRef.current + 1;
+				zoneKillsRef.current = next;
+				setZoneKills(next);
+			}
 			recordKill({
 				characterId,
 				monsterId: killed.def.id,
 				monsterLevel: killed.level,
+				monsterRarity: killed.rarity,
 			})
 				.then((result) => {
 					if (result.potionDropped) {
@@ -198,6 +228,8 @@ export function useCombatLoop({
 			setLastKill(null);
 			leechRef.current = [];
 			nextSwingIndexRef.current = 0;
+			zoneKillsRef.current = initialZoneKillsRef.current;
+			setZoneKills(initialZoneKillsRef.current);
 			stateRef.current = "searching";
 			setState("searching");
 		} else if (!active && wasActive && !deadRef.current) {
@@ -214,11 +246,19 @@ export function useCombatLoop({
 		const def = findMonster(pick);
 		if (!def) return;
 		const level = rollMonsterLevel(zoneLevel);
-		const scaled = scaleMonsterStats(def, level);
+		const baseScaled = scaleMonsterStats(def, level);
+		// Threshold fill forces the next spawn to be the miniboss (rare).
+		// See CONTEXT.md → Threshold Bar.
+		const rarity =
+			zoneKillsRef.current >= KILLS_TO_THRESHOLD ? "rare" : rollMonsterRarity();
+		const mods = rollMonsterMods(modCountForRarity(rarity));
+		const scaled = applyMonsterMods(baseScaled, mods);
 		const newEnemy: Enemy = {
 			def,
 			currentHp: scaled.hp,
 			level,
+			rarity,
+			mods,
 			scaled,
 		};
 		enemyRef.current = newEnemy;
@@ -229,13 +269,26 @@ export function useCombatLoop({
 		setState("engaged");
 	});
 
-	// ── Victory pause → back to searching ──
+	// ── Victory pause → back to searching (or pause for miniboss modal) ──
 	useDelay(active && state === "victory", VICTORY_DELAY_MS, () => {
 		enemyRef.current = null;
 		setEnemy(null);
 		setLastKill(null);
-		setState("searching");
+		if (lastKillWasMinibossRef.current) {
+			lastKillWasMinibossRef.current = false;
+			stateRef.current = "miniboss_victory";
+			setState("miniboss_victory");
+		} else {
+			setState("searching");
+		}
 	});
+
+	// Retreat is handled by the existing active=false transition in the world view.
+	const dismissMinibossModal = useCallback(() => {
+		if (stateRef.current !== "miniboss_victory") return;
+		stateRef.current = "searching";
+		setState("searching");
+	}, []);
 
 	// ── Engaged tick ──
 	const enemyDef = enemy?.def ?? null;
@@ -354,6 +407,7 @@ export function useCombatLoop({
 			if (enemySwing) {
 				const attack = rollEnemyAttack({
 					enemyLevel: currentEnemy.level,
+					enemyAccuracy: currentEnemy.scaled.accuracy,
 					physicalDamage: currentEnemy.scaled.physicalDamage,
 					elementalDamage: currentEnemy.scaled.elementalDamage,
 					defender: {
@@ -470,5 +524,8 @@ export function useCombatLoop({
 		events,
 		lastKill,
 		usePotion,
+		zoneKills,
+		killsToThreshold: KILLS_TO_THRESHOLD,
+		dismissMinibossModal,
 	};
 }

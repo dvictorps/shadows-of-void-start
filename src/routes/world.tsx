@@ -439,6 +439,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
 		initialPotions: character.potions ?? 0,
+		initialZoneKills: character.currentZoneKills ?? 0,
 		monsterPool,
 		zoneLevel,
 		// Pause combat while the loot picker is open so the player can't die
@@ -502,6 +503,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const unlockedNodeIds = useMemo(
 		() => new Set(character.unlockedNodes ?? ["city"]),
 		[character.unlockedNodes],
+	);
+	const completedZoneIds = useMemo(
+		() => new Set(character.completedZones ?? []),
+		[character.completedZones],
 	);
 
 	const handleEnterNode = async (nodeId: string) => {
@@ -712,6 +717,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 							hoveredNodeId={hoveredNodeId}
 							currentLocationNodeId={currentLocation}
 							unlockedNodeIds={unlockedNodeIds}
+							completedZoneIds={completedZoneIds}
 							onOpenSettings={settingsModal.open}
 						/>
 						{travelOverlay}
@@ -747,6 +753,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						bagCount={zoneBag?.length ?? 0}
 						onOpenBag={bagModal.open}
 						onConsumableHover={setConsumableHover}
+						zoneKills={combat.zoneKills}
+						killsToThreshold={combat.killsToThreshold}
+						onDismissMinibossModal={combat.dismissMinibossModal}
 					/>
 				)}
 				<TextLog message={logMessage} tone={logTone} />
