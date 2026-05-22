@@ -129,6 +129,10 @@ type Params = {
 
 const VICTORY_DELAY_MS = 800;
 const TICK_INTERVAL_MS = 50;
+// Calmaria ticker is intentionally coarser than the combat tick — the bar
+// only needs visual smoothness, and the `transition duration-100` on the
+// bar fill already covers the gap. Half the renders for the same look.
+const CALMARIA_TICK_MS = 100;
 // Periodic sync is insurance against a mid-combat refresh — the deactivation
 // effect (retreat / view change) already flushes the latest HP synchronously
 // on graceful exits. 10s of potential lost-on-refresh HP is the tradeoff for
@@ -211,12 +215,8 @@ export function useCombatLoop({
 			setLastKill({ xp: xpGained, potion: false });
 			setState("victory");
 			playMonsterDeathSfx(killed.def.id);
-			// Optimistic threshold bump. Miniboss kill resets the counter so the
-			// bar visibly drains and the farming loop restarts.
 			lastKillWasMinibossRef.current = killed.rarity === "rare";
 			if (killed.rarity === "rare") {
-				// Miniboss down — drain the time bar so the farming loop can
-				// refill on the next entry into "searching".
 				calmariaElapsedMsRef.current = 0;
 				setCalmariaElapsedMs(0);
 			}
@@ -272,10 +272,9 @@ export function useCombatLoop({
 	}, [active, characterId, syncHp]);
 
 	// ── Calmaria ticker — drives the time bar ──
-	// Increments `calmariaElapsedMs` while the player is between encounters.
-	// Combat pauses it (state !== "searching"). The miniboss-spawn condition
-	// below reads `calmariaElapsedMsRef` against the budget.
-	const CALMARIA_TICK_MS = 50;
+	// The post-miniboss flag holds the ticker through the victory→searching
+	// transition so the drained bar doesn't gain a single tick before the
+	// reset commits.
 	useTicker(
 		active && state === "searching" && !lastKillWasMinibossRef.current,
 		CALMARIA_TICK_MS,
