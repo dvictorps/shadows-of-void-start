@@ -3,9 +3,7 @@ import type { EquipmentTemplate } from "./types";
 // Belts — one base per implicit type, no tier progression
 export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	{
-		id: "leather_belt",
-		name: "Leather Belt",
-		equipmentType: "belt",
+		id: "leather_belt",		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -20,9 +18,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/cinto.png",
 	},
 	{
-		id: "chain_belt",
-		name: "Chain Belt",
-		equipmentType: "belt",
+		id: "chain_belt",		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -37,9 +33,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/cintoLutador.png",
 	},
 	{
-		id: "studded_belt",
-		name: "Studded Belt",
-		equipmentType: "belt",
+		id: "studded_belt",		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -54,9 +48,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/cintoAventureiro.png",
 	},
 	{
-		id: "cloth_belt",
-		name: "Cloth Belt",
-		equipmentType: "belt",
+		id: "cloth_belt",		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -71,9 +63,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/cintoConhecimento.png",
 	},
 	{
-		id: "prismatic_belt",
-		name: "Prismatic Belt",
-		equipmentType: "belt",
+		id: "prismatic_belt",		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -88,9 +78,7 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/cinto.png",
 	},
 	{
-		id: "silk_belt",
-		name: "Silk Belt",
-		equipmentType: "belt",
+		id: "silk_belt",		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},

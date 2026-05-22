@@ -4,9 +4,7 @@ import { createStandardTiers } from "../../types";
 export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 	// ── Local attack mods (affect weapon header, attack weapons only) ──
 	physicalDamageFlat: {
-		id: "physicalDamageFlat",
-		name: "Heavy",
-		affixType: "prefix",
+		id: "physicalDamageFlat",		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -17,9 +15,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	physicalDamageFlatGlobal: {
-		id: "physicalDamageFlatGlobal",
-		name: "Heavy",
-		affixType: "prefix",
+		id: "physicalDamageFlatGlobal",		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["ring", "amulet", "gloves", "quiver"],
@@ -29,9 +25,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 4, 24, 50),
 	},
 	physicalDamageIncrease: {
-		id: "physicalDamageIncrease",
-		name: "Cruel",
-		affixType: "prefix",
+		id: "physicalDamageIncrease",		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -41,9 +35,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(15, 25, 170, 211),
 	},
 	attackSpeedIncrease: {
-		id: "attackSpeedIncrease",
-		name: "of Swiftness",
-		affixType: "suffix",
+		id: "attackSpeedIncrease",		affixType: "suffix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -54,9 +46,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(3, 5, 28, 31),
 	},
 	criticalChanceIncrease: {
-		id: "criticalChanceIncrease",
-		name: "of Precision",
-		affixType: "suffix",
+		id: "criticalChanceIncrease",		affixType: "suffix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -67,9 +57,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(15, 20, 55, 70),
 	},
 	coldDamageToAttacksFlat: {
-		id: "coldDamageToAttacksFlat",
-		name: "Chilling",
-		affixType: "prefix",
+		id: "coldDamageToAttacksFlat",		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -84,9 +72,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	fireDamageToAttacksFlat: {
-		id: "fireDamageToAttacksFlat",
-		name: "Scorching",
-		affixType: "prefix",
+		id: "fireDamageToAttacksFlat",		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -101,9 +87,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	lightningDamageToAttacksFlat: {
-		id: "lightningDamageToAttacksFlat",
-		name: "Crackling",
-		affixType: "prefix",
+		id: "lightningDamageToAttacksFlat",		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -118,9 +102,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(4, 12, 55, 140),
 	},
 	voidDamageToAttacksFlat: {
-		id: "voidDamageToAttacksFlat",
-		name: "Voidscarred",
-		affixType: "prefix",
+		id: "voidDamageToAttacksFlat",		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -138,9 +120,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 	// ── Global flat-to-attacks elementals (jewelry + quiver) ──
 	// Tiers scaled ~50% vs the local *-to-attacks equivalents (cf. physicalDamageFlatGlobal).
 	coldDamageToAttacksFlatGlobal: {
-		id: "coldDamageToAttacksFlatGlobal",
-		name: "Chilling",
-		affixType: "prefix",
+		id: "coldDamageToAttacksFlatGlobal",		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["ring", "amulet", "quiver"],
@@ -151,9 +131,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 4, 24, 50),
 	},
 	fireDamageToAttacksFlatGlobal: {
-		id: "fireDamageToAttacksFlatGlobal",
-		name: "Scorching",
-		affixType: "prefix",
+		id: "fireDamageToAttacksFlatGlobal",		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["ring", "amulet", "quiver"],
@@ -164,9 +142,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 4, 24, 50),
 	},
 	lightningDamageToAttacksFlatGlobal: {
-		id: "lightningDamageToAttacksFlatGlobal",
-		name: "Crackling",
-		affixType: "prefix",
+		id: "lightningDamageToAttacksFlatGlobal",		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["ring", "amulet", "quiver"],
@@ -177,9 +153,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 6, 28, 70),
 	},
 	voidDamageToAttacksFlatGlobal: {
-		id: "voidDamageToAttacksFlatGlobal",
-		name: "Voidscarred",
-		affixType: "prefix",
+		id: "voidDamageToAttacksFlatGlobal",		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["ring", "amulet", "quiver"],
@@ -192,9 +166,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 
 	// ── Global offensive mods (can roll on weapons + armor + jewelry) ──
 	accuracyFlat: {
-		id: "accuracyFlat",
-		name: "of the Ranger",
-		affixType: "suffix",
+		id: "accuracyFlat",		affixType: "suffix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: [
@@ -211,9 +183,7 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(30, 60, 300, 400),
 	},
 	criticalStrikeMultiplierFlat: {
-		id: "criticalStrikeMultiplierFlat",
-		name: "of Destruction",
-		affixType: "suffix",
+		id: "criticalStrikeMultiplierFlat",		affixType: "suffix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: [

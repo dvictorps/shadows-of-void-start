@@ -33,7 +33,10 @@ export interface RolledImplicit {
 
 export interface RolledMod {
 	modifierId: string;
-	modifierName: string;
+	// Legacy field — items rolled before the lexicon refactor carry the EN
+	// affix name here. New rolls omit it; the renderer reads modifierId and
+	// resolves the display string through lexicon/{en,pt}.ts.
+	modifierName?: string;
 	affixType: AffixType;
 	modifierType: string;
 	isGlobalStat: boolean;
@@ -73,12 +76,15 @@ export interface ComputedDefenseStats {
 export interface GeneratedItem {
 	id: string;
 	templateId: string;
-	templateName: string;
+	// Legacy fields — items rolled before the lexicon refactor cached the EN
+	// display name here. New rolls omit them; consumers must use
+	// translateItemName / translateTemplateName (display-time, locale-aware).
+	templateName?: string;
+	name?: string;
 	equipmentType: EquipmentType;
 	weaponType?: WeaponType;
 	armorType?: ArmorType;
 	rarity: ItemRarity;
-	name: string;
 	itemLevel: number;
 	baseStats: Partial<Record<BaseStatKey, number>>;
 	implicits: RolledImplicit[];

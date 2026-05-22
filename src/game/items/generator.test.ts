@@ -57,7 +57,6 @@ describe("generateItem basics", () => {
 		const item = generateItem({ rarity: "rare", itemLevel: 50 });
 		expect(item.id).toBeTruthy();
 		expect(item.templateId).toBeTruthy();
-		expect(item.templateName).toBeTruthy();
 		expect(item.equipmentType).toBeTruthy();
 		expect(item.rarity).toBe("rare");
 		expect(item.itemLevel).toBe(50);
@@ -74,7 +73,6 @@ describe("generateItem basics", () => {
 	it("uses specified templateId", () => {
 		const item = generateItem({ rarity: "normal", templateId: "sword_t1" });
 		expect(item.templateId).toBe("sword_t1");
-		expect(item.templateName).toBe("Iron Sword");
 	});
 
 	it("falls back to random template when templateId is invalid", () => {
@@ -256,34 +254,11 @@ describe("explicit ordering", () => {
 });
 
 // ── Naming ──
-
-describe("item naming", () => {
-	it("normal items use template name", () => {
-		const item = generateItem({ rarity: "normal", templateId: "sword_t1" });
-		expect(item.name).toBe("Iron Sword");
-	});
-
-	it("magic items include affix names", () => {
-		const items = generateMany(50, {
-			rarity: "magic",
-			templateId: "sword_t1",
-			itemLevel: 80,
-		});
-		for (const item of items) {
-			expect(item.name).toContain("Iron Sword");
-		}
-	});
-
-	it("rare/legendary/epic items have generated names", () => {
-		for (const rarity of ["rare", "legendary", "epic"] as ItemRarity[]) {
-			const items = generateMany(20, { rarity, itemLevel: 80 });
-			for (const item of items) {
-				expect(item.name).not.toBe(item.templateName);
-				expect(item.name.split(" ")).toHaveLength(2);
-			}
-		}
-	});
-});
+//
+// Item names are rendered at display time by translateItemName(item) from
+// templateId + explicits + item.id. generateItem no longer populates
+// item.name; the test for naming behavior lives next to the renderer
+// (item-name.test.ts when it's written).
 
 // ── Spell weapons: no attack mods ──
 

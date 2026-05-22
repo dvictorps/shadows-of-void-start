@@ -52,12 +52,28 @@ function renderMagicName(
 	if (isPt) {
 		const gender = lex.templateGender?.[item.templateId] ?? "m";
 		parts.push(base);
-		if (prefix) parts.push(pickGendered(lex.prefixForms[prefix.modifierId], gender, prefix.modifierId));
-		if (suffix) parts.push(lex.suffixPhrases[suffix.modifierId] ?? suffix.modifierId);
+		if (prefix)
+			parts.push(
+				pickGendered(
+					lex.prefixForms[prefix.modifierId],
+					gender,
+					prefix.modifierId,
+				),
+			);
+		if (suffix)
+			parts.push(lex.suffixPhrases[suffix.modifierId] ?? suffix.modifierId);
 	} else {
-		if (prefix) parts.push(pickGendered(lex.prefixForms[prefix.modifierId], "m", prefix.modifierId));
+		if (prefix)
+			parts.push(
+				pickGendered(
+					lex.prefixForms[prefix.modifierId],
+					"m",
+					prefix.modifierId,
+				),
+			);
 		parts.push(base);
-		if (suffix) parts.push(lex.suffixPhrases[suffix.modifierId] ?? suffix.modifierId);
+		if (suffix)
+			parts.push(lex.suffixPhrases[suffix.modifierId] ?? suffix.modifierId);
 	}
 	return parts.join(" ");
 }
@@ -65,7 +81,8 @@ function renderMagicName(
 function renderProperName(item: GeneratedItem, lex: ItemNameLexicon): string {
 	const [h1, h2] = hashItemId(item.id);
 	const first = lex.rareFirstWords[Math.floor(h1 * lex.rareFirstWords.length)];
-	const second = lex.rareSecondWords[Math.floor(h2 * lex.rareSecondWords.length)];
+	const second =
+		lex.rareSecondWords[Math.floor(h2 * lex.rareSecondWords.length)];
 	return `${first} ${second}`;
 }
 

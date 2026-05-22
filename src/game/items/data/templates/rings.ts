@@ -3,9 +3,7 @@ import type { EquipmentTemplate } from "./types";
 // Rings — one base per implicit type, no tier progression
 export const RING_TEMPLATES: EquipmentTemplate[] = [
 	{
-		id: "cobalt_ring",
-		name: "Cobalt Ring",
-		equipmentType: "ring",
+		id: "cobalt_ring",		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -20,9 +18,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/anelCobalto.png",
 	},
 	{
-		id: "garnet_ring",
-		name: "Garnet Ring",
-		equipmentType: "ring",
+		id: "garnet_ring",		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -37,9 +33,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/anelCarmesin.png",
 	},
 	{
-		id: "topaz_ring",
-		name: "Topaz Ring",
-		equipmentType: "ring",
+		id: "topaz_ring",		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -54,9 +48,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/anelEsmeralda.png",
 	},
 	{
-		id: "obsidian_ring",
-		name: "Obsidian Ring",
-		equipmentType: "ring",
+		id: "obsidian_ring",		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -71,9 +63,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/anelCaveira.png",
 	},
 	{
-		id: "coral_ring",
-		name: "Coral Ring",
-		equipmentType: "ring",
+		id: "coral_ring",		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},
@@ -88,9 +78,7 @@ export const RING_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/acessorios/anelCarmesin.png",
 	},
 	{
-		id: "lapis_ring",
-		name: "Lapis Ring",
-		equipmentType: "ring",
+		id: "lapis_ring",		equipmentType: "ring",
 		dropLevel: 1,
 		requirements: { level: 1 },
 		baseStats: {},

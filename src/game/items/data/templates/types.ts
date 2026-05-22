@@ -17,7 +17,6 @@ export interface ImplicitDefinition {
 
 export interface EquipmentTemplate {
 	id: string;
-	name: string;
 	equipmentType: EquipmentType;
 	weaponType?: WeaponType;
 	armorType?: ArmorType;
