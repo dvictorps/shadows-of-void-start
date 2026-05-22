@@ -6,6 +6,97 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ---
 
+## Time-based zone progression + Acampamento + Incenso Etéreo (active design)
+
+**Status**: Design locked, implementation pending.
+**Branch**: `feat/time-based-zones` (created from `origin/master`).
+
+### Why
+
+The current zone progression is a hidden 30-kill counter. The agreed redesign replaces it with a **time bar** that advances during exploração (gaps between encounters) and pauses during combate. The bar fills when the zone's encounter schedule completes, then the miniboss spawns. Goal: zone feels like a transit, not a kill quota.
+
+The design is fully documented in `CONTEXT.md` — see `### Time Bar`, `### Combat Phases`, `### Encounter Schedule`, `### Acampamento`, and `### Active player input` (Incenso Etéreo, consolidated Teleport Stone).
+
+### Scope summary
+
+- **Time Bar** (replaces Threshold Bar): per-zone encounter schedule + `spawn event` abstraction (`{ size: 1, kind, ... }`) to leave NvN combat as a future-portable extension.
+- **Encounter Schedule**: zone declares `encountersBeforeBoss`, `gapBetweenSpawns: {min, max}`, `ambushes: { count, packSize, gapWithinPack, magicChance }`, camp anchoring rules. Lives in `src/game/world/act-1.ts`.
+- **Acampamento** (camps): cinematic + modal with two options (Retornar com 100% / Seguir em frente). Baked into the schedule at anchored positions (~50% for `<20` encounters, ~33% + ~66% for `≥20`).
+- **Incenso Etéreo**: new consumable, drop-only (~2-3% from any kill), triggers the camp cinematic on demand. Queueable during combate; blocked during boss fight.
+- **Bag retention tiers**: camp = 100%, exploração = 30%, combate = 30%, morte = 0%. ExitZoneModal enforces 30% cap with player picking which slots.
+- **Teleport Stone consolidation**: stone absorbs the wind crystal's purpose. Single item, destination = any node in `unlockedNodes`. City gets short travel time (3s) + heal/refill; other nodes get the wind crystal's old travel time (~12s) + no heal. Vendor price 40r. `useWindCrystal` and the `windCrystals` counter are retired.
+
+### Required code changes (rough map)
+
+- `convex/combat.ts`:
+  - `recordKill` — drop `etherealIncense` independently on each kill (counter on character doc); decouple miniboss spawn from kill count (engine drives it from schedule end).
+  - `useTeleportStone` — accept `destinationNodeId: v.string()`; branch on `city` vs other (heal+refill only when city); compute `travelArrivesAt` from the appropriate constant.
+  - `useWindCrystal` — delete.
+  - Add `useEtherealIncense` mutation that triggers the camp cinematic flow (or model the cinematic purely client-side and just decrement the counter server-side).
+- `convex/schema.ts`: add `etherealIncense?: v.number()` to `characters`; consider retiring `windCrystals` (or leave for legacy data tolerance).
+- `src/game/world/act-1.ts`: each zone gets `encounterSchedule` data (encounter count, gap bounds, ambush spec, camp positions).
+- `src/game/combat/constants.ts`: add `STONE_TRAVEL_SECONDS_CITY` (3s), keep/rename `WIND_CRYSTAL_TRAVEL_SECONDS` → `STONE_TRAVEL_SECONDS_NON_CITY` (~12s).
+- `src/hooks/useCombatLoop.ts`: replace `KILLS_TO_THRESHOLD` flow with the schedule iterator; track current schedule slot; emit camp events at scheduled slots; queue incenso activations during combat.
+- New components: camp cinematic (`CampCinematic.tsx`?) with fade transitions and the two-option modal.
+- `src/components/world/ExitZoneModal.tsx`: enforce the 30% keep-cap when phase is exploração/combate (pass current phase from caller).
+- `src/components/world/StatusCard.tsx` / combat HUD: 4th button (Incenso Etéreo), greyed out per rules.
+- `src/game/vendor/products.ts`: drop wind crystal; update stone price.
+- `messages/pt.json` + `messages/en.json`: camp cinematic strings, incenso strings.
+
+### Validation
+
+```bash
+npx tsc --noEmit
+npx vitest run
+npx convex dev --once
+npx biome check src/ convex/
+```
+
+Manual smoke: enter zone, observe ambush event with magic pack, hit a baked camp (cinematic fires, modal opens with 2 options), use Continuar (bar resumes), reach miniboss, kill, see Zone Complete panel. Separately: drop an Incenso Etéreo, use mid-combat (queues), confirm cinematic fires after current kill. Separately: use Teleport Stone with non-city destination, confirm no heal/refill applied.
+
+### Open follow-ups (deferred in this PR — see entries below)
+
+- Act-boss node (Model B) re-fit for the time-bar system.
+- Biome-specific ambient audio for the camp cinematic.
+
+---
+
+## Act-boss node Model B refit for time-bar (deferred)
+
+**Status**: Planned, not started.
+**Triggered by**: time-based zone progression PR. The act-boss node still uses the older "Bar 1 fills → miniboss → Bar 2 fills → act boss" Model B (see CONTEXT.md → Act Boss). With regular zones moving to time-based bars, the act-boss node needs design alignment.
+
+### Open questions to resolve before coding
+
+- Does each Model B bar become a separate time-bar with its own schedule? Or stay as a kill counter (the act-boss node remains the only place with kill-counter pacing)?
+- Do camps appear in the act-boss node? Probably no — boss node = commitment.
+- Does the player get a checkpoint after killing the act-boss-miniboss (between Bar 1 and Bar 2)? With time-based, a brief pause + heal would feel natural — but it dilutes "Bar 2 starts immediately".
+- Does Incenso Etéreo work in the act-boss node? Probably no (mirroring the existing "no incenso during boss" rule applied to the whole boss node).
+
+### Why deferred
+
+Time-based zone progression is already large; mixing Model B redesign in would double the scope and complicate testing. Act-boss can ship on the old model until this lands.
+
+---
+
+## Camp cinematic biome-specific audio (deferred)
+
+**Status**: Planned, not started.
+**Triggered by**: time-based zone progression PR. The camp cinematic is text-only at first ship.
+
+### Why
+
+The cinematic was designed to include ambient sound cues per biome ("Sons da natureza calma..." in forest, frog/marsh sounds in pantano, etc.). The project already has hit-sound infrastructure to extend from. Text + fade alone delivers ~80% of the felt experience; audio is the last 20%.
+
+### Scope
+
+- Catalog biome ambient files (`/assets/audio/biomes/forest.mp3`, `pantano.mp3`, etc.).
+- Hook into the camp cinematic timeline: ambient fade-in synced with the first text fade-in; fade-out before the modal options appear.
+- Zone metadata declares its biome key; the cinematic looks up the matching audio.
+- Volume + accessibility: respect a future master volume setting.
+
+---
+
 ## Shared rarity-tinted card primitive (low priority refactor)
 
 **Status**: Planned, not started.
