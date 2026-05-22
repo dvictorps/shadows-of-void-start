@@ -19,7 +19,8 @@ const PT_DEFENSE_WORDS: Record<ArmorBase, { flat: string; pct: string }> = {
 
 function ptDefenseWord(item: GeneratedItem, op: "flat" | "pct"): string {
 	const armorType = item.armorType as ArmorBase | undefined;
-	return armorType ? PT_DEFENSE_WORDS[armorType][op] : "Defesa";
+	const words = armorType ? PT_DEFENSE_WORDS[armorType] : undefined;
+	return words ? words[op] : "Defesa";
 }
 
 function formatValue(mod: RolledMod): string {
