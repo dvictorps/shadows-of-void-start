@@ -202,6 +202,7 @@ const PT_IMPLICIT_PATTERNS: Array<{
 	test: RegExp;
 	render: (value: number, match: RegExpMatchArray) => string;
 }> = [
+	// Resistances
 	{
 		test: /^\+\d+% Cold Resistance$/i,
 		render: (v) => `+${v}% de Resistência ao Frio`,
@@ -222,6 +223,7 @@ const PT_IMPLICIT_PATTERNS: Array<{
 		test: /^\+\d+% to all Elemental Resistances$/i,
 		render: (v) => `+${v}% a todas Resistências Elementais`,
 	},
+	// Attributes
 	{
 		test: /^\+\d+ to all Attributes$/i,
 		render: (v) => `+${v} a todos Atributos`,
@@ -229,15 +231,60 @@ const PT_IMPLICIT_PATTERNS: Array<{
 	{ test: /^\+\d+ Strength$/i, render: (v) => `+${v} de Força` },
 	{ test: /^\+\d+ Dexterity$/i, render: (v) => `+${v} de Destreza` },
 	{ test: /^\+\d+ Intelligence$/i, render: (v) => `+${v} de Inteligência` },
+	// Life / Mana / Barrier — current templates use the "to Maximum X" phrasing.
+	{
+		test: /^\+\d+ to Maximum Life$/i,
+		render: (v) => `+${v} de Vida Máxima`,
+	},
+	{
+		test: /^\+\d+ to Maximum Mana$/i,
+		render: (v) => `+${v} de Mana Máxima`,
+	},
+	{
+		test: /^\+\d+ to Maximum Barrier$/i,
+		render: (v) => `+${v} de Barreira Máxima`,
+	},
+	// Legacy phrasing (older items rolled before templates added the "to").
 	{ test: /^\+\d+ Maximum Life$/i, render: (v) => `+${v} de Vida Máxima` },
 	{ test: /^\+\d+ Maximum Mana$/i, render: (v) => `+${v} de Mana Máxima` },
+	// Accuracy — sword/dagger/etc. implicits use "Rating"; bare "Accuracy" stays
+	// for legacy items.
+	{
+		test: /^\+\d+ Accuracy Rating$/i,
+		render: (v) => `+${v} de Precisão`,
+	},
 	{ test: /^\+\d+ Accuracy$/i, render: (v) => `+${v} de Precisão` },
+	// Flat defenses (legacy)
 	{ test: /^\+\d+ Armor$/i, render: (v) => `+${v} de Armadura` },
 	{ test: /^\+\d+ Evasion$/i, render: (v) => `+${v} de Evasão` },
 	{ test: /^\+\d+ Barrier$/i, render: (v) => `+${v} de Barreira` },
+	// Block (shields)
+	{
+		test: /^\+\d+% Block Chance$/i,
+		render: (v) => `+${v}% de Chance de Bloqueio`,
+	},
+	// Crit multiplier (daggers)
+	{
+		test: /^\+\d+% Critical Strike Multiplier$/i,
+		render: (v) => `+${v}% de Multiplicador Crítico`,
+	},
+	// Speed (boots / quivers)
 	{
 		test: /^\+\d+% Movement Speed$/i,
 		render: (v) => `+${v}% de Velocidade de Movimento`,
+	},
+	{
+		test: /^\+\d+% increased Attack Speed$/i,
+		render: (v) => `+${v}% de Velocidade de Ataque`,
+	},
+	// Spell damage (silk armor / tomes)
+	{
+		test: /^\+\d+% Spell Damage$/i,
+		render: (v) => `+${v}% de Dano de Conjuração`,
+	},
+	{
+		test: /^\+\d+% increased Spell Damage$/i,
+		render: (v) => `+${v}% de Dano de Conjuração`,
 	},
 ];
 
