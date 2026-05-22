@@ -38,7 +38,6 @@ function normalize(char: Doc<"characters">) {
 		travelArrivesAt: char.travelArrivesAt,
 		rubys: char.rubys ?? 0,
 		teleportStones: char.teleportStones ?? 0,
-		windCrystals: char.windCrystals ?? 0,
 		unlockedNodes: char.unlockedNodes ?? ["city"],
 	}
 }
@@ -116,7 +115,6 @@ export const create = mutation({
 			currentLocation: "city",
 			rubys: 0,
 			teleportStones: 0,
-			windCrystals: 0,
 			unlockedNodes: ["city"],
 		})
 

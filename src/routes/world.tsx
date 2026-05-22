@@ -21,7 +21,7 @@ import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
 import VendorModal from "#/components/world/VendorModal";
 import { findClassDefinition } from "#/game/classes/data";
-import { WIND_CRYSTAL_TRAVEL_SECONDS } from "#/game/combat/constants";
+import { teleportStoneTravelSeconds } from "#/game/combat/constants";
 import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { xpToNextLevel } from "#/game/progression/levels";
@@ -50,7 +50,6 @@ const searchSchema = z.object({
 const CONSUMABLE_DESCRIPTIONS: Record<ConsumableKey, () => string> = {
 	potion: m.consumable_desc_potion,
 	teleport: m.consumable_desc_teleport,
-	wind_crystal: m.consumable_desc_wind_crystal,
 };
 
 export const Route = createFileRoute("/world")({
@@ -269,27 +268,14 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		if (!char) return;
 		const stones = char.teleportStones ?? 0;
 		if (stones <= 0) return;
+		const destinationNodeId = args.destinationNodeId ?? "city";
+		const startedAt = Date.now();
+		const arrivesAt =
+			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000;
 		applyCharacterDelta(localStore, args.characterId, {
 			teleportStones: stones - 1,
-			currentLocation: "city",
 			currentZoneSession: undefined,
-			travelDestination: undefined,
-			travelStartedAt: undefined,
-			travelArrivesAt: undefined,
-		});
-	});
-	const useWindCrystal = useMutation(
-		api.combat.useWindCrystal,
-	).withOptimisticUpdate((localStore, args) => {
-		const char = findCharacter(localStore, args.characterId);
-		if (!char) return;
-		const crystals = char.windCrystals ?? 0;
-		if (crystals <= 0) return;
-		const startedAt = Date.now();
-		const arrivesAt = startedAt + WIND_CRYSTAL_TRAVEL_SECONDS * 1000;
-		applyCharacterDelta(localStore, args.characterId, {
-			windCrystals: crystals - 1,
-			travelDestination: args.destinationNodeId,
+			travelDestination: destinationNodeId,
 			travelStartedAt: startedAt,
 			travelArrivesAt: arrivesAt,
 		});
@@ -521,12 +507,12 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		const conn = fromNode?.connections.find((c) => c.id === nodeId);
 		if (!conn) {
 			// Not directly connected. If the destination is unlocked AND the
-			// player has wind crystals, offer the jump. Otherwise fail with the
-			// existing no-route toast.
+			// player has a teleport stone, offer the jump. Otherwise fail with
+			// the existing no-route toast.
 			const destNode = findNode(ACT_1, nodeId);
 			const destName = destNode ? translateNodeName(destNode) : nodeId;
-			const crystals = character.windCrystals ?? 0;
-			if (!unlockedNodeIds.has(nodeId) || crystals <= 0) {
+			const stones = character.teleportStones ?? 0;
+			if (!unlockedNodeIds.has(nodeId) || stones <= 0) {
 				toast.error(m.travel_no_route({ destination: destName }));
 				return;
 			}
@@ -534,7 +520,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				title: m.wind_crystal_confirm_title(),
 				message: m.wind_crystal_confirm_message({
 					destination: destName,
-					remaining: crystals,
+					remaining: stones,
 				}),
 				confirmLabel: m.wind_crystal_use_action(),
 				cancelLabel: m.cancel(),
@@ -542,7 +528,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			if (!ok) return;
 			setPendingArrival(nodeId);
 			try {
-				await useWindCrystal({
+				await useTeleportStone({
 					characterId: character._id,
 					destinationNodeId: nodeId,
 				});
@@ -568,13 +554,16 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const handleUseTeleportStone = async () => {
 		const stones = character.teleportStones ?? 0;
 		if (stones <= 0) return;
+		// The HUD button always sends to city — the panic-return contract.
+		// Non-city destinations come through `handleEnterNode` instead.
+		setPendingArrival("city");
 		try {
-			await useTeleportStone({ characterId: character._id });
-			// View transition mirrors the death-respawn flow — server has set
-			// currentLocation to "city" and cleared zone session/travel.
-			setView("city");
-			setPendingArrival(null);
+			await useTeleportStone({
+				characterId: character._id,
+				destinationNodeId: "city",
+			});
 		} catch (err) {
+			setPendingArrival(null);
 			toast.error(
 				err instanceof Error ? err.message : m.teleport_stone_failed(),
 			);
@@ -751,7 +740,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						canUsePotion={combat.potions > 0 && combat.playerHp < maxHp}
 						onUsePotion={combat.usePotion}
 						teleportStones={character.teleportStones ?? 0}
-						windCrystals={character.windCrystals ?? 0}
 						canUseTeleportStone={(character.teleportStones ?? 0) > 0}
 						onUseTeleportStone={handleUseTeleportStone}
 						onRetreat={handleRetreat}
@@ -782,7 +770,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					barrierOverride={barrierOverride}
 					potionsOverride={potionsOverride}
 					teleportStones={character.teleportStones ?? 0}
-					windCrystals={character.windCrystals ?? 0}
 					onUsePotion={onUsePotion}
 					onUseTeleportStone={handleUseTeleportStone}
 					onShowStats={statsModal.open}
@@ -826,7 +813,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				rubys={character.rubys ?? 0}
 				potions={character.potions ?? 0}
 				teleportStones={character.teleportStones ?? 0}
-				windCrystals={character.windCrystals ?? 0}
 				inventoryItems={inventoryItems ?? []}
 				onBuy={async (productId) => {
 					await vendorBuy({ characterId: character._id, productId });

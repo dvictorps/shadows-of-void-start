@@ -26,7 +26,7 @@ const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
 	rare: "0 0 18px rgba(255, 255, 119, 0.7), 0 2px 4px rgba(0, 0, 0, 0.9)",
 };
 
-export type ConsumableKey = "potion" | "teleport" | "wind_crystal";
+export type ConsumableKey = "potion" | "teleport";
 
 type Props = {
 	zoneName: string;
@@ -54,7 +54,6 @@ type Props = {
 	canUsePotion: boolean;
 	onUsePotion: () => void;
 	teleportStones: number;
-	windCrystals: number;
 	canUseTeleportStone: boolean;
 	onUseTeleportStone: () => void;
 	onRetreat: () => void;
@@ -89,7 +88,6 @@ export default function CombatScene({
 	canUsePotion,
 	onUsePotion,
 	teleportStones,
-	windCrystals,
 	canUseTeleportStone,
 	onUseTeleportStone,
 	onRetreat,
@@ -434,10 +432,9 @@ export default function CombatScene({
 					</div>
 				</div>
 
-				{/* Teleport stone wears an invisible counter above so its base
-				 * aligns with the potion (which carries the visible counter). */}
+				{/* Teleport stone — sends to city by default from the HUD (panic
+				 * exit). Non-city destinations are picked from the map view. */}
 				<div className="flex flex-col items-center gap-1">
-					<WindCrystalCounter count={windCrystals} hidden />
 					<button
 						type="button"
 						onClick={onUseTeleportStone}
@@ -461,14 +458,7 @@ export default function CombatScene({
 					</button>
 				</div>
 
-				{/* Wind-crystal usage is map-only; here the counter is just a readout. */}
 				<div className="flex flex-col items-center gap-1">
-					<WindCrystalCounter
-						count={windCrystals}
-						onHoverChange={(active) =>
-							onConsumableHover?.(active ? "wind_crystal" : null)
-						}
-					/>
 					<button
 						type="button"
 						onClick={onUsePotion}
@@ -542,40 +532,6 @@ function ZoneCompletePanel({
 				</button>
 			</div>
 		</motion.div>
-	);
-}
-
-// Rendered in both consumable columns so the teleport-stone button's baseline
-// matches the potion's (which carries the visible counter). The `hidden`
-// variant uses `invisible` rather than conditional rendering so the spacer
-// always matches the real counter's height — no drift possible.
-function WindCrystalCounter({
-	count,
-	hidden = false,
-	onHoverChange,
-}: {
-	count: number;
-	hidden?: boolean;
-	onHoverChange?: (active: boolean) => void;
-}) {
-	return (
-		<div
-			role="img"
-			aria-label={`${count} wind crystals`}
-			aria-hidden={hidden || undefined}
-			onMouseEnter={hidden ? undefined : () => onHoverChange?.(true)}
-			onMouseLeave={hidden ? undefined : () => onHoverChange?.(false)}
-			className={`display-title flex items-center gap-2 text-lg tracking-wider text-white ${hidden ? "invisible" : ""}`}
-		>
-			<img
-				src="/assets/sprites/ui/cristalDeVento.png"
-				alt=""
-				draggable={false}
-				aria-hidden="true"
-				className="pointer-events-none h-10 w-10 select-none object-contain"
-			/>
-			<span className="tabular-nums">×{count}</span>
-		</div>
 	);
 }
 

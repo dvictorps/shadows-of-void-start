@@ -6,13 +6,14 @@
 
 import { MAX_POTIONS } from "../combat/constants";
 
-export type VendorProductId = "potion" | "teleport_stone" | "wind_crystal";
+export type VendorProductId = "potion" | "teleport_stone";
 
 // The character document field that holds the count of this product.
 // Used by `vendorBuy` (cap + increment) and `VendorModal` (disable button at
-// cap). Narrowed to the union of the three counter field names so callers
-// get type safety on `char[product.counterField]`.
-export type VendorCounterField = "potions" | "teleportStones" | "windCrystals";
+// cap). Narrowed to the union of counter field names so callers get type
+// safety on `char[product.counterField]`. The legacy `windCrystals` field
+// stays on the schema for stored data but is no longer a vendor counter.
+export type VendorCounterField = "potions" | "teleportStones";
 
 export interface VendorProduct {
 	id: VendorProductId;
@@ -40,17 +41,13 @@ export const VENDOR_PRODUCTS: Record<VendorProductId, VendorProduct> = {
 	},
 	teleport_stone: {
 		id: "teleport_stone",
-		priceRubys: 30,
+		// Repriced 30 → 40 with the wind-crystal consolidation: stone now
+		// carries the wind crystal's "jump to any unlocked node" role too,
+		// so it's worth more per unit.
+		priceRubys: 40,
 		emoji: "🪨",
 		icon: "/assets/sprites/ui/pedraTeleporte.png",
 		counterField: "teleportStones",
-	},
-	wind_crystal: {
-		id: "wind_crystal",
-		priceRubys: 50,
-		emoji: "💎",
-		icon: "/assets/sprites/ui/cristalDeVento.png",
-		counterField: "windCrystals",
 	},
 };
 

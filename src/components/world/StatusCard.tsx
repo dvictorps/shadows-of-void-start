@@ -24,7 +24,6 @@ type Props = {
 	barrierOverride?: number;
 	potionsOverride?: number;
 	teleportStones: number;
-	windCrystals: number;
 	onUsePotion?: () => void;
 	onUseTeleportStone?: () => void;
 	onShowStats?: () => void;
@@ -52,7 +51,6 @@ export default function StatusCard({
 	barrierOverride,
 	potionsOverride,
 	teleportStones,
-	windCrystals,
 	onShowStats,
 	onUsePotion,
 	onUseTeleportStone,
@@ -188,19 +186,6 @@ export default function StatusCard({
 									{teleportStones}
 								</span>
 							</button>
-						</Tooltip>
-						<Tooltip content={m.consumable_desc_wind_crystal()}>
-							<div className="relative flex h-16 w-16 items-center justify-center border border-white/30 bg-black/60">
-								<img
-									src="/assets/sprites/ui/cristalDeVento.png"
-									alt=""
-									draggable={false}
-									className="pointer-events-none h-12 w-12 select-none object-contain"
-								/>
-								<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
-									×{windCrystals}
-								</span>
-							</div>
 						</Tooltip>
 					</div>
 

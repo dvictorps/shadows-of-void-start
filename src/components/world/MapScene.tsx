@@ -81,7 +81,7 @@ export default function MapScene({
 			</svg>
 
 			{act.nodes.map((node) => {
-				const reachableByWindCrystal =
+				const reachableByStone =
 					!connectedIds.has(node.id) && unlockedNodeIds.has(node.id);
 				const isComplete = completedZoneIds.has(node.id);
 				const isLocked =
@@ -94,7 +94,7 @@ export default function MapScene({
 						isCurrent={node.id === currentLocationNodeId}
 						isComplete={isComplete}
 						isLocked={isLocked}
-						reachableByWindCrystal={reachableByWindCrystal}
+						reachableByStone={reachableByStone}
 						onEnter={() => onEnterNode(node.id)}
 						onHover={() => onHoverNode(node.id)}
 						onLeave={() => onHoverNode(null)}
@@ -143,7 +143,7 @@ function MapNode({
 	isCurrent,
 	isComplete,
 	isLocked,
-	reachableByWindCrystal,
+	reachableByStone,
 	onEnter,
 	onHover,
 	onLeave,
@@ -153,7 +153,7 @@ function MapNode({
 	isCurrent: boolean;
 	isComplete: boolean;
 	isLocked: boolean;
-	reachableByWindCrystal: boolean;
+	reachableByStone: boolean;
 	onEnter: () => void;
 	onHover: () => void;
 	onLeave: () => void;
@@ -165,7 +165,7 @@ function MapNode({
 	const borderClass = pickBorderClass({
 		isLocked,
 		hovered,
-		reachableByWindCrystal,
+		reachableByStone,
 	});
 	return (
 		<div
@@ -207,16 +207,16 @@ function MapNode({
 function pickBorderClass({
 	isLocked,
 	hovered,
-	reachableByWindCrystal,
+	reachableByStone,
 }: {
 	isLocked: boolean;
 	hovered: boolean;
-	reachableByWindCrystal: boolean;
+	reachableByStone: boolean;
 }): string {
 	if (isLocked) return "border-white/15 text-white/30";
 	if (hovered)
 		return "border-white text-white shadow-[0_0_12px_rgba(255,255,255,0.5)]";
-	if (reachableByWindCrystal)
+	if (reachableByStone)
 		return "border-cyan-400/70 text-cyan-200/80 hover:border-cyan-300";
 	return "border-white/40 text-white/70 hover:border-white/80";
 }

@@ -20,7 +20,6 @@ type Props = {
 	rubys: number;
 	potions: number;
 	teleportStones: number;
-	windCrystals: number;
 	inventoryItems: Doc<"items">[];
 	onBuy: (productId: VendorProductId) => Promise<void>;
 	onSellMany: (itemIds: Id<"items">[]) => Promise<void>;
@@ -36,7 +35,6 @@ export default function VendorModal({
 	rubys,
 	potions,
 	teleportStones,
-	windCrystals,
 	inventoryItems,
 	onBuy,
 	onSellMany,
@@ -180,7 +178,6 @@ export default function VendorModal({
 							rubys={rubys}
 							potions={potions}
 							teleportStones={teleportStones}
-							windCrystals={windCrystals}
 							onBuy={handleBuy}
 						/>
 					) : (
@@ -229,13 +226,11 @@ function BuyTab({
 	rubys,
 	potions,
 	teleportStones,
-	windCrystals,
 	onBuy,
 }: {
 	rubys: number;
 	potions: number;
 	teleportStones: number;
-	windCrystals: number;
 	onBuy: (productId: VendorProductId) => Promise<void>;
 }) {
 	const products = Object.values(VENDOR_PRODUCTS);
@@ -244,7 +239,6 @@ function BuyTab({
 	const counts: Record<string, number> = {
 		potions,
 		teleportStones,
-		windCrystals,
 	};
 	const isAtCap = (p: (typeof products)[number]): boolean =>
 		p.cap !== undefined && (counts[p.counterField] ?? 0) >= p.cap;
@@ -408,8 +402,6 @@ function productLabel(id: VendorProductId): string {
 			return m.vendor_product_potion();
 		case "teleport_stone":
 			return m.vendor_product_teleport_stone();
-		case "wind_crystal":
-			return m.vendor_product_wind_crystal();
 		default:
 			return id;
 	}
