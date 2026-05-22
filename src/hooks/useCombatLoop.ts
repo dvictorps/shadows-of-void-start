@@ -54,14 +54,36 @@ import {
 	scaleMonsterStats,
 } from "#/game/monsters";
 import type { ComputedCharacterStats } from "#/game/stats/types";
+import type { RareNameSeed } from "#/game/world/i18n";
 import { pickRandom } from "#/lib/rng";
+import { playMonsterDeathSfx, playSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
 import { useDelay } from "./useDelay";
 import { useTicker } from "./useTicker";
 
-type CombatState = "searching" | "engaged" | "victory" | "miniboss_victory";
+type CombatState =
+	| "searching"
+	| "boss_intro"
+	| "engaged"
+	| "victory"
+	| "miniboss_victory";
+
+// Three-stage dramatic spawn for rare minibosses. The ticker stays paused
+// (gated on state === "engaged") for the full intro, so the player can't
+// pre-empt the build-up and the boss can't swing before its HP bar shows.
+export type BossIntroStage = "sprite" | "name" | "hp" | null;
+
+const BOSS_INTRO_STAGE_MS: Record<Exclude<BossIntroStage, null>, number> = {
+	// Each value is how long the stage holds BEFORE advancing — so it must be
+	// at least as long as the visual transition kicked off when the stage
+	// becomes active. Sprite enters with scale 1.2 → 1.0 over ~700 ms, then
+	// the nameplate fades + slides in over ~400 ms, then the HP bar.
+	sprite: 750,
+	name: 500,
+	hp: 500,
+};
 
 export type Enemy = {
 	def: MonsterDefinition;
@@ -70,6 +92,10 @@ export type Enemy = {
 	rarity: MonsterRarity;
 	mods: readonly MonsterModId[];
 	scaled: ScaledMonsterStats;
+	// Seeds for the rare proper-name generator. Sampled once on spawn so the
+	// rare's name stays stable across re-renders and locale switches.
+	// Non-rare spawns still carry the field (unused) to keep the shape narrow.
+	nameSeed: RareNameSeed;
 };
 
 function defenderFromEnemy(enemy: Enemy) {
@@ -121,6 +147,7 @@ export function useCombatLoop({
 }: Params) {
 	const maxHp = stats.maxLife;
 	const [state, setState] = useState<CombatState>("searching");
+	const [bossIntroStage, setBossIntroStage] = useState<BossIntroStage>(null);
 	const [enemy, setEnemy] = useState<Enemy | null>(null);
 	const [playerHp, setPlayerHp] = useState(initialHp);
 	const [barrier, setBarrier] = useState(() =>
@@ -179,6 +206,7 @@ export function useCombatLoop({
 			stateRef.current = "victory";
 			setLastKill({ xp: xpGained, potion: false });
 			setState("victory");
+			playMonsterDeathSfx(killed.def.id);
 			// Optimistic threshold bump. Miniboss kill resets the counter so the
 			// bar visibly drains and the farming loop restarts.
 			lastKillWasMinibossRef.current = killed.rarity === "rare";
@@ -230,6 +258,7 @@ export function useCombatLoop({
 			nextSwingIndexRef.current = 0;
 			zoneKillsRef.current = initialZoneKillsRef.current;
 			setZoneKills(initialZoneKillsRef.current);
+			setBossIntroStage(null);
 			stateRef.current = "searching";
 			setState("searching");
 		} else if (!active && wasActive && !deadRef.current) {
@@ -253,6 +282,11 @@ export function useCombatLoop({
 			zoneKillsRef.current >= KILLS_TO_THRESHOLD ? "rare" : rollMonsterRarity();
 		const mods = rollMonsterMods(modCountForRarity(rarity));
 		const scaled = applyMonsterMods(baseScaled, mods);
+		const nameSeed: RareNameSeed = {
+			primary: Math.random(),
+			secondary: Math.random(),
+			epithet: Math.random(),
+		};
 		const newEnemy: Enemy = {
 			def,
 			currentHp: scaled.hp,
@@ -260,14 +294,46 @@ export function useCombatLoop({
 			rarity,
 			mods,
 			scaled,
+			nameSeed,
 		};
 		enemyRef.current = newEnemy;
 		setEnemy(newEnemy);
 		playerProgressRef.current = 0;
 		enemyProgressRef.current = 0;
 		nextSwingIndexRef.current = 0;
-		setState("engaged");
+		// Rare minibosses get a staged reveal (sprite → name → HP bar) before
+		// combat starts. Regular spawns engage immediately.
+		if (rarity === "rare") {
+			setBossIntroStage("sprite");
+			stateRef.current = "boss_intro";
+			setState("boss_intro");
+		} else {
+			setBossIntroStage(null);
+			stateRef.current = "engaged";
+			setState("engaged");
+		}
 	});
+
+	// ── Boss intro stages → cascade into engaged ──
+	useDelay(
+		active && state === "boss_intro" && bossIntroStage === "sprite",
+		BOSS_INTRO_STAGE_MS.sprite,
+		() => setBossIntroStage("name"),
+	);
+	useDelay(
+		active && state === "boss_intro" && bossIntroStage === "name",
+		BOSS_INTRO_STAGE_MS.name,
+		() => setBossIntroStage("hp"),
+	);
+	useDelay(
+		active && state === "boss_intro" && bossIntroStage === "hp",
+		BOSS_INTRO_STAGE_MS.hp,
+		() => {
+			setBossIntroStage(null);
+			stateRef.current = "engaged";
+			setState("engaged");
+		},
+	);
 
 	// ── Victory pause → back to searching (or pause for miniboss modal) ──
 	useDelay(active && state === "victory", VICTORY_DELAY_MS, () => {
@@ -367,6 +433,12 @@ export function useCombatLoop({
 						amount: result.amount,
 						target: "enemy",
 						isCrit: result.isCrit,
+						weaponType: swing.weaponType,
+					});
+					playSfx("hit.wav", {
+						volume: 0.3,
+						pitchVariance: 0.1,
+						exclusive: true,
 					});
 
 					// Spawn a leech instance based on the physical chunk landed.
@@ -401,6 +473,11 @@ export function useCombatLoop({
 						isCrit: false,
 						isMiss: true,
 					});
+					playSfx("errarHit.wav", {
+						volume: 0.25,
+						pitchVariance: 0.1,
+						exclusive: true,
+					});
 				}
 			}
 
@@ -421,10 +498,20 @@ export function useCombatLoop({
 				});
 				if (attack.isMiss) {
 					pushEvent({ amount: 0, target: "player", isMiss: true });
+					playSfx("esquiva.wav", {
+						volume: 0.5,
+						pitchVariance: 0.1,
+						exclusive: true,
+					});
 				} else if (attack.isBlocked) {
 					// Block → no damage to barrier/life, but the hit still "lands" for
 					// thorns purposes (handled below).
 					pushEvent({ amount: 0, target: "player", isBlocked: true });
+					playSfx("block.wav", {
+						volume: 0.5,
+						pitchVariance: 0.1,
+						exclusive: true,
+					});
 				} else if (attack.amount > 0) {
 					// Apply to barrier first, then life.
 					const { state: nextBarrier, lifeOverflow } = damageBarrier(
@@ -442,9 +529,15 @@ export function useCombatLoop({
 					playerHpRef.current = result.newLife;
 					setPlayerHp(result.newLife);
 					pushEvent({ amount: attack.amount, target: "player" });
+					playSfx("tomandoHit.wav", {
+						volume: 0.3,
+						pitchVariance: 0.1,
+						exclusive: true,
+					});
 
 					if (result.newLife <= 0 && !deadRef.current) {
 						deadRef.current = true;
+						playSfx("morte.wav");
 						queueMicrotask(() => onPlayerDeath());
 					}
 				}
@@ -517,6 +610,7 @@ export function useCombatLoop({
 
 	return {
 		state,
+		bossIntroStage,
 		enemy,
 		playerHp,
 		barrier: barrierSnapshot,

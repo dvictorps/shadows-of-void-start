@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { WeaponType } from "#/game/items/types/base";
 
 export type DamageEvent = {
 	id: string;
@@ -8,6 +9,8 @@ export type DamageEvent = {
 	isMiss?: boolean;
 	isBlocked?: boolean;
 	isThorns?: boolean;
+	// Set for player→enemy hits. Drives the HitFx category (slash/impact/magic).
+	weaponType?: WeaponType;
 };
 
 const EVENT_LIFETIME_MS = 900;

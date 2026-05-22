@@ -659,6 +659,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	}
 
 	const hpOverride = view === "combat" ? combat.playerHp : undefined;
+	const barrierOverride =
+		view === "combat" ? combat.barrier.current : undefined;
 	const potionsOverride = view === "combat" ? combat.potions : undefined;
 	const onUsePotion =
 		view === "combat" || view === "map" ? combat.usePotion : undefined;
@@ -735,10 +737,13 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						zoneName={translateNodeName(currentNode)}
 						zoneLevel={zoneLevel}
 						state={combat.state}
+						bossIntroStage={combat.bossIntroStage}
 						enemy={combat.enemy}
 						events={combat.events}
 						playerHp={combat.playerHp}
 						maxHp={maxHp}
+						barrier={combat.barrier.current}
+						maxBarrier={combat.barrier.max}
 						xp={character.xp ?? 0}
 						xpNeeded={xpToNextLevel(character.level)}
 						lastKillXp={combat.lastKill?.xp}
@@ -774,6 +779,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					classDef={classDef}
 					stats={stats}
 					hpOverride={hpOverride}
+					barrierOverride={barrierOverride}
 					potionsOverride={potionsOverride}
 					teleportStones={character.teleportStones ?? 0}
 					windCrystals={character.windCrystals ?? 0}

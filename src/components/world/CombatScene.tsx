@@ -1,17 +1,13 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { type CSSProperties, useMemo } from "react";
-import Modal from "#/components/Modal";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import type { MonsterRarity } from "#/game/monsters";
-import { translateMonsterName } from "#/game/world/i18n";
-import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
+import { translateEnemyName } from "#/game/world/i18n";
+import type { BossIntroStage, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 import HealthGlobe from "./HealthGlobe";
+import HitFx from "./HitFx";
 import MonsterTooltip from "./MonsterTooltip";
-
-const ENEMY_SPRITE_STYLE: CSSProperties = {
-	animation: "fadeIn 400ms ease-out",
-};
 
 // Rarity-tinted nameplate colors mirror the item rarity palette so the
 // player reads "blue = magic, yellow = rare" consistently across UI.
@@ -21,16 +17,33 @@ const RARITY_NAMEPLATE_COLOR: Record<MonsterRarity, string> = {
 	rare: "#ffff77",
 };
 
+// Glow reinforces rarity. Normal keeps only a readability shadow; magic/rare
+// add a color-matched halo. Rare's halo is stronger to preserve its drama
+// even though it shares the staging spotlight with the boss intro cascade.
+const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
+	normal: "0 2px 4px rgba(0, 0, 0, 0.9)",
+	magic: "0 0 14px rgba(136, 136, 255, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
+	rare: "0 0 18px rgba(255, 255, 119, 0.7), 0 2px 4px rgba(0, 0, 0, 0.9)",
+};
+
 export type ConsumableKey = "potion" | "teleport" | "wind_crystal";
 
 type Props = {
 	zoneName: string;
 	zoneLevel: number;
-	state: "searching" | "engaged" | "victory" | "miniboss_victory";
+	state:
+		| "searching"
+		| "boss_intro"
+		| "engaged"
+		| "victory"
+		| "miniboss_victory";
+	bossIntroStage: BossIntroStage;
 	enemy: Enemy | null;
 	events: DamageEvent[];
 	playerHp: number;
 	maxHp: number;
+	barrier: number;
+	maxBarrier: number;
 	xp: number;
 	xpNeeded: number;
 	// XP from the most recent kill — fires a floating popup when state goes
@@ -62,10 +75,13 @@ export default function CombatScene({
 	zoneName,
 	zoneLevel,
 	state,
+	bossIntroStage,
 	enemy,
 	events,
 	playerHp,
 	maxHp,
+	barrier,
+	maxBarrier,
 	xp,
 	xpNeeded,
 	lastKillXp,
@@ -94,7 +110,128 @@ export default function CombatScene({
 		() => events.filter((e) => e.target === "player"),
 		[events],
 	);
+	// Latest event the player landed on the enemy with a weapon. Drives the
+	// HitFx mount (renders even on block, per design — block animates the
+	// visual but the enemy reaction below skips).
+	const lastSwingHit = useMemo(() => {
+		for (let i = enemyEvents.length - 1; i >= 0; i--) {
+			const e = enemyEvents[i];
+			if (e.weaponType && !e.isMiss) return e;
+		}
+		return null;
+	}, [enemyEvents]);
+	// Latest event that actually damaged the enemy. Drives the shake + flash.
+	const lastDamagingHit = useMemo(() => {
+		for (let i = enemyEvents.length - 1; i >= 0; i--) {
+			const e = enemyEvents[i];
+			if (!e.isMiss && !e.isBlocked) return e;
+		}
+		return null;
+	}, [enemyEvents]);
+	// Latest event where the player actually took damage. Drives the lighter
+	// health-globe shake — miss/block don't trigger it.
+	const lastPlayerHit = useMemo(() => {
+		for (let i = playerEvents.length - 1; i >= 0; i--) {
+			const e = playerEvents[i];
+			if (!e.isMiss && !e.isBlocked) return e;
+		}
+		return null;
+	}, [playerEvents]);
 	const nameColor = enemy ? RARITY_NAMEPLATE_COLOR[enemy.rarity] : "#ffffff";
+	const nameShadow = enemy
+		? RARITY_NAMEPLATE_SHADOW[enemy.rarity]
+		: RARITY_NAMEPLATE_SHADOW.normal;
+	// Micro-stagger for non-rare reveals: sprite → name → hp in ~160ms total.
+	// Rares are paced by the boss intro cascade (sprite/name/hp stages), so
+	// any extra delay here would compound and feel sluggish.
+	const isRareEnemy = enemy?.rarity === "rare";
+	const nameplateDelay = isRareEnemy ? 0 : 0.08;
+	const hpBarDelay = isRareEnemy ? 0 : 0.16;
+
+	// Staged reveal for rare minibosses. The nameplate appears at stage "name",
+	// the HP bar at stage "hp". The sprite is always shown once the spawn
+	// transitions out of "searching". For non-boss spawns (bossIntroStage is
+	// null), everything appears together as before.
+	// On victory, both fade out alongside the sprite so the exit mirrors the
+	// entrance instead of the nameplate/bar popping out when the enemy unmounts.
+	const showNameplate =
+		enemy !== null &&
+		state !== "miniboss_victory" &&
+		state !== "victory" &&
+		(state !== "boss_intro" || bossIntroStage !== "sprite");
+	const showHpBar =
+		enemy !== null &&
+		state !== "miniboss_victory" &&
+		state !== "victory" &&
+		(state !== "boss_intro" || bossIntroStage === "hp");
+	// Read once per render — both the nameplate text and the img alt need it.
+	const enemyDisplayName = enemy ? translateEnemyName(enemy) : "";
+
+	// Sprite-level controls drive both the entrance animation and the in-combat
+	// shake. Three effects mutate them, ordered by lifecycle: spawn entrance →
+	// damage shake → victory fade. Mixing the entrance into framer-motion's
+	// `initial` prop wouldn't survive same-monster respawns (key collision), so
+	// the entrance is imperative: detect the null → non-null transition on
+	// `enemy` and re-issue set+start every fresh spawn.
+	const enemyControls = useAnimationControls();
+	const prevEnemyRef = useRef<Enemy | null>(null);
+
+	useLayoutEffect(() => {
+		const wasNull = prevEnemyRef.current === null;
+		prevEnemyRef.current = enemy;
+		if (!enemy) return;
+		if (!wasNull) return;
+		const isRare = enemy.rarity === "rare";
+		// Non-rare entrance uses a "fading from the dark" feel — slight y
+		// offset + blur — instead of the rare's bold scale-down. Keeps the
+		// rare's cinematic entrance distinctive.
+		enemyControls.set({
+			opacity: 0,
+			scale: isRare ? 1.2 : 1,
+			x: 0,
+			y: isRare ? 0 : 8,
+			filter: isRare
+				? "brightness(1) saturate(1) hue-rotate(0deg)"
+				: "brightness(1) saturate(1) blur(4px)",
+		});
+		enemyControls.start({
+			opacity: 1,
+			scale: 1,
+			y: 0,
+			filter: "brightness(1) saturate(1) hue-rotate(0deg)",
+			transition: { duration: isRare ? 0.7 : 0.4, ease: "easeOut" },
+		});
+	}, [enemy, enemyControls]);
+
+	useEffect(() => {
+		if (!lastDamagingHit) return;
+		const amp = lastDamagingHit.isCrit ? 6 : 4;
+		enemyControls.start({
+			x: [0, -amp, amp, -Math.round(amp * 0.7), Math.round(amp * 0.5), 0],
+			filter: [
+				"brightness(1) saturate(1) hue-rotate(0deg)",
+				"brightness(1.8) saturate(2) hue-rotate(320deg)",
+				"brightness(1) saturate(1) hue-rotate(0deg)",
+			],
+			transition: { duration: 0.2, times: [0, 0.2, 0.4, 0.6, 0.8, 1] },
+		});
+	}, [lastDamagingHit, enemyControls]);
+
+	useEffect(() => {
+		if (state !== "victory" || !enemy) return;
+		// Mirror the entrance: non-rare "falls back into the dark" (y down +
+		// blur), rare keeps a clean fade so we don't add unrelated motion to
+		// the boss exit. easeIn pairs with the entrance's easeOut.
+		const isRare = enemy.rarity === "rare";
+		enemyControls.start({
+			opacity: 0,
+			y: isRare ? 0 : 8,
+			filter: isRare
+				? "brightness(1) saturate(1) hue-rotate(0deg)"
+				: "brightness(1) saturate(1) blur(4px)",
+			transition: { duration: 0.5, ease: "easeIn" },
+		});
+	}, [state, enemy, enemyControls]);
 
 	return (
 		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
@@ -146,22 +283,36 @@ export default function CombatScene({
 				</button>
 			</div>
 
-			{/* Enemy nameplate: name on top, level directly below */}
-			<div className="flex flex-col items-center gap-1 px-6 pt-14">
-				{enemy ? (
-					<>
+			{/* Enemy nameplate slot. Reserves a fixed height so the nameplate
+			 * appearing during boss_intro (or any spawn) doesn't reflow the
+			 * sprite below — only opacity / y animate. */}
+			<div className="flex h-[120px] flex-col items-center gap-1 px-6 pt-14">
+				{enemy && (
+					<motion.div
+						className="flex flex-col items-center gap-1"
+						initial={{ opacity: 0, y: 8 }}
+						animate={{
+							opacity: showNameplate ? 1 : 0,
+							y: showNameplate ? 0 : 8,
+						}}
+						transition={{
+							duration: 0.45,
+							ease: "easeOut",
+							// Stagger applies only to the reveal — keeping it on the
+							// fade-out would make the nameplate linger past the sprite.
+							delay: showNameplate ? nameplateDelay : 0,
+						}}
+					>
 						<div
 							className="display-title text-4xl uppercase tracking-[0.15em]"
-							style={{ color: nameColor }}
+							style={{ color: nameColor, textShadow: nameShadow }}
 						>
-							{translateMonsterName(enemy.def)}
+							{enemyDisplayName}
 						</div>
 						<div className="text-lg uppercase tracking-[0.2em] text-white/60">
 							Lv {enemy.level}
 						</div>
-					</>
-				) : (
-					<div className="h-[40px]" />
+					</motion.div>
 				)}
 			</div>
 
@@ -172,18 +323,30 @@ export default function CombatScene({
 							{m.searching_enemy()}
 						</p>
 					)}
-					{enemy && state !== "searching" && (
+					{state === "miniboss_victory" && (
+						<ZoneCompletePanel
+							onContinue={onDismissMinibossModal}
+							onRetreat={onRetreat}
+						/>
+					)}
+					{enemy && state !== "searching" && state !== "miniboss_victory" && (
 						<div className="group relative">
-							<img
-								key={enemy.def.id}
+							<motion.img
 								src={enemy.def.sprite}
-								alt={translateMonsterName(enemy.def)}
+								alt={enemyDisplayName}
 								draggable={false}
-								className={`pointer-events-none h-64 w-64 select-none object-contain transition-opacity duration-500 ${
-									state === "victory" ? "opacity-0" : "opacity-100"
-								}`}
-								style={ENEMY_SPRITE_STYLE}
+								className="pointer-events-none h-64 w-64 select-none object-contain"
+								animate={enemyControls}
 							/>
+							<AnimatePresence>
+								{lastSwingHit && (
+									<HitFx
+										key={lastSwingHit.id}
+										weaponType={lastSwingHit.weaponType ?? "sword"}
+										isCrit={lastSwingHit.isCrit}
+									/>
+								)}
+							</AnimatePresence>
 							{enemy.rarity !== "normal" && (
 								<div className="-translate-x-1/2 pointer-events-none absolute top-full left-1/2 z-20 mt-2 hidden group-hover:block">
 									<MonsterTooltip enemy={enemy} />
@@ -212,15 +375,36 @@ export default function CombatScene({
 					</div>
 				</div>
 
-				{enemy && (
-					<EnemyHpBar current={enemy.currentHp} max={enemy.scaled.hp} />
+				{/* HP bar slot. Always reserved when an enemy is present so the
+				 * sprite above doesn't shift when the bar fades in during
+				 * boss_intro stage 3. */}
+				{enemy && state !== "miniboss_victory" && (
+					<motion.div
+						className="flex w-full justify-center"
+						initial={{ opacity: 0, y: -6 }}
+						animate={{ opacity: showHpBar ? 1 : 0, y: showHpBar ? 0 : -6 }}
+						transition={{
+							duration: 0.45,
+							ease: "easeOut",
+							delay: showHpBar ? hpBarDelay : 0,
+						}}
+					>
+						<EnemyHpBar current={enemy.currentHp} max={enemy.scaled.hp} />
+					</motion.div>
 				)}
 			</div>
 
 			{/* Bottom HUD: HP globe + XP bar + teleport stone + (wind-crystal counter / potion) */}
 			<div className="relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4">
 				<div className="relative">
-					<HealthGlobe hp={playerHp} maxHp={maxHp} size="md" />
+					<HealthGlobe
+						hp={playerHp}
+						maxHp={maxHp}
+						barrier={barrier}
+						maxBarrier={maxBarrier}
+						size="xl"
+						hitToken={lastPlayerHit?.id ?? null}
+					/>
 					{/* Damage popups over the globe */}
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
 						<AnimatePresence>
@@ -308,40 +492,56 @@ export default function CombatScene({
 					</button>
 				</div>
 			</div>
-
-			{/* Post-miniboss modal — appears after the victory delay when the
-			 * killed enemy was rare. Continue resumes the farming loop; Retreat
-			 * triggers the standard exit-zone flow. See CONTEXT.md → Zone Miniboss. */}
-			<Modal
-				isOpen={state === "miniboss_victory"}
-				onClose={onDismissMinibossModal}
-				dismissible={false}
-				title={m.miniboss_modal_title()}
-				hideHeaderClose
-			>
-				<div className="flex flex-col items-center gap-4 px-4 py-2">
-					<p className="text-center text-sm text-white/70">
-						{m.miniboss_modal_body()}
-					</p>
-					<div className="flex gap-3">
-						<button
-							type="button"
-							onClick={onDismissMinibossModal}
-							className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
-						>
-							{m.miniboss_modal_continue()}
-						</button>
-						<button
-							type="button"
-							onClick={onRetreat}
-							className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
-						>
-							{m.miniboss_modal_retreat()}
-						</button>
-					</div>
-				</div>
-			</Modal>
 		</section>
+	);
+}
+
+// Inline replacement for the post-miniboss modal. Renders in the central
+// enemy area so the player stays in-scene to make the continue/retreat
+// choice. See CONTEXT.md → Zone Miniboss.
+function ZoneCompletePanel({
+	onContinue,
+	onRetreat,
+}: {
+	onContinue: () => void;
+	onRetreat: () => void;
+}) {
+	return (
+		<motion.div
+			className="flex flex-col items-center gap-5 px-6"
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			transition={{ duration: 0.3 }}
+		>
+			<div
+				className="display-title text-4xl uppercase tracking-[0.2em]"
+				style={{
+					color: "#ffd966",
+					textShadow: "0 0 16px rgba(255, 217, 102, 0.45)",
+				}}
+			>
+				{m.zone_complete_title()}
+			</div>
+			<p className="max-w-xs text-center text-sm text-white/70">
+				{m.miniboss_modal_body()}
+			</p>
+			<div className="flex gap-3">
+				<button
+					type="button"
+					onClick={onContinue}
+					className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+				>
+					{m.miniboss_modal_continue()}
+				</button>
+				<button
+					type="button"
+					onClick={onRetreat}
+					className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+				>
+					{m.miniboss_modal_retreat()}
+				</button>
+			</div>
+		</motion.div>
 	);
 }
 

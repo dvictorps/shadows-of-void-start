@@ -1,4 +1,6 @@
 import Modal from "#/components/Modal";
+import { Slider } from "#/components/ui/slider";
+import { useSfxVolume } from "#/hooks/useSfxVolume";
 import { m } from "#/paraglide/messages";
 import {
 	getLocale,
@@ -20,6 +22,8 @@ function localeLabel(locale: string): string {
 
 export default function SettingsModal({ isOpen, onClose }: Props) {
 	const current = getLocale();
+	const [sfxVolume, setSfxVolume] = useSfxVolume();
+	const sfxVolumePct = Math.round(sfxVolume * 100);
 
 	return (
 		<Modal
@@ -48,6 +52,24 @@ export default function SettingsModal({ isOpen, onClose }: Props) {
 						))}
 					</select>
 				</label>
+
+				<div>
+					<div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-white/60">
+						<span>{m.settings_sfx_volume()}</span>
+						<span className="tabular-nums text-white/80">{sfxVolumePct}%</span>
+					</div>
+					<Slider
+						value={[sfxVolumePct]}
+						min={0}
+						max={100}
+						step={1}
+						onValueChange={(values) => {
+							const next = values[0];
+							if (typeof next === "number") setSfxVolume(next / 100);
+						}}
+						aria-label={m.settings_sfx_volume()}
+					/>
+				</div>
 			</div>
 		</Modal>
 	);

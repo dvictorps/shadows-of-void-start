@@ -36,7 +36,7 @@ When the threshold bar fills, a pause modal will ask if the player wants to figh
 ### Zone Miniboss
 A **rare-rarity** monster that spawns at the threshold of a normal zone. Picked uniformly from the zone's `monsterPool` and promoted to rare with 3 random modifiers (see Monster Modifier Pool). Drops better loot than mobs — see drop table. Respawns every time the threshold is refilled, including after the zone is complete (so completed zones remain meaningful for loot farming).
 
-After a miniboss kill the player gets a small modal: **continue farming** (combat resumes, threshold resets) or **retreat** (standard exit-zone flow with the loot picker).
+After a miniboss kill the combat scene shows an inline "Zone Complete" panel where the enemy was: **continue farming** (combat resumes, threshold resets) or **retreat** (standard exit-zone flow with the loot picker).
 
 ### Act Boss
 A distinct, more powerful enemy that gates progression to the next act. Lives in the **final node** of the act (a dedicated boss node, not a regular zone). For Act 1, the boss node follows **Model B**:
@@ -411,6 +411,38 @@ Starter pool (Act 1):
 The pool will grow with later acts (on-hit effects, summons, auras), but Act 1 stays minimal.
 
 Mods are picked **distinct** within a single monster (no duplicates). Magnitudes are **fixed** per mod (no per-roll variation) in the current iteration — variance comes from which mods land, not from how strong they roll.
+
+### Affix split and naming
+
+Each mod is tagged **prefix** or **suffix**:
+
+- **Prefixes (adjectival)**: Increased Life, Increased Damage, Increased Evasion, Additional Barrier, More Armor.
+- **Suffixes (noun)**: Increased Attack Speed, Increased Accuracy, the four elemental resistances.
+
+A spawn rolls **at most 2 prefixes and 2 suffixes**, so a 3-mod rare always mixes both affixes. With **two or more elemental resistances** on the same spawn, they collapse into a single compound adjective ("Elemental Resistant" / "Resistente a Elementos") instead of stacking individual suffixes.
+
+The display name is composed in two different ways depending on the active language — that's why each language owns its own lexicon, not the monster data:
+
+- **English (`src/game/world/lexicon/en.ts`)** — PoE-style: `<prefix> <prefix> <Base> of <noun> and <noun>`. Adjectives stack before the base; the compound rolls into the prefix stack ("Armored Elemental Resistant Goblin").
+- **Portuguese (`src/game/world/lexicon/pt.ts`)** — adjectives trail the base and agree with the monster's grammatical gender. Suffix nouns carry their own gender so the renderer can pick the right article ("do Frio", masculine; "da Velocidade", feminine). Two suffix phrases join with " e ". The compound ("Resistente a Elementos") trails the regular adjectives. Examples: "Goblin Furioso da Velocidade e do Frio", "Serpente Blindada Resistente a Elementos".
+
+Adding a new gendered language is purely a lexicon entry — monster data stays language-neutral. Adding a non-gendered language follows the EN shape (no `monsterGender` field, no gendered forms).
+
+### Rare proper names
+
+**Rares don't use the mod-based naming at all** — they get a randomly-composed proper name from two word pools plus a single epithet that hints at their top mod. The full list of rolled mods still appears in the tooltip body; the name itself is identity, not a stat readout. This mirrors how Path of Exile handles its rare monsters.
+
+Each spawn samples three uniform-[0, 1] seeds at spawn time (`Enemy.nameSeed = { primary, secondary, epithet }`). The renderer maps those onto the active locale's pools, so re-renders and locale switches keep the name stable for the spawn's lifetime; only a fresh spawn rolls a new name.
+
+- **English** — first word concatenated with second word, then `, the <Epithet>`: "Stonemaw, the Furious", "Frostfang, the Elusive".
+- **Portuguese** — first noun + a `de`/`do`/`da` phrase, then `, o <Epithet>` (always masculine — monsters are genderless entities; words have gender, but the epithet titles the creature, not the word): "Garra de Aço, o Furioso", "Coração das Sombras, o Inquebrável".
+
+The epithet is derived from the mods:
+
+- Default: the rare's first **prefix** mod selects the epithet pool (Damage → "the Furious / the Vicious / the Cruel / the Savage", etc.). Variants in the pool add variety without breaking the mod-signal.
+- Compound rule (2+ resists): the epithet pool swaps to "the Unbroken / o Inquebrável"-style titles instead of literalizing "Elemental Resistant" in the name.
+
+Magic monsters keep the affix-based naming above ("Goblin Furioso da Velocidade"). Only rares get the proper-name treatment.
 
 ### Magic mob spawn rate
 10% of mid-zone spawns are magic; the rest are normal. The threshold spawn (miniboss) is always rare regardless.

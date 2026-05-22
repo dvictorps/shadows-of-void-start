@@ -24,18 +24,18 @@ The duplication is real but small enough that the refactor takes a focused PR. D
 
 ---
 
-## Native monster barrier (NEXT after zone progression)
+## Native monster barrier
 
-**Status**: Planned, not started. Triggered by introducing the "Additional Barrier" monster modifier in the zone-progression PR — see CONTEXT.md → Monster Modifier Pool.
+**Status**: Planned, not started. Triggered by the "Additional Barrier" monster mod from the zone-progression PR.
 
-**Why**: today the "Additional Barrier" monster mod is folded into HP as a placeholder because monsters have no barrier mechanism. The player has barrier (pool above HP, 6s recovery timer, full refill — see CONTEXT.md → Defenses → Barrier). Monsters should have the same shape so the mod's flavour matches its identity ("barrier above HP", not "more HP").
+**Why**: today the `monsterAdditionalBarrier` mod folds into HP (`hp × 1.3`) as a placeholder because monsters have no barrier mechanism. The player has barrier (pool above HP, 6s recovery timer, full refill — see CONTEXT.md → Defenses → Barrier). Monsters should have the same shape so the mod's flavour matches its identity ("barrier above HP", not "more HP").
 
 ### Scope
 
-- Add `barrier` and `barrierRecoveryRemaining` fields to the live enemy state (mirror of the player's `BarrierState`).
+- Extend `ScaledMonsterStats` with a `barrier: number` field (currently absent).
+- Add `barrier` and `barrierRecoveryRemaining` to the live enemy state on `Enemy` (mirror the player's `BarrierState`).
 - Reuse `damageBarrier()` / `tickBarrierRecovery()` from `src/game/combat/barrier.ts` on the enemy side of the combat tick.
-- `ScaledMonsterStats` already has `barrier` post-zone-progression PR; populate it from the mod application instead of folding into HP.
-- Update `monsterAdditionalBarrier` mod to grant a real barrier pool (e.g., +30% of HP as barrier).
+- Update `monsterAdditionalBarrier` mod to grant a real barrier pool (e.g., `barrier += hp × 0.3`) instead of inflating HP.
 - UI: render a thin blue strip above the enemy HP bar when barrier > 0 (mirror the player's HealthGlobe barrier ring).
 
 ### Validation
@@ -45,112 +45,27 @@ The duplication is real but small enough that the refactor takes a focused PR. D
 
 ---
 
-## Add Tome and Quiver as new off-hand types (MAX PRIORITY)
+## Future: rare-name bestiary (low priority)
 
-**Status**: Planned, not started. **Top of the queue** — next PR after `feat/new-assets`.
-**Branch**: not yet created. Suggested `feat/tome-and-quiver`.
-**Owner**: next agent picking this up.
+**Status**: Idea parked. Not a priority — touches persistence, not combat feel.
 
-### Why
+**Why**: rares now get random proper names from the lexicon pools ("Garra de Aço, o Furioso" / "Stonemaw, the Furious"). Each spawn rolls a fresh `RareNameSeed` so the same monster type produces a different name every time. A bestiary would let the player accumulate the rares they've killed across runs — a memorable trophy log instead of forgotten flavor text.
 
-The `feat/new-assets` branch added two sprites (`tomoMagico`, `aljava`) that don't have corresponding template types yet. They sit unused in `public/assets/sprites/escudos-offhands/` until this PR lands. The intent is to add real gameplay for them, not just visual coverage.
+### Scope sketch
 
-### Scope
+- New Convex table `rareEncounters` keyed by characterId, storing: spawn seed, monster id, level, mods, killed-at timestamp, zone id. (Seed lets the renderer reproduce the same name later — the displayed string isn't stored, so locale-switch reads the right language out of the bestiary too.)
+- `recordKill` mutation grows a branch: when `monsterRarity === "rare"`, also insert into `rareEncounters`.
+- New world view (`/world` view mode `"bestiary"`, or a modal opened from the status card) lists past rares chronologically or by zone. Each entry renders via `translateEnemyName({ def, mods, rarity: "rare", nameSeed })`.
+- Optional: count how many times the same `(monsterId, mod combo)` has been killed — repeat-kill stats add a collector dimension.
 
-Two new off-hand categories alongside the existing **shield** and **off-hand-weapon (dual-wield)**:
+### Why deferred
 
-**Tome** — caster off-hand.
-- Silk-base off-hand.
-- **No block chance** (the only off-hand category that doesn't roll block).
-- Mod pool: barrier (local defense), `+% Spell Damage`, cast speed %, flat spell damage to spells? (TBD — grill), mana, resistances, attributes (int-leaning).
-- Equippable by anyone (no main-hand restriction). Stacks on top of staff/wand swings as a stat slot, doesn't itself cast.
+Combat-feel work pays off the moment the player fights; persistence pays off later. The seed + mods are already first-class on the Enemy object, so the data plumbing is cheap when we get to it — no schema migration on monsters or names needed.
 
-**Quiver** — bow-bound off-hand.
-- New `equipmentType: "quiver"` (or stays under `offhand` with a discriminator — grill).
-- **Equip restriction**: main hand must hold a `bow`. Drag-and-drop / dropdown surface the restriction the same way the same-archetype rule already does.
-- **Inverts the existing 2H-blocks-offhand rule for bows** — see Conflict 1 below.
-- Mod pool: flat phys/elemental damage to attacks, attack speed %, crit chance %, accuracy, attributes (dex-leaning). TBD.
+### Validation when picked up
 
-### Conflicts with current CONTEXT.md to resolve
-
-1. **Off-hand identity expands.** Today's `## Equipment Slots → Off-hand` (and `## Weapon Types`) treat off-hand as shield-or-weapon. Need to extend the section to enumerate four contents: shield · off-hand weapon (dual-wield) · tome · quiver.
-
-2. **Bow ceases to be a pure 2H blocker.** The current invariant says "Two-handed weapons (greatsword, twoHandedAxe, bow, staff) occupy main hand and block the off-hand slot." Bow becomes an exception: 2H, blocks off-hand **for shields/weapons/tomes**, but accepts a **quiver**. Mirror PoE1.
-
-3. **`planEquip` / `validSlotsForItem` / `equipItem`** in `src/game/items/equipment.ts` (and tests) need a new branch for quiver: reject unless `mainHand?.weaponType === "bow"`; reject equipping a non-quiver off-hand while a bow is in main hand; auto-unequip the quiver if the player swaps the bow for any other main-hand.
-
-4. **Same-archetype dual-wield rule unaffected.** Tome and quiver aren't weapons — they don't enter the archetype check.
-
-### Required design decisions before coding
-
-- Exact mod pool for tome and quiver (which modifiers in `data/modifiers/` apply, with what weights).
-- Tier ladder (mirror the 21-tier `_t1..t21` cadence used by existing offhand bases).
-- Whether quiver is its own `EquipmentType` or a flag on `offhand` (impacts drop pool and `applicableTo` arrays).
-- Tooltip: how to render "Requires Bow in main hand" cleanly.
-- Drop pool: today the loot roller picks uniformly across 9 equipment types (CONTEXT.md → Loot Pipeline → Drop pool). Adding tome/quiver changes the denominator — confirm distribution.
-
-### Sprites already in place
-
-- `/assets/sprites/escudos-offhands/tomoMagico.png`
-- `/assets/sprites/escudos-offhands/aljava.png`
-
-Both ready to be assigned to the new templates via the `icon` field added in `feat/new-assets`.
-
----
-
-## Split `convex/characters.ts` into domain modules
-
-**Status**: Planned, not started.
-**Branch**: not yet created. Will be `refactor/split-characters-mutations` from master.
-**Owner**: next agent picking this up.
-
-### Why
-
-`convex/characters.ts` is ~770 lines today, holding three unrelated domains:
-
-1. Character CRUD + base state (list, byId, create, remove, normalize helpers)
-2. Item lifecycle (equip, unequip, reorder, pickFromBag, discardFromBag, exitZone, zone bag queries, equipped/inventory queries)
-3. Combat / progression (recordKill, syncHp, usePotion, respawnDead, enterZone, enterCity)
-
-As skills, stash, vendor, and trade land, the file will hit 1500+ lines with overlapping concerns. The shared helpers (`loadOwnedCharacter`, `fetchInventoryAllocator`, `deleteZoneBag`, `narrowEquippedSlot`) make a split easy.
-
-### Planned split
-
-| New file | Houses |
-|---|---|
-| `convex/characters.ts` (kept) | `list`, `byId`, `create`, `remove`, `normalize` (private helper) — pure CRUD + roster |
-| `convex/items.ts` | `equipItem`, `unequipItem`, `reorderInventory`, `pickFromBag`, `discardFromBag`, `exitZone`, plus the queries `zoneBag`, `inventory`, `equipped`. Items table is the natural home for the bag mutations even though they touch `currentZoneSession` as a side effect |
-| `convex/combat.ts` | `enterZone`, `enterCity`, `recordKill`, `syncHp`, `usePotion`, `respawnDead`. The "what's happening in combat / what zone am I in" mutations |
-| `convex/_shared/character.ts` (new) | `loadOwnedCharacter`, `fetchInventoryAllocator`, `deleteZoneBag`, `newZoneSession`, `EQUIPPED_SLOT_LITERALS`/`equippedSlotValidator`. Private helpers re-exported here so all three modules import without circular references |
-
-### Client impact
-
-Every `api.characters.X` call site updates. There are ~30 across:
-
-- `src/routes/world.tsx` (most concentrated)
-- `src/components/world/InventoryModal.tsx`
-- `src/components/CreateCharacterModal.tsx`
-- `src/routes/character-select.tsx`
-
-Pattern: `api.characters.equipItem` → `api.items.equipItem`, `api.characters.recordKill` → `api.combat.recordKill`, etc. Mechanical change — TS errors will surface every site.
-
-### What NOT to touch in this refactor
-
-- **Mutation logic** — no behavior changes. Pure code move + import rewrites.
-- **Schema** — `convex/schema.ts` stays untouched. The split is presentation only.
-- **Tests** — no test file imports convex modules directly (they import from `src/game/items/equipment.ts` etc, which is shared). Should be no test changes.
-- **i18n keys** — error strings thrown by mutations stay verbatim so `translateServerError` keeps matching.
-
-### Validation
-
-```bash
-npx tsc --noEmit
-npx convex dev --once    # one-shot deploy check
-npx vitest run
-npx biome check src/ convex/
-```
-
-Then a smoke test: create character, kill a mob, retreat, equip something. If any of those fail, the issue is almost certainly a missed call site.
+- Add the table in `convex/schema.ts`, then in `convex/combat.ts:recordKill` upsert the encounter on rare kills.
+- Manual: kill a rare, open the bestiary, see the same name. Switch locale — the bestiary entry renders in the new language. Kill a rare with the same monsterId, see a different name.
 
 ---
 
