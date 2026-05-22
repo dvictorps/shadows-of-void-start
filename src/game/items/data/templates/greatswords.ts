@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "greatsword_t1",
-		name: "Iron Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "iron",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 1,
@@ -20,7 +21,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t2",
-		name: "Copper Claymore",
+		nameBase: "claymore",
+		nameModifier: "copper",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 4,
@@ -36,7 +38,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t3",
-		name: "Bronze Zweihander",
+		nameBase: "zweihander",
+		nameModifier: "bronze",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 7,
@@ -52,7 +55,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t4",
-		name: "Steel Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "steel",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 10,
@@ -68,7 +72,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t5",
-		name: "War Claymore",
+		nameBase: "claymore",
+		nameModifier: "war",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 14,
@@ -84,7 +89,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t6",
-		name: "Soldier's Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "soldiers",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 24,
@@ -100,7 +106,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t7",
-		name: "Knight's Claymore",
+		nameBase: "claymore",
+		nameModifier: "knights",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 28,
@@ -116,7 +123,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t8",
-		name: "Damascus Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "damascus",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 32,
@@ -132,7 +140,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t9",
-		name: "Warden Claymore",
+		nameBase: "claymore",
+		nameModifier: "warden",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 36,
@@ -148,7 +157,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t10",
-		name: "Champion Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "champion",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 40,
@@ -164,7 +174,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t11",
-		name: "Templar Zweihander",
+		nameBase: "zweihander",
+		nameModifier: "templar",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 44,
@@ -180,7 +191,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t12",
-		name: "Relic Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "relic",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 48,
@@ -196,7 +208,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t13",
-		name: "Runed Claymore",
+		nameBase: "claymore",
+		nameModifier: "runed",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 52,
@@ -212,7 +225,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t14",
-		name: "Hallowed Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "hallowed",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 56,
@@ -228,7 +242,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t15",
-		name: "Exalted Claymore",
+		nameBase: "claymore",
+		nameModifier: "exalted",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 60,
@@ -244,7 +259,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t16",
-		name: "Archon Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "archon",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 64,
@@ -260,7 +276,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t17",
-		name: "Sovereign Zweihander",
+		nameBase: "zweihander",
+		nameModifier: "sovereign",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 68,
@@ -276,7 +293,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t18",
-		name: "Eternal Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "eternal",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 72,
@@ -292,7 +310,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t19",
-		name: "Ascendant Claymore",
+		nameBase: "claymore",
+		nameModifier: "ascendant",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 76,
@@ -308,7 +327,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t20",
-		name: "Celestial Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "celestial",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 80,
@@ -324,7 +344,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "greatsword_t21",
-		name: "Void-Touched Greatsword",
+		nameBase: "greatsword",
+		nameModifier: "void_touched",
 		equipmentType: "weapon",
 		weaponType: "greatsword",
 		dropLevel: 83,

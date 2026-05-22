@@ -53,7 +53,6 @@ export interface StatEffect {
 
 export interface Modifier {
 	id: string;
-	name: string;
 	affixType: AffixType;
 	modifierType: ModifierTypeId;
 	category: ModifierCategory;

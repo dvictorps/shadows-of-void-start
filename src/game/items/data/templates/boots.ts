@@ -6,7 +6,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	// ── Plate Boots ──
 	{
 		id: "plate_boots_t1",
-		name: "Iron Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "iron",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 1,
@@ -17,7 +18,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t2",
-		name: "Copper Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "copper",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 4,
@@ -28,7 +30,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t3",
-		name: "Bronze Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "bronze",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 7,
@@ -39,7 +42,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t4",
-		name: "Steel Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "steel",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 10,
@@ -50,7 +54,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t5",
-		name: "War Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "war",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 14,
@@ -61,7 +66,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t6",
-		name: "Soldier's Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "soldiers",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 24,
@@ -72,7 +78,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t7",
-		name: "Knight's Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "knights",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 28,
@@ -83,7 +90,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t8",
-		name: "Damascus Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "damascus",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 32,
@@ -94,7 +102,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t9",
-		name: "Warden Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "warden",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 36,
@@ -105,7 +114,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t10",
-		name: "Champion Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "champion",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 40,
@@ -116,7 +126,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t11",
-		name: "Templar Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "templar",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 44,
@@ -127,7 +138,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t12",
-		name: "Relic Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "relic",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 48,
@@ -138,7 +150,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t13",
-		name: "Runed Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "runed",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 52,
@@ -149,7 +162,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t14",
-		name: "Hallowed Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "hallowed",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 56,
@@ -160,7 +174,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t15",
-		name: "Exalted Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "exalted",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 60,
@@ -171,7 +186,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t16",
-		name: "Archon Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "archon",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 64,
@@ -182,7 +198,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t17",
-		name: "Sovereign Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "sovereign",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 68,
@@ -193,7 +210,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t18",
-		name: "Eternal Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "eternal",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 72,
@@ -204,7 +222,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t19",
-		name: "Ascendant Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "ascendant",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 76,
@@ -215,7 +234,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t20",
-		name: "Celestial Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "celestial",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 80,
@@ -226,7 +246,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_boots_t21",
-		name: "Void-Forged Plate Boots",
+		nameBase: "plate_boots",
+		nameModifier: "void_forged",
 		equipmentType: "boots",
 		armorType: "plate",
 		dropLevel: 83,
@@ -239,7 +260,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	// ── Leather Boots ──
 	{
 		id: "leather_boots_t1",
-		name: "Rawhide Boots",
+		nameBase: "boots",
+		nameModifier: "rawhide",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 1,
@@ -250,7 +272,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t2",
-		name: "Tanned Boots",
+		nameBase: "boots",
+		nameModifier: "tanned",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 4,
@@ -261,7 +284,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t3",
-		name: "Cured Boots",
+		nameBase: "boots",
+		nameModifier: "cured",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 7,
@@ -272,7 +296,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t4",
-		name: "Studded Boots",
+		nameBase: "boots",
+		nameModifier: "studded",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 10,
@@ -283,7 +308,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t5",
-		name: "Hardened Boots",
+		nameBase: "boots",
+		nameModifier: "hardened",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 14,
@@ -294,7 +320,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t6",
-		name: "Ranger's Boots",
+		nameBase: "boots",
+		nameModifier: "rangers",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 24,
@@ -305,7 +332,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t7",
-		name: "Scout's Boots",
+		nameBase: "boots",
+		nameModifier: "scouts",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 28,
@@ -316,7 +344,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t8",
-		name: "Treated Boots",
+		nameBase: "boots",
+		nameModifier: "treated",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 32,
@@ -327,7 +356,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t9",
-		name: "Warden Boots",
+		nameBase: "boots",
+		nameModifier: "warden",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 36,
@@ -338,7 +368,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t10",
-		name: "Champion Boots",
+		nameBase: "boots",
+		nameModifier: "champion",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 40,
@@ -349,7 +380,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t11",
-		name: "Templar Boots",
+		nameBase: "boots",
+		nameModifier: "templar",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 44,
@@ -360,7 +392,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t12",
-		name: "Relic Boots",
+		nameBase: "boots",
+		nameModifier: "relic",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 48,
@@ -371,7 +404,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t13",
-		name: "Runed Boots",
+		nameBase: "boots",
+		nameModifier: "runed",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 52,
@@ -382,7 +416,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t14",
-		name: "Hallowed Boots",
+		nameBase: "boots",
+		nameModifier: "hallowed",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 56,
@@ -393,7 +428,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t15",
-		name: "Exalted Boots",
+		nameBase: "boots",
+		nameModifier: "exalted",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 60,
@@ -404,7 +440,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t16",
-		name: "Archon Boots",
+		nameBase: "boots",
+		nameModifier: "archon",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 64,
@@ -415,7 +452,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t17",
-		name: "Sovereign Boots",
+		nameBase: "boots",
+		nameModifier: "sovereign",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 68,
@@ -426,7 +464,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t18",
-		name: "Eternal Boots",
+		nameBase: "boots",
+		nameModifier: "eternal",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 72,
@@ -437,7 +476,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t19",
-		name: "Ascendant Boots",
+		nameBase: "boots",
+		nameModifier: "ascendant",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 76,
@@ -448,7 +488,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t20",
-		name: "Celestial Boots",
+		nameBase: "boots",
+		nameModifier: "celestial",
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 80,
@@ -459,7 +500,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_boots_t21",
-		name: "Void-Touched Leather Boots",
+		nameBase: "void_touched_leather_boots",
+		nameModifier: null,
 		equipmentType: "boots",
 		armorType: "leather",
 		dropLevel: 83,
@@ -472,7 +514,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	// ── Silk Boots ──
 	{
 		id: "silk_boots_t1",
-		name: "Linen Slippers",
+		nameBase: "slippers",
+		nameModifier: "linen",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 1,
@@ -483,7 +526,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t2",
-		name: "Cotton Slippers",
+		nameBase: "slippers",
+		nameModifier: "cotton",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 4,
@@ -494,7 +538,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t3",
-		name: "Woven Slippers",
+		nameBase: "slippers",
+		nameModifier: "woven",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 7,
@@ -505,7 +550,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t4",
-		name: "Fine Slippers",
+		nameBase: "slippers",
+		nameModifier: "fine",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 10,
@@ -516,7 +562,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t5",
-		name: "Enchanted Slippers",
+		nameBase: "slippers",
+		nameModifier: "enchanted",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 14,
@@ -527,7 +574,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t6",
-		name: "Mystic Slippers",
+		nameBase: "slippers",
+		nameModifier: "mystic",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 24,
@@ -538,7 +586,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t7",
-		name: "Arcane Slippers",
+		nameBase: "slippers",
+		nameModifier: "arcane",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 28,
@@ -549,7 +598,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t8",
-		name: "Sage Slippers",
+		nameBase: "slippers",
+		nameModifier: "sage",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 32,
@@ -560,7 +610,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t9",
-		name: "Warden Slippers",
+		nameBase: "slippers",
+		nameModifier: "warden",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 36,
@@ -571,7 +622,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t10",
-		name: "Oracle Slippers",
+		nameBase: "slippers",
+		nameModifier: "oracle",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 40,
@@ -582,7 +634,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t11",
-		name: "Templar Slippers",
+		nameBase: "slippers",
+		nameModifier: "templar",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 44,
@@ -593,7 +646,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t12",
-		name: "Relic Slippers",
+		nameBase: "slippers",
+		nameModifier: "relic",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 48,
@@ -604,7 +658,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t13",
-		name: "Runed Slippers",
+		nameBase: "slippers",
+		nameModifier: "runed",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 52,
@@ -615,7 +670,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t14",
-		name: "Hallowed Slippers",
+		nameBase: "slippers",
+		nameModifier: "hallowed",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 56,
@@ -626,7 +682,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t15",
-		name: "Exalted Slippers",
+		nameBase: "slippers",
+		nameModifier: "exalted",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 60,
@@ -637,7 +694,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t16",
-		name: "Archon Slippers",
+		nameBase: "slippers",
+		nameModifier: "archon",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 64,
@@ -648,7 +706,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t17",
-		name: "Sovereign Slippers",
+		nameBase: "slippers",
+		nameModifier: "sovereign",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 68,
@@ -659,7 +718,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t18",
-		name: "Eternal Slippers",
+		nameBase: "slippers",
+		nameModifier: "eternal",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 72,
@@ -670,7 +730,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t19",
-		name: "Ascendant Slippers",
+		nameBase: "slippers",
+		nameModifier: "ascendant",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 76,
@@ -681,7 +742,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t20",
-		name: "Celestial Slippers",
+		nameBase: "slippers",
+		nameModifier: "celestial",
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 80,
@@ -692,7 +754,8 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_boots_t21",
-		name: "Void-Woven Silk Slippers",
+		nameBase: "void_woven_silk_slippers",
+		nameModifier: null,
 		equipmentType: "boots",
 		armorType: "silk",
 		dropLevel: 83,

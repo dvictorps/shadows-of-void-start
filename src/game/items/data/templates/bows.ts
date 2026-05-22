@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "bow_t1",
-		name: "Oak Bow",
+		nameBase: "bow",
+		nameModifier: "oak",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 1,
@@ -20,7 +21,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t2",
-		name: "Ash Shortbow",
+		nameBase: "shortbow",
+		nameModifier: "ash",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 4,
@@ -36,7 +38,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t3",
-		name: "Elm Longbow",
+		nameBase: "longbow",
+		nameModifier: "elm",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 7,
@@ -52,7 +55,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t4",
-		name: "Yew Bow",
+		nameBase: "bow",
+		nameModifier: "yew",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 10,
@@ -68,7 +72,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t5",
-		name: "Maple Warbow",
+		nameBase: "warbow",
+		nameModifier: "maple",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 14,
@@ -84,7 +89,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t6",
-		name: "Ironbark Bow",
+		nameBase: "bow",
+		nameModifier: "ironbark",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 24,
@@ -100,7 +106,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t7",
-		name: "Recurve Bow",
+		nameBase: "bow",
+		nameModifier: "recurve",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 28,
@@ -116,7 +123,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t8",
-		name: "Composite Bow",
+		nameBase: "bow",
+		nameModifier: "composite",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 32,
@@ -132,7 +140,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t9",
-		name: "Warden Longbow",
+		nameBase: "longbow",
+		nameModifier: "warden",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 36,
@@ -148,7 +157,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t10",
-		name: "Champion Bow",
+		nameBase: "bow",
+		nameModifier: "champion",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 40,
@@ -164,7 +174,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t11",
-		name: "Templar Bow",
+		nameBase: "bow",
+		nameModifier: "templar",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 44,
@@ -180,7 +191,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t12",
-		name: "Relic Warbow",
+		nameBase: "warbow",
+		nameModifier: "relic",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 48,
@@ -196,7 +208,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t13",
-		name: "Runed Longbow",
+		nameBase: "longbow",
+		nameModifier: "runed",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 52,
@@ -212,7 +225,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t14",
-		name: "Hallowed Bow",
+		nameBase: "bow",
+		nameModifier: "hallowed",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 56,
@@ -228,7 +242,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t15",
-		name: "Exalted Warbow",
+		nameBase: "warbow",
+		nameModifier: "exalted",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 60,
@@ -244,7 +259,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t16",
-		name: "Archon Bow",
+		nameBase: "bow",
+		nameModifier: "archon",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 64,
@@ -260,7 +276,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t17",
-		name: "Sovereign Longbow",
+		nameBase: "longbow",
+		nameModifier: "sovereign",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 68,
@@ -276,7 +293,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t18",
-		name: "Eternal Bow",
+		nameBase: "bow",
+		nameModifier: "eternal",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 72,
@@ -292,7 +310,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t19",
-		name: "Ascendant Warbow",
+		nameBase: "warbow",
+		nameModifier: "ascendant",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 76,
@@ -308,7 +327,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t20",
-		name: "Celestial Bow",
+		nameBase: "bow",
+		nameModifier: "celestial",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 80,
@@ -324,7 +344,8 @@ export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "bow_t21",
-		name: "Void-Touched Bow",
+		nameBase: "bow",
+		nameModifier: "void_touched",
 		equipmentType: "weapon",
 		weaponType: "bow",
 		dropLevel: 83,

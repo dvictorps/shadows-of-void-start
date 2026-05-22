@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "leather_belt",
-		name: "Leather Belt",
+		nameBase: "belt",
+		nameModifier: "leather",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -21,7 +22,8 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "chain_belt",
-		name: "Chain Belt",
+		nameBase: "belt",
+		nameModifier: "chain",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -38,7 +40,8 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "studded_belt",
-		name: "Studded Belt",
+		nameBase: "belt",
+		nameModifier: "studded",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -55,7 +58,8 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "cloth_belt",
-		name: "Cloth Belt",
+		nameBase: "belt",
+		nameModifier: "cloth",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -72,7 +76,8 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "prismatic_belt",
-		name: "Prismatic Belt",
+		nameBase: "belt",
+		nameModifier: "prismatic",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },
@@ -89,7 +94,8 @@ export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_belt",
-		name: "Silk Belt",
+		nameBase: "belt",
+		nameModifier: "silk",
 		equipmentType: "belt",
 		dropLevel: 1,
 		requirements: { level: 1 },

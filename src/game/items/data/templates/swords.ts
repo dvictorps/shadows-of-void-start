@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "sword_t1",
-		name: "Iron Sword",
+		nameBase: "sword",
+		nameModifier: "iron",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 1,
@@ -27,7 +28,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t2",
-		name: "Copper Blade",
+		nameBase: "blade",
+		nameModifier: "copper",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 4,
@@ -50,7 +52,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t3",
-		name: "Bronze Falchion",
+		nameBase: "falchion",
+		nameModifier: "bronze",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 7,
@@ -73,7 +76,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t4",
-		name: "Steel Sword",
+		nameBase: "sword",
+		nameModifier: "steel",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 10,
@@ -96,7 +100,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t5",
-		name: "War Blade",
+		nameBase: "blade",
+		nameModifier: "war",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 14,
@@ -119,7 +124,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t6",
-		name: "Soldier's Sabre",
+		nameBase: "sabre",
+		nameModifier: "soldiers",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 24,
@@ -142,7 +148,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t7",
-		name: "Knight's Edge",
+		nameBase: "edge",
+		nameModifier: "knights",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 28,
@@ -165,7 +172,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t8",
-		name: "Damascus Blade",
+		nameBase: "blade",
+		nameModifier: "damascus",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 32,
@@ -188,7 +196,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t9",
-		name: "Warden Sword",
+		nameBase: "sword",
+		nameModifier: "warden",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 36,
@@ -211,7 +220,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t10",
-		name: "Champion Sabre",
+		nameBase: "sabre",
+		nameModifier: "champion",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 40,
@@ -234,7 +244,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t11",
-		name: "Templar Blade",
+		nameBase: "blade",
+		nameModifier: "templar",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 44,
@@ -257,7 +268,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t12",
-		name: "Relic Sword",
+		nameBase: "sword",
+		nameModifier: "relic",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 48,
@@ -280,7 +292,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t13",
-		name: "Runed Falchion",
+		nameBase: "falchion",
+		nameModifier: "runed",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 52,
@@ -303,7 +316,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t14",
-		name: "Hallowed Edge",
+		nameBase: "edge",
+		nameModifier: "hallowed",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 56,
@@ -326,7 +340,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t15",
-		name: "Exalted Sabre",
+		nameBase: "sabre",
+		nameModifier: "exalted",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 60,
@@ -349,7 +364,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t16",
-		name: "Archon Blade",
+		nameBase: "blade",
+		nameModifier: "archon",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 64,
@@ -372,7 +388,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t17",
-		name: "Sovereign Sword",
+		nameBase: "sword",
+		nameModifier: "sovereign",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 68,
@@ -395,7 +412,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t18",
-		name: "Eternal Falchion",
+		nameBase: "falchion",
+		nameModifier: "eternal",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 72,
@@ -418,7 +436,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t19",
-		name: "Ascendant Edge",
+		nameBase: "edge",
+		nameModifier: "ascendant",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 76,
@@ -441,7 +460,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t20",
-		name: "Celestial Sabre",
+		nameBase: "sabre",
+		nameModifier: "celestial",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 80,
@@ -464,7 +484,8 @@ export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "sword_t21",
-		name: "Void-Touched Sabre",
+		nameBase: "sabre",
+		nameModifier: "void_touched",
 		equipmentType: "weapon",
 		weaponType: "sword",
 		dropLevel: 83,

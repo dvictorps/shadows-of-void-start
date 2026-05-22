@@ -1,3 +1,7 @@
+import {
+	translateItemName,
+	translateTemplateName,
+} from "#/game/items/item-name";
 import { localizeImplicit, localizeMod } from "#/game/items/mod-i18n";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 import { m } from "#/paraglide/messages";
@@ -175,14 +179,16 @@ export default function ItemTooltip({
 			>
 				{showGeneratedName && (
 					<div className="text-lg" style={{ color: nameColor }}>
-						{item.name}
+						{translateItemName(item)}
 					</div>
 				)}
 				<div
 					className={showGeneratedName ? "text-sm" : "text-lg"}
 					style={{ color: nameColor }}
 				>
-					{showGeneratedName ? item.templateName : item.name}
+					{showGeneratedName
+						? translateTemplateName(item)
+						: translateItemName(item)}
 				</div>
 			</div>
 

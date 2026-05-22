@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "dagger_t1",
-		name: "Iron Dagger",
+		nameBase: "dagger",
+		nameModifier: "iron",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 1,
@@ -26,7 +27,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t2",
-		name: "Copper Shiv",
+		nameBase: "shiv",
+		nameModifier: "copper",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 4,
@@ -48,7 +50,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t3",
-		name: "Bronze Stiletto",
+		nameBase: "stiletto",
+		nameModifier: "bronze",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 7,
@@ -70,7 +73,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t4",
-		name: "Steel Dagger",
+		nameBase: "dagger",
+		nameModifier: "steel",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 10,
@@ -92,7 +96,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t5",
-		name: "War Knife",
+		nameBase: "knife",
+		nameModifier: "war",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 14,
@@ -114,7 +119,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t6",
-		name: "Soldier's Dirk",
+		nameBase: "dirk",
+		nameModifier: "soldiers",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 24,
@@ -136,7 +142,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t7",
-		name: "Knight's Stiletto",
+		nameBase: "stiletto",
+		nameModifier: "knights",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 28,
@@ -158,7 +165,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t8",
-		name: "Damascus Dagger",
+		nameBase: "dagger",
+		nameModifier: "damascus",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 32,
@@ -180,7 +188,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t9",
-		name: "Warden Shiv",
+		nameBase: "shiv",
+		nameModifier: "warden",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 36,
@@ -202,7 +211,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t10",
-		name: "Champion Dagger",
+		nameBase: "dagger",
+		nameModifier: "champion",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 40,
@@ -224,7 +234,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t11",
-		name: "Templar Dirk",
+		nameBase: "dirk",
+		nameModifier: "templar",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 44,
@@ -246,7 +257,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t12",
-		name: "Relic Stiletto",
+		nameBase: "stiletto",
+		nameModifier: "relic",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 48,
@@ -268,7 +280,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t13",
-		name: "Runed Shiv",
+		nameBase: "shiv",
+		nameModifier: "runed",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 52,
@@ -290,7 +303,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t14",
-		name: "Hallowed Dagger",
+		nameBase: "dagger",
+		nameModifier: "hallowed",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 56,
@@ -312,7 +326,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t15",
-		name: "Exalted Dirk",
+		nameBase: "dirk",
+		nameModifier: "exalted",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 60,
@@ -334,7 +349,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t16",
-		name: "Archon Stiletto",
+		nameBase: "stiletto",
+		nameModifier: "archon",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 64,
@@ -356,7 +372,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t17",
-		name: "Sovereign Dagger",
+		nameBase: "dagger",
+		nameModifier: "sovereign",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 68,
@@ -378,7 +395,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t18",
-		name: "Eternal Shiv",
+		nameBase: "shiv",
+		nameModifier: "eternal",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 72,
@@ -400,7 +418,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t19",
-		name: "Ascendant Dirk",
+		nameBase: "dirk",
+		nameModifier: "ascendant",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 76,
@@ -422,7 +441,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t20",
-		name: "Celestial Dagger",
+		nameBase: "dagger",
+		nameModifier: "celestial",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 80,
@@ -444,7 +464,8 @@ export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "dagger_t21",
-		name: "Void-Touched Dagger",
+		nameBase: "dagger",
+		nameModifier: "void_touched",
 		equipmentType: "weapon",
 		weaponType: "dagger",
 		dropLevel: 83,

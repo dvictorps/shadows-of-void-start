@@ -4,7 +4,8 @@ import type { EquipmentTemplate } from "./types";
 export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "mace_t1",
-		name: "Iron Mace",
+		nameBase: "mace",
+		nameModifier: "iron",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 1,
@@ -19,7 +20,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t2",
-		name: "Copper Flail",
+		nameBase: "flail",
+		nameModifier: "copper",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 4,
@@ -34,7 +36,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t3",
-		name: "Bronze Mace",
+		nameBase: "mace",
+		nameModifier: "bronze",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 7,
@@ -49,7 +52,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t4",
-		name: "Steel Flail",
+		nameBase: "flail",
+		nameModifier: "steel",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 10,
@@ -64,7 +68,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t5",
-		name: "War Mace",
+		nameBase: "mace",
+		nameModifier: "war",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 14,
@@ -79,7 +84,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t6",
-		name: "Soldier's Morning Star",
+		nameBase: "morning_star",
+		nameModifier: "soldiers",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 24,
@@ -94,7 +100,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t7",
-		name: "Knight's Mace",
+		nameBase: "mace",
+		nameModifier: "knights",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 28,
@@ -109,7 +116,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t8",
-		name: "Damascus Flail",
+		nameBase: "flail",
+		nameModifier: "damascus",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 32,
@@ -124,7 +132,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t9",
-		name: "Warden Mace",
+		nameBase: "mace",
+		nameModifier: "warden",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 36,
@@ -139,7 +148,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t10",
-		name: "Champion Morning Star",
+		nameBase: "morning_star",
+		nameModifier: "champion",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 40,
@@ -154,7 +164,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t11",
-		name: "Templar Mace",
+		nameBase: "mace",
+		nameModifier: "templar",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 44,
@@ -169,7 +180,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t12",
-		name: "Relic Flail",
+		nameBase: "flail",
+		nameModifier: "relic",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 48,
@@ -184,7 +196,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t13",
-		name: "Runed Mace",
+		nameBase: "mace",
+		nameModifier: "runed",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 52,
@@ -199,7 +212,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t14",
-		name: "Hallowed Morning Star",
+		nameBase: "morning_star",
+		nameModifier: "hallowed",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 56,
@@ -214,7 +228,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t15",
-		name: "Exalted Mace",
+		nameBase: "mace",
+		nameModifier: "exalted",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 60,
@@ -229,7 +244,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t16",
-		name: "Archon Flail",
+		nameBase: "flail",
+		nameModifier: "archon",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 64,
@@ -244,7 +260,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t17",
-		name: "Sovereign Mace",
+		nameBase: "mace",
+		nameModifier: "sovereign",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 68,
@@ -259,7 +276,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t18",
-		name: "Eternal Morning Star",
+		nameBase: "morning_star",
+		nameModifier: "eternal",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 72,
@@ -274,7 +292,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t19",
-		name: "Ascendant Mace",
+		nameBase: "mace",
+		nameModifier: "ascendant",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 76,
@@ -289,7 +308,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t20",
-		name: "Celestial Flail",
+		nameBase: "flail",
+		nameModifier: "celestial",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 80,
@@ -304,7 +324,8 @@ export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "mace_t21",
-		name: "Void-Touched Mace",
+		nameBase: "mace",
+		nameModifier: "void_touched",
 		equipmentType: "weapon",
 		weaponType: "mace",
 		dropLevel: 83,

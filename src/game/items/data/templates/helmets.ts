@@ -6,7 +6,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	// ── Plate Helmets ──
 	{
 		id: "plate_helmet_t1",
-		name: "Iron Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "iron",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 1,
@@ -17,7 +18,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t2",
-		name: "Copper Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "copper",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 4,
@@ -28,7 +30,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t3",
-		name: "Bronze Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "bronze",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 7,
@@ -39,7 +42,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t4",
-		name: "Steel Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "steel",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 10,
@@ -50,7 +54,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t5",
-		name: "War Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "war",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 14,
@@ -61,7 +66,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t6",
-		name: "Soldier's Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "soldiers",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 24,
@@ -72,7 +78,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t7",
-		name: "Knight's Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "knights",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 28,
@@ -83,7 +90,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t8",
-		name: "Damascus Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "damascus",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 32,
@@ -94,7 +102,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t9",
-		name: "Warden Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "warden",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 36,
@@ -105,7 +114,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t10",
-		name: "Champion Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "champion",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 40,
@@ -116,7 +126,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t11",
-		name: "Templar Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "templar",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 44,
@@ -127,7 +138,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t12",
-		name: "Relic Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "relic",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 48,
@@ -138,7 +150,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t13",
-		name: "Runed Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "runed",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 52,
@@ -149,7 +162,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t14",
-		name: "Hallowed Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "hallowed",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 56,
@@ -160,7 +174,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t15",
-		name: "Exalted Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "exalted",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 60,
@@ -171,7 +186,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t16",
-		name: "Archon Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "archon",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 64,
@@ -182,7 +198,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t17",
-		name: "Sovereign Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "sovereign",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 68,
@@ -193,7 +210,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t18",
-		name: "Eternal Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "eternal",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 72,
@@ -204,7 +222,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t19",
-		name: "Ascendant Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "ascendant",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 76,
@@ -215,7 +234,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t20",
-		name: "Celestial Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "celestial",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 80,
@@ -226,7 +246,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "plate_helmet_t21",
-		name: "Void-Forged Plate Helm",
+		nameBase: "plate_helm",
+		nameModifier: "void_forged",
 		equipmentType: "helmet",
 		armorType: "plate",
 		dropLevel: 83,
@@ -239,7 +260,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	// ── Leather Helmets ──
 	{
 		id: "leather_helmet_t1",
-		name: "Rawhide Hood",
+		nameBase: "hood",
+		nameModifier: "rawhide",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 1,
@@ -250,7 +272,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t2",
-		name: "Tanned Hood",
+		nameBase: "hood",
+		nameModifier: "tanned",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 4,
@@ -261,7 +284,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t3",
-		name: "Cured Hood",
+		nameBase: "hood",
+		nameModifier: "cured",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 7,
@@ -272,7 +296,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t4",
-		name: "Studded Hood",
+		nameBase: "hood",
+		nameModifier: "studded",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 10,
@@ -283,7 +308,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t5",
-		name: "Hardened Hood",
+		nameBase: "hood",
+		nameModifier: "hardened",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 14,
@@ -294,7 +320,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t6",
-		name: "Ranger's Hood",
+		nameBase: "hood",
+		nameModifier: "rangers",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 24,
@@ -305,7 +332,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t7",
-		name: "Scout's Hood",
+		nameBase: "hood",
+		nameModifier: "scouts",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 28,
@@ -316,7 +344,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t8",
-		name: "Treated Hood",
+		nameBase: "hood",
+		nameModifier: "treated",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 32,
@@ -327,7 +356,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t9",
-		name: "Warden Hood",
+		nameBase: "hood",
+		nameModifier: "warden",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 36,
@@ -338,7 +368,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t10",
-		name: "Champion Hood",
+		nameBase: "hood",
+		nameModifier: "champion",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 40,
@@ -349,7 +380,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t11",
-		name: "Templar Hood",
+		nameBase: "hood",
+		nameModifier: "templar",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 44,
@@ -360,7 +392,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t12",
-		name: "Relic Hood",
+		nameBase: "hood",
+		nameModifier: "relic",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 48,
@@ -371,7 +404,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t13",
-		name: "Runed Hood",
+		nameBase: "hood",
+		nameModifier: "runed",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 52,
@@ -382,7 +416,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t14",
-		name: "Hallowed Hood",
+		nameBase: "hood",
+		nameModifier: "hallowed",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 56,
@@ -393,7 +428,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t15",
-		name: "Exalted Hood",
+		nameBase: "hood",
+		nameModifier: "exalted",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 60,
@@ -404,7 +440,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t16",
-		name: "Archon Hood",
+		nameBase: "hood",
+		nameModifier: "archon",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 64,
@@ -415,7 +452,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t17",
-		name: "Sovereign Hood",
+		nameBase: "hood",
+		nameModifier: "sovereign",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 68,
@@ -426,7 +464,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t18",
-		name: "Eternal Hood",
+		nameBase: "hood",
+		nameModifier: "eternal",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 72,
@@ -437,7 +476,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t19",
-		name: "Ascendant Hood",
+		nameBase: "hood",
+		nameModifier: "ascendant",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 76,
@@ -448,7 +488,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t20",
-		name: "Celestial Hood",
+		nameBase: "hood",
+		nameModifier: "celestial",
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 80,
@@ -459,7 +500,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "leather_helmet_t21",
-		name: "Void-Touched Leather Hood",
+		nameBase: "void_touched_leather_hood",
+		nameModifier: null,
 		equipmentType: "helmet",
 		armorType: "leather",
 		dropLevel: 83,
@@ -472,7 +514,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	// ── Silk Helmets ──
 	{
 		id: "silk_helmet_t1",
-		name: "Linen Hood",
+		nameBase: "hood",
+		nameModifier: "linen",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 1,
@@ -483,7 +526,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t2",
-		name: "Cotton Hood",
+		nameBase: "hood",
+		nameModifier: "cotton",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 4,
@@ -494,7 +538,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t3",
-		name: "Woven Hood",
+		nameBase: "hood",
+		nameModifier: "woven",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 7,
@@ -505,7 +550,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t4",
-		name: "Fine Hood",
+		nameBase: "hood",
+		nameModifier: "fine",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 10,
@@ -516,7 +562,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t5",
-		name: "Enchanted Hood",
+		nameBase: "hood",
+		nameModifier: "enchanted",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 14,
@@ -527,7 +574,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t6",
-		name: "Mystic Hood",
+		nameBase: "hood",
+		nameModifier: "mystic",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 24,
@@ -538,7 +586,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t7",
-		name: "Arcane Hood",
+		nameBase: "hood",
+		nameModifier: "arcane",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 28,
@@ -549,7 +598,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t8",
-		name: "Sage Hood",
+		nameBase: "hood",
+		nameModifier: "sage",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 32,
@@ -560,7 +610,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t9",
-		name: "Warden Hood",
+		nameBase: "hood",
+		nameModifier: "warden",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 36,
@@ -571,7 +622,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t10",
-		name: "Oracle Hood",
+		nameBase: "hood",
+		nameModifier: "oracle",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 40,
@@ -582,7 +634,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t11",
-		name: "Templar Hood",
+		nameBase: "hood",
+		nameModifier: "templar",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 44,
@@ -593,7 +646,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t12",
-		name: "Relic Hood",
+		nameBase: "hood",
+		nameModifier: "relic",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 48,
@@ -604,7 +658,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t13",
-		name: "Runed Hood",
+		nameBase: "hood",
+		nameModifier: "runed",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 52,
@@ -615,7 +670,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t14",
-		name: "Hallowed Hood",
+		nameBase: "hood",
+		nameModifier: "hallowed",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 56,
@@ -626,7 +682,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t15",
-		name: "Exalted Hood",
+		nameBase: "hood",
+		nameModifier: "exalted",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 60,
@@ -637,7 +694,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t16",
-		name: "Archon Hood",
+		nameBase: "hood",
+		nameModifier: "archon",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 64,
@@ -648,7 +706,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t17",
-		name: "Sovereign Hood",
+		nameBase: "hood",
+		nameModifier: "sovereign",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 68,
@@ -659,7 +718,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t18",
-		name: "Eternal Hood",
+		nameBase: "hood",
+		nameModifier: "eternal",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 72,
@@ -670,7 +730,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t19",
-		name: "Ascendant Hood",
+		nameBase: "hood",
+		nameModifier: "ascendant",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 76,
@@ -681,7 +742,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t20",
-		name: "Celestial Hood",
+		nameBase: "hood",
+		nameModifier: "celestial",
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 80,
@@ -692,7 +754,8 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 	},
 	{
 		id: "silk_helmet_t21",
-		name: "Void-Woven Silk Hood",
+		nameBase: "void_woven_silk_hood",
+		nameModifier: null,
 		equipmentType: "helmet",
 		armorType: "silk",
 		dropLevel: 83,
