@@ -12,7 +12,9 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 The agent-ergonomics hardening pass shipped (CI gate via sentinel examples in `docs/playbooks/_examples/`, ADRs 0002 / 0003 / 0004, stub playbooks for skill / passive / stash / vendor product, threat-model entry for phase-arg trust, drift fixes in the monster / zone / class playbooks).
 
-**Next high-leverage item: the `src/routes/world.tsx` split** — 836-line orchestrator route. The detailed suggested cut (into `useWorldMutations`, `useViewMode`, `useWorldModals`, and a `<CombatHud>` component) lives in the dedicated entry below — see "Split `src/routes/world.tsx` (queued)" further down this file.
+**Next high-leverage item: the `src/routes/world.tsx` split** — 900-line orchestrator route (this branch is the in-flight refactor). The detailed suggested cut (into `useWorldMutations`, `useViewMode`, `useWorldModals`, and a `<CombatHud>` component) lives in the dedicated entry below — see "Split `src/routes/world.tsx` (queued)" further down this file.
+
+**Queued immediately after**: the `src/hooks/useCombatLoop.ts` split — 916 lines, the single largest file in the repo. Same orchestrator-monolith shape, dedicated entry below.
 
 The downstream "Server-authoritative camp/phase derivation" security work (closes Threat #3 in the threat model) is blocked on the world.tsx split landing first — both touch the same combat-hook + mutation surface and would collide in a single PR.
 
@@ -42,6 +44,7 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 | Move | Outcome |
 |---|---|
 | Split `src/routes/world.tsx` (see queued entry below) | Agent ergonomics for MODIFYING → A. Composite **A → A+** if combined with native PT review. |
+| Split `src/hooks/useCombatLoop.ts` (queued after world.tsx) | Agent ergonomics for MODIFYING → A. Removes the largest single-file navigation tax in the repo (916 lines). |
 | Native PT review of `lexicon/pt.ts` | Translation quality B- → A. |
 | 3+ months of system additions (skills / passive / stash) WITHOUT emergency refactor against the stubs | **A+** — architecture proven at scale, not just at theory. Until then A+ is hypothetical. |
 
@@ -196,6 +199,30 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 - `npx tsc --noEmit`, `npx vitest run` (no UI test coverage today; rely on TS + manual smoke).
 - Manual smoke: enter zone → kill mob → exit with loot picker → equip new item → travel to next zone. The five main user-flows touch every part of world.tsx.
+
+---
+
+## Split `src/hooks/useCombatLoop.ts` (queued after world.tsx split)
+
+**Status**: Planned, not started. Queued behind the world.tsx split.
+
+**Why**: 916-line tick orchestrator — the single largest file in the repo (larger than `world.tsx` even pre-split). Same navigation-tax problem as world.tsx: an agent touching combat behavior has to read the whole file (the ~12 mid-tick refs, the searching/boss_intro/engaged/victory/miniboss_victory/acampamento state machine, encounter + camp + ambush scheduling, leech, barrier recovery, calmaria time-bar) before they're confident about side effects. Once the world.tsx split lands, this becomes the worst MODIFYING-friction surface in the codebase.
+
+### Suggested cut
+
+The file's top comment block already decomposes its concerns cleanly along lifecycle / refs / state / public-mutation lines — use that as the seam:
+
+- **`useCombatRefs`** — bundles the ~12 mid-tick refs (`stateRef`, `enemyRef`, `playerProgressRef`, `enemyProgressRef`, `deadRef`, `nextSwingIndexRef`, `barrierRef`, `leechRef`, `playerHpRef`, `lastSyncedHpRef`, `initialHpRef`, `activeRef`, plus the camp/ambush trio) into a single typed bag. Each tick callback consumes the bag instead of importing twelve names individually.
+- **`useEncounterSchedule`** — encounter plan rolling for a zone activation: spawn gap from `rollSpawnGapMs`, calmaria budget + miniboss promotion, camp thresholds (`rollCampThresholdsMs` + `nextCampIndexRef`), ambush schedule (`rollAmbushSchedule` + pack counter). Owns the `setCalmariaElapsedMs` / `campThresholdsMs` state and exposes "what should the next spawn be?" / "is a camp due?" queries.
+- **`useCombatState`** — the `searching → boss_intro → engaged → victory / miniboss_victory → acampamento` state machine + the `bossIntroStage` sub-state. Owns transitions; doesn't own the tick.
+- **`useCombatTick`** — the 50ms engaged tick: leech ticking, barrier recovery, alternate-weapon swings via `nextSwingIndexRef`, enemy swing, victory/death routing. Calls `recordKill` / `syncHp` mutations.
+
+These are starting points based on the file's preamble — refine them once the actual extraction starts.
+
+### Validation
+
+- `npx tsc --noEmit`, `npx vitest run`.
+- Manual smoke: full combat loop including miniboss victory cinematic, boss intro three-stage spawn (sprite → name → hp), camp cinematic, and an ambush pack. Confirm `useCombatLoop.ts` line count drops meaningfully (target: under 400 in the main file).
 
 ---
 
