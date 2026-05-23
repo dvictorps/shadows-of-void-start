@@ -12,7 +12,7 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 The agent-ergonomics hardening pass shipped (CI gate via sentinel examples in `docs/playbooks/_examples/`, ADRs 0002 / 0003 / 0004, stub playbooks for skill / passive / stash / vendor product, threat-model entry for phase-arg trust, drift fixes in the monster / zone / class playbooks).
 
-The `src/routes/world.tsx` split is **code-complete on branch `refactor/world-tsx-split`** (900 → 645 lines via `useWorldMutations` + `useViewMode` hooks and a `WorldModals` sibling component, plus a simplify pass that lifted `createInventorySlotAllocator` into `src/game/inventory/constants.ts`). Awaiting smoke + PR.
+The `src/routes/world.tsx` split is **code-complete on branch `refactor/world-tsx-split`, opened as PR #45**, awaiting Gemini review and user analysis of the findings. The split takes world.tsx from 900 → 645 lines via `useWorldMutations` + `useViewMode` hooks and a `WorldModals` sibling component, plus a simplify pass that lifted `createInventorySlotAllocator` into `src/game/inventory/constants.ts`. **Don't restart this work**. If you're picking up cold: check `gh pr view 45` for the current review state, apply any agreed-upon fixes, then proceed to the useCombatLoop split below.
 
 **Next high-leverage item: the `src/hooks/useCombatLoop.ts` split** — 916 lines, the single largest file in the repo. Same orchestrator-monolith shape that `world.tsx` had. Detailed suggested cut in its dedicated entry below.
 
@@ -182,9 +182,9 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 ---
 
-## Split `src/routes/world.tsx` (code-complete, PR pending)
+## Split `src/routes/world.tsx` (PR #45 open)
 
-**Status**: Code-complete on branch `refactor/world-tsx-split`. Smoke test in progress. **Delete this entry when the PR merges.**
+**Status**: PR #45 open, awaiting Gemini review. **Delete this entry when the PR merges.**
 
 **Shipped on the branch**:
 
