@@ -431,7 +431,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		characterId: character._id,
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
-		initialPotions: character.potions ?? 0,
+		potions: character.potions ?? 0,
 		initialIncense: character.etherealIncense ?? 0,
 		monsterPool,
 		zoneLevel,

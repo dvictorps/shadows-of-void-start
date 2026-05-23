@@ -17,9 +17,11 @@
 //    Refs (ticker callbacks read these directly to avoid stale closures):
 //      stateRef, enemyRef, playerProgressRef, enemyProgressRef, deadRef,
 //      nextSwingIndexRef, barrierRef, leechRef, playerHpRef, lastSyncedHpRef,
-//      initialHpRef, initialPotionsRef, activeRef
+//      initialHpRef, activeRef
 //    State (drives re-renders):
-//      state, enemy, playerHp, barrier, potions, lastKill, events
+//      state, enemy, playerHp, barrier, lastKill, events
+//    Live-from-query (no local mirror — see Params.potions):
+//      potions
 //
 //  Public mutations called: api.combat.{syncHp, recordKill, usePotion}
 // ─────────────────────────────────────────────────────────────────────────────
@@ -139,7 +141,12 @@ type Params = {
 	characterId: Id<"characters">;
 	stats: ComputedCharacterStats;
 	initialHp: number;
-	initialPotions: number;
+	// Live potion count from the character query. The hook does NOT keep a
+	// local copy — drink + drop are both server-driven, and tracking the
+	// number in two places lets concurrent mutations race ("drink ghost"
+	// bug where a drop arrived during the drink and the local +1 from the
+	// drop overwrote the optimistic -1 from the drink).
+	potions: number;
 	initialIncense: number;
 	monsterPool: readonly MonsterId[];
 	zoneLevel: number;
@@ -170,7 +177,7 @@ export function useCombatLoop({
 	characterId,
 	stats,
 	initialHp,
-	initialPotions,
+	potions,
 	initialIncense,
 	monsterPool,
 	zoneLevel,
@@ -191,7 +198,6 @@ export function useCombatLoop({
 	const [barrier, setBarrier] = useState(() =>
 		makeBarrierState(stats.maxBarrier),
 	);
-	const [potions, setPotions] = useState(initialPotions);
 	const [incense, setIncense] = useState(initialIncense);
 	// Source of the active camp (drives cinematic flavor text). Read by the
 	// CampCinematic component to switch the line set.
@@ -226,8 +232,6 @@ export function useCombatLoop({
 
 	const initialHpRef = useRef(initialHp);
 	initialHpRef.current = initialHp;
-	const initialPotionsRef = useRef(initialPotions);
-	initialPotionsRef.current = initialPotions;
 	const initialIncenseRef = useRef(initialIncense);
 	initialIncenseRef.current = initialIncense;
 	const playerHpRef = useRef(playerHp);
@@ -269,7 +273,27 @@ export function useCombatLoop({
 
 	const syncHp = useMutation(api.combat.syncHp);
 	const recordKill = useMutation(api.combat.recordKill);
-	const consumePotion = useMutation(api.combat.usePotion);
+	// Optimistic potion decrement lives on the mutation hook so the
+	// localStore patch and the server mutation complete in lockstep —
+	// no client-side state mirror is needed, and concurrent recordKill
+	// drops can't race the drink. See applyCharacterDelta in world.tsx
+	// for the canonical helper this duplicates intentionally (avoiding
+	// a hooks-into-route-file import cycle).
+	const consumePotion = useMutation(api.combat.usePotion).withOptimisticUpdate(
+		(localStore, args) => {
+			const list = localStore.getQuery(api.characters.list, {});
+			if (!list) return;
+			localStore.setQuery(
+				api.characters.list,
+				{},
+				list.map((c) =>
+					c._id === args.characterId
+						? { ...c, potions: Math.max(0, (c.potions ?? 0) - 1) }
+						: c,
+				),
+			);
+		},
+	);
 	const consumeIncense = useMutation(api.combat.useEtherealIncense);
 
 	// Optimistic XP popup mounts immediately; potion drop is patched in once the
@@ -306,7 +330,10 @@ export function useCombatLoop({
 				.then((result) => {
 					if (result.potionDropped) {
 						setLastKill({ xp: xpGained, potion: true });
-						setPotions((p) => p + 1);
+						// No local increment — character.potions is the source of
+						// truth and the Convex query refreshes when recordKill
+						// commits. Mirroring locally created a race with usePotion
+						// (the +1 could overwrite the optimistic -1 from a drink).
 					}
 					if (result.incenseDropped) {
 						setIncense((i) => i + 1);
@@ -330,7 +357,6 @@ export function useCombatLoop({
 		if (active && !wasActive) {
 			playerHpRef.current = initialHpRef.current;
 			setPlayerHp(initialHpRef.current);
-			setPotions(initialPotionsRef.current);
 			setIncense(initialIncenseRef.current);
 			pendingIncenseRef.current = false;
 			setCampSource("baked");
@@ -811,29 +837,25 @@ export function useCombatLoop({
 
 	const usePotion = useCallback(async () => {
 		if (potions <= 0 || playerHp >= maxHp) return;
-		const prevPotions = potions;
 		const prevHp = playerHpRef.current;
 		const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
 		const optimisticHp = Math.min(maxHp, prevHp + heal);
 		const appliedHeal = optimisticHp - prevHp;
 		playerHpRef.current = optimisticHp;
 		setPlayerHp(optimisticHp);
-		setPotions(prevPotions - 1);
 		lastSyncedHpRef.current = optimisticHp;
-		// On success, keep the local optimistic HP — the server's `hpCurrent`
-		// ignores combat damage that landed during the roundtrip, so writing
-		// it back would revert that damage (the up-down-up flicker).
-		// On failure, subtract only the heal delta we applied; any damage taken
-		// during the roundtrip stays. Forces a re-sync so the server's truth
-		// flows back on the next tick instead of waiting for the 10s interval.
+		// HP is local-only (hook state), so the optimistic update is done
+		// here. Potion count comes from the Convex character query, and
+		// `consumePotion` is wrapped with `.withOptimisticUpdate` in the
+		// parent so the localStore decrement is in lockstep with the
+		// mutation completion — eliminating the race with concurrent
+		// `recordKill` drops.
 		try {
-			const result = await consumePotion({ characterId });
-			setPotions(result.potions);
+			await consumePotion({ characterId });
 		} catch {
 			const reverted = Math.max(0, playerHpRef.current - appliedHeal);
 			playerHpRef.current = reverted;
 			setPlayerHp(reverted);
-			setPotions(prevPotions);
 			lastSyncedHpRef.current = -1;
 		}
 	}, [potions, playerHp, maxHp, characterId, consumePotion]);
