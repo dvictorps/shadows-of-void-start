@@ -10,15 +10,14 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ## Next session — pick up here
 
-The agent-ergonomics hardening pass shipped (CI gate via sentinel examples in `docs/playbooks/_examples/`, ADRs 0002 / 0003 / 0004, stub playbooks for skill / passive / stash / vendor product, threat-model entry for phase-arg trust, drift fixes in the monster / zone / class playbooks).
+**Next high-leverage item: the `src/hooks/useCombatLoop.ts` split** — 916 lines, the single largest file in the repo. The world.tsx split (PR #45) cleared the previous worst MODIFYING-friction surface; this is the new one. Same orchestrator-monolith shape, with a dedicated entry below containing the suggested cut + lessons-learned from the world.tsx split.
 
-The `src/routes/world.tsx` split is **code-complete on branch `refactor/world-tsx-split`, opened as PR #45**, awaiting Gemini review and user analysis of the findings. The split takes world.tsx from 900 → 645 lines via `useWorldMutations` + `useViewMode` hooks and a `WorldModals` sibling component, plus a simplify pass that lifted `createInventorySlotAllocator` into `src/game/inventory/constants.ts`. **Don't restart this work**. If you're picking up cold: check `gh pr view 45` for the current review state, apply any agreed-upon fixes, then proceed to the useCombatLoop split below.
+After that, two queued follow-ups can land in any order:
 
-**Next high-leverage item: the `src/hooks/useCombatLoop.ts` split** — 916 lines, the single largest file in the repo. Same orchestrator-monolith shape that `world.tsx` had. Detailed suggested cut in its dedicated entry below.
+- **Server-authoritative camp/phase derivation** — closes Threat #3 in the threat model.
+- **In-flight tracking for spam-click action handlers** — extends the vendor pattern (shipped in PR #45) to potion / teleport stone / exit-zone buttons / map travel / incense.
 
-**Queued after useCombatLoop split**: the "Server-authoritative camp/phase derivation" security work (closes Threat #3 in the threat model) — depends on combat-hook surface stabilising. The "In-flight tracking for spam-click action handlers" entry (extends the vendor pattern shipped in the world.tsx-split branch to potion / teleport stone / exit-zone buttons) is independent and can land in any order.
-
-Before starting the useCombatLoop split, read: the file itself (top comment block already decomposes its concerns along lifecycle / refs / state / public-mutation lines — use that as the seam), and the consumer wiring in `src/routes/world.tsx` (now stable post-split).
+Before starting the useCombatLoop split, read: the file itself (top comment block already decomposes its concerns along lifecycle / refs / state / public-mutation lines — use that as the seam), and the consumer wiring in `src/routes/world.tsx` (stable post-split).
 
 ---
 
@@ -26,26 +25,25 @@ Before starting the useCombatLoop split, read: the file itself (top comment bloc
 
 **Current grade: A** (composite across architecture / code quality / docs / scalability / agent ergonomics).
 
-This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n + slot-aware mods), #41 (decomposed item-name lexicon + 20 renderer tests), #42 (playbook + codebase-map refresh), and the agent-ergonomics-hardening pass (sentinel CI gate against playbook drift, stub playbooks for queued Future domains, ADRs 0002 + 0003). The grade exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't.
+This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n + slot-aware mods), #41 (decomposed item-name lexicon + 20 renderer tests), #42 (playbook + codebase-map refresh), the agent-ergonomics-hardening pass (sentinel CI gate against playbook drift, stub playbooks for queued Future domains, ADRs 0002 + 0003), and PR #45 (world.tsx split into `useWorldMutations` + `useViewMode` hooks and a `WorldModals` sibling, plus the shared `createInventorySlotAllocator` lift). The grade exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't.
 
 ### Why A (criteria that earned the current grade)
 
 - **Architecture: A-** — render-at-display-time naming + literal-union enforcement is the correct choice for a multi-locale ARPG (codified now in [ADR 0003](../adr/0003-render-at-display-names.md)). Lexicon pattern is battle-tested across two domains (monsters + items). Convex/TanStack split is coherent. Remaining hole: drift risk between lexicon and `mod-i18n.ts` (same modifier id in two independent tables) — flagged in the lexicon follow-ups below.
-- **Code quality: A-** — `src/game/` is pure + tested. 334 vitest cases. Comments are WHY-focused. Two known stains: residual `as TemplateBaseId` casts at the Convex boundary (Convex validators can't express literal unions — captured in [ADR 0003](../adr/0003-render-at-display-names.md)) and `src/routes/world.tsx` at 836 lines.
+- **Code quality: A** — `src/game/` is pure + tested. 334 vitest cases. Comments are WHY-focused. One remaining stain: residual `as TemplateBaseId` casts at the Convex boundary (Convex validators can't express literal unions — captured in [ADR 0003](../adr/0003-render-at-display-names.md)). The world.tsx orchestrator dropped from 900 → 645 lines via PR #45.
 - **Docs: A** — `CONTEXT.md` is best-in-class for a solo-dev project (879 lines of single-source-of-truth game rules). Three ADRs codify the load-bearing architectural decisions (optimistic mutations, three-system i18n, render-at-display naming). Playbooks accurate and link to type-checked sentinel examples; new system stubs let an agent picking up skills / passives / stash know which questions need answering before coding.
 - **Scalability: A** — adding a new locale = 1 new lexicon file per domain + matching paraglide JSON. Adding a new template = 1 entry + 0 lexicon changes if base/modifier already exist. Decomposition cut lexicon size by 88% (562 → 135). Literal-union enforcement makes "forgot a translation" a compile error.
 - **Translation quality: B-** — 130 PT lexicon entries were AI-bulk-translated. Four hand-revised (Espada Bastarda, Estrela da Manhã, Maculado pelo Vazio, Gume) caught real awkwardness, so the rest probably has 5–10 similar issues. Fine for indie pre-release, not for a paid Brazilian release.
 - **Agent ergonomics for ONBOARDING: A+** — `CONTEXT.md` + `CLAUDE.md` + `codebase-map.md` get an agent productive in ~30 minutes.
-- **Agent ergonomics for MODIFYING existing things: A-** — strong TS catches mistakes, but `world.tsx` (836 lines) is a navigation tax.
+- **Agent ergonomics for MODIFYING existing things: A** — strong TS catches mistakes. World.tsx is now 645 lines after PR #45 (down from 900). The remaining MODIFYING-friction surface is `useCombatLoop.ts` at 916 lines — split queued below, pushes this axis toward A+ when it lands.
 - **Agent ergonomics for ADDING NEW systems (skills, passive tree, stash): B** — stub playbooks now exist for each queued Future domain, listing the decisions to resolve + the ADRs the agent will need to write. The systems themselves aren't built, but the orientation infrastructure is. The grade returns to A once the first new system ships against its stub without an emergency refactor.
 
 ### What raises the grade
 
 | Move | Outcome |
 |---|---|
-| Split `src/routes/world.tsx` (see queued entry below) | Agent ergonomics for MODIFYING → A. Composite **A → A+** if combined with native PT review. |
-| Split `src/hooks/useCombatLoop.ts` (queued after world.tsx) | Agent ergonomics for MODIFYING → A. Removes the largest single-file navigation tax in the repo (916 lines). |
-| Native PT review of `lexicon/pt.ts` | Translation quality B- → A. |
+| Split `src/hooks/useCombatLoop.ts` (queued) | Agent ergonomics for MODIFYING A → A+. Removes the largest single-file navigation tax in the repo (916 lines). |
+| Native PT review of `lexicon/pt.ts` | Translation quality B- → A. Composite **A → A+** if combined with the useCombatLoop split. |
 | 3+ months of system additions (skills / passive / stash) WITHOUT emergency refactor against the stubs | **A+** — architecture proven at scale, not just at theory. Until then A+ is hypothetical. |
 
 ### What lowers the grade
@@ -63,7 +61,7 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 If you're picking up where we left off:
 
 1. Read this snapshot first — know where the project sits and what's at stake.
-2. The MAX PRIORITY agent-ergonomics hardening is **done**. The next high-leverage debt is the `world.tsx` split (queued entry below).
+2. The world.tsx split (PR #45) and agent-ergonomics hardening are **done**. The next high-leverage debt is the `useCombatLoop.ts` split (queued entry below).
 3. When a major refactor lands, **update the relevant playbook + sentinel in the same PR** (this is the single most important habit for keeping the grade trajectory positive).
 
 ---
@@ -182,27 +180,11 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 ---
 
-## Split `src/routes/world.tsx` (PR #45 open)
+## Split `src/hooks/useCombatLoop.ts` (queued)
 
-**Status**: PR #45 open, awaiting Gemini review. **Delete this entry when the PR merges.**
+**Status**: Planned, not started. The world.tsx split (PR #45) is done — this is the next high-leverage refactor.
 
-**Shipped on the branch**:
-
-- `src/hooks/useWorldMutations.ts` (216 lines) — all 10 mutations with their optimistic closures. The shared `moveDocsIntoInventory` helper deduplicates the `exitZone` / `pickFromBag` recipe; the inventory-slot allocator lifted into `src/game/inventory/constants.ts:createInventorySlotAllocator` (also adopted by `InventoryModal`'s equip / unequip closures, killing a third copy).
-- `src/hooks/useViewMode.ts` (130 lines) — view state machine + three travel-arrival effects + `enterDestination`. Setters stay exposed because outgoing transitions still drive from the route body.
-- `src/components/world/WorldModals.tsx` (123 lines) — sibling component bundling the six modal renders. Uses `ModalHandle` from `useModal.ts` (exported on this branch).
-- Drive-by: `ItemCard` selection ring switched from yellow to white (collided with rare-tier border).
-- Drive-by: `VendorModal` gained per-product in-flight tracking for buy and a single in-flight flag for sell, so spam clicks no longer fire N round-trips (see the dedicated entry below for the wider "extend this pattern" follow-up).
-
-**Result**: `world.tsx` 900 → 645 lines (−28%). The "Combat HUD section" cut from the original plan turned out to already be encapsulated in `<CombatScene>` — world.tsx only passes props — so that cut wasn't needed.
-
----
-
-## Split `src/hooks/useCombatLoop.ts` (queued after world.tsx split)
-
-**Status**: Planned, not started. Queued behind the world.tsx split.
-
-**Why**: 916-line tick orchestrator — the single largest file in the repo (larger than `world.tsx` even pre-split). Same navigation-tax problem as world.tsx: an agent touching combat behavior has to read the whole file (the ~12 mid-tick refs, the searching/boss_intro/engaged/victory/miniboss_victory/acampamento state machine, encounter + camp + ambush scheduling, leech, barrier recovery, calmaria time-bar) before they're confident about side effects. Once the world.tsx split lands, this becomes the worst MODIFYING-friction surface in the codebase.
+**Why**: 916-line tick orchestrator — the single largest file in the repo. Same navigation-tax problem the world.tsx split just resolved: an agent touching combat behavior has to read the whole file (the ~12 mid-tick refs, the searching/boss_intro/engaged/victory/miniboss_victory/acampamento state machine, encounter + camp + ambush scheduling, leech, barrier recovery, calmaria time-bar) before they're confident about side effects. Now the worst MODIFYING-friction surface in the codebase.
 
 ### Suggested cut
 
@@ -228,14 +210,14 @@ These are starting points based on the file's preamble — refine them once the 
 
 ---
 
-## Server-authoritative camp/phase derivation (queued after world.tsx split)
+## Server-authoritative camp/phase derivation (queued)
 
 **Status**: Planned, not started.
 **Why**: PR #40 added server-side enforcement of the 30% bag retention cap by accepting a `phase` arg on `exitZone` / `pickFromBag` / `discardFromBag`. The cap math itself is server-enforced, but the **`phase` arg is still client-trusted**. A tampered client (or someone hitting the Convex endpoint directly via the SDK) can pass `phase: "camp"` while actually in combat and bypass the cap entirely. Auth + ownership are protected; phase is not.
 
 ### Why we deferred
 
-This is the next "right" step for the time-based-zone scope, but it requires schema + enterZone + useCombatLoop rewiring, which collides with the queued world.tsx split. Doing both in the same PR is too much surface for one review.
+This is the next "right" step for the time-based-zone scope, but it requires schema + enterZone + useCombatLoop rewiring. Doing both in the same PR as the world.tsx split (now shipped in PR #45) would have been too much surface for one review.
 
 ### Scope
 
@@ -266,7 +248,7 @@ Without this, the cap is a **client-cooperation** boundary, not a security one. 
 
 ## In-flight tracking for spam-click action handlers (queued)
 
-**Status**: Planned, not started. Triggered by the vendor spam-click fix that landed in the world.tsx-split branch.
+**Status**: Planned, not started. Triggered by the vendor spam-click fix that shipped in PR #45.
 
 **Why**: `VendorModal` now tracks per-product `pendingBuys: Set<VendorProductId>` and a single `isSelling: boolean`, and disables the corresponding buttons while the mutation is in flight. The same shape applies to every other action handler that today fires one round-trip per click with no guard. Without it, a fast-clicking user (or impatient one mid-lag) bounces N requests off Convex that the server then rejects, polluting the toast log and burning quota.
 
