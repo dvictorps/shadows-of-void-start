@@ -8,10 +8,6 @@ import type { VendorProductId } from "#/game/vendor/products";
 import type { ModalHandle } from "#/hooks/useModal";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
-// ShowStatsModal lives as a sibling in world.tsx (mounted only while open).
-// Bundling it here meant every combat tick re-evaluated its JSX tree even
-// when the stats panel was closed, because `currentBarrier` / `currentLife`
-// updates flowed through here as props.
 export function WorldModals({
 	bagModal,
 	exitModal,

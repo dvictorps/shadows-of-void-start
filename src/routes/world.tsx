@@ -637,6 +637,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					await vendorSellMany({ characterId: character._id, itemIds });
 				}}
 			/>
+			{/* Gated mount (unique among the modals): currentBarrier/currentLife
+				change every 50ms combat tick, so unmounting when closed avoids
+				re-evaluating the stats subtree on every tick. */}
 			{statsModal.isOpen && (
 				<ShowStatsModal
 					isOpen
