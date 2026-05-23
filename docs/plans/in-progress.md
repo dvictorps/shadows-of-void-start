@@ -215,6 +215,12 @@ The file's top comment block already decomposes its concerns cleanly along lifec
 
 These are starting points based on the file's preamble — refine them once the actual extraction starts.
 
+### Watch out for (lessons from the world.tsx split)
+
+- **Verify each cut against the live file before fragmenting.** The original world.tsx plan included a `<CombatHud>` cut that turned out to be a no-op — that JSX already lived inside `<CombatScene>`. Don't assume the suggested cuts above are still valid as the file evolves; read the actual code first, propose adjustments, then split.
+- **Combat-internal mutations stay inside the split.** `useCombatLoop` calls `recordKill`, `syncHp`, `usePotion`, and `useEtherealIncense` — these are tick-driven combat mutations, distinct from the 10 world-route mutations that live in `useWorldMutations.ts`. They belong inside whichever sub-hook owns the tick / victory routing (probably `useCombatTick`), NOT bundled into `useWorldMutations`. Conflating the two surfaces will widen useWorldMutations beyond its current scope.
+- **WorldModals re-renders on every combat tick** because `combat.barrier.current` and `combat.playerHp` are passed through as props (for `ShowStatsModal`). The fix is to wrap `WorldModals` in `React.memo` and split combat-tick props from modal-render props (or gate them on `statsModal.isOpen`). The simplify pass on the world.tsx split flagged this but deferred — splitting `useCombatLoop` is the natural moment to fix it because the data flow is being restructured anyway. Don't fix it independently; fold into this split if you touch the consumer interface.
+
 ### Validation
 
 - `npx tsc --noEmit`, `npx vitest run`.
