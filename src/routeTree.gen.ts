@@ -15,7 +15,9 @@ import { Route as CharacterSelectRouteImport } from './routes/character-select'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminItemsRouteImport } from './routes/admin/items'
+import { Route as AdminAdminsRouteImport } from './routes/admin/admins'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const WorldRoute = WorldRouteImport.update({
@@ -48,9 +50,19 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminItemsRoute = AdminItemsRouteImport.update({
   id: '/items',
   path: '/items',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminsRoute = AdminAdminsRouteImport.update({
+  id: '/admins',
+  path: '/admins',
   getParentRoute: () => AdminRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -65,7 +77,9 @@ export interface FileRoutesByFullPath {
   '/character-select': typeof CharacterSelectRoute
   '/sign-in': typeof SignInRoute
   '/world': typeof WorldRoute
+  '/admin/admins': typeof AdminAdminsRoute
   '/admin/items': typeof AdminItemsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -74,7 +88,9 @@ export interface FileRoutesByTo {
   '/character-select': typeof CharacterSelectRoute
   '/sign-in': typeof SignInRoute
   '/world': typeof WorldRoute
+  '/admin/admins': typeof AdminAdminsRoute
   '/admin/items': typeof AdminItemsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/admin': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -85,7 +101,9 @@ export interface FileRoutesById {
   '/character-select': typeof CharacterSelectRoute
   '/sign-in': typeof SignInRoute
   '/world': typeof WorldRoute
+  '/admin/admins': typeof AdminAdminsRoute
   '/admin/items': typeof AdminItemsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -97,7 +115,9 @@ export interface FileRouteTypes {
     | '/character-select'
     | '/sign-in'
     | '/world'
+    | '/admin/admins'
     | '/admin/items'
+    | '/admin/users'
     | '/admin/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -106,7 +126,9 @@ export interface FileRouteTypes {
     | '/character-select'
     | '/sign-in'
     | '/world'
+    | '/admin/admins'
     | '/admin/items'
+    | '/admin/users'
     | '/admin'
     | '/api/auth/$'
   id:
@@ -116,7 +138,9 @@ export interface FileRouteTypes {
     | '/character-select'
     | '/sign-in'
     | '/world'
+    | '/admin/admins'
     | '/admin/items'
+    | '/admin/users'
     | '/admin/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
@@ -174,11 +198,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/items': {
       id: '/admin/items'
       path: '/items'
       fullPath: '/admin/items'
       preLoaderRoute: typeof AdminItemsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/admins': {
+      id: '/admin/admins'
+      path: '/admins'
+      fullPath: '/admin/admins'
+      preLoaderRoute: typeof AdminAdminsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/api/auth/$': {
@@ -192,12 +230,16 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminAdminsRoute: typeof AdminAdminsRoute
   AdminItemsRoute: typeof AdminItemsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminsRoute: AdminAdminsRoute,
   AdminItemsRoute: AdminItemsRoute,
+  AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

@@ -10,15 +10,12 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ## Next session — pick up here
 
-**Next high-leverage item: the `src/hooks/useCombatLoop.ts` split** — 916 lines, the single largest file in the repo. The world.tsx split (PR #45) cleared the previous worst MODIFYING-friction surface; this is the new one. Same orchestrator-monolith shape, with a dedicated entry below containing the suggested cut + lessons-learned from the world.tsx split.
+Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). The remaining queued items are queued in priority order:
 
-After that, three queued follow-ups can land in any order:
-
-- **Server-authoritative camp/phase derivation** — closes Threat #3 in the threat model.
+- **Server-authoritative camp/phase derivation** — closes Threat #3 in the threat model. Next architectural piece for the time-based-zone scope.
 - **Single active session per character** — closes Threat #5 in the threat model (multi-tab races). Same architectural shape as phase derivation (schema add + `sessionToken` arg threaded through every state-mutating mutation + a helper that bundles ownership + session check). **Hard-blocker before any leaderboard / rank ships** — a rank built on multi-tab kills is fraud-by-construction even without intent. Also see the "Convex cost envelope" section below — multi-tab abuse multiplies a single user's function-call cost by tab count.
-- **In-flight tracking for spam-click action handlers** — extends the vendor pattern (shipped in PR #45) to potion / teleport stone / exit-zone buttons / map travel / incense.
-
-Before starting the useCombatLoop split, read: the file itself (top comment block already decomposes its concerns along lifecycle / refs / state / public-mutation lines — use that as the seam), and the consumer wiring in `src/routes/world.tsx` (stable post-split).
+- **In-flight tracking for spam-click action handlers** — unblocked now that both splits shipped. Extends the vendor pattern (PR #45) to potion / teleport stone / exit-zone buttons / map travel / incense.
+- **Thorns-reflect bug fix** — small combat-math fix in `useCombatTick.ts`, surfaced by Gemini on PR #47. Standalone PR.
 
 ---
 
@@ -36,15 +33,14 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 - **Scalability: A** — adding a new locale = 1 new lexicon file per domain + matching paraglide JSON. Adding a new template = 1 entry + 0 lexicon changes if base/modifier already exist. Decomposition cut lexicon size by 88% (562 → 135). Literal-union enforcement makes "forgot a translation" a compile error.
 - **Translation quality: B-** — 130 PT lexicon entries were AI-bulk-translated. Four hand-revised (Espada Bastarda, Estrela da Manhã, Maculado pelo Vazio, Gume) caught real awkwardness, so the rest probably has 5–10 similar issues. Fine for indie pre-release, not for a paid Brazilian release.
 - **Agent ergonomics for ONBOARDING: A+** — `CONTEXT.md` + `CLAUDE.md` + `codebase-map.md` get an agent productive in ~30 minutes.
-- **Agent ergonomics for MODIFYING existing things: A** — strong TS catches mistakes. World.tsx is now 645 lines after PR #45 (down from 900). The remaining MODIFYING-friction surface is `useCombatLoop.ts` at 916 lines — split queued below, pushes this axis toward A+ when it lands.
+- **Agent ergonomics for MODIFYING existing things: A+** — strong TS catches mistakes. Both monolith refactors have shipped: world.tsx from 900 → 645 lines (PR #45), `useCombatLoop.ts` from 916 → 378 lines split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule` (PR #47). No remaining single-file navigation tax above ~600 lines.
 - **Agent ergonomics for ADDING NEW systems (skills, passive tree, stash): B** — stub playbooks now exist for each queued Future domain, listing the decisions to resolve + the ADRs the agent will need to write. The systems themselves aren't built, but the orientation infrastructure is. The grade returns to A once the first new system ships against its stub without an emergency refactor.
 
 ### What raises the grade
 
 | Move | Outcome |
 |---|---|
-| Split `src/hooks/useCombatLoop.ts` (queued) | Agent ergonomics for MODIFYING A → A+. Removes the largest single-file navigation tax in the repo (916 lines). |
-| Native PT review of `lexicon/pt.ts` | Translation quality B- → A. Composite **A → A+** if combined with the useCombatLoop split. |
+| Native PT review of `lexicon/pt.ts` | Translation quality B- → A. Composite **A → A+**. |
 | 3+ months of system additions (skills / passive / stash) WITHOUT emergency refactor against the stubs | **A+** — architecture proven at scale, not just at theory. Until then A+ is hypothetical. |
 
 ### What lowers the grade
@@ -62,7 +58,7 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 If you're picking up where we left off:
 
 1. Read this snapshot first — know where the project sits and what's at stake.
-2. The world.tsx split (PR #45) and agent-ergonomics hardening are **done**. The next high-leverage debt is the `useCombatLoop.ts` split (queued entry below).
+2. The world.tsx split (PR #45), useCombatLoop split (PR #47), and agent-ergonomics hardening are **done**. The next high-leverage debt is server-authoritative camp/phase derivation (queued entry below).
 3. When a major refactor lands, **update the relevant playbook + sentinel in the same PR** (this is the single most important habit for keeping the grade trajectory positive).
 
 ---
@@ -228,37 +224,6 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 ---
 
-## Split `src/hooks/useCombatLoop.ts` (queued)
-
-**Status**: Planned, not started. The world.tsx split (PR #45) is done — this is the next high-leverage refactor.
-
-**Why**: 916-line tick orchestrator — the single largest file in the repo. Same navigation-tax problem the world.tsx split just resolved: an agent touching combat behavior has to read the whole file (the ~12 mid-tick refs, the searching/boss_intro/engaged/victory/miniboss_victory/acampamento state machine, encounter + camp + ambush scheduling, leech, barrier recovery, calmaria time-bar) before they're confident about side effects. Now the worst MODIFYING-friction surface in the codebase.
-
-### Suggested cut
-
-The file's top comment block already decomposes its concerns cleanly along lifecycle / refs / state / public-mutation lines — use that as the seam:
-
-- **`useCombatRefs`** — bundles the ~12 mid-tick refs (`stateRef`, `enemyRef`, `playerProgressRef`, `enemyProgressRef`, `deadRef`, `nextSwingIndexRef`, `barrierRef`, `leechRef`, `playerHpRef`, `lastSyncedHpRef`, `initialHpRef`, `activeRef`, plus the camp/ambush trio) into a single typed bag. Each tick callback consumes the bag instead of importing twelve names individually.
-- **`useEncounterSchedule`** — encounter plan rolling for a zone activation: spawn gap from `rollSpawnGapMs`, calmaria budget + miniboss promotion, camp thresholds (`rollCampThresholdsMs` + `nextCampIndexRef`), ambush schedule (`rollAmbushSchedule` + pack counter). Owns the `setCalmariaElapsedMs` / `campThresholdsMs` state and exposes "what should the next spawn be?" / "is a camp due?" queries.
-- **`useCombatState`** — the `searching → boss_intro → engaged → victory / miniboss_victory → acampamento` state machine + the `bossIntroStage` sub-state. Owns transitions; doesn't own the tick.
-- **`useCombatTick`** — the 50ms engaged tick: leech ticking, barrier recovery, alternate-weapon swings via `nextSwingIndexRef`, enemy swing, victory/death routing. Calls `recordKill` / `syncHp` mutations.
-
-These are starting points based on the file's preamble — refine them once the actual extraction starts.
-
-### Watch out for (lessons from the world.tsx split)
-
-- **Verify each cut against the live file before fragmenting.** The original world.tsx plan included a `<CombatHud>` cut that turned out to be a no-op — that JSX already lived inside `<CombatScene>`. Don't assume the suggested cuts above are still valid as the file evolves; read the actual code first, propose adjustments, then split.
-- **Combat-internal mutations stay inside the split.** `useCombatLoop` calls `recordKill`, `syncHp`, `usePotion`, and `useEtherealIncense` — these are tick-driven combat mutations, distinct from the 10 world-route mutations that live in `useWorldMutations.ts`. They belong inside whichever sub-hook owns the tick / victory routing (probably `useCombatTick`), NOT bundled into `useWorldMutations`. Conflating the two surfaces will widen useWorldMutations beyond its current scope.
-- **WorldModals re-renders on every combat tick** because `combat.barrier.current` and `combat.playerHp` are passed through as props (for `ShowStatsModal`). The fix is to wrap `WorldModals` in `React.memo` and split combat-tick props from modal-render props (or gate them on `statsModal.isOpen`). The simplify pass on the world.tsx split flagged this but deferred — splitting `useCombatLoop` is the natural moment to fix it because the data flow is being restructured anyway. Don't fix it independently; fold into this split if you touch the consumer interface.
-- **MonsterTooltip reconciles every combat tick** (same shape as the WorldModals issue above). `CombatScene.tsx:510-514` mounts `<MonsterTooltip enemy={enemy} />` inside a `hidden group-hover:block` wrapper — the tooltip is always mounted, only CSS-hidden, so any CombatScene re-render reconciles it for every magic/rare enemy on screen even when not hovered. Surfaced by the simplify pass on the rarity-card primitive lift. Fix: wrap `MonsterTooltip` in `React.memo` (props are just `enemy`, and the displayed fields — rarity / level / mods / name — are stable across an enemy's lifetime even if the object ref churns) and/or gate the mount on JS hover state instead of CSS visibility. Defer to this split because the enemy data flow is in motion; fold in if you touch how the CombatScene consumes the enemy.
-
-### Validation
-
-- `npx tsc --noEmit`, `npx vitest run`.
-- Manual smoke: full combat loop including miniboss victory cinematic, boss intro three-stage spawn (sprite → name → hp), camp cinematic, and an ambush pack. Confirm `useCombatLoop.ts` line count drops meaningfully (target: under 400 in the main file).
-
----
-
 ## Server-authoritative camp/phase derivation (queued)
 
 **Status**: Planned, not started.
@@ -383,7 +348,7 @@ Each one has the same fix shape: `useState<boolean>` (or `Set` if multiple insta
 
 - Track in-flight at the handler call site (not inside `useWorldMutations` — the hook stays mutation-only; UX guards belong to the consumer).
 - Reset on the natural close boundary (modal close, zone exit) so a slow request mid-close doesn't leave stale state.
-- Defer until the world.tsx + useCombatLoop splits merge — both move the handler call sites around, and threading the new state through during a refactor wastes effort.
+- Ready to start — the world.tsx (PR #45) and useCombatLoop (PR #47) splits both stabilised the handler call sites. Combat-tick handlers now live in `useCombatTick.ts`; world-route handlers in `useWorldMutations.ts` and `world.tsx`.
 
 ### Validation
 
@@ -466,6 +431,38 @@ PR #47 is purely structural (`useCombatLoop` split). Including a real combat-mat
 
 ---
 
+## PoE-style armor ecosystem — monster crit + CONTEXT.md doc fix (queued)
+
+**Status**: Planned, not started. Two coupled items surfaced during a design pass on combat math.
+
+**Background**: armor used to compute as Last Epoch-style (`armor / (armor + 10 × enemyLevel)` — denominator scales with attacker level). That formula gave ~90% physical reduction from a single chestplate in act 1, making the character effectively immortal vs phys. The actual code in `src/game/combat/damage.ts:55-67` now uses PoE-style (`armor / (armor + 10 × physical)` — denominator scales with hit size), capped at 85%. The comment in the code explains the trade-off: "tank against trash, falls off against spikes."
+
+The pivot is correct for the genre — in auto-combat the player can't skill-check a spike, so the defense system has to force diversification (armor + barrier + resistances + evasion) instead of one stat solving everything. **But the spike side of the ecosystem isn't built yet**: `rollEnemyAttack` in `damage.ts:220-251` hardcodes `isCrit: false`. Enemies miss/hit/block but never crit. So PoE-style armor today reads as "always strong" because nothing tests its weakness — the build-diversification pressure the formula assumes doesn't materialize until a big-hit source exists.
+
+### Item 1 — CONTEXT.md armor section is stale
+
+`CONTEXT.md:248-253` still describes the Last Epoch-style formula and explicitly says "The denominator scales with the attacker's level, **not** with hit size. Armor stays effective against same-level enemies regardless of how big any single hit is — unlike PoE…". That contradicts the code. Next agent reading the doc will trust it and may try to "fix" the code back. Update the section to reflect the PoE-style choice + record the historical pivot reason (act-1 immortality) so future passes don't re-litigate it.
+
+### Item 2 — Monster crit (the missing big-hit source)
+
+Add crit roll to `rollEnemyAttack` (the player's crit roll in `rollPlayerSwing` is the reference shape — same `random() × 100 < critChance`, same multiplier). Scope decisions to make first:
+
+- **Where does monster crit chance come from?** Options: (a) flat baseline per monster level (e.g., 5%, mirroring player floor), (b) only rare/miniboss roll crit, (c) a monster modifier in the rare/magic pool. Probably (a) + (c): every monster has a small baseline, plus a `monsterCritChance` modifier that magic/rares can roll for spike pressure.
+- **Crit multiplier?** Default 1.5× (player's effective crit-mult floor). Magic/rare mod can stack on top.
+- **Telegraph?** Auto-combat doesn't let the player react, but the damage event should be flagged `isCrit: true` so the UI can render the hit differently (number color, screen shake, sound) — same shape the player's crit feedback already uses.
+- **Balance pass after**: once monster crit lands, re-curve armor / barrier / resistance values together. The current numbers were tuned implicitly assuming no crits.
+
+### Validation
+
+- `npx tsc --noEmit`, `npx vitest run` — extend `damage.test.ts` with enemy-crit cases.
+- Manual: spawn a magic mob with the crit modifier, take a few hits, confirm crits visibly different in the HUD + observably bigger damage.
+
+### Why this matters strategically
+
+PoE-style armor + no big-hit source = armor is dominant for free. Once monster crit ships, armor becomes a real trade-off ("I'm tanky vs sustained dps but a crit can spike me — do I stack resist? barrier? evasion?"). That's the build-pressure the design assumes but doesn't currently have.
+
+---
+
 ## Future: rare-name bestiary (low priority)
 
 **Status**: Idea parked. Not a priority — touches persistence, not combat feel.
@@ -534,3 +531,86 @@ Both are documented with severity, mechanism, and layered fixes in the threat-mo
 - Layer 3 (server-tick combat, days): competitive mode with real value at stake.
 
 When a session starts on this, read the threat-model doc first — it has the schema changes, acceptance criteria, and tradeoffs per layer.
+
+---
+
+## Extract `CLASS_NAME` paraglide map to a shared helper (queued)
+
+**Status**: Planned, not started. Flagged by the simplify pass on the admin dashboard PR (#46) and deferred from that PR to avoid scope creep. Both agents that reviewed the admin diff (reuse + quality) called out this duplication as a real concern.
+
+**Why**: the same `Record<CharacterClassId, () => string>` paraglide-message map is inlined in **four** call sites today:
+
+- `src/routes/character-select.tsx:18-22`
+- `src/components/CreateCharacterModal.tsx:19-23`
+- `src/components/world/StatusCard.tsx:13-17`
+- `src/routes/admin/users.tsx:21-25` (added in PR #46)
+
+The comment at `src/game/classes/data.ts:5-6` already calls out that consumers maintain these maps — the codebase has been waiting for someone to extract the helper. Four copies is the tipping point: any future change to a class name (rename, new class, locale-specific tweak) has to touch four files and risks drift.
+
+### Scope
+
+- Add a new helper in `src/game/classes/i18n.ts` (matches the world/items locale-i18n shape) exporting:
+  ```ts
+  export function getClassDisplayName(classId: string): string {
+    const def = findClassDefinition(classId);
+    if (!def) return classId;
+    // CLASS_NAME map lives here, keyed by CharacterClassId, paraglide getters as values.
+    return CLASS_NAME[def.id]();
+  }
+  ```
+- Replace the inline `CLASS_NAME` + ad-hoc resolution in all four call sites with `getClassDisplayName(c.classId)`.
+- Remove the now-stale comment in `src/game/classes/data.ts` (the one that flags this duplication).
+
+### Watch out for
+
+- `src/routes/admin/users.tsx` (PR #46) wraps the call in a tiny `classDisplayName` helper that handles the unknown-class fallback. The shared helper should keep that fallback so the admin drill-down doesn't crash on a legacy character with a removed class id.
+- The three non-admin call sites currently use `m.unknown_class()` as the fallback, not the raw id. Check whether the shared helper should also fall back via paraglide (consistency) or return the raw id (admin behavior). Reasonable answer: paraglide fallback, since the admin row would also benefit from a translated "Unknown class" label.
+
+### Validation
+
+- `npx tsc --noEmit`, `npx vitest run`, `npx biome check`.
+- Manual: open character-select, the create-character modal (after picking each class), the world status card, and `/admin/users` (expand a row). Class names render in the active locale for every site.
+
+### Why deferred from PR #46
+
+PR #46 added one of the four duplicates as part of building the admin dashboard. Extracting in the same PR would have pulled `CreateCharacterModal.tsx` and `StatusCard.tsx` into the diff — files unrelated to admin work — bloating the review surface and conflicting with the in-flight `useCombatLoop` split work in adjacent areas. The extraction is small enough that a focused follow-up PR is the cleaner path.
+
+---
+
+## Eliminate residual admin-dashboard navigation latency (low priority)
+
+**Status**: Planned, not started. User-flagged on PR #46 — current state ("muito melhor mas não como eu quero") accepted as a stopping point; remaining latency tracked here.
+
+**Why**: even after the PR #46 polishing pass (loader-based prefetch in `character-select`, `preload="render"` on the `/admin` Link + sidebar Links, indexed `listUsers`/`listAdmins`, TanStack Query cache shared via `convexQuery`), the **first** `/character-select` → `/admin` navigation in a session is still perceptibly non-instant. Subsequent tab switches inside `/admin` are usually fine because the data sits in cache.
+
+The root cause is structural, not a missed knob:
+
+- Every Convex query is a **WebSocket subscription**, not a one-shot fetch. The first read of a given `queryKey` needs the subscribe-and-first-response handshake (~50–100ms). TanStack Query can amortise this with prefetch, but it can't make the handshake itself synchronous.
+- Code-split chunks for `/admin`, `/admin/users`, `/admin/admins`, `/admin/items` are downloaded on demand. `preload="render"` covers the common path but a fast click before the link mounts (which depends on the role query resolving) still races the chunk fetch.
+
+### What has already been tried (don't redo)
+
+- `loader: async ({ context }) => { await ensureQueryData(getUserRole); if (admin) prefetchQuery(...) × 3 }` in `character-select`. Fires before render — verified via task list on PR #46.
+- `<Link to="/admin" preload="render">` on the character-select admin button + every sidebar Link in `AdminShell`. Loads chunks + runs loaders at link-mount time.
+- `defaultPreloadDelay: 0` in `src/router.tsx`. Hover-intent fires instantly when it fires.
+- `pendingComponent: AdminLayoutPending` + `pendingMs: 0` on the `/admin` route so the shell flips in synchronously even when the loader has work to do.
+
+The remaining gap is the **first** subscribe roundtrip itself — there's no client-side trick that beats it.
+
+### Directions worth exploring
+
+Pick whichever fits the next pass; do NOT do all three.
+
+1. **SSR-inline the first admin payload** (matches the Convex `preloadQuery` pattern from `convex/nextjs`). TanStack Start's loaders run server-side on initial page loads — if `/character-select`'s loader fetches the admin queries via HTTP on the server when the user is admin, the values can be inlined into the HTML and hydrated into the TanStack Query cache before any client-side WebSocket connects. The subsequent live subscription takes over with zero perceived latency. This is the canonical Convex answer for "no first-paint roundtrip". Cost: SSR-only queries don't get reactivity until the websocket subscribes, but for admin metrics that's fine.
+2. **Persistent client cache** via `@tanstack/query-persist-client-core` + IndexedDB. After the user has hit admin once, the cached payload survives reload and even a fresh tab, so the "first visit per session" handshake collapses into "first visit ever" for that browser. Cheaper to implement than SSR; doesn't help the very first time. Note: we deliberately dropped the bespoke `useCachedQuery` localStorage layer when migrating to TanStack Query — this is the proper persistence path, not a regression to the old pattern.
+3. **Split admin queries off the realtime substrate**. The admin dashboard genuinely doesn't need WebSocket reactivity — admins refresh deliberately, not continuously. A Convex HTTP action (or even a thin Convex `query` consumed via `ConvexHttpClient` with `serverHttpClient`) gives one-shot fetch semantics with the same auth pipeline. Lose live updates; gain HTTP-style request/response and a faster cold path. The architectural step the user asked about ("usar um banco relacional comum") doesn't need a new database — just a different transport on the same Convex backend.
+
+### Why deferred
+
+Current latency is acceptable for the admin-only audience (friends-beta) — admins refresh deliberately, not continuously, so a sub-second cold-cache delay isn't a real cost. This entry exists so the residual `/admin` latency doesn't get re-discovered as a new problem the next time someone polls the dashboard.
+
+### Validation when picked up
+
+- Time `/character-select` → `/admin` first-paint with the Performance panel: target <50ms from `click` to first paint of populated cards.
+- Same flow on a hard reload directly to `/admin/users`: target a single network roundtrip and no visible pending shell.
+- Confirm non-admins still never trigger admin queries (the gating in the loader stays correct).
