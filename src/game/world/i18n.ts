@@ -355,7 +355,13 @@ function pickRareEpithetPool(
 	return lex.rareCompoundEpithets;
 }
 
-export function translateMonsterModDescription(id: MonsterModId): string {
+// `level` is required for the level-scaled defensive flats (evasion,
+// accuracy, more armor). Other mods ignore it. Keep this in sync with
+// the apply()s in src/game/monsters/modifiers.ts.
+export function translateMonsterModDescription(
+	id: MonsterModId,
+	level: number,
+): string {
 	switch (id) {
 		case "monsterIncreasedLife":
 			return m.monster_mod_increased_life_desc();
@@ -364,9 +370,9 @@ export function translateMonsterModDescription(id: MonsterModId): string {
 		case "monsterIncreasedAttackSpeed":
 			return m.monster_mod_increased_attack_speed_desc();
 		case "monsterIncreasedEvasion":
-			return m.monster_mod_increased_evasion_desc();
+			return m.monster_mod_increased_evasion_desc({ value: 30 * level });
 		case "monsterIncreasedAccuracy":
-			return m.monster_mod_increased_accuracy_desc();
+			return m.monster_mod_increased_accuracy_desc({ value: 30 * level });
 		case "monsterColdResistance":
 			return m.monster_mod_cold_resistance_desc();
 		case "monsterFireResistance":
@@ -378,6 +384,6 @@ export function translateMonsterModDescription(id: MonsterModId): string {
 		case "monsterAdditionalBarrier":
 			return m.monster_mod_additional_barrier_desc();
 		case "monsterMoreArmor":
-			return m.monster_mod_more_armor_desc();
+			return m.monster_mod_more_armor_desc({ value: 15 * level });
 	}
 }

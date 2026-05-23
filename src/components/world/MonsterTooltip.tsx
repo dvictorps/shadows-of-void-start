@@ -59,7 +59,7 @@ export default function MonsterTooltip({ enemy }: { enemy: Enemy }) {
 			<div className="space-y-0.5 px-4 pb-3 pt-1">
 				{enemy.mods.map((modId) => (
 					<div key={modId} style={{ color: "#8888ff" }}>
-						{translateMonsterModDescription(modId)}
+						{translateMonsterModDescription(modId, enemy.level)}
 					</div>
 				))}
 			</div>
