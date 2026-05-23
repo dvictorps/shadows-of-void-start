@@ -120,8 +120,28 @@ const CAMP_LINES_FALLBACK: [() => string, () => string, () => string] = [
 	m.camp_line_fallback_3,
 ];
 
-/** Three ambient lines for the zone's camp cinematic, locale-resolved. */
-export function translateCampLines(zoneId: string): [string, string, string] {
+const CAMP_LINES_INCENSE: [() => string, () => string, () => string] = [
+	m.camp_line_incense_1,
+	m.camp_line_incense_2,
+	m.camp_line_incense_3,
+];
+
+/**
+ * Three ambient lines for the camp cinematic, locale-resolved. `source`
+ * picks the generic incense lines over the zone-specific baked-camp set —
+ * see CONTEXT.md → Incenso Etéreo for the flavor rationale.
+ */
+export function translateCampLines(
+	zoneId: string,
+	source: "baked" | "incense" = "baked",
+): [string, string, string] {
+	if (source === "incense") {
+		return [
+			CAMP_LINES_INCENSE[0](),
+			CAMP_LINES_INCENSE[1](),
+			CAMP_LINES_INCENSE[2](),
+		];
+	}
 	const entry = CAMP_LINES_I18N[zoneId] ?? CAMP_LINES_FALLBACK;
 	return [entry[0](), entry[1](), entry[2]()];
 }

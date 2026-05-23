@@ -54,6 +54,7 @@ const searchSchema = z.object({
 const CONSUMABLE_DESCRIPTIONS: Record<ConsumableKey, () => string> = {
 	potion: m.consumable_desc_potion,
 	teleport: m.consumable_desc_teleport,
+	incense: m.incense_hint,
 };
 
 export const Route = createFileRoute("/world")({
@@ -431,6 +432,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
 		initialPotions: character.potions ?? 0,
+		initialIncense: character.etherealIncense ?? 0,
 		monsterPool,
 		zoneLevel,
 		encounterPlan,
@@ -823,6 +825,16 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						teleportStones={character.teleportStones ?? 0}
 						canUseTeleportStone={(character.teleportStones ?? 0) > 0}
 						onUseTeleportStone={handleUseTeleportStone}
+						incense={combat.incense}
+						canUseIncense={
+							combat.incense > 0 &&
+							combat.state !== "boss_intro" &&
+							combat.state !== "acampamento" &&
+							combat.state !== "miniboss_victory" &&
+							!(combat.state === "engaged" && combat.enemy?.rarity === "rare")
+						}
+						onUseIncense={combat.triggerIncense}
+						campSource={combat.campSource}
 						onRetreat={handleRetreat}
 						bagCount={zoneBag?.length ?? 0}
 						onOpenBag={bagModal.open}

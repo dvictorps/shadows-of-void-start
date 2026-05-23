@@ -23,9 +23,11 @@
 import { ConvexError, v } from "convex/values"
 import { findClassDefinition } from "../src/game/classes/data"
 import {
+	ETHEREAL_INCENSE_DROP_CHANCE,
 	MAX_POTIONS,
 	POTION_DROP_CHANCE,
 	POTION_HEAL_FRACTION,
+	teleportStoneTravelSeconds,
 } from "../src/game/combat/constants"
 import { rollDrop, rollMinibossDrops } from "../src/game/loot/drops"
 import { findMonster } from "../src/game/monsters/data"
@@ -35,7 +37,6 @@ import {
 	applyXpGain,
 } from "../src/game/progression/levels"
 import { computeCharacterStats } from "../src/game/stats/compute"
-import { teleportStoneTravelSeconds } from "../src/game/combat/constants"
 import { ACT_1, findNode, isNodeAccessible } from "../src/game/world"
 import { computeTravelTime } from "../src/game/world/travel"
 import {
@@ -115,6 +116,13 @@ export const recordKill = mutation({
 			updates.potions = currentPotions + 1
 		}
 
+		// Incenso Etéreo drop — independent roll, uncapped (see
+		// ETHEREAL_INCENSE_DROP_CHANCE). Per CONTEXT.md → Incenso Etéreo.
+		const incenseDropped = Math.random() < ETHEREAL_INCENSE_DROP_CHANCE
+		if (incenseDropped) {
+			updates.etherealIncense = (char.etherealIncense ?? 0) + 1
+		}
+
 		await ctx.db.patch(args.characterId, updates)
 
 		// Rare minibosses: 2 items with 1 guaranteed Rare per CONTEXT.md →
@@ -145,7 +153,13 @@ export const recordKill = mutation({
 			}
 		}
 
-		return { xpGained: scaled.xpReward, levelsGained, drops, potionDropped }
+		return {
+			xpGained: scaled.xpReward,
+			levelsGained,
+			drops,
+			potionDropped,
+			incenseDropped,
+		}
 	},
 })
 
@@ -179,6 +193,28 @@ export const usePotion = mutation({
 			potions: potions - 1,
 		})
 		return { hpCurrent: healed, potions: potions - 1 }
+	},
+})
+
+// Decrement the carried Incenso Etéreo counter. The cinematic is purely
+// client-side — the server only owns the counter. Per CONTEXT.md → Incenso
+// Etéreo, the gameplay gates (no boss, no overlapping camp) are enforced on
+// the client (no shared state to validate against here). Client-event trust
+// model documented in docs/security/threat-model.md.
+export const useEtherealIncense = mutation({
+	args: { characterId: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const count = char.etherealIncense ?? 0
+		if (count <= 0) throw new ConvexError("No incense to use")
+
+		await ctx.db.patch(args.characterId, {
+			etherealIncense: count - 1,
+		})
+		return { etherealIncense: count - 1 }
 	},
 })
 

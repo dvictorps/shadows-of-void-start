@@ -25,6 +25,9 @@ const NEXT_STAGE: Record<0 | 1 | 2, Stage> = {
 
 type Props = {
 	zoneId: string;
+	// Baked camps read the zone's CAMP_LINES; incenso-triggered camps read a
+	// generic set. See CONTEXT.md → Incenso Etéreo.
+	source: "baked" | "incense";
 	skip: boolean;
 	onReturn: () => void;
 	onContinue: () => void;
@@ -35,13 +38,14 @@ type Props = {
 
 export default function CampCinematic({
 	zoneId,
+	source,
 	skip,
 	onReturn,
 	onContinue,
 	onPanelShow,
 }: Props) {
 	const [stage, setStage] = useState<Stage>(0);
-	const lines = translateCampLines(zoneId);
+	const lines = translateCampLines(zoneId, source);
 
 	useEffect(() => {
 		if (skip && stage !== "panel") {

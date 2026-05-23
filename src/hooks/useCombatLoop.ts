@@ -133,12 +133,18 @@ type Params = {
 	stats: ComputedCharacterStats;
 	initialHp: number;
 	initialPotions: number;
+	initialIncense: number;
 	monsterPool: readonly MonsterId[];
 	zoneLevel: number;
 	encounterPlan: ZoneEncounterPlan;
 	active: boolean;
 	onPlayerDeath: () => void;
 };
+
+// Drives flavor-text selection in the camp cinematic — baked camps read the
+// zone's CAMP_LINES; incenso-triggered camps read a generic incense set.
+// See CONTEXT.md → Incenso Etéreo.
+export type CampSource = "baked" | "incense";
 
 const VICTORY_DELAY_MS = 800;
 const TICK_INTERVAL_MS = 50;
@@ -158,6 +164,7 @@ export function useCombatLoop({
 	stats,
 	initialHp,
 	initialPotions,
+	initialIncense,
 	monsterPool,
 	zoneLevel,
 	encounterPlan,
@@ -173,6 +180,16 @@ export function useCombatLoop({
 		makeBarrierState(stats.maxBarrier),
 	);
 	const [potions, setPotions] = useState(initialPotions);
+	const [incense, setIncense] = useState(initialIncense);
+	// Source of the active camp (drives cinematic flavor text). State so the
+	// child component re-renders on switch; ref so the queue handler can read
+	// it without scheduling another render.
+	const [campSource, setCampSource] = useState<CampSource>("baked");
+	const campSourceRef = useRef<CampSource>("baked");
+	// Set true when the player triggers incenso during "engaged" — the
+	// post-victory transition reads this and routes to camp instead of
+	// the next spawn. Cleared on activation reset and on consumption.
+	const pendingIncenseRef = useRef(false);
 	const [lastKill, setLastKill] = useState<{
 		xp: number;
 		potion: boolean;
@@ -201,6 +218,8 @@ export function useCombatLoop({
 	initialHpRef.current = initialHp;
 	const initialPotionsRef = useRef(initialPotions);
 	initialPotionsRef.current = initialPotions;
+	const initialIncenseRef = useRef(initialIncense);
+	initialIncenseRef.current = initialIncense;
 	const playerHpRef = useRef(playerHp);
 	playerHpRef.current = playerHp;
 	const lastSyncedHpRef = useRef(initialHp);
@@ -231,6 +250,7 @@ export function useCombatLoop({
 	const syncHp = useMutation(api.combat.syncHp);
 	const recordKill = useMutation(api.combat.recordKill);
 	const consumePotion = useMutation(api.combat.usePotion);
+	const consumeIncense = useMutation(api.combat.useEtherealIncense);
 
 	// Optimistic XP popup mounts immediately; potion drop is patched in once the
 	// server replies. Shared between player-swing kills and thorns-reflect kills.
@@ -264,6 +284,9 @@ export function useCombatLoop({
 						setLastKill({ xp: xpGained, potion: true });
 						setPotions((p) => p + 1);
 					}
+					if (result.incenseDropped) {
+						setIncense((i) => i + 1);
+					}
 				})
 				.catch(() => {});
 		},
@@ -284,6 +307,10 @@ export function useCombatLoop({
 			playerHpRef.current = initialHpRef.current;
 			setPlayerHp(initialHpRef.current);
 			setPotions(initialPotionsRef.current);
+			setIncense(initialIncenseRef.current);
+			pendingIncenseRef.current = false;
+			campSourceRef.current = "baked";
+			setCampSource("baked");
 			lastSyncedHpRef.current = initialHpRef.current;
 			deadRef.current = false;
 			enemyRef.current = null;
@@ -329,6 +356,8 @@ export function useCombatLoop({
 				next < calmariaBudgetMs
 			) {
 				nextCampIndexRef.current += 1;
+				campSourceRef.current = "baked";
+				setCampSource("baked");
 				stateRef.current = "acampamento";
 				setState("acampamento");
 			}
@@ -341,6 +370,41 @@ export function useCombatLoop({
 		stateRef.current = "searching";
 		setState("searching");
 	}, []);
+
+	// Player activated Incenso Etéreo. The gameplay rules (see CONTEXT.md →
+	// Active player input → Incenso Etéreo) gate this in three ways:
+	//   - blocked during a rare-miniboss fight, boss intro, or while already
+	//     in camp (the button is also disabled in the HUD, but enforce here
+	//     too so a keyboard shortcut can't bypass it);
+	//   - immediate during "searching" / "victory" (next spawn skipped);
+	//   - queued during "engaged" against a non-rare mob.
+	const triggerIncense = useCallback(() => {
+		if (incense <= 0) return;
+		const s = stateRef.current;
+		if (
+			s === "boss_intro" ||
+			s === "acampamento" ||
+			s === "miniboss_victory"
+		)
+			return;
+		if (s === "engaged" && enemyRef.current?.rarity === "rare") return;
+
+		consumeIncense({ characterId })
+			.then((result) => setIncense(result.etherealIncense))
+			.catch(() => {});
+
+		if (s === "engaged") {
+			// Let the current fight resolve. The victory branch reads this and
+			// routes to acampamento instead of the next spawn.
+			pendingIncenseRef.current = true;
+			return;
+		}
+		// Searching / victory — interrupt the next spawn and enter camp now.
+		campSourceRef.current = "incense";
+		setCampSource("incense");
+		stateRef.current = "acampamento";
+		setState("acampamento");
+	}, [characterId, consumeIncense, incense]);
 
 	// ── Search delay → spawn enemy ──
 	// Each entry into "searching" rolls a fresh calmaria duration from the
@@ -433,6 +497,13 @@ export function useCombatLoop({
 			lastKillWasMinibossRef.current = false;
 			stateRef.current = "miniboss_victory";
 			setState("miniboss_victory");
+		} else if (pendingIncenseRef.current) {
+			// Incenso queued during the fight — enter camp instead of the next spawn.
+			pendingIncenseRef.current = false;
+			campSourceRef.current = "incense";
+			setCampSource("incense");
+			stateRef.current = "acampamento";
+			setState("acampamento");
 		} else {
 			setState("searching");
 		}
@@ -710,9 +781,12 @@ export function useCombatLoop({
 		playerHp,
 		barrier: barrierSnapshot,
 		potions,
+		incense,
+		campSource,
 		events,
 		lastKill,
 		usePotion,
+		triggerIncense,
 		calmariaElapsedMs,
 		calmariaBudgetMs,
 		campThresholdsMs,

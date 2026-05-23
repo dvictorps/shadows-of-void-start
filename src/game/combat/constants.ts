@@ -46,6 +46,11 @@ export const LEECH_CAP_PCT_MAX_LIFE_PER_SECOND = 0.2;
 export const MAX_POTIONS = 10;
 export const POTION_DROP_CHANCE = 0.2;
 
+// Incenso Etéreo — independent per-kill drop roll (like POTION_DROP_CHANCE).
+// Lives on character.etherealIncense, uncapped supply. Triggers the camp
+// cinematic on demand. See CONTEXT.md → Active player input → Incenso Etéreo.
+export const ETHEREAL_INCENSE_DROP_CHANCE = 0.025;
+
 // Attack dual-wielding implicit buffs (attack-1H + attack-1H only — wand+wand
 // is excluded). The AS buff is a "more" multiplier applied after the increased
 // pool, on top of the averaged base attack speed. The block bonus is additive

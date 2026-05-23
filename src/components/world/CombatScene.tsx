@@ -27,7 +27,7 @@ const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
 	rare: "0 0 18px rgba(255, 255, 119, 0.7), 0 2px 4px rgba(0, 0, 0, 0.9)",
 };
 
-export type ConsumableKey = "potion" | "teleport";
+export type ConsumableKey = "potion" | "teleport" | "incense";
 
 type Props = {
 	zoneName: string;
@@ -58,6 +58,12 @@ type Props = {
 	teleportStones: number;
 	canUseTeleportStone: boolean;
 	onUseTeleportStone: () => void;
+	incense: number;
+	canUseIncense: boolean;
+	onUseIncense: () => void;
+	// Active camp source — drives flavor text + (future) ambient audio in the
+	// cinematic. See CONTEXT.md → Incenso Etéreo.
+	campSource: "baked" | "incense";
 	onRetreat: () => void;
 	bagCount: number;
 	onOpenBag: () => void;
@@ -100,6 +106,10 @@ export default function CombatScene({
 	teleportStones,
 	canUseTeleportStone,
 	onUseTeleportStone,
+	incense,
+	canUseIncense,
+	onUseIncense,
+	campSource,
 	onRetreat,
 	bagCount,
 	onOpenBag,
@@ -410,6 +420,7 @@ export default function CombatScene({
 					{inCamp && cinematicEnabled && (
 						<CampCinematic
 							zoneId={zoneId}
+							source={campSource}
 							skip={campSkipped}
 							onReturn={onRetreat}
 							onContinue={onDismissCamp}
@@ -550,6 +561,27 @@ export default function CombatScene({
 						/>
 						<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
 							{teleportStones}
+						</span>
+					</button>
+				</div>
+
+				{/* Incenso Etéreo — invokes a camp on demand. Blocked during boss
+				 * fight / camp / boss intro (see useCombatLoop.triggerIncense). */}
+				<div className="flex flex-col items-center gap-1">
+					<button
+						type="button"
+						onClick={onUseIncense}
+						onMouseEnter={() => onConsumableHover?.("incense")}
+						onMouseLeave={() => onConsumableHover?.(null)}
+						onFocus={() => onConsumableHover?.("incense")}
+						onBlur={() => onConsumableHover?.(null)}
+						disabled={!canUseIncense}
+						aria-label={m.incense_use_aria()}
+						className="relative flex h-20 w-20 shrink-0 items-center justify-center border border-white/40 bg-black transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+					>
+						<Sparkles className="pointer-events-none h-10 w-10 text-purple-300/80" />
+						<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
+							{incense}
 						</span>
 					</button>
 				</div>
