@@ -392,6 +392,59 @@ Each one has the same fix shape: `useState<boolean>` (or `Set` if multiple insta
 
 ---
 
+## Thorns-reflect overwrites player-swing damage (queued)
+
+**Status**: Planned, not started. **Latent bug** confirmed in both the pre- and post-refactor combat tick (preserved through PR #47 deliberately to keep that refactor structural). Surfaced by Gemini's review on the same PR.
+
+**Why**: inside the 50ms `useCombatTick` callback, both a player swing AND an enemy swing can resolve in the same tick when their progress refs both pass `≥1`. Today's flow:
+
+1. Top of tick: `const currentEnemy = enemyRef.current` — snapshot of pre-swing enemy.
+2. Player swing connects: `const updated = { ...currentEnemy, currentHp: newEnemyHp }`. `enemyRef.current = updated; updateEnemy(updated)`. Enemy HP is now `newEnemyHp`.
+3. Enemy swing connects (same tick). Thorns reflects if `stats.thorns > 0`:
+   ```ts
+   const enemyAfter = Math.max(0, currentEnemy.currentHp - reflected);
+   const updated = { ...currentEnemy, currentHp: enemyAfter };
+   enemyRef.current = updated;
+   updateEnemy(updated);
+   ```
+   `currentEnemy.currentHp` is the **pre-swing** HP (captured at step 1). `enemyAfter` is `pre-swing - thorns`. The `{ ...currentEnemy, currentHp: enemyAfter }` then **overwrites** the post-player-swing HP with `pre-swing - thorns` — silently erasing the player-swing damage.
+
+Concrete consequences:
+- Player + thorns build vs a tanky mob: the player-swing damage component is being silently lost on any tick where both swings resolve. Effective DPS is lower than the stat sheet implies.
+- Thorns appears to "double-dip" against the original HP (its full reflect plus the player swing's damage is what the player thinks happened, but the recorded HP is just `pre-swing - thorns`).
+- More likely to fire when player attack speed is high (more ticks per second → higher prob of both progress refs hitting 1 in the same tick).
+
+### Scope
+
+The fix is local to `useCombatTick.ts`. Two options:
+
+- **(A) Compute thorns from the live ref**:
+  ```ts
+  const enemyAtNow = enemyRef.current ?? currentEnemy;
+  const enemyAfter = Math.max(0, enemyAtNow.currentHp - reflected);
+  const updated = { ...enemyAtNow, currentHp: enemyAfter };
+  ```
+  Reads the post-player-swing HP correctly. Minimal change.
+- **(B) Re-bind `currentEnemy` after each mutation**:
+  ```ts
+  // After player swing block (regardless of branch):
+  currentEnemy = enemyRef.current ?? currentEnemy;
+  ```
+  Same effect; preserves the "all reads in the tick go through `currentEnemy`" pattern.
+
+Either approach. (A) is more localised and clearer about intent.
+
+### Validation
+
+- Add a vitest case in a new `src/hooks/useCombatTick.test.ts` (or in a thin damage-routing test file in `src/game/combat/`) that simulates the same-tick collision: player swing connects + enemy swing connects with thorns. Assert final enemy HP = `initial - playerDamage - thorns`, not `initial - thorns`.
+- Manual: roll a thorns build (rings/amulets with `thornsFlat`), engage a mob with `attackSpeed > 1`, watch the enemy HP bar — confirm it drops at the expected rate vs the stat sheet.
+
+### Why not in PR #47
+
+PR #47 is purely structural (`useCombatLoop` split). Including a real combat-math change would muddy the diff and the "no behavioural change" claim that justifies the smoke-test scope. Surfaced by Gemini's review but deliberately scoped out — fix lands as a follow-up.
+
+---
+
 ## Native monster barrier
 
 **Status**: Planned, not started. Triggered by the "Additional Barrier" monster mod from the zone-progression PR.
