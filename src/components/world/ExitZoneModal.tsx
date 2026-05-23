@@ -101,10 +101,8 @@ export default function ExitZoneModal({
 
 	const handlePickAll = async () => {
 		if (!hasItems) return;
-		// Capped exits ("Pick all" disabled at the button level in that case)
-		// fall through to the existing selected-pick path. Belt-and-suspenders
-		// guard so a future toggle change can't accidentally let a 30% retreat
-		// keep 100% via the all-button.
+		// Belt-and-suspenders — the button is hidden when isCapped, but a
+		// future regression here can't bypass the 30% cap.
 		if (isCapped) return;
 		await onPickAll(bagItems.map((it) => it._id));
 	};
@@ -173,15 +171,17 @@ export default function ExitZoneModal({
 						>
 							{m.loot_pick_selected_button({ count: selectedCount })}
 						</Button>
-						<Button
-							type="button"
-							variant="starkMuted"
-							onClick={handleDiscardSelected}
-							disabled={!hasSelection}
-							className="px-5 py-2 uppercase tracking-wider"
-						>
-							{m.loot_discard_selected_button({ count: selectedCount })}
-						</Button>
+						{!isCapped && (
+							<Button
+								type="button"
+								variant="starkMuted"
+								onClick={handleDiscardSelected}
+								disabled={!hasSelection}
+								className="px-5 py-2 uppercase tracking-wider"
+							>
+								{m.loot_discard_selected_button({ count: selectedCount })}
+							</Button>
+						)}
 					</div>
 					<div className="flex flex-wrap items-center justify-center gap-3">
 						<Button
@@ -193,15 +193,17 @@ export default function ExitZoneModal({
 						>
 							{m.loot_discard_all_button()}
 						</Button>
-						<Button
-							type="button"
-							variant="stark"
-							onClick={handlePickAll}
-							disabled={!hasItems || isCapped}
-							className="px-5 py-2 uppercase tracking-wider"
-						>
-							{m.loot_pick_all_button()}
-						</Button>
+						{!isCapped && (
+							<Button
+								type="button"
+								variant="stark"
+								onClick={handlePickAll}
+								disabled={!hasItems}
+								className="px-5 py-2 uppercase tracking-wider"
+							>
+								{m.loot_pick_all_button()}
+							</Button>
+						)}
 						<Button
 							type="button"
 							variant="stark"

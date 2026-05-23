@@ -21,7 +21,10 @@ import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
 import VendorModal from "#/components/world/VendorModal";
 import { findClassDefinition } from "#/game/classes/data";
-import { teleportStoneTravelSeconds } from "#/game/combat/constants";
+import {
+	computeBagKeepCap,
+	teleportStoneTravelSeconds,
+} from "#/game/combat/constants";
 import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { xpToNextLevel } from "#/game/progression/levels";
@@ -440,16 +443,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// Bag retention cap by exit phase, frozen at modal-open time so
 	// incremental picks don't dilute the 30% punishment ("bag shrinks each
 	// pick → cap recomputes lower → effective share grows"). Reset when
-	// the modal closes.
+	// the modal closes. Math lives in `computeBagKeepCap` so the client
+	// preview can't drift from the server's enforcement.
 	const [exitKeepCap, setExitKeepCap] = useState(0);
-	const computeKeepCap = useCallback(
-		(bagSize: number, phase: typeof combat.phase): number => {
-			if (bagSize === 0) return 0;
-			if (phase === "acampamento") return bagSize;
-			return Math.max(1, Math.floor(bagSize * 0.3));
-		},
-		[],
-	);
 
 	// Enter a node's area directly (no travel). Caller has already verified
 	// the player is "at" the node either by arrival or by clicking the
@@ -599,7 +595,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		// See CONTEXT.md → Bag retention tiers.
 		if (zoneBag.length > 0) {
 			pendingStoneRef.current = true;
-			setExitKeepCap(computeKeepCap(zoneBag.length, combat.phase));
+			setExitKeepCap(computeBagKeepCap(zoneBag.length, combat.phase));
 			exitModal.open();
 			return;
 		}
@@ -616,36 +612,74 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		if (zoneBag === undefined) return;
 		handleBackToMap();
 		if (zoneBag.length > 0) {
-			setExitKeepCap(computeKeepCap(zoneBag.length, combat.phase));
+			setExitKeepCap(computeBagKeepCap(zoneBag.length, combat.phase));
 			exitModal.open();
 		} else {
-			void exitZone({ characterId: character._id, keepIds: [] });
+			void exitZone({
+				characterId: character._id,
+				keepIds: [],
+				phase: combat.phase,
+			});
 		}
 	};
 
 	const handlePickSelected = async (ids: Id<"items">[]) => {
+		// Camp: incremental pick. Modal stays open until bag empties.
+		// Non-camp: one-shot commit via exitZone — bag is wiped, modal closes.
+		// Routing here matches the server gate (pickFromBag rejects non-camp).
 		try {
-			await pickFromBag({ characterId: character._id, itemIds: ids });
-		} catch {
-			toast.error(m.inventory_full_error());
+			if (combat.phase === "camp") {
+				await pickFromBag({
+					characterId: character._id,
+					itemIds: ids,
+					phase: combat.phase,
+				});
+			} else {
+				await exitZone({
+					characterId: character._id,
+					keepIds: ids,
+					phase: combat.phase,
+				});
+				exitModal.close();
+			}
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : m.inventory_full_error(),
+			);
 		}
 	};
 
 	const handleDiscardSelected = async (ids: Id<"items">[]) => {
-		await discardFromBag({ characterId: character._id, itemIds: ids });
+		// Camp-only action — the modal hides the button outside camp.
+		if (combat.phase !== "camp") return;
+		await discardFromBag({
+			characterId: character._id,
+			itemIds: ids,
+			phase: combat.phase,
+		});
 	};
 
 	const handlePickAll = async (ids: Id<"items">[]) => {
 		try {
-			await exitZone({ characterId: character._id, keepIds: ids });
+			await exitZone({
+				characterId: character._id,
+				keepIds: ids,
+				phase: combat.phase,
+			});
 			exitModal.close();
-		} catch {
-			toast.error(m.inventory_full_error());
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : m.inventory_full_error(),
+			);
 		}
 	};
 
 	const handleDiscardAll = async () => {
-		await exitZone({ characterId: character._id, keepIds: [] });
+		await exitZone({
+			characterId: character._id,
+			keepIds: [],
+			phase: combat.phase,
+		});
 		exitModal.close();
 	};
 

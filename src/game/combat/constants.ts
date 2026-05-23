@@ -3,6 +3,30 @@
 // changes can't drift between the two.
 export const POTION_HEAL_FRACTION = 0.2;
 
+// Combat phase exposed to consumers — drives bag-retention cap on exit
+// (camp = 100%, exploration/combat = 30%). ASCII keys so the Convex
+// validator can use plain literals. See CONTEXT.md → Bag retention tiers.
+// `combatPhaseValidator` in convex/_shared/character.ts is derived from
+// this tuple so the two sides can't drift.
+export const COMBAT_PHASES = ["combat", "exploration", "camp"] as const;
+export type CombatPhase = (typeof COMBAT_PHASES)[number];
+
+// Bag retention: non-camp exits cap kept items at this fraction of bag
+// size (floor, min 1 when ≥1 item, 0 when empty). Camp keeps everything.
+// Server (convex/items.ts:exitZone) enforces it authoritatively; client
+// (world.tsx) mirrors for UX. Both call `computeBagKeepCap` so a rebalance
+// here can't desync them.
+export const RETENTION_CAP_FRACTION = 0.3;
+
+export function computeBagKeepCap(
+	bagSize: number,
+	phase: CombatPhase,
+): number {
+	if (bagSize === 0) return 0;
+	if (phase === "camp") return bagSize;
+	return Math.max(1, Math.floor(bagSize * RETENTION_CAP_FRACTION));
+}
+
 // Caster weapons have no per-template cast speed — every wand/staff casts at
 // this baseline and global cast-speed mods scale it.
 export const BASE_CAST_SPEED = 1.0;

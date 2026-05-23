@@ -261,6 +261,42 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 ---
 
+## Server-authoritative camp/phase derivation (queued after world.tsx split)
+
+**Status**: Planned, not started.
+**Why**: PR #40 added server-side enforcement of the 30% bag retention cap by accepting a `phase` arg on `exitZone` / `pickFromBag` / `discardFromBag`. The cap math itself is server-enforced, but the **`phase` arg is still client-trusted**. A tampered client (or someone hitting the Convex endpoint directly via the SDK) can pass `phase: "camp"` while actually in combat and bypass the cap entirely. Auth + ownership are protected; phase is not.
+
+### Why we deferred
+
+This is the next "right" step for the time-based-zone scope, but it requires schema + enterZone + useCombatLoop rewiring, which collides with the queued world.tsx split. Doing both in the same PR is too much surface for one review.
+
+### Scope
+
+- **Schema** (`convex/schema.ts`): add to `characters`:
+  - `zoneStartedAt?: number` (ms) — set by `enterZone`, cleared by `exitZone`/death.
+  - `campThresholdsMs?: number[]` — rolled by `enterZone`, consumed on `enterCamp`.
+  - `inCamp?: boolean` — set by `enterCamp`, cleared by `exitCamp` / `exitZone`.
+- **`enterZone`**: roll the camp thresholds server-side (move `rollCampThresholdsMs` call from client to server) and persist `zoneStartedAt` + `campThresholdsMs`. Return both to the client so the time bar can render markers.
+- **New `enterCamp` mutation**: takes `thresholdIndex`. Validates `Date.now() - zoneStartedAt >= campThresholdsMs[thresholdIndex]` (with a small grace window for clock drift). Sets `inCamp = true`. Idempotent on the same index.
+- **New `exitCamp` mutation**: clears `inCamp`. Called when the player picks "Seguir em frente" in the camp panel.
+- **`exitZone` / `pickFromBag` / `discardFromBag`**: drop the `phase` arg. Derive phase server-side as `inCamp ? "camp" : "combat"` (combat vs exploration distinction is only cosmetic for the cap — both gate at 30%).
+- **Client (`useCombatLoop` + `world.tsx`)**:
+  - Read `campThresholdsMs` from the character query instead of rolling locally.
+  - Call `enterCamp(thresholdIndex)` when the camp cinematic triggers.
+  - Call `exitCamp` on the "Seguir em frente" handler.
+  - Stop passing `phase` to the three mutations; UI still uses local `combat.phase` to decide which buttons to show (matches the server's derivation, but UI math doesn't gate security).
+
+### Validation
+
+- `npx tsc --noEmit`, `npx vitest run`, `npx convex dev --once`, `npx biome check`.
+- Manual: enter zone, reach camp, observe panel (no client-trusted phase). Then try in DevTools: call `pickFromBag` with no `enterCamp` first — should reject. Verify `enterCamp` rejects if called before the time threshold.
+
+### Why this matters
+
+Without this, the cap is a **client-cooperation** boundary, not a security one. The user's framing in PR #40 — *"backend tem que proteger isso"* — only fully holds once phase derives from server state.
+
+---
+
 ## Shared rarity-tinted card primitive (low priority refactor)
 
 **Status**: Planned, not started.

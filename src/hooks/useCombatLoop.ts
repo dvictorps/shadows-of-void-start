@@ -32,7 +32,12 @@ import {
 	rescaleBarrier,
 	tickBarrierRecovery,
 } from "#/game/combat/barrier";
-import { POTION_HEAL_FRACTION } from "#/game/combat/constants";
+import {
+	type CombatPhase,
+	POTION_HEAL_FRACTION,
+} from "#/game/combat/constants";
+
+export type { CombatPhase };
 import {
 	applyDamageToBarrierThenLife,
 	rollEnemyAttack,
@@ -77,15 +82,10 @@ type CombatState =
 	| "miniboss_victory"
 	| "acampamento";
 
-// Combat phase exposed to consumers — drives bag-retention cap on exit
-// (camp = 100%, exploração/combate = 30%). See CONTEXT.md → Bag retention
-// tiers.
-export type CombatPhase = "combate" | "exploração" | "acampamento";
-
 function derivePhase(state: CombatState): CombatPhase {
-	if (state === "searching") return "exploração";
-	if (state === "acampamento") return "acampamento";
-	return "combate";
+	if (state === "searching") return "exploration";
+	if (state === "acampamento") return "camp";
+	return "combat";
 }
 
 // Three-stage dramatic spawn for rare minibosses. The ticker stays paused
