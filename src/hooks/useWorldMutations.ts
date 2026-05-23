@@ -20,7 +20,11 @@ import type { Doc, Id } from "../../convex/_generated/dataModel";
 
 // Places the docs into the next available inventory slots, sorted, and
 // writes them back through the optimistic store. Shared by exitZone /
-// pickFromBag which both move bag docs into inventory.
+// pickFromBag which both move bag docs into inventory. Aborts the
+// optimistic write if the live inventory query isn't loaded yet (we
+// can't predict slots without it) or if any doc would land in slot -1
+// (inventory full — server will reject with "Inventory overflow"; same
+// skip-optimistic pattern as InventoryModal's unequipItem).
 function moveDocsIntoInventory(
 	localStore: OptimisticLocalStore,
 	characterId: Id<"characters">,
@@ -28,14 +32,20 @@ function moveDocsIntoInventory(
 ): void {
 	if (docs.length === 0) return;
 	const bagKey = { characterId };
-	const inv = localStore.getQuery(api.items.inventory, bagKey) ?? [];
+	const inv = localStore.getQuery(api.items.inventory, bagKey);
+	if (!inv) return;
 	const nextFreeSlot = createInventorySlotAllocator(inv);
-	const moved = docs.map((d) => ({
-		...d,
-		locationKind: "inventory" as const,
-		zoneSession: undefined,
-		inventorySlot: nextFreeSlot(),
-	}));
+	const moved: Doc<"items">[] = [];
+	for (const d of docs) {
+		const slot = nextFreeSlot();
+		if (slot === -1) return;
+		moved.push({
+			...d,
+			locationKind: "inventory" as const,
+			zoneSession: undefined,
+			inventorySlot: slot,
+		});
+	}
 	localStore.setQuery(
 		api.items.inventory,
 		bagKey,
