@@ -332,6 +332,7 @@ describe("attack weapon computed stats", () => {
 				i.explicits.some((m) => m.modifierId === "physicalDamageFlat") &&
 				i.computedStats,
 		);
+		expect(withFlat).toBeDefined();
 		if (withFlat) {
 			const flatMod = withFlat.explicits.find(
 				(m) => m.modifierId === "physicalDamageFlat",
@@ -359,6 +360,7 @@ describe("attack weapon computed stats", () => {
 				!i.explicits.some((m) => m.modifierId === "physicalDamageFlat") &&
 				i.computedStats,
 		);
+		expect(withCrit).toBeDefined();
 		if (withCrit) {
 			const critMod = withCrit.explicits.find(
 				(m) => m.modifierId === "criticalChanceIncrease",
@@ -390,6 +392,7 @@ describe("armor local defense", () => {
 			templateId: "plate_chestplate_t1",
 			itemLevel: 80,
 		});
+		let checked = 0;
 		for (const item of items) {
 			const defMod = item.explicits.find(
 				(m) => m.modifierId === "localDefenseFlat",
@@ -397,8 +400,10 @@ describe("armor local defense", () => {
 			if (defMod) {
 				expect(defMod.description).toContain("Armor");
 				expect(defMod.description).not.toContain("Defense");
+				checked++;
 			}
 		}
+		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("plate armor localDefenseIncrease description says Armor", () => {
@@ -407,6 +412,7 @@ describe("armor local defense", () => {
 			templateId: "plate_chestplate_t1",
 			itemLevel: 80,
 		});
+		let checked = 0;
 		for (const item of items) {
 			const defMod = item.explicits.find(
 				(m) => m.modifierId === "localDefenseIncrease",
@@ -414,8 +420,10 @@ describe("armor local defense", () => {
 			if (defMod) {
 				expect(defMod.description).toContain("Armor");
 				expect(defMod.description).not.toContain("Defense");
+				checked++;
 			}
 		}
+		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("computedDefenseStats reflects local defense mods", () => {
@@ -429,6 +437,7 @@ describe("armor local defense", () => {
 				i.explicits.some((m) => m.modifierId === "localDefenseFlat") &&
 				i.computedDefenseStats,
 		);
+		expect(withDef).toBeDefined();
 		if (withDef) {
 			expect(withDef.computedDefenseStats!.armor).toBeGreaterThan(
 				withDef.baseStats.armor ?? 0,
@@ -540,6 +549,7 @@ describe("shield", () => {
 			templateId: "plate_shield_t1",
 			itemLevel: 80,
 		});
+		let checked = 0;
 		for (const item of items) {
 			const defMod = item.explicits.find(
 				(m) => m.modifierId === "localDefenseFlat",
@@ -547,8 +557,10 @@ describe("shield", () => {
 			if (defMod) {
 				expect(defMod.description).toContain("Armor");
 				expect(defMod.description).not.toContain("Defense");
+				checked++;
 			}
 		}
+		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("leather shield localDefenseFlat resolves to Evasion Rating", () => {
@@ -557,6 +569,7 @@ describe("shield", () => {
 			templateId: "leather_shield_t1",
 			itemLevel: 80,
 		});
+		let checked = 0;
 		for (const item of items) {
 			const defMod = item.explicits.find(
 				(m) => m.modifierId === "localDefenseFlat",
@@ -564,8 +577,10 @@ describe("shield", () => {
 			if (defMod) {
 				expect(defMod.description).toContain("Evasion Rating");
 				expect(defMod.description).not.toContain("Defense");
+				checked++;
 			}
 		}
+		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("silk shield localDefenseFlat resolves to Barrier", () => {
@@ -574,6 +589,7 @@ describe("shield", () => {
 			templateId: "silk_shield_t1",
 			itemLevel: 80,
 		});
+		let checked = 0;
 		for (const item of items) {
 			const defMod = item.explicits.find(
 				(m) => m.modifierId === "localDefenseFlat",
@@ -581,8 +597,10 @@ describe("shield", () => {
 			if (defMod) {
 				expect(defMod.description).toContain("Barrier");
 				expect(defMod.description).not.toContain("Defense");
+				checked++;
 			}
 		}
+		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("plate shield has only armor defense stat (no evasion/barrier)", () => {
@@ -889,14 +907,17 @@ describe("flat damage mods roll as min-max range", () => {
 				itemLevel: 80,
 			}),
 		];
+		let checked = 0;
 		for (const item of items) {
 			for (const mod of item.explicits) {
 				if (FLAT_DAMAGE_MODS.includes(mod.modifierId)) {
 					expect(mod.minValue).toBeDefined();
 					expect(mod.maxValue).toBeDefined();
+					checked++;
 				}
 			}
 		}
+		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("minValue is half of maxValue (rounded)", () => {
@@ -912,6 +933,7 @@ describe("flat damage mods roll as min-max range", () => {
 				itemLevel: 80,
 			}),
 		];
+		let checked = 0;
 		for (const item of items) {
 			for (const mod of item.explicits) {
 				if (
@@ -920,9 +942,11 @@ describe("flat damage mods roll as min-max range", () => {
 					FLAT_DAMAGE_MODS.includes(mod.modifierId)
 				) {
 					expect(mod.minValue).toBe(Math.round(mod.maxValue / 2));
+					checked++;
 				}
 			}
 		}
+		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("minValue and maxValue are integers", () => {
@@ -961,13 +985,16 @@ describe("flat damage mods roll as min-max range", () => {
 				itemLevel: 80,
 			}),
 		];
+		let checked = 0;
 		for (const item of items) {
 			for (const mod of item.explicits) {
 				if (FLAT_DAMAGE_MODS.includes(mod.modifierId)) {
 					expect(mod.description).toMatch(/\d+-\d+/);
+					checked++;
 				}
 			}
 		}
+		expect(checked).toBeGreaterThan(0);
 	});
 });
 
@@ -1294,6 +1321,7 @@ describe("leather armor defense", () => {
 			templateId: "leather_chestplate_t1",
 			itemLevel: 80,
 		});
+		let checked = 0;
 		for (const item of items) {
 			const defMod = item.explicits.find(
 				(m) => m.modifierId === "localDefenseFlat",
@@ -1301,8 +1329,10 @@ describe("leather armor defense", () => {
 			if (defMod) {
 				expect(defMod.description).toContain("Evasion Rating");
 				expect(defMod.description).not.toContain("Defense");
+				checked++;
 			}
 		}
+		expect(checked).toBeGreaterThan(0);
 	});
 });
 
@@ -1313,6 +1343,7 @@ describe("silk armor defense", () => {
 			templateId: "silk_chestplate_t1",
 			itemLevel: 80,
 		});
+		let checked = 0;
 		for (const item of items) {
 			const defMod = item.explicits.find(
 				(m) => m.modifierId === "localDefenseFlat",
@@ -1320,8 +1351,10 @@ describe("silk armor defense", () => {
 			if (defMod) {
 				expect(defMod.description).toContain("Barrier");
 				expect(defMod.description).not.toContain("Defense");
+				checked++;
 			}
 		}
+		expect(checked).toBeGreaterThan(0);
 	});
 });
 

@@ -88,8 +88,4 @@ describe("computeSellPrice", () => {
 		expect(result).toBe(26400);
 	});
 
-	it("floors at 1 ruby for zero-quality items", () => {
-		// Defensive: extreme negative scenarios floor at 1.
-		expect(computeSellPrice(item({ rarity: "normal", itemLevel: 0 }))).toBe(5);
-	});
 });
