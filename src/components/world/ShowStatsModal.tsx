@@ -1,4 +1,5 @@
 import Modal from "#/components/Modal";
+import Tooltip from "#/components/ui/tooltip";
 import {
 	computeArmorMitigation,
 	computeEvasionAvoid,
@@ -61,24 +62,47 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 	);
 }
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-	return (
+function Row({
+	label,
+	value,
+	tooltip,
+}: {
+	label: string;
+	value: React.ReactNode;
+	tooltip?: string;
+}) {
+	const row = (
 		<div className="flex items-center justify-between gap-2 py-0.5 text-sm">
-			<span className="text-white/60">{label}</span>
+			<span
+				className={tooltip ? "cursor-help text-white/60" : "text-white/60"}
+			>
+				{label}
+			</span>
 			<span className="text-right tabular-nums text-white">{value}</span>
 		</div>
 	);
+	if (!tooltip) return row;
+	return <Tooltip content={tooltip}>{row}</Tooltip>;
 }
 
 function AttributesSection({ stats }: { stats: ComputedCharacterStats }) {
 	return (
 		<section>
 			<SectionHeading>{m.stats_section_attributes()}</SectionHeading>
-			<Row label={m.attribute_strength()} value={stats.attributes.strength} />
-			<Row label={m.attribute_dexterity()} value={stats.attributes.dexterity} />
+			<Row
+				label={m.attribute_strength()}
+				value={stats.attributes.strength}
+				tooltip={m.attribute_strength_hint()}
+			/>
+			<Row
+				label={m.attribute_dexterity()}
+				value={stats.attributes.dexterity}
+				tooltip={m.attribute_dexterity_hint()}
+			/>
 			<Row
 				label={m.attribute_intelligence()}
 				value={stats.attributes.intelligence}
+				tooltip={m.attribute_intelligence_hint()}
 			/>
 		</section>
 	);

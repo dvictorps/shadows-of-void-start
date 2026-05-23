@@ -429,6 +429,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const combat = useCombatLoop({
 		characterId: character._id,
+		characterLevel: character.level,
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
 		potions: character.potions ?? 0,

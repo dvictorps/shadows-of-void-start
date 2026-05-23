@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	applyDeathXpPenalty,
+	applyOverlevelPenalty,
 	applyXpGain,
 	XP_CURVE_BASE,
 	XP_CURVE_GROWTH,
@@ -83,5 +84,37 @@ describe("applyDeathXpPenalty", () => {
 		// floor(3 × 0.05) = 0, so no loss on tiny XP balances
 		expect(r.xp).toBe(3);
 		expect(r.xpLost).toBe(0);
+	});
+});
+
+describe("applyOverlevelPenalty", () => {
+	it("is a no-op within the 2-level grace window", () => {
+		expect(applyOverlevelPenalty(100, 5, 5)).toBe(100); // same level
+		expect(applyOverlevelPenalty(100, 6, 5)).toBe(100); // +1
+		expect(applyOverlevelPenalty(100, 7, 5)).toBe(100); // +2
+	});
+
+	it("kicks in quadratically from +3 levels over", () => {
+		// delta = 1 → (1 - 0.1)^2 = 0.81
+		expect(applyOverlevelPenalty(100, 8, 5)).toBe(81);
+		// delta = 3 → (1 - 0.3)^2 = 0.49
+		expect(applyOverlevelPenalty(100, 10, 5)).toBe(49);
+		// delta = 5 → (1 - 0.5)^2 = 0.25
+		expect(applyOverlevelPenalty(100, 12, 5)).toBe(25);
+	});
+
+	it("floors at 5% so kills always grant some XP", () => {
+		// delta = 12 → (1 - 1.2)^2 = 0.04 → clamped to 0.05
+		expect(applyOverlevelPenalty(100, 19, 5)).toBe(5);
+		// Extreme over-leveling still floors
+		expect(applyOverlevelPenalty(100, 99, 5)).toBe(5);
+	});
+
+	it("never returns less than 1 from a positive reward", () => {
+		expect(applyOverlevelPenalty(2, 99, 5)).toBe(1);
+	});
+
+	it("does not boost XP when under-leveled (penalty is one-directional)", () => {
+		expect(applyOverlevelPenalty(100, 1, 50)).toBe(100);
 	});
 });

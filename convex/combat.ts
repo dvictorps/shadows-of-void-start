@@ -35,6 +35,7 @@ import { findMonster } from "../src/game/monsters/data"
 import { scaleMonsterStats } from "../src/game/monsters/scaling"
 import {
 	applyDeathXpPenalty,
+	applyOverlevelPenalty,
 	applyXpGain,
 } from "../src/game/progression/levels"
 import { computeCharacterStats } from "../src/game/stats/compute"
@@ -75,10 +76,17 @@ export const recordKill = mutation({
 		const monsterLevel = Math.max(1, Math.floor(args.monsterLevel))
 		const scaled = scaleMonsterStats(monster, monsterLevel)
 
+		// Over-leveling penalty: characters more than +2 levels above the
+		// monster lose XP quadratically (see applyOverlevelPenalty).
+		const xpAwarded = applyOverlevelPenalty(
+			scaled.xpReward,
+			char.level,
+			monsterLevel,
+		)
 		const { level, xp, levelsGained } = applyXpGain(
 			char.level,
 			char.xp ?? 0,
-			scaled.xpReward,
+			xpAwarded,
 		)
 
 		const updates: Partial<Doc<"characters">> = { level, xp }
@@ -155,7 +163,7 @@ export const recordKill = mutation({
 		}
 
 		return {
-			xpGained: scaled.xpReward,
+			xpGained: xpAwarded,
 			levelsGained,
 			drops,
 			potionDropped,

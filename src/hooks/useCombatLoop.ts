@@ -61,6 +61,7 @@ import {
 	type ScaledMonsterStats,
 	scaleMonsterStats,
 } from "#/game/monsters";
+import { applyOverlevelPenalty } from "#/game/progression/levels";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import {
 	type AmbushSchedule,
@@ -139,6 +140,10 @@ export type { DamageEvent };
 
 type Params = {
 	characterId: Id<"characters">;
+	// Character level — used for the optimistic XP popup so the on-screen
+	// number matches what the server actually awards after the over-level
+	// penalty.
+	characterLevel: number;
 	stats: ComputedCharacterStats;
 	initialHp: number;
 	// Live potion count from the character query. The hook does NOT keep a
@@ -175,6 +180,7 @@ const HP_SYNC_INTERVAL_MS = 10000;
 
 export function useCombatLoop({
 	characterId,
+	characterLevel,
 	stats,
 	initialHp,
 	potions,
@@ -298,9 +304,15 @@ export function useCombatLoop({
 
 	// Optimistic XP popup mounts immediately; potion drop is patched in once the
 	// server replies. Shared between player-swing kills and thorns-reflect kills.
+	// The penalty is applied client-side too so the popup matches what the
+	// server will award (no mid-flight number swap).
 	const resolveKill = useCallback(
 		(killed: Enemy) => {
-			const xpGained = killed.scaled.xpReward;
+			const xpGained = applyOverlevelPenalty(
+				killed.scaled.xpReward,
+				characterLevel,
+				killed.level,
+			);
 			stateRef.current = "victory";
 			setLastKill({ xp: xpGained, potion: false });
 			setState("victory");
@@ -341,7 +353,7 @@ export function useCombatLoop({
 				})
 				.catch(() => {});
 		},
-		[characterId, recordKill],
+		[characterId, characterLevel, recordKill],
 	);
 
 	// Keep barrier max in sync with the stat engine. Gear swaps mid-combat

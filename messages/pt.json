@@ -48,6 +48,9 @@
   "attribute_strength": "Força",
   "attribute_dexterity": "Destreza",
   "attribute_intelligence": "Inteligência",
+  "attribute_strength_hint": "+1% Dano Corpo a Corpo por ponto",
+  "attribute_dexterity_hint": "+2 Precisão por ponto",
+  "attribute_intelligence_hint": "+2% Barreira a cada 10 pontos",
 
   "city_safe_zone": "Zona Segura",
   "city_description": "Sua vida foi totalmente restaurada. O vendor e o stash ficarão disponíveis aqui em breve.",
