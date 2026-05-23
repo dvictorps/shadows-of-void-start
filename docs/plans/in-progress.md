@@ -6,6 +6,90 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ---
 
+## Agent ergonomics hardening (MAX PRIORITY — pick up after current in-flight work)
+
+**Why this is max priority**: this project is built almost entirely through prompt engineering with AI agents. The codebase's value compounds with the quality of agent-facing infrastructure — docs accuracy, type safety, decision capture. Every hour invested here pays back as faster, safer features for the rest of the project's life. Letting these debts accumulate is the single biggest risk to project velocity.
+
+Pick up these tasks after the time-based-zone-progression work wraps (or in parallel if scope allows). Order is suggested — the CI gate is the highest-leverage item, the rest are independent.
+
+### 1. CI gate against playbook drift (HIGH leverage)
+
+**Problem**: PR #41 (item naming lexicon) shipped without updating `adding-an-equipment-template.md` and `adding-a-modifier.md`. PR #42 fixed them, but the only thing that caught the drift was a senior-style audit. The next major refactor will introduce the same drift.
+
+**Fix**: small vitest file (`docs/playbooks-smoke.test.ts` or similar) that:
+
+- Reads each playbook with a code-block annotation (`// from playbook: adding-an-equipment-template.md`).
+- Extracts the example TypeScript blocks.
+- Wraps them in a minimal harness and runs `tsc --noEmit` against the example.
+- Asserts: every playbook example must compile against current types.
+
+Alternative shape: include a sentinel "playbook example" file per playbook (e.g. `docs/playbooks/_examples/template-example.ts`) that gets type-checked as part of the regular tsc pass. Any drift between code shape and the example breaks CI.
+
+**Estimate**: 1-3 hours depending on shape chosen. Worth every minute — it's the only mechanism that prevents repeat-drift.
+
+### 2. Playbook stubs for queued domains
+
+**Problem**: `in-progress.md` lists Future domains (passive tree, active skills, stash, vendor, bestiary, etc.) with design notes but no scaffolding. When an agent picks one up, they'll improvise from the closest existing precedent — usually monsters or items — and the resulting structure may not match what a senior would design.
+
+**Fix**: For each Future domain in `in-progress.md`, add a stub playbook `docs/playbooks/adding-a-<domain>.md` that:
+
+- Lists the design questions the agent must resolve before coding (the same shape as `adding-a-zone.md`'s "Decide first" section).
+- Points at the existing precedents to learn from (e.g. skills should mirror `src/game/monsters/` for data structure, `src/game/items/lexicon/` for naming).
+- Flags the open ADR-worthy decisions (where does skill data live? how do they interact with the stat engine?).
+
+Specifically queue stubs for:
+- `adding-a-skill.md` (active skill, gem-style)
+- `adding-a-passive.md` (passive tree node)
+- `adding-a-stash-tab.md` (vendor + ruby loop)
+- `adding-a-vendor-product.md` (the slot is set up but only consumables are listed)
+
+These aren't full recipes (the systems don't exist yet). They're orientation docs that get filled in when each system lands.
+
+**Estimate**: 30 min per stub. Low individual cost, high collective payoff.
+
+### 3. ADR for the i18n architecture (lexicon × paraglide × mod-i18n)
+
+**Problem**: The three-system split is non-obvious and was the result of real trade-offs (PR #41 review surfaced "why not unify?" questions). The `i18n-which-system.md` playbook explains the decision tree but not the rejected alternatives or the underlying constraints.
+
+**Fix**: `docs/adr/0002-i18n-systems.md`. Short — five paragraphs. Covers:
+
+- Why paraglide alone wasn't enough (gender concord at scale = key-suffix explosion).
+- Why a single lexicon couldn't replace paraglide (lexicons run through a renderer per call; static UI strings don't need that overhead and lose tooling).
+- Why mod-i18n.ts isn't folded into the lexicon (different shape: value-interpolation + min-max range support).
+- Status: Accepted. Date.
+
+This codifies the decision so a future contributor doesn't redo the analysis from scratch (or, worse, "simplifies" the architecture without knowing why it exists).
+
+**Estimate**: 30 min.
+
+### 4. ADR for render-at-display naming (items + monsters)
+
+**Problem**: Both the item-name and monster-name renderers chose to derive display strings from data at render time rather than store them. The reasoning is solid (locale switching, no name baked into the row) but it's also the kind of decision a future contributor might "improve" without context — pre-rendering names "for performance" would silently break locale switching.
+
+**Fix**: `docs/adr/0003-render-at-display-names.md`. Same shape as 0002. Covers:
+
+- Why we don't store rendered names (locale switch retranslates everything; no stale-cache problem).
+- Why UUID-seeded proper names (no `nameSeed` column needed; the seed is implicit in the existing id).
+- The Convex-validator literal-union limitation that drove the `v.optional(v.string())` widening.
+
+**Estimate**: 30 min.
+
+### 5. Split `src/routes/world.tsx` (already queued)
+
+The 836-line orchestrator. Already has an entry below — keeping the cross-reference here to make sure it's not forgotten in the same priority sweep. See the dedicated entry for details.
+
+### Validation across all items
+
+```bash
+npx tsc --noEmit       # passes if playbook examples + ADR snippets compile
+npx vitest run         # passes if playbooks-smoke.test.ts is green
+npx biome check src/
+```
+
+No runtime change. All deliverables are docs / tests / type-level guarantees. Low risk, high agent-ergonomics payoff.
+
+---
+
 ## Time-based zone progression + Acampamento + Incenso Etéreo (active design)
 
 **Status**: Design locked, implementation pending.
