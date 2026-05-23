@@ -12,7 +12,7 @@
 // encounters before the miniboss, and the gap range each one is rolled
 // from.
 
-import { randInt, randSymmetric } from "#/lib/rng";
+import { randInt, randSymmetric } from "../../lib/rng";
 
 export interface ZoneEncounterPlan {
 	/**
