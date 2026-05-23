@@ -832,7 +832,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 							combat.state !== "boss_intro" &&
 							combat.state !== "acampamento" &&
 							combat.state !== "miniboss_victory" &&
-							!(combat.state === "engaged" && combat.enemy?.rarity === "rare")
+							!(combat.state === "engaged" && combat.enemy?.rarity === "rare") &&
+							!combat.ambushActive
 						}
 						onUseIncense={combat.triggerIncense}
 						campSource={combat.campSource}

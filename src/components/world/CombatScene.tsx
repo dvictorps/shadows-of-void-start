@@ -436,7 +436,7 @@ export default function CombatScene({
 
 			<div className="relative flex flex-1 flex-col items-center justify-center gap-4">
 				<div className="relative flex flex-1 items-center justify-center">
-					{state === "searching" && (
+					{state === "searching" && !ambushActive && (
 						<p className="animate-pulse text-xs uppercase tracking-[0.25em] text-white/40">
 							{m.searching_enemy()}
 						</p>

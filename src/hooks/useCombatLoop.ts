@@ -446,10 +446,11 @@ export function useCombatLoop({
 	}, []);
 
 	// Player activated Incenso Etéreo. The gameplay rules (see CONTEXT.md →
-	// Active player input → Incenso Etéreo) gate this in three ways:
-	//   - blocked during a rare-miniboss fight, boss intro, or while already
-	//     in camp (the button is also disabled in the HUD, but enforce here
-	//     too so a keyboard shortcut can't bypass it);
+	// Active player input → Incenso Etéreo) gate this:
+	//   - blocked during a rare-miniboss fight, boss intro, while already
+	//     in camp, or during an active ambush pack (the button is also
+	//     disabled in the HUD, but enforce here too so a keyboard shortcut
+	//     can't bypass it);
 	//   - immediate during "searching" / "victory" (next spawn skipped);
 	//   - queued during "engaged" against a non-rare mob.
 	const triggerIncense = useCallback(() => {
@@ -462,6 +463,10 @@ export function useCombatLoop({
 		)
 			return;
 		if (s === "engaged" && enemyRef.current?.rarity === "rare") return;
+		// Ambush packs commit you to the burst — incense must wait until the
+		// last mob falls. Reads the ref because the closure capture lags by
+		// one render after the pack drains.
+		if (ambushPackRemainingRef.current > 0) return;
 
 		consumeIncense({ characterId })
 			.then((result) => setIncense(result.etherealIncense))
