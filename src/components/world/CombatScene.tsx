@@ -340,7 +340,7 @@ export default function CombatScene({
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: -8 }}
 						transition={{ duration: 0.4 }}
-						className="-translate-x-1/2 pointer-events-none absolute top-12 left-1/2 z-20 select-none"
+						className="-translate-x-1/2 pointer-events-none absolute top-5 left-1/2 z-20 select-none"
 						aria-live="polite"
 					>
 						<span
