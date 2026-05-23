@@ -16,6 +16,11 @@ type Props = {
 	onPickAll: (ids: Id<"items">[]) => void | Promise<void>;
 	onDiscardAll: () => void | Promise<void>;
 	bagItems: Doc<"items">[];
+	// Maximum number of items the player can mark "keep". Camp/boss exits
+	// pass bagItems.length (no cap); exploração/combate retreats pass
+	// floor(bagItems.length × 0.3) min 1 (the 30% punishment tier).
+	// See CONTEXT.md → Bag retention tiers.
+	keepCap: number;
 };
 
 function discardMessage(count: number): string {
@@ -32,6 +37,7 @@ export default function ExitZoneModal({
 	onPickAll,
 	onDiscardAll,
 	bagItems,
+	keepCap,
 }: Props) {
 	// Selection defaults empty each time the modal opens. Toggling fills the set.
 	const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -49,18 +55,25 @@ export default function ExitZoneModal({
 		if (isOpen && bagItems.length === 0) onClose();
 	}, [isOpen, bagItems.length, onClose]);
 
-	const toggle = (id: string) => {
-		setSelected((prev) => {
-			const next = new Set(prev);
-			if (next.has(id)) next.delete(id);
-			else next.add(id);
-			return next;
-		});
-	};
-
 	const selectedCount = selected.size;
 	const hasSelection = selectedCount > 0;
 	const hasItems = bagItems.length > 0;
+	// Cap only bites when it's below the full bag — at camp / boss exits
+	// keepCap equals bagItems.length and the UI flows as before.
+	const isCapped = keepCap < bagItems.length;
+	const atCap = selectedCount >= keepCap;
+
+	const toggle = (id: string) => {
+		setSelected((prev) => {
+			const next = new Set(prev);
+			if (next.has(id)) {
+				next.delete(id);
+			} else if (!atCap) {
+				next.add(id);
+			}
+			return next;
+		});
+	};
 
 	const selectedIds = (): Id<"items">[] =>
 		bagItems
@@ -88,6 +101,9 @@ export default function ExitZoneModal({
 
 	const handlePickAll = async () => {
 		if (!hasItems) return;
+		// Belt-and-suspenders — the button is hidden when isCapped, but a
+		// future regression here can't bypass the 30% cap.
+		if (isCapped) return;
 		await onPickAll(bagItems.map((it) => it._id));
 	};
 
@@ -113,20 +129,31 @@ export default function ExitZoneModal({
 		>
 			<div className="space-y-6">
 				{hasItems ? (
-					<div className="fancy-scroll flex max-h-[55vh] min-h-[20vh] flex-wrap content-start gap-3 overflow-y-auto pr-3">
-						{bagItems.map((item) => {
-							const isSelected = selected.has(item._id.toString());
-							return (
-								<ItemCard
-									key={item._id}
-									item={item.data}
-									size={ITEM_SLOT_SIZE}
-									selected={isSelected}
-									onClick={() => toggle(item._id.toString())}
-								/>
-							);
-						})}
-					</div>
+					<>
+						{isCapped && (
+							<p className="text-center text-xs uppercase tracking-wider text-yellow-300/80">
+								{m.loot_keep_cap_hint({
+									selected: selectedCount,
+									cap: keepCap,
+								})}
+							</p>
+						)}
+						<div className="fancy-scroll flex max-h-[55vh] min-h-[20vh] flex-wrap content-start gap-3 overflow-y-auto pr-3">
+							{bagItems.map((item) => {
+								const isSelected = selected.has(item._id.toString());
+								return (
+									<ItemCard
+										key={item._id}
+										item={item.data}
+										size={ITEM_SLOT_SIZE}
+										selected={isSelected}
+										dimmed={atCap && !isSelected}
+										onClick={() => toggle(item._id.toString())}
+									/>
+								);
+							})}
+						</div>
+					</>
 				) : (
 					<p className="py-12 text-center text-sm text-white/40">
 						{m.loot_bag_empty_run()}
@@ -144,15 +171,17 @@ export default function ExitZoneModal({
 						>
 							{m.loot_pick_selected_button({ count: selectedCount })}
 						</Button>
-						<Button
-							type="button"
-							variant="starkMuted"
-							onClick={handleDiscardSelected}
-							disabled={!hasSelection}
-							className="px-5 py-2 uppercase tracking-wider"
-						>
-							{m.loot_discard_selected_button({ count: selectedCount })}
-						</Button>
+						{!isCapped && (
+							<Button
+								type="button"
+								variant="starkMuted"
+								onClick={handleDiscardSelected}
+								disabled={!hasSelection}
+								className="px-5 py-2 uppercase tracking-wider"
+							>
+								{m.loot_discard_selected_button({ count: selectedCount })}
+							</Button>
+						)}
 					</div>
 					<div className="flex flex-wrap items-center justify-center gap-3">
 						<Button
@@ -164,15 +193,17 @@ export default function ExitZoneModal({
 						>
 							{m.loot_discard_all_button()}
 						</Button>
-						<Button
-							type="button"
-							variant="stark"
-							onClick={handlePickAll}
-							disabled={!hasItems}
-							className="px-5 py-2 uppercase tracking-wider"
-						>
-							{m.loot_pick_all_button()}
-						</Button>
+						{!isCapped && (
+							<Button
+								type="button"
+								variant="stark"
+								onClick={handlePickAll}
+								disabled={!hasItems}
+								className="px-5 py-2 uppercase tracking-wider"
+							>
+								{m.loot_pick_all_button()}
+							</Button>
+						)}
 						<Button
 							type="button"
 							variant="stark"

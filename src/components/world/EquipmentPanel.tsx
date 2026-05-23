@@ -39,7 +39,7 @@ const SLOT_CONFIG: SlotConfig[] = [
 		slot: "amulet",
 		area: "amulet",
 		label: m.slot_label_amulet,
-		size: { w: 80, h: 80 },
+		size: { w: 104, h: 104 },
 	},
 	{
 		slot: "weapon",
@@ -63,7 +63,7 @@ const SLOT_CONFIG: SlotConfig[] = [
 		slot: "ring1",
 		area: "ring1",
 		label: m.slot_label_ring,
-		size: { w: 80, h: 80 },
+		size: { w: 104, h: 104 },
 	},
 	{
 		slot: "belt",
@@ -75,7 +75,7 @@ const SLOT_CONFIG: SlotConfig[] = [
 		slot: "ring2",
 		area: "ring2",
 		label: m.slot_label_ring,
-		size: { w: 80, h: 80 },
+		size: { w: 104, h: 104 },
 	},
 	{
 		slot: "gloves",
@@ -93,7 +93,7 @@ const SLOT_CONFIG: SlotConfig[] = [
 
 const SLOT_GRID_STYLE = {
 	gridTemplateColumns: "120px 120px 120px",
-	gridTemplateRows: "120px 170px 80px 120px",
+	gridTemplateRows: "120px 170px 104px 120px",
 	gridTemplateAreas: `
 		".      helmet amulet"
 		"weapon body   offhand"

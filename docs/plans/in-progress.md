@@ -4,60 +4,154 @@ Decisions made but not yet executed. Read this before starting a session — if 
 
 When a planned item starts, move it to a feature branch and reference back here. When it ships, delete the entry (closed work belongs in commit history, not this file).
 
+**Doc language convention**: narrative + meta-docs in English (CLAUDE.md, CONTEXT.md, codebase-map, playbooks, ADRs, and the prose in this file all follow this). PT preserved only for game-domain proper nouns — `Acampamento`, `Incenso Etéreo`, `Calmaria`, item-name examples (`Espada de Ferro`), monster names, etc. Code identifiers stay English. Mixing the two in narrative produces the kind of code-switching that confuses future agents and downstream tooling (translation platforms, search) — don't.
+
 ---
 
-## Time-based zone progression + Acampamento + Incenso Etéreo (active design)
+## Project health snapshot (as of 2026-05-23)
 
-**Status**: Design locked, implementation pending.
-**Branch**: `feat/time-based-zones` (created from `origin/master`).
+**Current grade: A-** (composite across architecture / code quality / docs / scalability / agent ergonomics).
 
-### Why
+This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n + slot-aware mods), #41 (decomposed item-name lexicon + 20 renderer tests), and #42 (playbook + codebase-map refresh). The grade exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't.
 
-The current zone progression is a hidden 30-kill counter. The agreed redesign replaces it with a **time bar** that advances during exploração (gaps between encounters) and pauses during combate. The bar fills when the zone's encounter schedule completes, then the miniboss spawns. Goal: zone feels like a transit, not a kill quota.
+### Why A- (criteria that earned the current grade)
 
-The design is fully documented in `CONTEXT.md` — see `### Time Bar`, `### Combat Phases`, `### Encounter Schedule`, `### Acampamento`, and `### Active player input` (Incenso Etéreo, consolidated Teleport Stone).
+- **Architecture: A-** — render-at-display-time naming + literal-union enforcement is the correct choice for a multi-locale ARPG. Lexicon pattern is now battle-tested across two domains (monsters + items). Convex/TanStack split is coherent (Convex for live state, TanStack Router for routing + auth guards). Remaining hole: drift risk between lexicon and `mod-i18n.ts` (same modifier id in two independent tables) — flagged but not enforced.
+- **Code quality: A-** — `src/game/` is pure + tested. 315 vitest cases. Comments are WHY-focused. Two known stains: residual `as TemplateBaseId` casts at the Convex boundary (Convex validators can't express literal unions) and `src/routes/world.tsx` at 836 lines.
+- **Docs: A-** — `CONTEXT.md` is best-in-class for a solo-dev project (879 lines of single-source-of-truth game rules). Playbooks (`adding-an-equipment-template`, `adding-a-modifier`, `i18n-which-system`) accurate post-#42. `codebase-map.md` current. Only one ADR exists; structural decisions like the three-system i18n split aren't yet codified.
+- **Scalability: A** — adding a new locale = 1 new lexicon file. Adding a new template = 1 entry + 0 lexicon changes if base/modifier already exist. Decomposition cut lexicon size by 88% (562 entries → 135). Literal-union enforcement makes "forgot a translation" a compile error, not a runtime fallback.
+- **Translation quality: B-** — 130 PT lexicon entries were AI-bulk-translated. Four hand-revised (Espada Bastarda, Estrela da Manhã, Maculado pelo Vazio, Gume) caught real awkwardness, so the rest probably has 5–10 similar issues. Fine for indie pre-release, not for a paid Brazilian release.
+- **Agent ergonomics for ONBOARDING: A+** — `CONTEXT.md` + `CLAUDE.md` + `codebase-map.md` get an agent productive in ~30 minutes.
+- **Agent ergonomics for MODIFYING existing things: A-** — strong TS catches mistakes, but `world.tsx` (836 lines) is a navigation tax.
+- **Agent ergonomics for ADDING NEW systems (skills, passive tree, stash): C+** — no playbooks exist for the queued Future domains, so the first agent on each will improvise from precedents and may diverge from intent.
 
-### Scope summary
+### What raises the grade
 
-- **Time Bar** (replaces Threshold Bar): per-zone encounter schedule + `spawn event` abstraction (`{ size: 1, kind, ... }`) to leave NvN combat as a future-portable extension.
-- **Encounter Schedule**: zone declares `encountersBeforeBoss`, `gapBetweenSpawns: {min, max}`, `ambushes: { count, packSize, gapWithinPack, magicChance }`, camp anchoring rules. Lives in `src/game/world/act-1.ts`.
-- **Acampamento** (camps): cinematic + modal with two options (Retornar com 100% / Seguir em frente). Baked into the schedule at anchored positions (~50% for `<20` encounters, ~33% + ~66% for `≥20`).
-- **Incenso Etéreo**: new consumable, drop-only (~2-3% from any kill), triggers the camp cinematic on demand. Queueable during combate; blocked during boss fight.
-- **Bag retention tiers**: camp = 100%, exploração = 30%, combate = 30%, morte = 0%. ExitZoneModal enforces 30% cap with player picking which slots.
-- **Teleport Stone consolidation**: stone absorbs the wind crystal's purpose. Single item, destination = any node in `unlockedNodes`. City gets short travel time (3s) + heal/refill; other nodes get the wind crystal's old travel time (~12s) + no heal. Vendor price 40r. `useWindCrystal` and the `windCrystals` counter are retired.
+| Move | Outcome |
+|---|---|
+| Complete the "Agent ergonomics hardening" entry below (5 items) | **A pleno** — drift blocked via CI, future-domain agents have orientation, decisions codified in ADRs, no more 800-line orchestrators |
+| Above + native PT review of `lexicon/pt.ts` | A with translation quality also in A range |
+| Above + 3+ months of system additions (skills / passive / stash) WITHOUT emergency refactor | **A+** — architecture proven at scale, not just at theory. Until then A+ is hypothetical. |
 
-### Required code changes (rough map)
+### What lowers the grade
 
-- `convex/combat.ts`:
-  - `recordKill` — drop `etherealIncense` independently on each kill (counter on character doc); decouple miniboss spawn from kill count (engine drives it from schedule end).
-  - `useTeleportStone` — accept `destinationNodeId: v.string()`; branch on `city` vs other (heal+refill only when city); compute `travelArrivesAt` from the appropriate constant.
-  - `useWindCrystal` — delete.
-  - Add `useEtherealIncense` mutation that triggers the camp cinematic flow (or model the cinematic purely client-side and just decrement the counter server-side).
-- `convex/schema.ts`: add `etherealIncense?: v.number()` to `characters`; consider retiring `windCrystals` (or leave for legacy data tolerance).
-- `src/game/world/act-1.ts`: each zone gets `encounterSchedule` data (encounter count, gap bounds, ambush spec, camp positions).
-- `src/game/combat/constants.ts`: add `STONE_TRAVEL_SECONDS_CITY` (3s), keep/rename `WIND_CRYSTAL_TRAVEL_SECONDS` → `STONE_TRAVEL_SECONDS_NON_CITY` (~12s).
-- `src/hooks/useCombatLoop.ts`: replace `KILLS_TO_THRESHOLD` flow with the schedule iterator; track current schedule slot; emit camp events at scheduled slots; queue incenso activations during combat.
-- New components: camp cinematic (`CampCinematic.tsx`?) with fade transitions and the two-option modal.
-- `src/components/world/ExitZoneModal.tsx`: enforce the 30% keep-cap when phase is exploração/combate (pass current phase from caller).
-- `src/components/world/StatusCard.tsx` / combat HUD: 4th button (Incenso Etéreo), greyed out per rules.
-- `src/game/vendor/products.ts`: drop wind crystal; update stone price.
-- `messages/pt.json` + `messages/en.json`: camp cinematic strings, incenso strings.
+| Risk | Drop |
+|---|---|
+| Next major refactor ships without updating relevant playbooks (drift recurs) | A- → B+. The PR #41 → #42 cycle should not repeat. The CI gate exists exactly to prevent this. |
+| New domain shipped without a playbook (skills, passive, stash, vendor product) | Scalability slips C+ → C. Adding the next is harder because the first set a precedent without guidance. |
+| `world.tsx` grows further (or another orchestrator route hits the same shape) | Modifying existing → B+. Agent navigation tax compounds. |
+| Someone "optimizes" render-at-display by pre-rendering names | Locale switching silently breaks. Architecture grade drops + UX regression. Mitigated by ADR-0003 once it lands. |
+| `mod.description` (legacy field) becomes load-bearing again in any consumer | Defeats the render-at-display invariant. Tooltips diverge by locale. |
 
-### Validation
+### Reading this from a fresh session
+
+If you're picking up where we left off:
+
+1. Read this snapshot first — know where the project sits and what's at stake.
+2. Pick from the **MAX PRIORITY** entry below before starting any feature work that's not already in flight.
+3. When a major refactor lands, **update the relevant playbook in the same PR** (this is the single most important habit for keeping the grade trajectory positive).
+
+---
+
+## Agent ergonomics hardening (MAX PRIORITY — pick up after current in-flight work)
+
+**Why this is max priority**: this project is built almost entirely through prompt engineering with AI agents. The codebase's value compounds with the quality of agent-facing infrastructure — docs accuracy, type safety, decision capture. Every hour invested here pays back as faster, safer features for the rest of the project's life. Letting these debts accumulate is the single biggest risk to project velocity.
+
+Pick up these tasks after the time-based-zone-progression work wraps (or in parallel if scope allows). Order is suggested — the CI gate is the highest-leverage item, the rest are independent.
+
+### 1. CI gate against playbook drift (HIGH leverage)
+
+**Problem**: PR #41 (item naming lexicon) shipped without updating `adding-an-equipment-template.md` and `adding-a-modifier.md`. PR #42 fixed them, but the only thing that caught the drift was a senior-style audit. The next major refactor will introduce the same drift.
+
+**Fix**: small vitest file (`docs/playbooks-smoke.test.ts` or similar) that:
+
+- Reads each playbook with a code-block annotation (`// from playbook: adding-an-equipment-template.md`).
+- Extracts the example TypeScript blocks.
+- Wraps them in a minimal harness and runs `tsc --noEmit` against the example.
+- Asserts: every playbook example must compile against current types.
+
+Alternative shape: include a sentinel "playbook example" file per playbook (e.g. `docs/playbooks/_examples/template-example.ts`) that gets type-checked as part of the regular tsc pass. Any drift between code shape and the example breaks CI.
+
+**Estimate**: 1-3 hours depending on shape chosen. Worth every minute — it's the only mechanism that prevents repeat-drift.
+
+### 2. Playbook stubs for queued domains
+
+**Problem**: `in-progress.md` lists Future domains (passive tree, active skills, stash, vendor, bestiary, etc.) with design notes but no scaffolding. When an agent picks one up, they'll improvise from the closest existing precedent — usually monsters or items — and the resulting structure may not match what a senior would design.
+
+**Fix**: For each Future domain in `in-progress.md`, add a stub playbook `docs/playbooks/adding-a-<domain>.md` that:
+
+- Lists the design questions the agent must resolve before coding (the same shape as `adding-a-zone.md`'s "Decide first" section).
+- Points at the existing precedents to learn from (e.g. skills should mirror `src/game/monsters/` for data structure, `src/game/items/lexicon/` for naming).
+- Flags the open ADR-worthy decisions (where does skill data live? how do they interact with the stat engine?).
+
+Specifically queue stubs for:
+- `adding-a-skill.md` (active skill, gem-style)
+- `adding-a-passive.md` (passive tree node)
+- `adding-a-stash-tab.md` (vendor + ruby loop)
+- `adding-a-vendor-product.md` (the slot is set up but only consumables are listed)
+
+These aren't full recipes (the systems don't exist yet). They're orientation docs that get filled in when each system lands.
+
+**Estimate**: 30 min per stub. Low individual cost, high collective payoff.
+
+### 3. ADR for the i18n architecture (lexicon × paraglide × mod-i18n)
+
+**Problem**: The three-system split is non-obvious and was the result of real trade-offs (PR #41 review surfaced "why not unify?" questions). The `i18n-which-system.md` playbook explains the decision tree but not the rejected alternatives or the underlying constraints.
+
+**Fix**: `docs/adr/0002-i18n-systems.md`. Short — five paragraphs. Covers:
+
+- Why paraglide alone wasn't enough (gender concord at scale = key-suffix explosion).
+- Why a single lexicon couldn't replace paraglide (lexicons run through a renderer per call; static UI strings don't need that overhead and lose tooling).
+- Why mod-i18n.ts isn't folded into the lexicon (different shape: value-interpolation + min-max range support).
+- Status: Accepted. Date.
+
+This codifies the decision so a future contributor doesn't redo the analysis from scratch (or, worse, "simplifies" the architecture without knowing why it exists).
+
+**Estimate**: 30 min.
+
+### 4. ADR for render-at-display naming (items + monsters)
+
+**Problem**: Both the item-name and monster-name renderers chose to derive display strings from data at render time rather than store them. The reasoning is solid (locale switching, no name baked into the row) but it's also the kind of decision a future contributor might "improve" without context — pre-rendering names "for performance" would silently break locale switching.
+
+**Fix**: `docs/adr/0003-render-at-display-names.md`. Same shape as 0002. Covers:
+
+- Why we don't store rendered names (locale switch retranslates everything; no stale-cache problem).
+- Why UUID-seeded proper names (no `nameSeed` column needed; the seed is implicit in the existing id).
+- The Convex-validator literal-union limitation that drove the `v.optional(v.string())` widening.
+
+**Estimate**: 30 min.
+
+### 5. Split `src/routes/world.tsx` (already queued)
+
+The 836-line orchestrator. Already has an entry below — keeping the cross-reference here to make sure it's not forgotten in the same priority sweep. See the dedicated entry for details.
+
+### Validation across all items
 
 ```bash
-npx tsc --noEmit
-npx vitest run
-npx convex dev --once
-npx biome check src/ convex/
+npx tsc --noEmit       # passes if playbook examples + ADR snippets compile
+npx vitest run         # passes if playbooks-smoke.test.ts is green
+npx biome check src/
 ```
 
-Manual smoke: enter zone, observe ambush event with magic pack, hit a baked camp (cinematic fires, modal opens with 2 options), use Continuar (bar resumes), reach miniboss, kill, see Zone Complete panel. Separately: drop an Incenso Etéreo, use mid-combat (queues), confirm cinematic fires after current kill. Separately: use Teleport Stone with non-city destination, confirm no heal/refill applied.
+No runtime change. All deliverables are docs / tests / type-level guarantees. Low risk, high agent-ergonomics payoff.
 
-### Open follow-ups (deferred in this PR — see entries below)
+---
 
-- Act-boss node (Model B) re-fit for the time-bar system.
-- Biome-specific ambient audio for the camp cinematic.
+## Attribute baseline rebalance pass (low priority — wait for player feedback)
+
+**Status**: Live, watching. Shipped in the over-level + attributes patch.
+
+**Why**: Initial conversions chosen by gut:
+- Str → +1% Melee Damage / point
+- Dex → +2 Accuracy / point
+- Int → +2% Barrier per 10 points (= 0.2 / point)
+
+At ~80 of the primary attribute that lands at +80% melee / +160 acc / +16% barrier. Str clearly dominates Int — fine if Mage gameplay still feels good (Int is meant as a defensive nudge, not the offensive bedrock; spells lean on `spell` + per-element increased), but if Mage feels flat at level ~15+ revisit:
+
+- Cheapest knob: bump `INT_BARRIER_PCT_PER_POINT` (in `src/game/stats/compute.ts`) from `0.2` → `0.5`.
+- Or: add a second Int conversion (e.g., +1% spell damage / point).
+
+Open until a Mage run reaches Act 1 endgame.
 
 ---
 
@@ -79,21 +173,35 @@ Time-based zone progression is already large; mixing Model B redesign in would d
 
 ---
 
-## Camp cinematic biome-specific audio (deferred)
+## Camp cinematic biome ambience (deferred)
 
 **Status**: Planned, not started.
-**Triggered by**: time-based zone progression PR. The camp cinematic is text-only at first ship.
+**Triggered by**: time-based zone progression PR. The camp cinematic ships
+text-only + a warm radial glow as a stand-in for the full ambient layer.
 
 ### Why
 
-The cinematic was designed to include ambient sound cues per biome ("Sons da natureza calma..." in forest, frog/marsh sounds in pantano, etc.). The project already has hit-sound infrastructure to extend from. Text + fade alone delivers ~80% of the felt experience; audio is the last 20%.
+The cinematic was designed to feel "comfy" — a real rest stop, not a UI
+pause. The text + slow HUD fade-out + warm glow gets ~60% of the felt
+experience. The remaining 40% is in (a) biome-themed background art and
+(b) ambient audio (campfire crackle + per-biome environment).
 
 ### Scope
 
-- Catalog biome ambient files (`/assets/audio/biomes/forest.mp3`, `pantano.mp3`, etc.).
-- Hook into the camp cinematic timeline: ambient fade-in synced with the first text fade-in; fade-out before the modal options appear.
-- Zone metadata declares its biome key; the cinematic looks up the matching audio.
-- Volume + accessibility: respect a future master volume setting.
+- **Background art per biome**: hand-authored pixel scene per zone biome
+  (forest, swamp, crypt, castle, void) showing the character resting at a
+  campfire, in the spirit of the Dark Souls II–style "Hidamari" piece the
+  user referenced. Replaces the current radial-gradient glow.
+- **Ambient audio**: catalog biome ambient files (`/assets/audio/biomes/forest.mp3`, etc.)
+  plus a generic `campfire.mp3` loop on top. Hook into the cinematic
+  timeline: campfire+ambient fade-in synced with the first text fade-in;
+  ambient fade-out only after the player picks a button (so the moment
+  lingers as long as they need).
+- **Zone metadata**: each zone declares its biome key; cinematic looks up
+  the matching art + audio.
+- **Volume**: respect the existing global SFX volume (`useSfxVolume`).
+- **Accessibility**: ambient is auxiliary — the cinematic still reads
+  fully with audio off.
 
 ---
 
@@ -160,6 +268,42 @@ The cinematic was designed to include ambient sound cues per biome ("Sons da nat
 
 - `npx tsc --noEmit`, `npx vitest run` (no UI test coverage today; rely on TS + manual smoke).
 - Manual smoke: enter zone → kill mob → exit with loot picker → equip new item → travel to next zone. The five main user-flows touch every part of world.tsx.
+
+---
+
+## Server-authoritative camp/phase derivation (queued after world.tsx split)
+
+**Status**: Planned, not started.
+**Why**: PR #40 added server-side enforcement of the 30% bag retention cap by accepting a `phase` arg on `exitZone` / `pickFromBag` / `discardFromBag`. The cap math itself is server-enforced, but the **`phase` arg is still client-trusted**. A tampered client (or someone hitting the Convex endpoint directly via the SDK) can pass `phase: "camp"` while actually in combat and bypass the cap entirely. Auth + ownership are protected; phase is not.
+
+### Why we deferred
+
+This is the next "right" step for the time-based-zone scope, but it requires schema + enterZone + useCombatLoop rewiring, which collides with the queued world.tsx split. Doing both in the same PR is too much surface for one review.
+
+### Scope
+
+- **Schema** (`convex/schema.ts`): add to `characters`:
+  - `zoneStartedAt?: number` (ms) — set by `enterZone`, cleared by `exitZone`/death.
+  - `campThresholdsMs?: number[]` — rolled by `enterZone`, consumed on `enterCamp`.
+  - `inCamp?: boolean` — set by `enterCamp`, cleared by `exitCamp` / `exitZone`.
+- **`enterZone`**: roll the camp thresholds server-side (move `rollCampThresholdsMs` call from client to server) and persist `zoneStartedAt` + `campThresholdsMs`. Return both to the client so the time bar can render markers.
+- **New `enterCamp` mutation**: takes `thresholdIndex`. Validates `Date.now() - zoneStartedAt >= campThresholdsMs[thresholdIndex]` (with a small grace window for clock drift). Sets `inCamp = true`. Idempotent on the same index.
+- **New `exitCamp` mutation**: clears `inCamp`. Called when the player picks "Seguir em frente" in the camp panel.
+- **`exitZone` / `pickFromBag` / `discardFromBag`**: drop the `phase` arg. Derive phase server-side as `inCamp ? "camp" : "combat"` (combat vs exploration distinction is only cosmetic for the cap — both gate at 30%).
+- **Client (`useCombatLoop` + `world.tsx`)**:
+  - Read `campThresholdsMs` from the character query instead of rolling locally.
+  - Call `enterCamp(thresholdIndex)` when the camp cinematic triggers.
+  - Call `exitCamp` on the "Seguir em frente" handler.
+  - Stop passing `phase` to the three mutations; UI still uses local `combat.phase` to decide which buttons to show (matches the server's derivation, but UI math doesn't gate security).
+
+### Validation
+
+- `npx tsc --noEmit`, `npx vitest run`, `npx convex dev --once`, `npx biome check`.
+- Manual: enter zone, reach camp, observe panel (no client-trusted phase). Then try in DevTools: call `pickFromBag` with no `enterCamp` first — should reject. Verify `enterCamp` rejects if called before the time threshold.
+
+### Why this matters
+
+Without this, the cap is a **client-cooperation** boundary, not a security one. The user's framing in PR #40 — *"backend tem que proteger isso"* — only fully holds once phase derives from server state.
 
 ---
 

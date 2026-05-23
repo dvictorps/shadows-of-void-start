@@ -52,10 +52,14 @@ function hitChance(attackerAcc: number, defenderEva: number): number {
 	return clamp(raw, HIT_CHANCE_MIN, HIT_CHANCE_MAX);
 }
 
-function applyArmor(physical: number, armor: number, level: number): number {
+// PoE-style armor: reduction scales with the size of the hit, not with the
+// attacker's level. The same armor pool mitigates many small hits hard but
+// barely dents one big hit, so armor reads as a "tank against trash" stat
+// instead of a flat damage multiplier. Cap at 85% mirrors PoE's cap.
+function applyArmor(physical: number, armor: number): number {
 	if (armor <= 0 || physical <= 0) return physical;
 	const reduction = clamp(
-		armor / (armor + 10 * Math.max(1, level)),
+		armor / (armor + 10 * physical),
 		0,
 		ARMOR_REDUCTION_CAP,
 	);
@@ -158,7 +162,7 @@ export function rollPlayerSwing({
 		: 1;
 
 	// 4. Apply defender mitigation: armor for physical, resists per element.
-	const physFinal = applyArmor(phys * critMult, defender.armor, defender.level);
+	const physFinal = applyArmor(phys * critMult, defender.armor);
 	const coldFinal = applyResistance(cold * critMult, defender.resistances.cold);
 	const fireFinal = applyResistance(fire * critMult, defender.resistances.fire);
 	const lightningFinal = applyResistance(
@@ -196,7 +200,6 @@ export function rollPlayerSwing({
 // ── Enemy attack ──
 
 interface EnemyAttackArgs {
-	enemyLevel: number;
 	// Pre-scaled by `scaleMonsterStats` (+ monster mods) at spawn — damage.ts
 	// stays decoupled from MonsterDefinition and the scaling curve. `accuracy`
 	// defaults to `level × 10` upstream; monster mods like Increased Accuracy
@@ -215,7 +218,6 @@ interface EnemyAttackArgs {
  * Defender's evasion gates the hit. No crit on enemies in MVP.
  */
 export function rollEnemyAttack({
-	enemyLevel,
 	enemyAccuracy,
 	physicalDamage,
 	elementalDamage,
@@ -252,7 +254,7 @@ export function rollEnemyAttack({
 		Math.max(0, physicalDamage.min),
 		Math.max(physicalDamage.min, physicalDamage.max),
 	);
-	const physFinal = applyArmor(physRaw, defender.armor, enemyLevel);
+	const physFinal = applyArmor(physRaw, defender.armor);
 
 	const elementRolls: Record<"Cold" | "Fire" | "Lightning" | "Void", number> = {
 		Cold: 0,

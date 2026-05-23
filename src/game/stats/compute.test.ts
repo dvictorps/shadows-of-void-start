@@ -487,7 +487,10 @@ describe("computeCharacterStats — broken state", () => {
 });
 
 describe("derived helpers", () => {
-	it("armor mitigation follows armor / (armor + 10×enemyLevel), capped 85%", () => {
+	it("armor mitigation follows armor / (armor + 10×referenceHit), capped 85%", () => {
+		// Same numerics as before — the arg semantically renamed from
+		// "enemy level" to "reference hit size" so the panel preview
+		// matches the gameplay PoE-style formula.
 		expect(computeArmorMitigation(100, 10).reductionPct).toBeCloseTo(50);
 		expect(computeArmorMitigation(100, 50).reductionPct).toBeCloseTo(16.67, 1);
 		expect(computeArmorMitigation(10000, 10).reductionPct).toBe(85);
@@ -507,5 +510,41 @@ describe("derived helpers", () => {
 		expect(effectiveCritChance(0, 0)).toBe(5);
 		expect(effectiveCritChance(50, 200)).toBe(100);
 		expect(effectiveCritChance(10, 50)).toBe(15);
+	});
+});
+
+describe("attribute bonuses", () => {
+	// Warrior baseline: Str=10, Dex=5, Int=5.
+	const warriorClass = CLASS_DEFINITIONS.warrior;
+
+	it("Str adds 1% melee damage per point", () => {
+		const stats = computeCharacterStats({
+			classDef: warriorClass,
+			level: 1,
+			equippedItems: [],
+		});
+		// 10 Str → +10% melee, no other increased.melee source at L1 unarmed.
+		expect(stats.increased.melee).toBe(10);
+	});
+
+	it("Dex adds 2 accuracy per point", () => {
+		const stats = computeCharacterStats({
+			classDef: warriorClass,
+			level: 1,
+			equippedItems: [],
+		});
+		// 5 Dex → +10 accuracy on top of the class baseline.
+		expect(stats.accuracy).toBeGreaterThanOrEqual(10);
+	});
+
+	it("Int adds 0.2% barrier per point via the global fold", () => {
+		const mageClass = CLASS_DEFINITIONS.mage;
+		const base = computeCharacterStats({
+			classDef: { ...mageClass, baseStats: { ...mageClass.baseStats, barrier: 100 } },
+			level: 1,
+			equippedItems: [],
+		});
+		// 10 Int → +2% barrier → 100 * 1.02 = 102 rounded.
+		expect(base.maxBarrier).toBe(102);
 	});
 });

@@ -140,11 +140,32 @@ describe("applyMonsterMods", () => {
 		});
 	});
 
-	it("Accuracy mod adds 500 to baseline (level × 10)", () => {
+	it("Accuracy mod adds 30 × level to baseline (level × 10)", () => {
 		const scaled = scaleMonsterStats(baseDef, 10);
-		// Baseline accuracy = level 10 × 10 = 100, +500 → 600
+		// Baseline accuracy = level 10 × 10 = 100, +30×10 → 400
 		const after = applyMonsterMods(scaled, ["monsterIncreasedAccuracy"]);
-		expect(after.accuracy).toBe(600);
+		expect(after.accuracy).toBe(400);
+	});
+
+	it("Evasion + Armor mods scale with monster level", () => {
+		// Level 1: +30 evasion, +15 armor — sane against a low-level player
+		const lvl1 = scaleMonsterStats(baseDef, 1);
+		const lvl1Mods = applyMonsterMods(lvl1, [
+			"monsterIncreasedEvasion",
+			"monsterMoreArmor",
+		]);
+		expect(lvl1Mods.evasion).toBe(30);
+		expect(lvl1Mods.armor).toBe(15);
+
+		// Level 17 (~end of act 1): +510 evasion, +255 armor — comparable to
+		// the previous flat +500 / +200 numbers at the level they were tuned for.
+		const lvl17 = scaleMonsterStats(baseDef, 17);
+		const lvl17Mods = applyMonsterMods(lvl17, [
+			"monsterIncreasedEvasion",
+			"monsterMoreArmor",
+		]);
+		expect(lvl17Mods.evasion).toBe(510);
+		expect(lvl17Mods.armor).toBe(255);
 	});
 
 	it("composes multiple mods in order (deterministic)", () => {

@@ -24,6 +24,17 @@ export const ACT_1: Act = {
 			],
 			monsterPool: ["goblin", "macaco", "morcego", "serpente"],
 			level: 1,
+			encounterPlan: {
+				calmariaBudgetSeconds: 35,
+				gapBetweenSpawns: { min: 1.5, max: 3 },
+				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.72],
+					packSize: { min: 3, max: 4 },
+					gapWithinPackMs: 800,
+					magicChance: 0.5,
+				},
+			},
 		},
 		{
 			id: "forest_profunda",
@@ -37,6 +48,17 @@ export const ACT_1: Act = {
 			monsterPool: ["goblin", "macaco", "morcego", "serpente"],
 			level: 2,
 			gatedBy: ["forest_starter"],
+			encounterPlan: {
+				calmariaBudgetSeconds: 42,
+				gapBetweenSpawns: { min: 1.5, max: 3 },
+				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.72],
+					packSize: { min: 3, max: 5 },
+					gapWithinPackMs: 800,
+					magicChance: 0.5,
+				},
+			},
 		},
 		{
 			id: "pantano",
@@ -50,6 +72,17 @@ export const ACT_1: Act = {
 			monsterPool: ["slime", "zumbi"],
 			level: 4,
 			gatedBy: ["forest_profunda"],
+			encounterPlan: {
+				calmariaBudgetSeconds: 45,
+				gapBetweenSpawns: { min: 1.25, max: 2.75 },
+				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.7],
+					packSize: { min: 3, max: 5 },
+					gapWithinPackMs: 800,
+					magicChance: 0.55,
+				},
+			},
 		},
 		{
 			id: "cripta",
@@ -63,6 +96,17 @@ export const ACT_1: Act = {
 			monsterPool: ["esqueleto", "esqueleto_armadurado", "esqueleto_lanca"],
 			level: 7,
 			gatedBy: ["pantano"],
+			encounterPlan: {
+				calmariaBudgetSeconds: 47,
+				gapBetweenSpawns: { min: 1.25, max: 2.5 },
+				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.3, 0.75],
+					packSize: { min: 3, max: 5 },
+					gapWithinPackMs: 800,
+					magicChance: 0.6,
+				},
+			},
 		},
 		{
 			id: "castelo",
@@ -76,6 +120,17 @@ export const ACT_1: Act = {
 			monsterPool: ["vampiro", "lich"],
 			level: 10,
 			gatedBy: ["cripta"],
+			encounterPlan: {
+				calmariaBudgetSeconds: 50,
+				gapBetweenSpawns: { min: 1, max: 2.5 },
+				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.3, 0.75],
+					packSize: { min: 4, max: 5 },
+					gapWithinPackMs: 750,
+					magicChance: 0.65,
+				},
+			},
 		},
 		{
 			id: "fenda_vazio",
@@ -86,6 +141,17 @@ export const ACT_1: Act = {
 			monsterPool: ["olho_do_vazio", "criatura_do_vazio"],
 			level: 14,
 			gatedBy: ["castelo"],
+			encounterPlan: {
+				calmariaBudgetSeconds: 50,
+				gapBetweenSpawns: { min: 1, max: 2.25 },
+				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.3, 0.75],
+					packSize: { min: 4, max: 5 },
+					gapWithinPackMs: 700,
+					magicChance: 0.7,
+				},
+			},
 		},
 	],
 };

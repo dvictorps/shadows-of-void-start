@@ -7,6 +7,14 @@ export function randInt(min: number, max: number): number {
 }
 
 /**
+ * Uniform float in [-magnitude, +magnitude]. Used for jitter — pitch variance
+ * on SFX, camp-threshold scatter, etc.
+ */
+export function randSymmetric(magnitude: number): number {
+	return (Math.random() * 2 - 1) * magnitude;
+}
+
+/**
  * Uniform pick from a non-empty array. Returns undefined for empty input —
  * callers should guard length first when that's a possible state.
  */

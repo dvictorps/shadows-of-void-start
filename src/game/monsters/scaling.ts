@@ -6,6 +6,10 @@ import type { MonsterDefinition, MonsterElementDamage } from "./types";
 export const MONSTER_SCALING_BASE = 1.06;
 
 export interface ScaledMonsterStats {
+	// Resolved monster level. Carried through so modifiers can scale their
+	// magnitudes against it — a +500 evasion mod at level 1 is impossible to
+	// hit; per-level scaling keeps the curve sane across act 1.
+	level: number;
 	hp: number;
 	physicalDamage: { min: number; max: number };
 	elementalDamage: MonsterElementDamage[];
@@ -41,6 +45,7 @@ export function scaleMonsterStats(
 	const factor = monsterScaleFactor(level);
 	const clampedLevel = Math.max(1, level);
 	return {
+		level: clampedLevel,
 		hp: Math.max(1, Math.round(def.baseStats.hp * factor)),
 		physicalDamage: scaleRange(def.baseStats.physicalDamage, factor),
 		elementalDamage: def.baseStats.elementalDamage.map((e) => {

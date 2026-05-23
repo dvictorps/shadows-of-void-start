@@ -19,11 +19,13 @@
 
 import { ConvexError, v } from "convex/values"
 import { findClassDefinition } from "../src/game/classes/data"
+import { computeBagKeepCap } from "../src/game/combat/constants"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
 import { isBow, isQuiver, isWeapon, planEquip } from "../src/game/items/equipment"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, narrowEquippedSlot } from "../src/game/stats/types"
 import {
+	combatPhaseValidator,
 	equippedSlotValidator,
 	fetchInventoryAllocator,
 	loadOwnedCharacter,
@@ -35,6 +37,10 @@ export const exitZone = mutation({
 	args: {
 		characterId: v.id("characters"),
 		keepIds: v.array(v.id("items")),
+		// Exit phase — drives the bag-retention cap. Camp keeps everything;
+		// combat/exploration cap at 30% of the bag at commit time. See
+		// CONTEXT.md → Bag retention tiers.
+		phase: combatPhaseValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -54,6 +60,16 @@ export const exitZone = mutation({
 			(it) =>
 				keepSet.has(it._id.toString()) && it.characterId === args.characterId,
 		)
+
+		// Non-camp exit: 30% cap on items kept (see RETENTION_CAP_FRACTION).
+		// Client mirrors this computation via the same helper, but the server
+		// is authoritative — a tampered client can't widen its share.
+		const cap = computeBagKeepCap(bagItems.length, args.phase)
+		if (args.phase !== "camp" && validKeeps.length > cap) {
+			throw new ConvexError(
+				`Phase cap exceeded: kept ${validKeeps.length} > cap ${cap} for phase ${args.phase}`,
+			)
+		}
 
 		const { used, nextFreeSlot } = await fetchInventoryAllocator(
 			ctx,
@@ -90,17 +106,25 @@ export const exitZone = mutation({
 
 /**
  * Move a subset of zone-bag items to inventory while keeping the session alive.
- * Validates ownership + inventory overflow.
+ * Validates ownership + inventory overflow. Camp-only — non-camp exits must
+ * route through `exitZone` so the 30% cap is enforced atomically.
  */
 export const pickFromBag = mutation({
 	args: {
 		characterId: v.id("characters"),
 		itemIds: v.array(v.id("items")),
+		phase: combatPhaseValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		if (args.phase !== "camp") {
+			throw new ConvexError(
+				`pickFromBag is camp-only — phase ${args.phase} must commit via exitZone`,
+			)
+		}
 
 		const zoneSession = char.currentZoneSession
 		if (!zoneSession || args.itemIds.length === 0) return { kept: 0 }
@@ -143,17 +167,27 @@ export const pickFromBag = mutation({
 })
 
 /**
- * Delete a subset of zone-bag items. Session stays alive.
+ * Delete a subset of zone-bag items. Session stays alive. Camp-only —
+ * shrinking the bag in non-camp would let the player game the 30% cap
+ * (smaller bag = smaller absolute discard ceiling). Non-camp exits commit
+ * via exitZone, which discards everything not in keepIds atomically.
  */
 export const discardFromBag = mutation({
 	args: {
 		characterId: v.id("characters"),
 		itemIds: v.array(v.id("items")),
+		phase: combatPhaseValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		if (args.phase !== "camp") {
+			throw new ConvexError(
+				`discardFromBag is camp-only — phase ${args.phase} must commit via exitZone`,
+			)
+		}
 
 		const zoneSession = char.currentZoneSession
 		if (!zoneSession || args.itemIds.length === 0) return { discarded: 0 }

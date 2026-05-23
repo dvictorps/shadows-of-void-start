@@ -1,4 +1,7 @@
 import {
+	MONSTER_ACCURACY_PER_LEVEL,
+	MONSTER_ARMOR_PER_LEVEL,
+	MONSTER_EVASION_PER_LEVEL,
 	MONSTER_MODIFIERS,
 	type MonsterDefinition,
 	type MonsterId,
@@ -16,7 +19,7 @@ import type {
 	PrefixMonsterModId,
 	SuffixMonsterModId,
 } from "./lexicon/types";
-import type { WorldNode } from "./types";
+import type { CampSource, WorldNode } from "./types";
 
 // Three independent uniform-[0, 1] seeds drive the rare proper-name pick.
 // Held on each spawned Enemy so re-renders / locale switches keep the same
@@ -78,6 +81,72 @@ export function translateNodeName(node: WorldNode): string {
  */
 export function translateNodeDescription(node: WorldNode): string | null {
 	return NODE_I18N[node.id]?.description?.() ?? null;
+}
+
+// Three ambient lines per zone that fade in during the camp cinematic. Falls
+// back to a neutral set when a zone has no entry. See CONTEXT.md → Acampamento.
+const CAMP_LINES_I18N: Record<
+	string,
+	[() => string, () => string, () => string]
+> = {
+	forest_starter: [
+		m.camp_line_forest_starter_1,
+		m.camp_line_forest_starter_2,
+		m.camp_line_forest_starter_3,
+	],
+	forest_profunda: [
+		m.camp_line_forest_profunda_1,
+		m.camp_line_forest_profunda_2,
+		m.camp_line_forest_profunda_3,
+	],
+	pantano: [
+		m.camp_line_pantano_1,
+		m.camp_line_pantano_2,
+		m.camp_line_pantano_3,
+	],
+	cripta: [m.camp_line_cripta_1, m.camp_line_cripta_2, m.camp_line_cripta_3],
+	castelo: [
+		m.camp_line_castelo_1,
+		m.camp_line_castelo_2,
+		m.camp_line_castelo_3,
+	],
+	fenda_vazio: [
+		m.camp_line_fenda_vazio_1,
+		m.camp_line_fenda_vazio_2,
+		m.camp_line_fenda_vazio_3,
+	],
+};
+
+const CAMP_LINES_FALLBACK: [() => string, () => string, () => string] = [
+	m.camp_line_fallback_1,
+	m.camp_line_fallback_2,
+	m.camp_line_fallback_3,
+];
+
+const CAMP_LINES_INCENSE: [() => string, () => string, () => string] = [
+	m.camp_line_incense_1,
+	m.camp_line_incense_2,
+	m.camp_line_incense_3,
+];
+
+/**
+ * Three ambient lines for the camp cinematic, locale-resolved. `source`
+ * picks the generic incense lines over the zone-specific baked-camp set —
+ * see CONTEXT.md → Incenso Etéreo for the flavor rationale.
+ */
+export function translateCampLines(
+	zoneId: string,
+	source: CampSource = "baked",
+): [string, string, string] {
+	if (source === "incense") {
+		return [
+			CAMP_LINES_INCENSE[0](),
+			CAMP_LINES_INCENSE[1](),
+			CAMP_LINES_INCENSE[2](),
+		];
+	}
+	const entry = CAMP_LINES_I18N[zoneId] ?? CAMP_LINES_FALLBACK;
+	return [entry[0](), entry[1](), entry[2]()];
 }
 
 const MONSTER_I18N: Record<MonsterId, () => string> = {
@@ -289,7 +358,13 @@ function pickRareEpithetPool(
 	return lex.rareCompoundEpithets;
 }
 
-export function translateMonsterModDescription(id: MonsterModId): string {
+// `level` is required for the level-scaled defensive flats (evasion,
+// accuracy, more armor). Other mods ignore it. Keep this in sync with
+// the apply()s in src/game/monsters/modifiers.ts.
+export function translateMonsterModDescription(
+	id: MonsterModId,
+	level: number,
+): string {
 	switch (id) {
 		case "monsterIncreasedLife":
 			return m.monster_mod_increased_life_desc();
@@ -298,9 +373,13 @@ export function translateMonsterModDescription(id: MonsterModId): string {
 		case "monsterIncreasedAttackSpeed":
 			return m.monster_mod_increased_attack_speed_desc();
 		case "monsterIncreasedEvasion":
-			return m.monster_mod_increased_evasion_desc();
+			return m.monster_mod_increased_evasion_desc({
+				value: MONSTER_EVASION_PER_LEVEL * level,
+			});
 		case "monsterIncreasedAccuracy":
-			return m.monster_mod_increased_accuracy_desc();
+			return m.monster_mod_increased_accuracy_desc({
+				value: MONSTER_ACCURACY_PER_LEVEL * level,
+			});
 		case "monsterColdResistance":
 			return m.monster_mod_cold_resistance_desc();
 		case "monsterFireResistance":
@@ -312,6 +391,8 @@ export function translateMonsterModDescription(id: MonsterModId): string {
 		case "monsterAdditionalBarrier":
 			return m.monster_mod_additional_barrier_desc();
 		case "monsterMoreArmor":
-			return m.monster_mod_more_armor_desc();
+			return m.monster_mod_more_armor_desc({
+				value: MONSTER_ARMOR_PER_LEVEL * level,
+			});
 	}
 }

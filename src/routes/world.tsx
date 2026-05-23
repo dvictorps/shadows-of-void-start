@@ -1,5 +1,9 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import type { OptimisticLocalStore } from "convex/browser";
+import { convexErrorMessage } from "#/lib/convex-errors";
+import {
+	applyCharacterDelta,
+	findCharacter,
+} from "#/lib/optimistic-character";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -21,7 +25,10 @@ import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
 import VendorModal from "#/components/world/VendorModal";
 import { findClassDefinition } from "#/game/classes/data";
-import { teleportStoneTravelSeconds } from "#/game/combat/constants";
+import {
+	computeBagKeepCap,
+	teleportStoneTravelSeconds,
+} from "#/game/combat/constants";
 import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { xpToNextLevel } from "#/game/progression/levels";
@@ -34,6 +41,7 @@ import {
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { ACT_1, findNode } from "#/game/world";
 import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
+import { DEFAULT_ENCOUNTER_PLAN } from "#/game/world/encounter-schedule";
 import { computeTravelTime } from "#/game/world/travel";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
@@ -50,6 +58,7 @@ const searchSchema = z.object({
 const CONSUMABLE_DESCRIPTIONS: Record<ConsumableKey, () => string> = {
 	potion: m.consumable_desc_potion,
 	teleport: m.consumable_desc_teleport,
+	incense: m.incense_hint,
 };
 
 export const Route = createFileRoute("/world")({
@@ -89,33 +98,6 @@ function WorldView() {
 }
 
 type ViewMode = "map" | "city" | "combat";
-
-// Helpers for the optimistic-update closures below. `findCharacter` reads the
-// current `api.characters.list` cache and locates the active character;
-// `applyCharacterDelta` writes a shallow patch on top of that character.
-// Both are no-ops when the query hasn't resolved yet — same defensive shape
-// every Convex optimistic closure uses.
-function findCharacter(
-	localStore: OptimisticLocalStore,
-	characterId: Id<"characters">,
-): Doc<"characters"> | undefined {
-	const characters = localStore.getQuery(api.characters.list, {});
-	return characters?.find((c) => c._id === characterId);
-}
-
-function applyCharacterDelta(
-	localStore: OptimisticLocalStore,
-	characterId: Id<"characters">,
-	delta: Partial<Doc<"characters">>,
-): void {
-	const characters = localStore.getQuery(api.characters.list, {});
-	if (!characters) return;
-	localStore.setQuery(
-		api.characters.list,
-		{},
-		characters.map((c) => (c._id === characterId ? { ...c, ...delta } : c)),
-	);
-}
 
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const navigate = useNavigate();
@@ -399,6 +381,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		[currentNode],
 	);
 	const zoneLevel = currentNode?.level ?? character.level;
+	const encounterPlan =
+		currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
 
 	const handlePlayerDeath = useCallback(async () => {
 		try {
@@ -422,17 +406,26 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const combat = useCombatLoop({
 		characterId: character._id,
+		characterLevel: character.level,
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
-		initialPotions: character.potions ?? 0,
-		initialZoneKills: character.currentZoneKills ?? 0,
+		potions: character.potions ?? 0,
+		incense: character.etherealIncense ?? 0,
 		monsterPool,
 		zoneLevel,
+		encounterPlan,
 		// Pause combat while the loot picker is open so the player can't die
 		// mid-selection from a goblin they've already retreated from.
 		active: view === "combat" && !exitModal.isOpen,
 		onPlayerDeath: handlePlayerDeath,
 	});
+
+	// Bag retention cap by exit phase, frozen at modal-open time so
+	// incremental picks don't dilute the 30% punishment ("bag shrinks each
+	// pick → cap recomputes lower → effective share grows"). Reset when
+	// the modal closes. Math lives in `computeBagKeepCap` so the client
+	// preview can't drift from the server's enforcement.
+	const [exitKeepCap, setExitKeepCap] = useState(0);
 
 	// Enter a node's area directly (no travel). Caller has already verified
 	// the player is "at" the node either by arrival or by clicking the
@@ -534,9 +527,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				});
 			} catch (err) {
 				setPendingArrival(null);
-				toast.error(
-					err instanceof Error ? err.message : m.wind_crystal_failed(),
-				);
+				toast.error(convexErrorMessage(err, m.wind_crystal_failed()));
 			}
 			return;
 		}
@@ -551,11 +542,11 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		}
 	};
 
-	const handleUseTeleportStone = async () => {
-		const stones = character.teleportStones ?? 0;
-		if (stones <= 0) return;
-		// The HUD button always sends to city — the panic-return contract.
-		// Non-city destinations come through `handleEnterNode` instead.
+	// Set while the exit modal is acting as the bag-handling step for a stone
+	// jump. Cleared on cancel or after the stone fires.
+	const pendingStoneRef = useRef(false);
+
+	const fireStoneToCity = async () => {
 		setPendingArrival("city");
 		try {
 			await useTeleportStone({
@@ -564,10 +555,27 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			});
 		} catch (err) {
 			setPendingArrival(null);
-			toast.error(
-				err instanceof Error ? err.message : m.teleport_stone_failed(),
-			);
+			toast.error(convexErrorMessage(err, m.teleport_stone_failed()));
 		}
+	};
+
+	const handleUseTeleportStone = async () => {
+		if (exitModal.isOpen) return;
+		const stones = character.teleportStones ?? 0;
+		if (stones <= 0) return;
+		if (zoneBag === undefined) return;
+		// The HUD button always sends to city — the panic-return contract.
+		// Non-city destinations come through `handleEnterNode` instead.
+		// Bag with items routes through the exit modal so the player keeps
+		// their phase-capped share (camp → 100%, exploração/combate → 30%).
+		// See CONTEXT.md → Bag retention tiers.
+		if (zoneBag.length > 0) {
+			pendingStoneRef.current = true;
+			setExitKeepCap(computeBagKeepCap(zoneBag.length, combat.phase));
+			exitModal.open();
+			return;
+		}
+		await fireStoneToCity();
 	};
 
 	const handleBackToMap = () => {
@@ -580,42 +588,87 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		if (zoneBag === undefined) return;
 		handleBackToMap();
 		if (zoneBag.length > 0) {
+			setExitKeepCap(computeBagKeepCap(zoneBag.length, combat.phase));
 			exitModal.open();
 		} else {
-			void exitZone({ characterId: character._id, keepIds: [] });
+			void exitZone({
+				characterId: character._id,
+				keepIds: [],
+				phase: combat.phase,
+			});
 		}
 	};
 
 	const handlePickSelected = async (ids: Id<"items">[]) => {
+		// Camp: incremental pick. Modal stays open until bag empties.
+		// Non-camp: one-shot commit via exitZone — bag is wiped, modal closes.
+		// Routing here matches the server gate (pickFromBag rejects non-camp).
 		try {
-			await pickFromBag({ characterId: character._id, itemIds: ids });
-		} catch {
-			toast.error(m.inventory_full_error());
+			if (combat.phase === "camp") {
+				await pickFromBag({
+					characterId: character._id,
+					itemIds: ids,
+					phase: combat.phase,
+				});
+			} else {
+				await exitZone({
+					characterId: character._id,
+					keepIds: ids,
+					phase: combat.phase,
+				});
+				exitModal.close();
+			}
+		} catch (err) {
+			toast.error(convexErrorMessage(err, m.inventory_full_error()));
 		}
 	};
 
 	const handleDiscardSelected = async (ids: Id<"items">[]) => {
-		await discardFromBag({ characterId: character._id, itemIds: ids });
+		// Camp-only action — the modal hides the button outside camp.
+		if (combat.phase !== "camp") return;
+		await discardFromBag({
+			characterId: character._id,
+			itemIds: ids,
+			phase: combat.phase,
+		});
 	};
 
 	const handlePickAll = async (ids: Id<"items">[]) => {
 		try {
-			await exitZone({ characterId: character._id, keepIds: ids });
+			await exitZone({
+				characterId: character._id,
+				keepIds: ids,
+				phase: combat.phase,
+			});
 			exitModal.close();
-		} catch {
-			toast.error(m.inventory_full_error());
+		} catch (err) {
+			toast.error(convexErrorMessage(err, m.inventory_full_error()));
 		}
 	};
 
 	const handleDiscardAll = async () => {
-		await exitZone({ characterId: character._id, keepIds: [] });
+		await exitZone({
+			characterId: character._id,
+			keepIds: [],
+			phase: combat.phase,
+		});
 		exitModal.close();
 	};
 
-	const handleCloseExit = () => {
-		// Leftover bag items survive until the next enterZone/enterCity, which
-		// purges any orphan session.
+	const handleCloseExit = async () => {
+		// All exit paths funnel here — the explicit Get-all / Discard-all
+		// handlers call exitModal.close() which fires this via onClose, and
+		// the modal also auto-closes when incremental picks empty the bag.
+		// When a stone was pending and the bag is empty, fire the stone.
+		// An empty close with a non-empty bag is a user cancel — clear the
+		// pending flag and leave the bag; the next enterZone purges any
+		// orphan session.
+		const wasPendingStone = pendingStoneRef.current;
+		pendingStoneRef.current = false;
 		exitModal.close();
+		if (wasPendingStone && zoneBag && zoneBag.length === 0) {
+			await fireStoneToCity();
+		}
 	};
 
 	// TextLog priority: death > consumable hover (combat) > low-HP warning >
@@ -709,6 +762,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 							currentLocationNodeId={currentLocation}
 							unlockedNodeIds={unlockedNodeIds}
 							completedZoneIds={completedZoneIds}
+							hasTeleportStone={(character.teleportStones ?? 0) > 0}
 							onOpenSettings={settingsModal.open}
 						/>
 						{travelOverlay}
@@ -742,13 +796,28 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						teleportStones={character.teleportStones ?? 0}
 						canUseTeleportStone={(character.teleportStones ?? 0) > 0}
 						onUseTeleportStone={handleUseTeleportStone}
+						incense={combat.incense}
+						canUseIncense={
+							combat.incense > 0 &&
+							combat.state !== "boss_intro" &&
+							combat.state !== "acampamento" &&
+							combat.state !== "miniboss_victory" &&
+							!(combat.state === "engaged" && combat.enemy?.rarity === "rare") &&
+							!combat.ambushActive
+						}
+						onUseIncense={combat.triggerIncense}
+						campSource={combat.campSource}
+						ambushActive={combat.ambushActive}
 						onRetreat={handleRetreat}
 						bagCount={zoneBag?.length ?? 0}
 						onOpenBag={bagModal.open}
 						onConsumableHover={setConsumableHover}
-						zoneKills={combat.zoneKills}
-						killsToThreshold={combat.killsToThreshold}
+						calmariaElapsedMs={combat.calmariaElapsedMs}
+						calmariaBudgetMs={combat.calmariaBudgetMs}
+						campThresholdsMs={combat.campThresholdsMs}
 						onDismissMinibossModal={combat.dismissMinibossModal}
+						zoneId={currentNode.id}
+						onDismissCamp={combat.dismissCamp}
 					/>
 				)}
 				<TextLog message={logMessage} tone={logTone} />
@@ -789,6 +858,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				onPickAll={handlePickAll}
 				onDiscardAll={handleDiscardAll}
 				bagItems={zoneBag ?? []}
+				keepCap={exitKeepCap}
 			/>
 			<ShowStatsModal
 				isOpen={statsModal.isOpen}

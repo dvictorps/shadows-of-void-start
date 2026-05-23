@@ -47,6 +47,10 @@ export default defineSchema({
 		// Caps enforced server-side at purchase time.
 		teleportStones: v.optional(v.number()),
 		windCrystals: v.optional(v.number()),
+		// Active player input — see CONTEXT.md → Active player input.
+		// Drop-only (~2-3% per kill, independent roll). Uncapped supply.
+		// Triggers the camp cinematic on demand during exploração / combate.
+		etherealIncense: v.optional(v.number()),
 		// Set of node ids the player has visited at least once (arrived at via
 		// any travel mechanic). Wind crystals can only jump to nodes in this
 		// list. Persisted append-only; respawn doesn't clear it.

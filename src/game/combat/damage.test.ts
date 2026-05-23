@@ -100,14 +100,14 @@ describe("rollPlayerSwing", () => {
 		expect(result.amount).toBe(15); // 10 × 1.5
 	});
 
-	it("applies armor mitigation to physical only", () => {
+	it("applies armor mitigation to physical only (PoE hit-size formula)", () => {
 		const result = rollPlayerSwing({
 			swing: swing({ physicalDamage: { min: 100, max: 100 } }),
 			stats: statsAttack(),
-			defender: { ...dummyDefender, armor: 100, level: 10 },
+			defender: { ...dummyDefender, armor: 1000 },
 			random: () => 0.5,
 		});
-		// armor 100 vs level 10 → mitigation = 100/(100+100) = 50%
+		// armor 1000 vs 100-damage hit → reduction = 1000/(1000+1000) = 50%
 		expect(result.amount).toBe(50);
 	});
 
@@ -258,7 +258,6 @@ describe("rollPlayerSwing", () => {
 describe("rollEnemyAttack", () => {
 	it("returns physical damage with no miss when defender has 0 evasion", () => {
 		const result = rollEnemyAttack({
-			enemyLevel: 1,
 			enemyAccuracy: 10,
 			physicalDamage: { min: 10, max: 10 },
 			elementalDamage: [],
@@ -270,21 +269,20 @@ describe("rollEnemyAttack", () => {
 		expect(result.isMiss).toBe(false);
 	});
 
-	it("armor reduces enemy physical hits", () => {
+	it("armor reduces enemy physical hits (PoE hit-size formula)", () => {
 		const result = rollEnemyAttack({
-			enemyLevel: 10,
 			enemyAccuracy: 100,
 			physicalDamage: { min: 100, max: 100 },
 			elementalDamage: [],
-			defender: { ...dummyDefender, armor: 100, level: 10 },
+			defender: { ...dummyDefender, armor: 1000 },
 			random: () => 0.0,
 		});
+		// 1000 armor vs 100-damage hit → 1000/(1000+1000) = 50% reduction
 		expect(result.amount).toBe(50);
 	});
 
 	it("applies per-element resistance to elemental damage", () => {
 		const result = rollEnemyAttack({
-			enemyLevel: 1,
 			enemyAccuracy: 10,
 			physicalDamage: { min: 0, max: 0 },
 			elementalDamage: [{ element: "Fire", min: 100, max: 100 }],
@@ -302,7 +300,6 @@ describe("rollEnemyAttack", () => {
 
 	it("sums hybrid physical + elemental damage", () => {
 		const result = rollEnemyAttack({
-			enemyLevel: 1,
 			enemyAccuracy: 10,
 			physicalDamage: { min: 20, max: 20 },
 			elementalDamage: [{ element: "Cold", min: 30, max: 30 }],
@@ -316,7 +313,6 @@ describe("rollEnemyAttack", () => {
 
 	it("rolls block when defender carries blockChance — blocked hit deals zero damage", () => {
 		const result = rollEnemyAttack({
-			enemyLevel: 1,
 			enemyAccuracy: 10,
 			physicalDamage: { min: 50, max: 50 },
 			elementalDamage: [],
@@ -337,7 +333,6 @@ describe("rollEnemyAttack", () => {
 
 	it("does not block when block roll exceeds blockChance", () => {
 		const result = rollEnemyAttack({
-			enemyLevel: 1,
 			enemyAccuracy: 10,
 			physicalDamage: { min: 50, max: 50 },
 			elementalDamage: [],

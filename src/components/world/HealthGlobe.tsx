@@ -57,7 +57,7 @@ export default function HealthGlobe({
 		>
 			{/* Red HP fill — rises from the bottom in proportion to current HP */}
 			<div
-				className="absolute inset-x-0 bottom-0 bg-red-600 transition-[height] duration-200"
+				className="absolute inset-x-0 bottom-0 bg-red-600 transition-[height] duration-100"
 				style={{ height: `${hpPct}%` }}
 				aria-hidden
 			/>
@@ -67,7 +67,7 @@ export default function HealthGlobe({
 			 * the red layer ever moves. */}
 			{showBarrier && (
 				<div
-					className="absolute inset-x-0 bottom-0 bg-sky-400/60 transition-[height] duration-200"
+					className="absolute inset-x-0 bottom-0 bg-sky-400/60 transition-[height] duration-100"
 					style={{
 						height: `${barrierPct}%`,
 						boxShadow: "inset 0 0 14px rgba(125, 211, 252, 0.55)",

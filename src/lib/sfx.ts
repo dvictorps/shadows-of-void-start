@@ -4,6 +4,8 @@
 // promise rejection is silently swallowed so first-touch quirks don't crash
 // the combat loop.
 
+import { randSymmetric } from "./rng";
+
 type SfxOptions = {
 	volume?: number;
 	/** Random pitch jitter in [-x, +x] applied via playbackRate. 0.1 = ±10%. */
@@ -70,12 +72,17 @@ function getFromPool(path: string, exclusive: boolean): HTMLAudioElement {
 	}
 	if (exclusive) {
 		// Single-slot mode: always restart the same instance, never layer.
+		// Short clips (hit.wav is ~80ms) need an explicit pause() before the
+		// seek — Chrome's audio engine sometimes flushes a tail of the old
+		// buffer when `currentTime = 0` is set mid-playback, perceived as a
+		// doubled/tripled hit at high attack speed.
 		if (pool.length === 0) {
 			const audio = new Audio(path);
 			audio.preload = "auto";
 			pool.push(audio);
 		}
 		const audio = pool[0];
+		if (!audio.paused) audio.pause();
 		audio.currentTime = 0;
 		return audio;
 	}
@@ -110,8 +117,7 @@ export function playSfx(path: string, opts: SfxOptions = {}): void {
 	const base = opts.volume ?? 1;
 	audio.volume = Math.max(0, Math.min(1, base * globalVolume));
 	const variance = opts.pitchVariance ?? 0;
-	audio.playbackRate =
-		variance > 0 ? 1 + (Math.random() * 2 - 1) * variance : 1;
+	audio.playbackRate = variance > 0 ? 1 + randSymmetric(variance) : 1;
 	audio.play().catch(() => {});
 }
 

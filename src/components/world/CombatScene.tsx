@@ -1,10 +1,16 @@
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateEnemyName } from "#/game/world/i18n";
-import type { BossIntroStage, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
+import type {
+	BossIntroStage,
+	CampSource,
+	DamageEvent,
+	Enemy,
+} from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
+import CampCinematic from "./CampCinematic";
 import HealthGlobe from "./HealthGlobe";
 import HitFx from "./HitFx";
 import MonsterTooltip from "./MonsterTooltip";
@@ -26,7 +32,7 @@ const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
 	rare: "0 0 18px rgba(255, 255, 119, 0.7), 0 2px 4px rgba(0, 0, 0, 0.9)",
 };
 
-export type ConsumableKey = "potion" | "teleport";
+export type ConsumableKey = "potion" | "teleport" | "incense";
 
 type Props = {
 	zoneName: string;
@@ -36,7 +42,8 @@ type Props = {
 		| "boss_intro"
 		| "engaged"
 		| "victory"
-		| "miniboss_victory";
+		| "miniboss_victory"
+		| "acampamento";
 	bossIntroStage: BossIntroStage;
 	enemy: Enemy | null;
 	events: DamageEvent[];
@@ -56,18 +63,35 @@ type Props = {
 	teleportStones: number;
 	canUseTeleportStone: boolean;
 	onUseTeleportStone: () => void;
+	incense: number;
+	canUseIncense: boolean;
+	onUseIncense: () => void;
+	// Active camp source — drives flavor text + (future) ambient audio in the
+	// cinematic. See CONTEXT.md → Incenso Etéreo.
+	campSource: CampSource;
+	// True while an ambush pack is firing — drives the "Ambush!" banner. See
+	// CONTEXT.md → Ambush events.
+	ambushActive: boolean;
 	onRetreat: () => void;
 	bagCount: number;
 	onOpenBag: () => void;
 	// Hover bubbles back to the parent so the world's TextLog can describe the
 	// consumable the player is pointing at. Null on mouse leave.
 	onConsumableHover?: (key: ConsumableKey | null) => void;
-	// Zone progression — kills accumulated in this visit and the threshold
-	// at which the miniboss spawns. See CONTEXT.md → Threshold Bar.
-	zoneKills: number;
-	killsToThreshold: number;
+	// Zone progression — cumulative calmaria (out-of-combat) ms vs. the zone's
+	// time budget. Bar fills smoothly during searching, pauses in combat.
+	// `campThresholdsMs` carries the actual rolled positions for the run so
+	// the bar can render markers where each camp will fire.
+	// See CONTEXT.md → Time Bar / Acampamento.
+	calmariaElapsedMs: number;
+	calmariaBudgetMs: number;
+	campThresholdsMs: readonly number[];
 	// Continue-farming choice on the post-miniboss modal.
 	onDismissMinibossModal: () => void;
+	// Acampamento overlay — fired by the combat loop when the calmaria timer
+	// crosses a zone's camp threshold. See CONTEXT.md → Acampamento.
+	zoneId: string;
+	onDismissCamp: () => void;
 };
 
 export default function CombatScene({
@@ -90,16 +114,27 @@ export default function CombatScene({
 	teleportStones,
 	canUseTeleportStone,
 	onUseTeleportStone,
+	incense,
+	canUseIncense,
+	onUseIncense,
+	campSource,
+	ambushActive,
 	onRetreat,
 	bagCount,
 	onOpenBag,
-	zoneKills,
-	killsToThreshold,
+	calmariaElapsedMs,
+	calmariaBudgetMs,
+	campThresholdsMs,
 	onDismissMinibossModal,
+	zoneId,
+	onDismissCamp,
 	onConsumableHover,
 }: Props) {
 	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
-	const thresholdPct = Math.min(100, (zoneKills / killsToThreshold) * 100);
+	const thresholdPct =
+		calmariaBudgetMs > 0
+			? Math.min(100, (calmariaElapsedMs / calmariaBudgetMs) * 100)
+			: 0;
 	const enemyEvents = useMemo(
 		() => events.filter((e) => e.target === "enemy"),
 		[events],
@@ -172,6 +207,10 @@ export default function CombatScene({
 	// the entrance is imperative: detect the null → non-null transition on
 	// `enemy` and re-issue set+start every fresh spawn.
 	const enemyControls = useAnimationControls();
+	// Separate controls for the red hit-flash overlay (the sprite shape
+	// repainted solid red via CSS mask). Filter-based recolors couldn't push
+	// every pixel to pure red on dark/colorful sprites — masking does.
+	const redFlashControls = useAnimationControls();
 	const prevEnemyRef = useRef<Enemy | null>(null);
 
 	useLayoutEffect(() => {
@@ -206,14 +245,15 @@ export default function CombatScene({
 		const amp = lastDamagingHit.isCrit ? 6 : 4;
 		enemyControls.start({
 			x: [0, -amp, amp, -Math.round(amp * 0.7), Math.round(amp * 0.5), 0],
-			filter: [
-				"brightness(1) saturate(1) hue-rotate(0deg)",
-				"brightness(1.8) saturate(2) hue-rotate(320deg)",
-				"brightness(1) saturate(1) hue-rotate(0deg)",
-			],
 			transition: { duration: 0.2, times: [0, 0.2, 0.4, 0.6, 0.8, 1] },
 		});
-	}, [lastDamagingHit, enemyControls]);
+		// Brief solid-red flash via the masked overlay. Opacity drives it so
+		// the underlying sprite shows back through as the flash fades.
+		redFlashControls.start({
+			opacity: [0, 1, 0],
+			transition: { duration: 0.22, times: [0, 0.18, 1], ease: "easeOut" },
+		});
+	}, [lastDamagingHit, enemyControls, redFlashControls]);
 
 	useEffect(() => {
 		if (state !== "victory" || !enemy) return;
@@ -231,31 +271,112 @@ export default function CombatScene({
 		});
 	}, [state, enemy, enemyControls]);
 
+	const inCamp = state === "acampamento";
+	// Camp arrival is immediate: hitting the threshold triggers the HUD
+	// fade-out and the cinematic at the same instant. The earlier staged
+	// "Explorando…" pause was intentionally removed — felt like a delay,
+	// not atmosphere. When the decision panel mounts (onPanelShow callback
+	// below) the HUD fades back in alongside it — same "panel + HUD"
+	// presence as ZoneCompletePanel.
+	const [hudFading, setHudFading] = useState(false);
+	const [cinematicEnabled, setCinematicEnabled] = useState(false);
+	const [campSkipped, setCampSkipped] = useState(false);
+	useEffect(() => {
+		if (!inCamp) {
+			setHudFading(false);
+			setCinematicEnabled(false);
+			setCampSkipped(false);
+			return;
+		}
+		setHudFading(true);
+		setCinematicEnabled(true);
+	}, [inCamp]);
+
+	// Click anywhere on the combat section while a camp's text stages run
+	// jumps straight to the decision panel. Button clicks inside the panel
+	// are unaffected — the skip handler no-ops once campSkipped flips.
+	const handleSectionClick = () => {
+		if (!inCamp || campSkipped) return;
+		setCampSkipped(true);
+	};
+
 	return (
-		<section className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black">
-			{/* See CONTEXT.md → Threshold Bar. */}
+		<section
+			onClick={handleSectionClick}
+			className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black"
+		>
+			{/* See CONTEXT.md → Time Bar. The bar itself stays full-opacity
+			 * even during a camp — players need to see where they paused. */}
 			<div
 				role="progressbar"
-				aria-label="Zone threshold"
-				aria-valuenow={zoneKills}
+				aria-label="Zone time progress"
+				aria-valuenow={Math.round(calmariaElapsedMs)}
 				aria-valuemin={0}
-				aria-valuemax={killsToThreshold}
-				className="h-1.5 w-full bg-white/10"
+				aria-valuemax={calmariaBudgetMs}
+				className="relative h-2 w-full bg-white/10"
 			>
 				<div
-					className="h-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 transition-[width] duration-300"
+					className="h-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 transition-[width] duration-100 ease-linear"
 					style={{ width: `${thresholdPct}%` }}
 				/>
+				{campThresholdsMs.map((thresholdMs) => {
+					const left =
+						calmariaBudgetMs > 0
+							? (thresholdMs / calmariaBudgetMs) * 100
+							: 0;
+					return (
+						<span
+							key={thresholdMs}
+							aria-hidden
+							className="-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/2 h-3 w-1 bg-amber-200 shadow-[0_0_6px_rgba(252,211,77,0.85)]"
+							style={{ left: `${left}%` }}
+						/>
+					);
+				})}
 			</div>
+
+			{/* Ambush cue — drops a centered banner while the pack is firing. See
+			 * CONTEXT.md → Ambush events. */}
+			<AnimatePresence>
+				{ambushActive && (
+					<motion.div
+						key="ambush-banner"
+						initial={{ opacity: 0, y: -8 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -8 }}
+						transition={{ duration: 0.4 }}
+						className="-translate-x-1/2 pointer-events-none absolute top-5 left-1/2 z-20 select-none"
+						aria-live="polite"
+					>
+						<span
+							className="display-title text-2xl uppercase tracking-[0.3em] text-red-400"
+							style={{
+								textShadow:
+									"0 0 18px rgba(248, 113, 113, 0.7), 0 2px 6px rgba(0, 0, 0, 0.9)",
+							}}
+						>
+							{m.ambush_banner()}
+						</span>
+					</motion.div>
+				)}
+			</AnimatePresence>
 			{/* Zone label + static zone level (the area's intrinsic difficulty;
 			 * the per-spawn monster level is shown separately on the nameplate). */}
-			<div className="absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60">
+			<div
+				className={`absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60 transition-opacity duration-[1200ms] ease-out ${
+					hudFading ? "opacity-0" : "opacity-100"
+				}`}
+			>
 				<span>{zoneName}</span>
 				<span className="text-base text-white/40">LV {zoneLevel}</span>
 			</div>
 
 			{/* Top-right action cluster: loot button then Retreat */}
-			<div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+			<div
+				className={`absolute top-3 right-3 z-10 flex items-center gap-2 transition-opacity duration-[1200ms] ease-out ${
+					hudFading ? "pointer-events-none opacity-0" : "opacity-100"
+				}`}
+			>
 				<button
 					type="button"
 					onClick={onOpenBag}
@@ -284,7 +405,11 @@ export default function CombatScene({
 			{/* Enemy nameplate slot. Reserves a fixed height so the nameplate
 			 * appearing during boss_intro (or any spawn) doesn't reflow the
 			 * sprite below — only opacity / y animate. */}
-			<div className="flex h-[120px] flex-col items-center gap-1 px-6 pt-14">
+			<div
+				className={`flex h-[120px] flex-col items-center gap-1 px-6 pt-14 transition-opacity duration-[1200ms] ease-out ${
+					hudFading ? "opacity-0" : "opacity-100"
+				}`}
+			>
 				{enemy && (
 					<motion.div
 						className="flex flex-col items-center gap-1"
@@ -316,7 +441,7 @@ export default function CombatScene({
 
 			<div className="relative flex flex-1 flex-col items-center justify-center gap-4">
 				<div className="relative flex flex-1 items-center justify-center">
-					{state === "searching" && (
+					{state === "searching" && !ambushActive && (
 						<p className="animate-pulse text-xs uppercase tracking-[0.25em] text-white/40">
 							{m.searching_enemy()}
 						</p>
@@ -327,15 +452,52 @@ export default function CombatScene({
 							onRetreat={onRetreat}
 						/>
 					)}
-					{enemy && state !== "searching" && state !== "miniboss_victory" && (
+					{inCamp && cinematicEnabled && (
+						<CampCinematic
+							zoneId={zoneId}
+							source={campSource}
+							skip={campSkipped}
+							onReturn={onRetreat}
+							onContinue={onDismissCamp}
+							onPanelShow={() => setHudFading(false)}
+						/>
+					)}
+					{enemy &&
+						state !== "searching" &&
+						state !== "miniboss_victory" &&
+						state !== "acampamento" && (
 						<div className="group relative">
-							<motion.img
-								src={enemy.def.sprite}
-								alt={enemyDisplayName}
-								draggable={false}
-								className="pointer-events-none h-64 w-64 select-none object-contain"
+							<motion.div
+								className="relative h-64 w-64"
 								animate={enemyControls}
-							/>
+							>
+								<img
+									src={enemy.def.sprite}
+									alt={enemyDisplayName}
+									draggable={false}
+									className="pointer-events-none h-full w-full select-none object-contain"
+								/>
+								{/* Solid-red hit-flash silhouette: the sprite acts as the
+								 * mask so only the opaque pixels get repainted, and the
+								 * underlying image stays put. */}
+								<motion.div
+									aria-hidden
+									initial={{ opacity: 0 }}
+									animate={redFlashControls}
+									className="pointer-events-none absolute inset-0"
+									style={{
+										backgroundColor: "#ff2a2a",
+										WebkitMaskImage: `url(${enemy.def.sprite})`,
+										maskImage: `url(${enemy.def.sprite})`,
+										WebkitMaskRepeat: "no-repeat",
+										maskRepeat: "no-repeat",
+										WebkitMaskPosition: "center",
+										maskPosition: "center",
+										WebkitMaskSize: "contain",
+										maskSize: "contain",
+									}}
+								/>
+							</motion.div>
 							<AnimatePresence>
 								{lastSwingHit && (
 									<HitFx
@@ -393,7 +555,11 @@ export default function CombatScene({
 			</div>
 
 			{/* Bottom HUD: HP globe + XP bar + teleport stone + (wind-crystal counter / potion) */}
-			<div className="relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4">
+			<div
+				className={`relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4 transition-opacity duration-[1200ms] ease-out ${
+					hudFading ? "pointer-events-none opacity-0" : "opacity-100"
+				}`}
+			>
 				<div className="relative">
 					<HealthGlobe
 						hp={playerHp}
@@ -458,6 +624,27 @@ export default function CombatScene({
 					</button>
 				</div>
 
+				{/* Incenso Etéreo — invokes a camp on demand. Blocked during boss
+				 * fight / camp / boss intro (see useCombatLoop.triggerIncense). */}
+				<div className="flex flex-col items-center gap-1">
+					<button
+						type="button"
+						onClick={onUseIncense}
+						onMouseEnter={() => onConsumableHover?.("incense")}
+						onMouseLeave={() => onConsumableHover?.(null)}
+						onFocus={() => onConsumableHover?.("incense")}
+						onBlur={() => onConsumableHover?.(null)}
+						disabled={!canUseIncense}
+						aria-label={m.incense_use_aria()}
+						className="relative flex h-20 w-20 shrink-0 items-center justify-center border border-white/40 bg-black transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+					>
+						<Sparkles className="pointer-events-none h-10 w-10 text-purple-300/80" />
+						<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
+							{incense}
+						</span>
+					</button>
+				</div>
+
 				<div className="flex flex-col items-center gap-1">
 					<button
 						type="button"
@@ -512,7 +699,7 @@ function ZoneCompletePanel({
 			>
 				{m.zone_complete_title()}
 			</div>
-			<p className="max-w-xs text-center text-sm text-white/70">
+			<p className="max-w-sm text-balance text-center text-sm text-white/70">
 				{m.miniboss_modal_body()}
 			</p>
 			<div className="flex gap-3">

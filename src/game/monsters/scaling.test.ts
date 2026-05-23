@@ -106,6 +106,7 @@ describe("scaleMonsterStats", () => {
 
 	it("populates defensive defaults: zero armor/evasion/resists, accuracy = level × 10", () => {
 		const stats = scaleMonsterStats(baseDef, 7);
+		expect(stats.level).toBe(7);
 		expect(stats.armor).toBe(0);
 		expect(stats.evasion).toBe(0);
 		expect(stats.accuracy).toBe(70);

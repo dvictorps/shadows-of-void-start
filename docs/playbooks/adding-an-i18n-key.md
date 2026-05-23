@@ -1,6 +1,8 @@
 # Adding an i18n key
 
-Every user-facing string goes through paraglide. The source files are `messages/pt.json` and `messages/en.json`. Both are required — pt is the base locale and en is the alternate.
+This playbook covers **paraglide keys** — the system for UI labels. The game also has two other i18n systems for content with grammatical concerns (item / monster names with gender concord) and for tooltip mod lines with value interpolation. Before assuming paraglide is the right tool, skim **[Which i18n system to use](./i18n-which-system.md)** — five seconds, saves a misplaced entry.
+
+Every user-facing UI string goes through paraglide. The source files are `messages/pt.json` and `messages/en.json`. Both are required — pt is the base locale and en is the alternate.
 
 ## When you need a new string
 

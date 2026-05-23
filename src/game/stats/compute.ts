@@ -55,6 +55,13 @@ const HIT_CHANCE_MIN = 0.05;
 const HIT_CHANCE_MAX = 0.95;
 const BASE_CRIT_MULTIPLIER = 50;
 
+// Attribute → derived stat conversions. Exported so the ShowStatsModal
+// tooltip can render the rule without duplicating the magnitude. Keep
+// these numbers in sync with the i18n hint strings.
+export const STR_MELEE_PCT_PER_POINT = 1;
+export const DEX_ACCURACY_PER_POINT = 2;
+export const INT_BARRIER_PCT_PER_POINT = 0.2;
+
 const ATTACK_WEAPONS = new Set([
 	"sword",
 	"dagger",
@@ -413,6 +420,23 @@ function applyItem(
 	}
 }
 
+// Attribute baselines: Str feeds melee%, Dex feeds accuracy, Int feeds
+// barrier%. Folded in AFTER all gear-driven attribute mods so it reads
+// the final totals; the barrier % rides on `pcts.barrier` so the
+// existing fold below applies it.
+function applyAttributeBonuses(
+	stats: ComputedCharacterStats,
+	pcts: DefensePcts,
+): void {
+	const a = stats.attributes;
+	if (a.strength > 0)
+		stats.increased.melee += a.strength * STR_MELEE_PCT_PER_POINT;
+	if (a.dexterity > 0)
+		stats.accuracy += a.dexterity * DEX_ACCURACY_PER_POINT;
+	if (a.intelligence > 0)
+		pcts.barrier += a.intelligence * INT_BARRIER_PCT_PER_POINT;
+}
+
 function foldGlobalDefenseIncreases(
 	stats: ComputedCharacterStats,
 	pcts: DefensePcts,
@@ -562,6 +586,7 @@ function computeOnce(
 	const pcts: DefensePcts = { armor: 0, evasion: 0, barrier: 0 };
 	applyBase(stats, input.classDef, input.level);
 	for (const eq of live) applyItem(stats, pcts, eq.item);
+	applyAttributeBonuses(stats, pcts);
 	foldGlobalDefenseIncreases(stats, pcts);
 
 	const mainHand = live.find((eq) => eq.slot === "weapon")?.item ?? null;
@@ -670,16 +695,22 @@ export function computeCharacterStats(
 
 export interface ArmorMitigation {
 	reductionPct: number;
-	atEnemyLevel: number;
+	atReferenceHit: number;
 }
 
+// PoE-style armor mitigation is hit-size-relative: the same armor pool
+// shaves a much bigger % off a 5-damage hit than off a 500-damage hit.
+// The stats panel asks for a reference hit size (typical incoming attack
+// at the player's expected encounter level) and returns the reduction
+// against it. See applyArmor in src/game/combat/damage.ts.
 export function computeArmorMitigation(
 	armor: number,
-	enemyLevel: number,
+	referenceHit: number,
 ): ArmorMitigation {
-	const raw = (armor / (armor + 10 * Math.max(1, enemyLevel))) * 100;
+	const hit = Math.max(1, referenceHit);
+	const raw = (armor / (armor + 10 * hit)) * 100;
 	const capped = Math.min(ARMOR_REDUCTION_CAP, Math.max(0, raw));
-	return { reductionPct: capped, atEnemyLevel: enemyLevel };
+	return { reductionPct: capped, atReferenceHit: hit };
 }
 
 export interface EvasionAvoid {
