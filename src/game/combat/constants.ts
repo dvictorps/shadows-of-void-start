@@ -46,6 +46,12 @@ export const LEECH_CAP_PCT_MAX_LIFE_PER_SECOND = 0.2;
 export const MAX_POTIONS = 10;
 export const POTION_DROP_CHANCE = 0.2;
 
+// Safety refill — when the player reaches a safe state (city arrival,
+// teleport-stone-to-city, respawn) the potion count is bumped up to at
+// least this many. Drops above it stay; drops below it are topped up.
+// Keeps a fresh run viable even after a wipe.
+export const POTION_REFILL_FLOOR = 3;
+
 // Incenso Etéreo — independent per-kill drop roll (like POTION_DROP_CHANCE).
 // Lives on character.etherealIncense, uncapped supply. Triggers the camp
 // cinematic on demand. See CONTEXT.md → Active player input → Incenso Etéreo.

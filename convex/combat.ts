@@ -27,6 +27,7 @@ import {
 	MAX_POTIONS,
 	POTION_DROP_CHANCE,
 	POTION_HEAL_FRACTION,
+	POTION_REFILL_FLOOR,
 	teleportStoneTravelSeconds,
 } from "../src/game/combat/constants"
 import { rollDrop, rollMinibossDrops } from "../src/game/loot/drops"
@@ -258,8 +259,7 @@ export const enterCity = mutation({
 			equippedItems,
 		})
 		const maxHp = stats.maxLife
-		const potions = char.potions ?? 0
-		const refilledPotions = potions === 0 ? 1 : potions
+		const refilledPotions = Math.max(char.potions ?? 0, POTION_REFILL_FLOOR)
 
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxHp,
@@ -304,9 +304,12 @@ export const respawnDead = mutation({
 		})
 		const maxHp = stats.maxLife
 
+		const refilledPotions = Math.max(char.potions ?? 0, POTION_REFILL_FLOOR)
+
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxHp,
 			xp,
+			potions: refilledPotions,
 			currentZoneSession: undefined,
 			currentZoneKills: 0,
 			// Respawn resets you to the city and clears any in-flight travel.
@@ -530,8 +533,10 @@ export const useTeleportStone = mutation({
 				level: char.level,
 				equippedItems,
 			})
-			const potions = char.potions ?? 0
-			const refilledPotions = potions === 0 ? 1 : potions
+			const refilledPotions = Math.max(
+				char.potions ?? 0,
+				POTION_REFILL_FLOOR,
+			)
 
 			await ctx.db.patch(args.characterId, {
 				teleportStones: stones - 1,
