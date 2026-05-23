@@ -118,7 +118,10 @@ The spine of every gameplay calculation. Read this if you're touching anything t
 | File | Concern |
 |---|---|
 | `schema.ts` | Database tables: `characters`, `items`, `userRoles`. Indexes by `authUserId`, `characterId+locationKind`, `zoneSession`, `stash` |
-| `characters.ts` | **Kitchen sink — pending split.** Currently houses character CRUD, equip/unequip, zoneBag mutations, recordKill, syncHp, respawnDead. See [`docs/plans/in-progress.md`](./plans/in-progress.md) for the split plan |
+| `characters.ts` | Character CRUD only — `list`, `create`, `remove`, `byId`. Normalizes legacy docs with defaults on read |
+| `combat.ts` | Combat + travel mutations: `recordKill`, `usePotion`, `useEtherealIncense`, `syncHp`, `respawnDead`, `enterZone`, `enterCity`, `startTravel`, `arriveAtTravel`, `useTeleportStone`. Largest convex file (~570 lines) |
+| `items.ts` | Item lifecycle mutations: `exitZone`, `pickFromBag` / `discardFromBag` / `discardFromInventory`, `equipItem` / `unequipItem`, `reorderInventory`, and the `zoneBag` / `inventory` / `equipped` queries |
+| `vendor.ts` | Vendor mutations: `vendorBuy` (potions for Rubys), `vendorSellMany` (gear for Rubys) |
 | `itemValidator.ts` | Convex validator for the `GeneratedItem` shape in `items.data` |
 | `auth.ts`, `auth.config.ts`, `users.ts` | better-auth integration + user role queries |
 | `http.ts` | Auth callback routes |
@@ -170,7 +173,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | `index.tsx` | Splash screen ("Shadows of Void" title) |
 | `sign-in.tsx` | better-auth UI |
 | `character-select.tsx` | Roster + create modal + play button + delete confirm |
-| `world.tsx` | **Orchestrator** — combat hook, all modals, optimistic mutations, priority TextLog. Mid-size file (~470 lines) |
+| `world.tsx` | **Orchestrator** — combat hook, all modals, optimistic mutations, priority TextLog. Currently 900 lines; split in progress (see [`docs/plans/in-progress.md`](./plans/in-progress.md)) |
 | `admin.tsx`, `admin/items.tsx` | Admin dashboard (only admins see) |
 | `api/auth/$.ts` | better-auth fallback route |
 
@@ -180,7 +183,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 
 | Hook | Purpose |
 |---|---|
-| `useCombatLoop.ts` | Tick orchestrator (50ms intervals, refs for sync state, search/engaged/victory state machine) |
+| `useCombatLoop.ts` | Tick orchestrator (50ms intervals, refs for sync state, search/engaged/victory state machine). Currently 916 lines — largest single file in the repo; split queued after world.tsx (see [`docs/plans/in-progress.md`](./plans/in-progress.md)) |
 | `useCachedQuery.ts` | localStorage-backed wrapper around `useQuery` (cache version-tagged) |
 | `useConfirmationModal.tsx` | Promise-returning confirm() — works because of the ConfirmationProvider in `__root.tsx` |
 | `useModal.ts` | Open/close state for a single modal |
@@ -223,7 +226,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | "Why is class/monster/template data in `src/game/` and not in the DB?" | `docs/adr/0004-static-data-conventions.md` |
 | "Where are the rules for what rolls on a belt?" | `CONTEXT.md` → Equipment Slots → Belt |
 | "What's an EquippedSlot?" | `src/game/stats/types.ts:EQUIPPED_SLOTS` + `narrowEquippedSlot` |
-| "Why is `convex/characters.ts` so big?" | `docs/plans/in-progress.md` — split is queued |
+| "Which Convex file owns this mutation?" | See the `convex/` table above — `characters.ts` (CRUD), `combat.ts` (combat + travel), `items.ts` (lifecycle + queries), `vendor.ts` (buy/sell) |
 | "What does the stat engine actually do?" | `src/game/stats/compute.ts` + tests in `compute.test.ts` |
 | "How does dual-wield work?" | `CONTEXT.md` → Dual-wielding |
 | "Why doesn't this Convex error look like English?" | `src/lib/convex-errors.ts:translateServerError` |

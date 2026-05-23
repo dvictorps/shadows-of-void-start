@@ -1,6 +1,13 @@
 import { useCallback, useState } from "react";
 
-export function useModal(initialOpen = false) {
+export type ModalHandle = {
+	isOpen: boolean;
+	open: () => void;
+	close: () => void;
+	toggle: () => void;
+};
+
+export function useModal(initialOpen = false): ModalHandle {
 	const [isOpen, setIsOpen] = useState(initialOpen);
 
 	const open = useCallback(() => setIsOpen(true), []);

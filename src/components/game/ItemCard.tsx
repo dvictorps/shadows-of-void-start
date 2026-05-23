@@ -195,11 +195,12 @@ export default function ItemCard({
 					broken ? BROKEN_GLOW : RARITY_GLOW[item.rarity],
 				].join(" "),
 		dimmed ? "opacity-40 grayscale" : "",
-		// Selection overlay — yellow accent (the game's CTA color) instead of
-		// white, so it reads distinctly from the rarity frame underneath. The
-		// inner ring keeps the rarity color visible at the very edge.
+		// Selection overlay — white so it reads distinctly from the rarity frame
+		// underneath. Yellow would collide visually with rare-tier items
+		// (#b39800 border + golden glow). Inset keeps the rarity color visible
+		// at the very edge.
 		selected
-			? "ring-2 ring-yellow-300 ring-inset shadow-[0_0_14px_rgba(253,224,71,0.55)]"
+			? "ring-2 ring-white ring-inset shadow-[0_0_14px_rgba(255,255,255,0.55)]"
 			: "",
 		onClick ? "cursor-pointer" : "cursor-default",
 	]

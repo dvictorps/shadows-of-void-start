@@ -42,11 +42,24 @@ export default function VendorModal({
 	const [tab, setTab] = useState<Tab>("buy");
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [rubyDeltas, setRubyDeltas] = useState<RubyDelta[]>([]);
+	// Per-product in-flight tracking so spamming buy on the same product
+	// only fires one request at a time. The button-disabled state is the
+	// actual guard; the early-return in handleBuy is belt-and-suspenders
+	// for the render-cycle window where a click arrives before React
+	// commits the disabled state. Real abuse hardening (e.g. someone
+	// hitting the Convex endpoint directly) needs server-side rate
+	// limiting — deferred, see docs/security/threat-model.md.
+	const [pendingBuys, setPendingBuys] = useState<Set<VendorProductId>>(
+		new Set(),
+	);
+	const [isSelling, setIsSelling] = useState(false);
 
 	useEffect(() => {
 		if (!isOpen) return;
 		setSelected(new Set());
 		setRubyDeltas([]);
+		setPendingBuys(new Set());
+		setIsSelling(false);
 	}, [isOpen]);
 
 	const pushRubyDelta = (amount: number, sign: "+" | "-") => {
@@ -67,7 +80,13 @@ export default function VendorModal({
 	};
 
 	const handleBuy = async (productId: VendorProductId) => {
+		if (pendingBuys.has(productId)) return;
 		const product = VENDOR_PRODUCTS[productId];
+		setPendingBuys((prev) => {
+			const next = new Set(prev);
+			next.add(productId);
+			return next;
+		});
 		pushRubyDelta(product.priceRubys, "-");
 		try {
 			await onBuy(productId);
@@ -75,6 +94,12 @@ export default function VendorModal({
 			// Reverse the optimistic delta so the visual matches the reverted balance.
 			pushRubyDelta(product.priceRubys, "+");
 			toast.error(err instanceof Error ? err.message : m.vendor_buy_failed());
+		} finally {
+			setPendingBuys((prev) => {
+				const next = new Set(prev);
+				next.delete(productId);
+				return next;
+			});
 		}
 	};
 
@@ -90,10 +115,12 @@ export default function VendorModal({
 	}, [inventoryItems, selected]);
 
 	const handleSellSelected = async () => {
+		if (isSelling) return;
 		if (selectedItems.length === 0) return;
 		const total = selectedTotal;
 		const itemIds = selectedItems.map((it) => it._id);
 		const previousSelection = new Set(selected);
+		setIsSelling(true);
 		pushRubyDelta(total, "+");
 		setSelected(new Set());
 		try {
@@ -103,6 +130,8 @@ export default function VendorModal({
 			pushRubyDelta(total, "-");
 			setSelected(previousSelection);
 			toast.error(err instanceof Error ? err.message : m.vendor_sell_failed());
+		} finally {
+			setIsSelling(false);
 		}
 	};
 
@@ -179,6 +208,7 @@ export default function VendorModal({
 							potions={potions}
 							teleportStones={teleportStones}
 							onBuy={handleBuy}
+							pendingBuys={pendingBuys}
 						/>
 					) : (
 						<SellTab
@@ -189,6 +219,7 @@ export default function VendorModal({
 							selectedCount={selectedItems.length}
 							selectedTotal={selectedTotal}
 							onSell={handleSellSelected}
+							isSelling={isSelling}
 						/>
 					)}
 				</div>
@@ -227,11 +258,13 @@ function BuyTab({
 	potions,
 	teleportStones,
 	onBuy,
+	pendingBuys,
 }: {
 	rubys: number;
 	potions: number;
 	teleportStones: number;
 	onBuy: (productId: VendorProductId) => Promise<void>;
+	pendingBuys: Set<VendorProductId>;
 }) {
 	const products = Object.values(VENDOR_PRODUCTS);
 	// Map a product's counterField to the corresponding live count from props.
@@ -247,7 +280,8 @@ function BuyTab({
 			{products.map((p) => {
 				const atCap = isAtCap(p);
 				const canAfford = rubys >= p.priceRubys;
-				const disabled = !canAfford || atCap;
+				const pending = pendingBuys.has(p.id);
+				const disabled = !canAfford || atCap || pending;
 				const buttonLabel = atCap
 					? m.vendor_buy_at_cap()
 					: m.vendor_buy_action();
@@ -305,6 +339,7 @@ function SellTab({
 	selectedCount,
 	selectedTotal,
 	onSell,
+	isSelling,
 }: {
 	inventoryItems: Doc<"items">[];
 	selected: Set<string>;
@@ -313,6 +348,7 @@ function SellTab({
 	selectedCount: number;
 	selectedTotal: number;
 	onSell: () => Promise<void>;
+	isSelling: boolean;
 }) {
 	if (inventoryItems.length === 0) {
 		return (
@@ -383,7 +419,7 @@ function SellTab({
 					variant="starkMuted"
 					size="lg"
 					onClick={onSell}
-					disabled={selectedCount === 0}
+					disabled={selectedCount === 0 || isSelling}
 					className="px-8 text-base uppercase tracking-wider"
 				>
 					{m.vendor_sell_action()}

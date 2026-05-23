@@ -1,36 +1,21 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { convexErrorMessage } from "#/lib/convex-errors";
-import {
-	applyCharacterDelta,
-	findCharacter,
-} from "#/lib/optimistic-character";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import BagPreviewModal from "#/components/world/BagPreviewModal";
 import CityScene from "#/components/world/CityScene";
 import CombatScene, {
 	type ConsumableKey,
 } from "#/components/world/CombatScene";
 import EquipmentPanel from "#/components/world/EquipmentPanel";
-import ExitZoneModal from "#/components/world/ExitZoneModal";
-import InventoryModal from "#/components/world/InventoryModal";
 import MapScene from "#/components/world/MapScene";
-import SettingsModal from "#/components/world/SettingsModal";
-import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
-import VendorModal from "#/components/world/VendorModal";
+import { WorldModals } from "#/components/world/WorldModals";
 import { findClassDefinition } from "#/game/classes/data";
-import {
-	computeBagKeepCap,
-	teleportStoneTravelSeconds,
-} from "#/game/combat/constants";
-import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
-import { computeSellPrice } from "#/game/items/sell-price";
+import { computeBagKeepCap } from "#/game/combat/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
 import { computeCharacterStats } from "#/game/stats/compute";
 import {
@@ -38,15 +23,16 @@ import {
 	type EquippedSlot,
 	narrowEquippedSlot,
 } from "#/game/stats/types";
-import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { ACT_1, findNode } from "#/game/world";
-import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
 import { DEFAULT_ENCOUNTER_PLAN } from "#/game/world/encounter-schedule";
-import { computeTravelTime } from "#/game/world/travel";
+import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useModal } from "#/hooks/useModal";
+import { useViewMode } from "#/hooks/useViewMode";
+import { useWorldMutations } from "#/hooks/useWorldMutations";
+import { convexErrorMessage } from "#/lib/convex-errors";
 import { m } from "#/paraglide/messages";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
@@ -97,229 +83,27 @@ function WorldView() {
 	return <WorldLayout character={character} />;
 }
 
-type ViewMode = "map" | "city" | "combat";
-
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const navigate = useNavigate();
 	const confirm = useConfirmationModal();
 	const classDef = findClassDefinition(character.classId);
-	const enterCity = useMutation(api.combat.enterCity);
-	const enterZone = useMutation(api.combat.enterZone);
-	const exitZone = useMutation(api.items.exitZone).withOptimisticUpdate(
-		(localStore, args) => {
-			// On commit, the bag goes to zero and `keepIds` items become inventory
-			// docs. Mirror that locally so the modal can auto-close immediately.
-			const bagKey = { characterId: args.characterId };
-			const bag = localStore.getQuery(api.items.zoneBag, bagKey);
-			if (bag) localStore.setQuery(api.items.zoneBag, bagKey, []);
-			const keep = new Set(args.keepIds.map((id) => id.toString()));
-			const keptDocs = (bag ?? []).filter((it) => keep.has(it._id.toString()));
-			if (keptDocs.length === 0) return;
-			const inv = localStore.getQuery(api.items.inventory, bagKey) ?? [];
-			const occupied = new Set<number>();
-			for (const it of inv) {
-				if (typeof it.inventorySlot === "number")
-					occupied.add(it.inventorySlot);
-			}
-			let cursor = 0;
-			const nextFreeSlot = (): number => {
-				while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
-				if (cursor >= INVENTORY_MAX_SLOTS) return -1;
-				const s = cursor++;
-				occupied.add(s);
-				return s;
-			};
-			const moved = keptDocs.map((d) => ({
-				...d,
-				locationKind: "inventory" as const,
-				zoneSession: undefined,
-				inventorySlot: nextFreeSlot(),
-			}));
-			localStore.setQuery(
-				api.items.inventory,
-				bagKey,
-				[...inv, ...moved].sort(bySlotAsc),
-			);
-		},
-	);
-	const pickFromBag = useMutation(api.items.pickFromBag).withOptimisticUpdate(
-		(localStore, args) => {
-			const bagKey = { characterId: args.characterId };
-			const bag = localStore.getQuery(api.items.zoneBag, bagKey);
-			if (!bag) return;
-			const idSet = new Set(args.itemIds.map((id) => id.toString()));
-			const picked = bag.filter((it) => idSet.has(it._id.toString()));
-			if (picked.length === 0) return;
-			const remaining = bag.filter((it) => !idSet.has(it._id.toString()));
-			localStore.setQuery(api.items.zoneBag, bagKey, remaining);
-			const inv = localStore.getQuery(api.items.inventory, bagKey) ?? [];
-			const occupied = new Set<number>();
-			for (const it of inv) {
-				if (typeof it.inventorySlot === "number")
-					occupied.add(it.inventorySlot);
-			}
-			let cursor = 0;
-			const nextFreeSlot = (): number => {
-				while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
-				if (cursor >= INVENTORY_MAX_SLOTS) return -1;
-				const s = cursor++;
-				occupied.add(s);
-				return s;
-			};
-			const moved = picked.map((d) => ({
-				...d,
-				locationKind: "inventory" as const,
-				zoneSession: undefined,
-				inventorySlot: nextFreeSlot(),
-			}));
-			localStore.setQuery(
-				api.items.inventory,
-				bagKey,
-				[...inv, ...moved].sort(bySlotAsc),
-			);
-		},
-	);
-	const discardFromBag = useMutation(
-		api.items.discardFromBag,
-	).withOptimisticUpdate((localStore, args) => {
-		const bagKey = { characterId: args.characterId };
-		const bag = localStore.getQuery(api.items.zoneBag, bagKey);
-		if (!bag) return;
-		const idSet = new Set(args.itemIds.map((id) => id.toString()));
-		localStore.setQuery(
-			api.items.zoneBag,
-			bagKey,
-			bag.filter((it) => !idSet.has(it._id.toString())),
-		);
-	});
-	const respawnDead = useMutation(api.combat.respawnDead);
-	// Optimistic startTravel — paint the travel state on the client before the
-	// mutation round-trips so the progress bar shows instantly. The server's
-	// authoritative values overwrite the prediction when the response arrives
-	// (~100-200ms later, invisible). Reads movementSpeed from a ref because
-	// `stats` isn't in scope at this point in the function body; the ref is
-	// assigned further down, before any user click can fire.
-	const movementSpeedRef = useRef(0);
-	const startTravel = useMutation(api.combat.startTravel).withOptimisticUpdate(
-		(localStore, args) => {
-			const char = findCharacter(localStore, args.characterId);
-			if (!char) return;
-			const fromId = char.currentLocation ?? "city";
-			const fromNode = findNode(ACT_1, fromId);
-			const conn = fromNode?.connections.find(
-				(c) => c.id === args.destinationNodeId,
-			);
-			if (!conn) return;
-			const seconds = computeTravelTime(
-				conn.distance,
-				movementSpeedRef.current,
-			);
-			const startedAt = Date.now();
-			const arrivesAt = startedAt + Math.round(seconds * 1000);
-			applyCharacterDelta(localStore, args.characterId, {
-				travelDestination: args.destinationNodeId,
-				travelStartedAt: startedAt,
-				travelArrivesAt: arrivesAt,
-			});
-		},
-	);
-	const arriveAtTravel = useMutation(api.combat.arriveAtTravel);
-	// Vendor mutations with optimistic updates so fast/repeat clicks don't
-	// outrun the reactive query and trigger "cap reached" / "item not found"
-	// errors from a stale client view.
-	const vendorBuy = useMutation(api.vendor.vendorBuy).withOptimisticUpdate(
-		(localStore, args) => {
-			const char = findCharacter(localStore, args.characterId);
-			if (!char) return;
-			const product = VENDOR_PRODUCTS[args.productId as VendorProductId];
-			if (!product) return;
-			const rubys = char.rubys ?? 0;
-			if (rubys < product.priceRubys) return;
-			const currentCount = char[product.counterField] ?? 0;
-			if (product.cap !== undefined && currentCount >= product.cap) return;
-			applyCharacterDelta(localStore, args.characterId, {
-				rubys: rubys - product.priceRubys,
-				[product.counterField]: currentCount + 1,
-			});
-		},
-	);
-	const useTeleportStone = useMutation(
-		api.combat.useTeleportStone,
-	).withOptimisticUpdate((localStore, args) => {
-		const char = findCharacter(localStore, args.characterId);
-		if (!char) return;
-		const stones = char.teleportStones ?? 0;
-		if (stones <= 0) return;
-		const destinationNodeId = args.destinationNodeId ?? "city";
-		const startedAt = Date.now();
-		const arrivesAt =
-			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000;
-		applyCharacterDelta(localStore, args.characterId, {
-			teleportStones: stones - 1,
-			currentZoneSession: undefined,
-			travelDestination: destinationNodeId,
-			travelStartedAt: startedAt,
-			travelArrivesAt: arrivesAt,
-		});
-	});
-	const vendorSellMany = useMutation(
-		api.vendor.vendorSellMany,
-	).withOptimisticUpdate((localStore, args) => {
-		const inventory = localStore.getQuery(api.items.inventory, {
-			characterId: args.characterId,
-		});
-		if (!inventory) return;
-		const idSet = new Set(args.itemIds.map((id) => id.toString()));
-		const sold = inventory.filter((it) => idSet.has(it._id.toString()));
-		if (sold.length === 0) return;
-		const total = sold.reduce((sum, it) => sum + computeSellPrice(it.data), 0);
-		localStore.setQuery(
-			api.items.inventory,
-			{ characterId: args.characterId },
-			inventory.filter((it) => !idSet.has(it._id.toString())),
-		);
-		const characters = localStore.getQuery(api.characters.list, {});
-		if (!characters) return;
-		localStore.setQuery(
-			api.characters.list,
-			{},
-			characters.map((c) =>
-				c._id === args.characterId
-					? { ...c, rubys: (c.rubys ?? 0) + total }
-					: c,
-			),
-		);
-	});
 
-	const [view, setView] = useState<ViewMode>("map");
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const [deathLog, setDeathLog] = useState<string | null>(null);
 	const [consumableHover, setConsumableHover] = useState<ConsumableKey | null>(
 		null,
 	);
-	// Set when the player clicks a node that requires travel — the auto-arrival
-	// effect transitions the view to this node's area when travel completes.
-	// Also reseeded from `travelDestination` on mount so a refresh mid-travel
-	// still arrives in the right view.
-	const [pendingArrival, setPendingArrival] = useState<string | null>(null);
 	const bagModal = useModal();
 	const exitModal = useModal();
 	const inventoryModal = useModal();
 	const settingsModal = useModal();
 	const statsModal = useModal();
 	const vendorModal = useModal();
-	const wantsBag = view === "combat" || exitModal.isOpen;
-	const zoneBag = useQuery(
-		api.items.zoneBag,
-		wantsBag ? { characterId: character._id } : "skip",
-	);
 	const currentLocation = character.currentLocation ?? "city";
 	const currentNode = findNode(ACT_1, currentLocation);
 	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
 	const travelDestination = character.travelDestination;
 	const travelArrivesAt = character.travelArrivesAt;
-	const isTraveling =
-		travelDestination !== undefined && travelArrivesAt !== undefined;
 
 	// Always-on subscriptions (lifted from InventoryModal so the queries are
 	// warm whenever the modal opens — no flicker on first open). Combined with
@@ -361,9 +145,39 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	);
 
 	const maxHp = stats.maxLife;
-	// Latest movement speed for the startTravel optimistic update (defined above
-	// before stats are computed). Reading from ref keeps the closure stable.
-	movementSpeedRef.current = stats.movementSpeed;
+
+	const {
+		enterCity,
+		enterZone,
+		exitZone,
+		pickFromBag,
+		discardFromBag,
+		respawnDead,
+		startTravel,
+		arriveAtTravel,
+		vendorBuy,
+		teleportStone,
+		vendorSellMany,
+	} = useWorldMutations({ movementSpeed: stats.movementSpeed });
+
+	const { view, setView, setPendingArrival, isTraveling, enterDestination } =
+		useViewMode({
+			characterId: character._id,
+			currentLocation,
+			travelDestination,
+			travelArrivesAt,
+			enterCity,
+			enterZone,
+			arriveAtTravel,
+			onEnterNewArea: () => setDeathLog(null),
+		});
+
+	const wantsBag = view === "combat" || exitModal.isOpen;
+	const zoneBag = useQuery(
+		api.items.zoneBag,
+		wantsBag ? { characterId: character._id } : "skip",
+	);
+
 	const equippedBySlot = useMemo<
 		ReadonlyMap<EquippedSlot, { id: string; data: EquippedItem["item"] }>
 	>(() => {
@@ -381,8 +195,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		[currentNode],
 	);
 	const zoneLevel = currentNode?.level ?? character.level;
-	const encounterPlan =
-		currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
+	const encounterPlan = currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
 
 	const handlePlayerDeath = useCallback(async () => {
 		try {
@@ -402,7 +215,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		} catch {
 			toast.error(m.failed_handle_death());
 		}
-	}, [respawnDead, character._id]);
+	}, [respawnDead, character._id, setView, setPendingArrival]);
 
 	const combat = useCombatLoop({
 		characterId: character._id,
@@ -426,58 +239,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// the modal closes. Math lives in `computeBagKeepCap` so the client
 	// preview can't drift from the server's enforcement.
 	const [exitKeepCap, setExitKeepCap] = useState(0);
-
-	// Enter a node's area directly (no travel). Caller has already verified
-	// the player is "at" the node either by arrival or by clicking the
-	// already-current node.
-	const enterDestination = useCallback(
-		(nodeId: string) => {
-			const node = findNode(ACT_1, nodeId);
-			if (!node) return;
-			setDeathLog(null);
-			if (node.kind === "city") {
-				setView("city");
-				void enterCity({ characterId: character._id });
-			} else if (node.kind === "combat" || node.kind === "boss") {
-				setView("combat");
-				void enterZone({ characterId: character._id, zoneId: nodeId });
-			}
-		},
-		[character._id, enterCity, enterZone],
-	);
-
-	// Refresh resilience: if we land on this view mid-travel (no client-side
-	// pendingArrival yet), seed it from the server so the auto-arrival effect
-	// triggers the correct view transition when the timer fires.
-	useEffect(() => {
-		if (travelDestination && !pendingArrival) {
-			setPendingArrival(travelDestination);
-		}
-	}, [travelDestination, pendingArrival]);
-
-	// Auto-arrival: schedule arriveAtTravel at travelArrivesAt. If we're already
-	// past the arrival time (long-tab-closed case), fire immediately.
-	useEffect(() => {
-		if (!isTraveling || travelArrivesAt === undefined) return;
-		const remaining = travelArrivesAt - Date.now();
-		if (remaining <= 0) {
-			void arriveAtTravel({ characterId: character._id });
-			return;
-		}
-		const timer = window.setTimeout(() => {
-			void arriveAtTravel({ characterId: character._id });
-		}, remaining);
-		return () => window.clearTimeout(timer);
-	}, [isTraveling, travelArrivesAt, arriveAtTravel, character._id]);
-
-	// Auto-enter destination after the server confirms arrival. Detects the
-	// transition "was traveling → not traveling AND now at the pendingArrival".
-	useEffect(() => {
-		if (!pendingArrival || isTraveling) return;
-		if (currentLocation !== pendingArrival) return;
-		enterDestination(pendingArrival);
-		setPendingArrival(null);
-	}, [pendingArrival, isTraveling, currentLocation, enterDestination]);
 
 	const unlockedNodeIds = useMemo(
 		() => new Set(character.unlockedNodes ?? ["city"]),
@@ -521,7 +282,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			if (!ok) return;
 			setPendingArrival(nodeId);
 			try {
-				await useTeleportStone({
+				await teleportStone({
 					characterId: character._id,
 					destinationNodeId: nodeId,
 				});
@@ -549,7 +310,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const fireStoneToCity = async () => {
 		setPendingArrival("city");
 		try {
-			await useTeleportStone({
+			await teleportStone({
 				characterId: character._id,
 				destinationNodeId: "city",
 			});
@@ -802,7 +563,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 							combat.state !== "boss_intro" &&
 							combat.state !== "acampamento" &&
 							combat.state !== "miniboss_victory" &&
-							!(combat.state === "engaged" && combat.enemy?.rarity === "rare") &&
+							!(
+								combat.state === "engaged" && combat.enemy?.rarity === "rare"
+							) &&
 							!combat.ambushActive
 						}
 						onUseIncense={combat.triggerIncense}
@@ -845,55 +608,37 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				/>
 			</aside>
 
-			<BagPreviewModal
-				isOpen={bagModal.isOpen}
-				onClose={bagModal.close}
-				items={zoneBag ?? []}
-			/>
-			<ExitZoneModal
-				isOpen={exitModal.isOpen}
-				onClose={handleCloseExit}
+			<WorldModals
+				bagModal={bagModal}
+				exitModal={exitModal}
+				statsModal={statsModal}
+				inventoryModal={inventoryModal}
+				vendorModal={vendorModal}
+				settingsModal={settingsModal}
+				zoneBag={zoneBag ?? []}
+				exitKeepCap={exitKeepCap}
+				onExitClose={handleCloseExit}
 				onPickSelected={handlePickSelected}
 				onDiscardSelected={handleDiscardSelected}
 				onPickAll={handlePickAll}
 				onDiscardAll={handleDiscardAll}
-				bagItems={zoneBag ?? []}
-				keepCap={exitKeepCap}
-			/>
-			<ShowStatsModal
-				isOpen={statsModal.isOpen}
-				onClose={statsModal.close}
 				stats={stats}
-				referenceEnemyLevel={zoneLevel}
+				zoneLevel={zoneLevel}
 				currentBarrier={combat.barrier.current}
 				currentLife={combat.playerHp}
-			/>
-			<InventoryModal
-				isOpen={inventoryModal.isOpen}
-				onClose={inventoryModal.close}
 				characterId={character._id}
-				stats={stats}
 				characterLevel={character.level}
 				equippedItems={equippedItems ?? []}
 				inventoryItems={inventoryItems ?? []}
-			/>
-			<VendorModal
-				isOpen={vendorModal.isOpen}
-				onClose={vendorModal.close}
 				rubys={character.rubys ?? 0}
 				potions={character.potions ?? 0}
 				teleportStones={character.teleportStones ?? 0}
-				inventoryItems={inventoryItems ?? []}
-				onBuy={async (productId) => {
+				onVendorBuy={async (productId) => {
 					await vendorBuy({ characterId: character._id, productId });
 				}}
-				onSellMany={async (itemIds) => {
+				onVendorSellMany={async (itemIds) => {
 					await vendorSellMany({ characterId: character._id, itemIds });
 				}}
-			/>
-			<SettingsModal
-				isOpen={settingsModal.isOpen}
-				onClose={settingsModal.close}
 			/>
 		</main>
 	);

@@ -14,13 +14,17 @@ import { useMutation } from "convex/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
-import { translateItemName } from "#/game/items/item-name";
 import Modal from "#/components/Modal";
 import ItemContextMenu, {
 	type MenuAction,
 } from "#/components/world/ItemContextMenu";
-import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
+import {
+	bySlotAsc,
+	createInventorySlotAllocator,
+	INVENTORY_MAX_SLOTS,
+} from "#/game/inventory/constants";
 import { isWeapon, planEquip, validSlotsForItem } from "#/game/items/equipment";
+import { translateItemName } from "#/game/items/item-name";
 import type { GeneratedItem } from "#/game/items/types";
 import { describeBrokenReasons } from "#/game/stats/compute";
 import {
@@ -138,21 +142,11 @@ export default function InventoryModal({
 				return slot !== undefined && displacedSlots.has(slot);
 			});
 
-			const occupied = new Set<number>();
-			for (const it of inv) {
-				if (it._id === args.itemId) continue;
-				if (typeof it.inventorySlot === "number")
-					occupied.add(it.inventorySlot);
-			}
-			const nextFreeSlot = (): number => {
-				for (let i = 0; i < INVENTORY_MAX_SLOTS; i++) {
-					if (!occupied.has(i)) {
-						occupied.add(i);
-						return i;
-					}
-				}
-				return -1;
-			};
+			// Excludes the item being equipped — its old slot is about to free up
+			// and may receive a displaced doc.
+			const nextFreeSlot = createInventorySlotAllocator(
+				inv.filter((it) => it._id !== args.itemId),
+			);
 
 			const displacedToInventory = displacedDocs.map((d) => ({
 				...d,
@@ -214,18 +208,7 @@ export default function InventoryModal({
 			const item = equipped.find((it) => it.equippedSlot === args.slot);
 			if (!item) return;
 
-			const occupied = new Set<number>();
-			for (const it of inv) {
-				if (typeof it.inventorySlot === "number")
-					occupied.add(it.inventorySlot);
-			}
-			let firstFree = -1;
-			for (let i = 0; i < INVENTORY_MAX_SLOTS; i++) {
-				if (!occupied.has(i)) {
-					firstFree = i;
-					break;
-				}
-			}
+			const firstFree = createInventorySlotAllocator(inv)();
 			if (firstFree === -1) return; // server will reject; skip optimistic
 
 			const newInventory = [
