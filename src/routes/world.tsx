@@ -10,6 +10,7 @@ import CombatScene, {
 } from "#/components/world/CombatScene";
 import EquipmentPanel from "#/components/world/EquipmentPanel";
 import MapScene from "#/components/world/MapScene";
+import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
@@ -611,7 +612,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			<WorldModals
 				bagModal={bagModal}
 				exitModal={exitModal}
-				statsModal={statsModal}
 				inventoryModal={inventoryModal}
 				vendorModal={vendorModal}
 				settingsModal={settingsModal}
@@ -623,9 +623,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				onPickAll={handlePickAll}
 				onDiscardAll={handleDiscardAll}
 				stats={stats}
-				zoneLevel={zoneLevel}
-				currentBarrier={combat.barrier.current}
-				currentLife={combat.playerHp}
 				characterId={character._id}
 				characterLevel={character.level}
 				equippedItems={equippedItems ?? []}
@@ -640,6 +637,16 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					await vendorSellMany({ characterId: character._id, itemIds });
 				}}
 			/>
+			{statsModal.isOpen && (
+				<ShowStatsModal
+					isOpen
+					onClose={statsModal.close}
+					stats={stats}
+					referenceEnemyLevel={zoneLevel}
+					currentBarrier={combat.barrier.current}
+					currentLife={combat.playerHp}
+				/>
+			)}
 		</main>
 	);
 }
