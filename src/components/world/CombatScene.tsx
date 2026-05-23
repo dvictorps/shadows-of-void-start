@@ -202,6 +202,10 @@ export default function CombatScene({
 	// the entrance is imperative: detect the null → non-null transition on
 	// `enemy` and re-issue set+start every fresh spawn.
 	const enemyControls = useAnimationControls();
+	// Separate controls for the red hit-flash overlay (the sprite shape
+	// repainted solid red via CSS mask). Filter-based recolors couldn't push
+	// every pixel to pure red on dark/colorful sprites — masking does.
+	const redFlashControls = useAnimationControls();
 	const prevEnemyRef = useRef<Enemy | null>(null);
 
 	useLayoutEffect(() => {
@@ -236,19 +240,15 @@ export default function CombatScene({
 		const amp = lastDamagingHit.isCrit ? 6 : 4;
 		enemyControls.start({
 			x: [0, -amp, amp, -Math.round(amp * 0.7), Math.round(amp * 0.5), 0],
-			// `sepia(1) saturate(20) hue-rotate(-30deg)` is the classic CSS
-			// recipe to paint any sprite a solid color — sepia first normalizes
-			// to a tan tone, saturate cranks intensity, hue-rotate aims at red.
-			// Pure `hue-rotate` alone only shifts hues and leaves natural
-			// colors looking lightly tinted instead of flashing red.
-			filter: [
-				"brightness(1) saturate(1) sepia(0) hue-rotate(0deg)",
-				"brightness(1.2) saturate(20) sepia(1) hue-rotate(-30deg)",
-				"brightness(1) saturate(1) sepia(0) hue-rotate(0deg)",
-			],
 			transition: { duration: 0.2, times: [0, 0.2, 0.4, 0.6, 0.8, 1] },
 		});
-	}, [lastDamagingHit, enemyControls]);
+		// Brief solid-red flash via the masked overlay. Opacity drives it so
+		// the underlying sprite shows back through as the flash fades.
+		redFlashControls.start({
+			opacity: [0, 1, 0],
+			transition: { duration: 0.22, times: [0, 0.18, 1], ease: "easeOut" },
+		});
+	}, [lastDamagingHit, enemyControls, redFlashControls]);
 
 	useEffect(() => {
 		if (state !== "victory" || !enemy) return;
@@ -462,13 +462,37 @@ export default function CombatScene({
 						state !== "miniboss_victory" &&
 						state !== "acampamento" && (
 						<div className="group relative">
-							<motion.img
-								src={enemy.def.sprite}
-								alt={enemyDisplayName}
-								draggable={false}
-								className="pointer-events-none h-64 w-64 select-none object-contain"
+							<motion.div
+								className="relative h-64 w-64"
 								animate={enemyControls}
-							/>
+							>
+								<img
+									src={enemy.def.sprite}
+									alt={enemyDisplayName}
+									draggable={false}
+									className="pointer-events-none h-full w-full select-none object-contain"
+								/>
+								{/* Solid-red hit-flash silhouette: the sprite acts as the
+								 * mask so only the opaque pixels get repainted, and the
+								 * underlying image stays put. */}
+								<motion.div
+									aria-hidden
+									initial={{ opacity: 0 }}
+									animate={redFlashControls}
+									className="pointer-events-none absolute inset-0"
+									style={{
+										backgroundColor: "#ff2a2a",
+										WebkitMaskImage: `url(${enemy.def.sprite})`,
+										maskImage: `url(${enemy.def.sprite})`,
+										WebkitMaskRepeat: "no-repeat",
+										maskRepeat: "no-repeat",
+										WebkitMaskPosition: "center",
+										maskPosition: "center",
+										WebkitMaskSize: "contain",
+										maskSize: "contain",
+									}}
+								/>
+							</motion.div>
 							<AnimatePresence>
 								{lastSwingHit && (
 									<HitFx
