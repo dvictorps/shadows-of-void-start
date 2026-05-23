@@ -72,12 +72,17 @@ function getFromPool(path: string, exclusive: boolean): HTMLAudioElement {
 	}
 	if (exclusive) {
 		// Single-slot mode: always restart the same instance, never layer.
+		// Short clips (hit.wav is ~80ms) need an explicit pause() before the
+		// seek — Chrome's audio engine sometimes flushes a tail of the old
+		// buffer when `currentTime = 0` is set mid-playback, perceived as a
+		// doubled/tripled hit at high attack speed.
 		if (pool.length === 0) {
 			const audio = new Audio(path);
 			audio.preload = "auto";
 			pool.push(audio);
 		}
 		const audio = pool[0];
+		if (!audio.paused) audio.pause();
 		audio.currentTime = 0;
 		return audio;
 	}
