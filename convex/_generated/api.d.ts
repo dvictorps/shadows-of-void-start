@@ -9,6 +9,7 @@
  */
 
 import type * as _shared_character from "../_shared/character.js";
+import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as characters from "../characters.js";
 import type * as combat from "../combat.js";
@@ -26,6 +27,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   "_shared/character": typeof _shared_character;
+  admin: typeof admin;
   auth: typeof auth;
   characters: typeof characters;
   combat: typeof combat;

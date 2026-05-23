@@ -11,7 +11,28 @@ async function getRoleRecord(ctx: QueryCtx, authUserId: string) {
 }
 
 /**
- * Returns the current user's role. Defaults to "user" if no record exists.
+ * Server-side admin gate. Every admin-only query/mutation MUST start with
+ * this — the route-level `beforeLoad` check is a UX guard, not a security
+ * boundary. A hostile client can hit Convex endpoints directly.
+ *
+ * Returns the auth user record on success so callers can identify the admin
+ * (e.g. for "cannot revoke yourself" checks) without an extra round-trip.
+ */
+export async function assertAdmin(ctx: QueryCtx) {
+	const authUser = await authComponent.getAuthUser(ctx)
+	if (!authUser) throw new ConvexError("Not authenticated")
+	const roleRecord = await getRoleRecord(ctx, authUser._id)
+	if (roleRecord?.role !== "admin") {
+		throw new ConvexError("Admin access required")
+	}
+	return authUser
+}
+
+/**
+ * Returns the current user's role + identity. Defaults to "user" if no role
+ * record exists. `authUserId` lets the admin dashboard identify the caller's
+ * own row so it can disable revoke-self at the UI layer (server also blocks
+ * it via `setUserRole`).
  */
 export const getUserRole = query({
 	args: {},
@@ -22,6 +43,7 @@ export const getUserRole = query({
 		const roleRecord = await getRoleRecord(ctx, authUser._id)
 
 		return {
+			authUserId: authUser._id,
 			role: roleRecord?.role ?? "user",
 			name: authUser.name,
 			email: authUser.email,
@@ -45,8 +67,15 @@ export const isAdmin = query({
 })
 
 /**
- * Sets a user's role. Only callable by existing admins.
- * For bootstrapping the first admin, use Convex dashboard to insert directly.
+ * Sets a user's role. Only callable by existing admins. Guards against:
+ *  - non-admin callers (assertAdmin)
+ *  - revoking your own admin (prevents accidental lockout — the dashboard's
+ *    admins table also disables this row's revoke button, but the server is
+ *    the actual fence)
+ *  - assigning a role to a non-existent auth user (keeps userRoles clean)
+ *
+ * For bootstrapping the first admin, use the Convex dashboard to insert
+ * directly into `userRoles`.
  */
 export const setUserRole = mutation({
 	args: {
@@ -54,17 +83,15 @@ export const setUserRole = mutation({
 		role: v.union(v.literal("user"), v.literal("admin")),
 	},
 	handler: async (ctx, { authUserId, role }) => {
-		// Check caller is admin
-		const callerAuth = await authComponent.getAuthUser(ctx)
-		if (!callerAuth) throw new ConvexError("Not authenticated")
+		const caller = await assertAdmin(ctx)
 
-		const callerRole = await getRoleRecord(ctx, callerAuth._id)
-
-		if (callerRole?.role !== "admin") {
-			throw new ConvexError("Only admins can change roles")
+		if (caller._id === authUserId && role !== "admin") {
+			throw new ConvexError("Cannot revoke your own admin role")
 		}
 
-		// Upsert target user's role
+		const target = await authComponent.getAnyUserById(ctx, authUserId)
+		if (!target) throw new ConvexError("User not found")
+
 		const existing = await getRoleRecord(ctx, authUserId)
 
 		if (existing) {
