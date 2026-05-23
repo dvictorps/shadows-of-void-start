@@ -64,6 +64,9 @@ type Props = {
 	// Active camp source — drives flavor text + (future) ambient audio in the
 	// cinematic. See CONTEXT.md → Incenso Etéreo.
 	campSource: "baked" | "incense";
+	// True while an ambush pack is firing — drives the "Ambush!" banner. See
+	// CONTEXT.md → Ambush events.
+	ambushActive: boolean;
 	onRetreat: () => void;
 	bagCount: number;
 	onOpenBag: () => void;
@@ -110,6 +113,7 @@ export default function CombatScene({
 	canUseIncense,
 	onUseIncense,
 	campSource,
+	ambushActive,
 	onRetreat,
 	bagCount,
 	onOpenBag,
@@ -325,6 +329,32 @@ export default function CombatScene({
 					);
 				})}
 			</div>
+
+			{/* Ambush cue — drops a centered banner while the pack is firing. See
+			 * CONTEXT.md → Ambush events. */}
+			<AnimatePresence>
+				{ambushActive && (
+					<motion.div
+						key="ambush-banner"
+						initial={{ opacity: 0, y: -8 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -8 }}
+						transition={{ duration: 0.4 }}
+						className="-translate-x-1/2 pointer-events-none absolute top-12 left-1/2 z-20 select-none"
+						aria-live="polite"
+					>
+						<span
+							className="display-title text-2xl uppercase tracking-[0.3em] text-red-400"
+							style={{
+								textShadow:
+									"0 0 18px rgba(248, 113, 113, 0.7), 0 2px 6px rgba(0, 0, 0, 0.9)",
+							}}
+						>
+							{m.ambush_banner()}
+						</span>
+					</motion.div>
+				)}
+			</AnimatePresence>
 			{/* Zone label + static zone level (the area's intrinsic difficulty;
 			 * the per-spawn monster level is shown separately on the nameplate). */}
 			<div

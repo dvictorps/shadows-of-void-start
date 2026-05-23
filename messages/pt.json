@@ -143,6 +143,7 @@
   "camp_line_incense_3": "Por um instante, a zona parece esquecer que você está aqui.",
   "incense_use_aria": "Usar incenso etéreo",
   "incense_hint": "Incenso Etéreo — invoca um acampamento.",
+  "ambush_banner": "Emboscada!",
   "you_died_softcore": "Você morreu! -{xp} XP",
   "you_died_hardcore": "Você morreu (hardcore). Personagem apagado.",
   "failed_handle_death": "Falha ao processar morte",

@@ -143,6 +143,7 @@
   "camp_line_incense_3": "For a moment, the zone seems to forget you are here.",
   "incense_use_aria": "Use ethereal incense",
   "incense_hint": "Ethereal Incense — summons a camp.",
+  "ambush_banner": "Ambush!",
   "you_died_softcore": "You died! -{xp} XP",
   "you_died_hardcore": "You died (hardcore). Character deleted.",
   "failed_handle_death": "Failed to handle death",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	rollAmbushSchedule,
 	rollCampThresholdsMs,
 	rollSpawnGapMs,
 	type ZoneEncounterPlan,
@@ -83,5 +84,61 @@ describe("rollCampThresholdsMs", () => {
 			campFractions: [],
 		};
 		expect(rollCampThresholdsMs(noCamps)).toEqual([]);
+	});
+});
+
+describe("rollAmbushSchedule", () => {
+	const plan: ZoneEncounterPlan = {
+		calmariaBudgetSeconds: 40,
+		gapBetweenSpawns: { min: 1.5, max: 3 },
+		campFractions: [0.5],
+		ambushes: {
+			fractions: [0.3, 0.75],
+			packSize: { min: 3, max: 5 },
+			gapWithinPackMs: 800,
+			magicChance: 0.5,
+		},
+	};
+
+	it("returns empty array when the plan has no ambushes", () => {
+		const noAmbush: ZoneEncounterPlan = {
+			calmariaBudgetSeconds: 35,
+			gapBetweenSpawns: { min: 1.5, max: 3 },
+			campFractions: [0.5],
+		};
+		expect(rollAmbushSchedule(noAmbush)).toEqual([]);
+	});
+
+	it("anchors each ambush near its fraction (±15% jitter)", () => {
+		const budgetMs = plan.calmariaBudgetSeconds * 1000;
+		for (let i = 0; i < 100; i++) {
+			const [a, b] = rollAmbushSchedule(plan);
+			// 0.3 ± 0.15 → 0.15–0.45, and 0.75 ± 0.15 → 0.60–0.90
+			expect(a.thresholdMs).toBeGreaterThanOrEqual(0.15 * budgetMs);
+			expect(a.thresholdMs).toBeLessThanOrEqual(0.45 * budgetMs);
+			expect(b.thresholdMs).toBeGreaterThanOrEqual(0.6 * budgetMs);
+			expect(b.thresholdMs).toBeLessThanOrEqual(0.9 * budgetMs);
+		}
+	});
+
+	it("rolls a pack size within [min, max] per ambush", () => {
+		for (let i = 0; i < 100; i++) {
+			for (const a of rollAmbushSchedule(plan)) {
+				expect(a.packSize).toBeGreaterThanOrEqual(3);
+				expect(a.packSize).toBeLessThanOrEqual(5);
+				expect(Number.isInteger(a.packSize)).toBe(true);
+			}
+		}
+	});
+
+	it("returns ambushes sorted by threshold ascending", () => {
+		for (let i = 0; i < 50; i++) {
+			const out = rollAmbushSchedule(plan);
+			for (let j = 1; j < out.length; j++) {
+				expect(out[j].thresholdMs).toBeGreaterThanOrEqual(
+					out[j - 1].thresholdMs,
+				);
+			}
+		}
 	});
 });

@@ -28,6 +28,12 @@ export const ACT_1: Act = {
 				calmariaBudgetSeconds: 35,
 				gapBetweenSpawns: { min: 1.5, max: 3 },
 				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.72],
+					packSize: { min: 3, max: 4 },
+					gapWithinPackMs: 800,
+					magicChance: 0.5,
+				},
 			},
 		},
 		{
@@ -46,6 +52,12 @@ export const ACT_1: Act = {
 				calmariaBudgetSeconds: 42,
 				gapBetweenSpawns: { min: 1.5, max: 3 },
 				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.72],
+					packSize: { min: 3, max: 5 },
+					gapWithinPackMs: 800,
+					magicChance: 0.5,
+				},
 			},
 		},
 		{
@@ -64,6 +76,12 @@ export const ACT_1: Act = {
 				calmariaBudgetSeconds: 45,
 				gapBetweenSpawns: { min: 1.25, max: 2.75 },
 				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.7],
+					packSize: { min: 3, max: 5 },
+					gapWithinPackMs: 800,
+					magicChance: 0.55,
+				},
 			},
 		},
 		{
@@ -82,6 +100,12 @@ export const ACT_1: Act = {
 				calmariaBudgetSeconds: 47,
 				gapBetweenSpawns: { min: 1.25, max: 2.5 },
 				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.3, 0.75],
+					packSize: { min: 3, max: 5 },
+					gapWithinPackMs: 800,
+					magicChance: 0.6,
+				},
 			},
 		},
 		{
@@ -100,6 +124,12 @@ export const ACT_1: Act = {
 				calmariaBudgetSeconds: 50,
 				gapBetweenSpawns: { min: 1, max: 2.5 },
 				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.3, 0.75],
+					packSize: { min: 4, max: 5 },
+					gapWithinPackMs: 750,
+					magicChance: 0.65,
+				},
 			},
 		},
 		{
@@ -115,6 +145,12 @@ export const ACT_1: Act = {
 				calmariaBudgetSeconds: 50,
 				gapBetweenSpawns: { min: 1, max: 2.25 },
 				campFractions: [0.5],
+				ambushes: {
+					fractions: [0.3, 0.75],
+					packSize: { min: 4, max: 5 },
+					gapWithinPackMs: 700,
+					magicChance: 0.7,
+				},
 			},
 		},
 	],

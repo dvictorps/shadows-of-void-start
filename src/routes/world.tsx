@@ -835,6 +835,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						}
 						onUseIncense={combat.triggerIncense}
 						campSource={combat.campSource}
+						ambushActive={combat.ambushActive}
 						onRetreat={handleRetreat}
 						bagCount={zoneBag?.length ?? 0}
 						onOpenBag={bagModal.open}

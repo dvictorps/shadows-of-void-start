@@ -61,6 +61,8 @@ import {
 } from "#/game/monsters";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import {
+	type AmbushSchedule,
+	rollAmbushSchedule,
 	rollCampThresholdsMs,
 	rollSpawnGapMs,
 	type ZoneEncounterPlan,
@@ -172,6 +174,11 @@ export function useCombatLoop({
 	onPlayerDeath,
 }: Params) {
 	const maxHp = stats.maxLife;
+	// Stash for the ambush branches below — TS can't narrow through closures,
+	// so the branches each guard on this directly. Reads stay in-bounds and
+	// the helper avoids `?? <fallback>` patterns that would silently mask a
+	// missing config value.
+	const ambushPlan = encounterPlan.ambushes;
 	const [state, setState] = useState<CombatState>("searching");
 	const [bossIntroStage, setBossIntroStage] = useState<BossIntroStage>(null);
 	const [enemy, setEnemy] = useState<Enemy | null>(null);
@@ -181,11 +188,9 @@ export function useCombatLoop({
 	);
 	const [potions, setPotions] = useState(initialPotions);
 	const [incense, setIncense] = useState(initialIncense);
-	// Source of the active camp (drives cinematic flavor text). State so the
-	// child component re-renders on switch; ref so the queue handler can read
-	// it without scheduling another render.
+	// Source of the active camp (drives cinematic flavor text). Read by the
+	// CampCinematic component to switch the line set.
 	const [campSource, setCampSource] = useState<CampSource>("baked");
-	const campSourceRef = useRef<CampSource>("baked");
 	// Set true when the player triggers incenso during "engaged" — the
 	// post-victory transition reads this and routes to camp instead of
 	// the next spawn. Cleared on activation reset and on consumption.
@@ -247,6 +252,16 @@ export function useCombatLoop({
 	const campThresholdsMsRef = useRef<readonly number[]>([]);
 	const nextCampIndexRef = useRef(0);
 
+	// Ambush schedule + active-pack counter. The schedule is rolled once per
+	// zone activation (mirrors camps). `ambushPackRemainingRef` is the mobs
+	// remaining in the active pack — when > 0, the next spawn rolls inside the
+	// ambush (short gap + heavier magic chance). See CONTEXT.md → Ambush.
+	const ambushScheduleRef = useRef<readonly AmbushSchedule[]>([]);
+	const nextAmbushIndexRef = useRef(0);
+	const ambushPackRemainingRef = useRef(0);
+	// `ambushActive` re-renders the scene so it can flash an "Ambush!" cue.
+	const [ambushActive, setAmbushActive] = useState(false);
+
 	const syncHp = useMutation(api.combat.syncHp);
 	const recordKill = useMutation(api.combat.recordKill);
 	const consumePotion = useMutation(api.combat.usePotion);
@@ -265,13 +280,17 @@ export function useCombatLoop({
 			if (killed.rarity === "rare") {
 				calmariaElapsedMsRef.current = 0;
 				setCalmariaElapsedMs(0);
-				// Re-roll camps so the farming loop gets fresh thresholds —
-				// player who kept going after the miniboss should still get
-				// the rhythm of camps in the same session.
+				// Re-roll camps + ambushes so the farming loop gets fresh
+				// thresholds — player who kept going after the miniboss
+				// should still get the rhythm of camps and surprise packs.
 				const freshCamps = rollCampThresholdsMs(encounterPlan);
 				campThresholdsMsRef.current = freshCamps;
 				setCampThresholdsMs(freshCamps);
 				nextCampIndexRef.current = 0;
+				ambushScheduleRef.current = rollAmbushSchedule(encounterPlan);
+				nextAmbushIndexRef.current = 0;
+				ambushPackRemainingRef.current = 0;
+				setAmbushActive(false);
 			}
 			recordKill({
 				characterId,
@@ -309,7 +328,6 @@ export function useCombatLoop({
 			setPotions(initialPotionsRef.current);
 			setIncense(initialIncenseRef.current);
 			pendingIncenseRef.current = false;
-			campSourceRef.current = "baked";
 			setCampSource("baked");
 			lastSyncedHpRef.current = initialHpRef.current;
 			deadRef.current = false;
@@ -325,6 +343,10 @@ export function useCombatLoop({
 			campThresholdsMsRef.current = freshCamps;
 			setCampThresholdsMs(freshCamps);
 			nextCampIndexRef.current = 0;
+			ambushScheduleRef.current = rollAmbushSchedule(encounterPlan);
+			nextAmbushIndexRef.current = 0;
+			ambushPackRemainingRef.current = 0;
+			setAmbushActive(false);
 			setBossIntroStage(null);
 			stateRef.current = "searching";
 			setState("searching");
@@ -356,10 +378,31 @@ export function useCombatLoop({
 				next < calmariaBudgetMs
 			) {
 				nextCampIndexRef.current += 1;
-				campSourceRef.current = "baked";
 				setCampSource("baked");
 				stateRef.current = "acampamento";
 				setState("acampamento");
+				return;
+			}
+
+			// Ambush trigger — checked after camps so a co-located camp wins.
+			// Setting `ambushPackRemainingRef` makes the next spawn(s) roll
+			// inside the ambush pack until the counter drains.
+			const nextAmbush =
+				ambushScheduleRef.current[nextAmbushIndexRef.current];
+			if (
+				ambushPlan &&
+				nextAmbush !== undefined &&
+				next >= nextAmbush.thresholdMs &&
+				next < calmariaBudgetMs &&
+				ambushPackRemainingRef.current === 0
+			) {
+				nextAmbushIndexRef.current += 1;
+				ambushPackRemainingRef.current = nextAmbush.packSize;
+				setAmbushActive(true);
+				// Collapse the search gap so the first ambush mob fires almost
+				// immediately. Subsequent spawns use the in-pack gap (set
+				// in the post-spawn block below).
+				setNextSpawnGapMs(ambushPlan.gapWithinPackMs);
 			}
 		},
 	);
@@ -400,7 +443,10 @@ export function useCombatLoop({
 			return;
 		}
 		// Searching / victory — interrupt the next spawn and enter camp now.
-		campSourceRef.current = "incense";
+		// Cancels any in-flight ambush pack per CONTEXT.md → Incenso Etéreo
+		// ("the remaining mobs in the ambush pack do NOT spawn").
+		ambushPackRemainingRef.current = 0;
+		setAmbushActive(false);
 		setCampSource("incense");
 		stateRef.current = "acampamento";
 		setState("acampamento");
@@ -416,9 +462,16 @@ export function useCombatLoop({
 	);
 	useEffect(() => {
 		if (state === "searching") {
-			setNextSpawnGapMs(rollSpawnGapMs(encounterPlan));
+			// While an ambush pack is mid-burst, force the in-pack gap so the
+			// next mob fires almost immediately. Otherwise roll the normal
+			// range so the in-pack gap can't leak into post-pack searching.
+			if (ambushPlan && ambushPackRemainingRef.current > 0) {
+				setNextSpawnGapMs(ambushPlan.gapWithinPackMs);
+			} else {
+				setNextSpawnGapMs(rollSpawnGapMs(encounterPlan));
+			}
 		}
-	}, [state, encounterPlan]);
+	}, [state, encounterPlan, ambushPlan]);
 
 	useDelay(active && state === "searching", nextSpawnGapMs, () => {
 		const pick = pickRandom(monsterPool);
@@ -427,12 +480,19 @@ export function useCombatLoop({
 		if (!def) return;
 		const level = rollMonsterLevel(zoneLevel);
 		const baseScaled = scaleMonsterStats(def, level);
-		// Time bar full → next spawn is the miniboss (rare). See
-		// CONTEXT.md → Time Bar.
+		// Time bar full → next spawn is the miniboss (rare). Ambush packs
+		// can't reach the budget-fill check because the calmaria ticker stops
+		// adding once `next < calmariaBudgetMs` no longer holds, so the boss
+		// branch always wins at the boundary. See CONTEXT.md → Time Bar.
+		const inAmbush = ambushPlan != null && ambushPackRemainingRef.current > 0;
 		const rarity =
 			calmariaElapsedMsRef.current >= calmariaBudgetMs
 				? "rare"
-				: rollMonsterRarity();
+				: inAmbush
+					? Math.random() < ambushPlan.magicChance
+						? "magic"
+						: "normal"
+					: rollMonsterRarity();
 		const mods = rollMonsterMods(modCountForRarity(rarity));
 		const scaled = applyMonsterMods(baseScaled, mods);
 		const nameSeed: RareNameSeed = {
@@ -454,6 +514,12 @@ export function useCombatLoop({
 		playerProgressRef.current = 0;
 		enemyProgressRef.current = 0;
 		nextSwingIndexRef.current = 0;
+		// Consume a slot from the ambush pack — the post-victory effect
+		// reads `ambushPackRemainingRef` to set the next searching gap.
+		if (inAmbush) {
+			ambushPackRemainingRef.current -= 1;
+			if (ambushPackRemainingRef.current <= 0) setAmbushActive(false);
+		}
 		// Rare minibosses get a staged reveal (sprite → name → HP bar) before
 		// combat starts. Regular spawns engage immediately.
 		if (rarity === "rare") {
@@ -498,10 +564,13 @@ export function useCombatLoop({
 			stateRef.current = "miniboss_victory";
 			setState("miniboss_victory");
 		} else if (pendingIncenseRef.current) {
-			// Incenso queued during the fight — enter camp instead of the next spawn.
+			// Incenso queued during the fight — enter camp instead of the next
+			// spawn. Cancels any in-flight ambush pack so the remaining mobs
+			// don't fire after dismissCamp (per CONTEXT.md → Incenso Etéreo).
 			pendingIncenseRef.current = false;
-			campSourceRef.current = "incense";
-			setCampSource("incense");
+			ambushPackRemainingRef.current = 0;
+			setAmbushActive(false);
+				setCampSource("incense");
 			stateRef.current = "acampamento";
 			setState("acampamento");
 		} else {
@@ -783,6 +852,7 @@ export function useCombatLoop({
 		potions,
 		incense,
 		campSource,
+		ambushActive,
 		events,
 		lastKill,
 		usePotion,

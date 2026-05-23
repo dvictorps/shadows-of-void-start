@@ -32,6 +32,23 @@ export interface ZoneEncounterPlan {
 	 * ~50% or at ~33%/~66% respectively. See CONTEXT.md → Acampamento.
 	 */
 	campFractions: readonly number[];
+	/**
+	 * Ambush packs anchored to fractions of the budget (0–1). When the
+	 * calmaria crosses an entry, the next N spawns fire back-to-back with
+	 * `gapWithinPackMs` instead of the normal range, with a boosted magic
+	 * rate. See CONTEXT.md → Ambush events. Omit to disable ambushes for
+	 * the zone.
+	 */
+	ambushes?: {
+		/** Anchors as fractions of the budget. 1–2 per zone in act 1. */
+		fractions: readonly number[];
+		/** Random pack size (mobs) per ambush. */
+		packSize: { min: number; max: number };
+		/** Gap between mobs inside an ambush pack. */
+		gapWithinPackMs: number;
+		/** Chance a mob spawned inside an ambush rolls as magic. */
+		magicChance: number;
+	};
 }
 
 /**
@@ -69,4 +86,35 @@ export function rollCampThresholdsMs(plan: ZoneEncounterPlan): number[] {
 			Math.round((fraction + randSymmetric(CAMP_JITTER)) * budgetMs),
 		)
 		.sort((a, b) => a - b);
+}
+
+// Same shape as CAMP_JITTER. Ambushes get a slightly wider scatter (±15%)
+// because there are fewer of them per zone, so the surprise factor leans on
+// position variance instead of count variance.
+const AMBUSH_JITTER = 0.15;
+
+/**
+ * Per-ambush activation data — when (ms) it fires, and how many mobs the
+ * pack contains. The pack size is rolled per-ambush so back-to-back runs
+ * don't always face the same length.
+ */
+export type AmbushSchedule = { thresholdMs: number; packSize: number };
+
+/**
+ * Roll the cumulative-calmaria thresholds for each ambush in the plan, plus
+ * each pack's size. Returns empty when the plan has no `ambushes` block.
+ * Called once per zone activation, mirroring `rollCampThresholdsMs`.
+ */
+export function rollAmbushSchedule(plan: ZoneEncounterPlan): AmbushSchedule[] {
+	if (!plan.ambushes) return [];
+	const { fractions, packSize } = plan.ambushes;
+	const budgetMs = plan.calmariaBudgetSeconds * 1000;
+	return fractions
+		.map((fraction) => ({
+			thresholdMs: Math.round(
+				(fraction + randSymmetric(AMBUSH_JITTER)) * budgetMs,
+			),
+			packSize: randInt(packSize.min, packSize.max),
+		}))
+		.sort((a, b) => a.thresholdMs - b.thresholdMs);
 }
