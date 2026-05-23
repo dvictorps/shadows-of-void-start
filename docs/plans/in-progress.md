@@ -12,13 +12,13 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 The agent-ergonomics hardening pass shipped (CI gate via sentinel examples in `docs/playbooks/_examples/`, ADRs 0002 / 0003 / 0004, stub playbooks for skill / passive / stash / vendor product, threat-model entry for phase-arg trust, drift fixes in the monster / zone / class playbooks).
 
-**Next high-leverage item: the `src/routes/world.tsx` split** — 900-line orchestrator route (this branch is the in-flight refactor). The detailed suggested cut (into `useWorldMutations`, `useViewMode`, `useWorldModals`, and a `<CombatHud>` component) lives in the dedicated entry below — see "Split `src/routes/world.tsx` (queued)" further down this file.
+The `src/routes/world.tsx` split is **code-complete on branch `refactor/world-tsx-split`** (900 → 645 lines via `useWorldMutations` + `useViewMode` hooks and a `WorldModals` sibling component, plus a simplify pass that lifted `createInventorySlotAllocator` into `src/game/inventory/constants.ts`). Awaiting smoke + PR.
 
-**Queued immediately after**: the `src/hooks/useCombatLoop.ts` split — 916 lines, the single largest file in the repo. Same orchestrator-monolith shape, dedicated entry below.
+**Next high-leverage item: the `src/hooks/useCombatLoop.ts` split** — 916 lines, the single largest file in the repo. Same orchestrator-monolith shape that `world.tsx` had. Detailed suggested cut in its dedicated entry below.
 
-The downstream "Server-authoritative camp/phase derivation" security work (closes Threat #3 in the threat model) is blocked on the world.tsx split landing first — both touch the same combat-hook + mutation surface and would collide in a single PR.
+**Queued after useCombatLoop split**: the "Server-authoritative camp/phase derivation" security work (closes Threat #3 in the threat model) — depends on combat-hook surface stabilising. The "In-flight tracking for spam-click action handlers" entry (extends the vendor pattern shipped in the world.tsx-split branch to potion / teleport stone / exit-zone buttons) is independent and can land in any order.
 
-Before starting, read: `src/routes/world.tsx` (the file being split), `src/hooks/useCombatLoop.ts` (combat orchestrator the route consumes), and `convex/items.ts` + `convex/combat.ts` (mutations the route's optimistic handlers mirror). Then align scope before fragmenting.
+Before starting the useCombatLoop split, read: the file itself (top comment block already decomposes its concerns along lifecycle / refs / state / public-mutation lines — use that as the seam), and the consumer wiring in `src/routes/world.tsx` (now stable post-split).
 
 ---
 
@@ -182,23 +182,19 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 ---
 
-## Split `src/routes/world.tsx` (queued)
+## Split `src/routes/world.tsx` (code-complete, PR pending)
 
-**Status**: Planned, not started. User has requested this be picked up after the in-flight time-based-zones work wraps.
+**Status**: Code-complete on branch `refactor/world-tsx-split`. Smoke test in progress. **Delete this entry when the PR merges.**
 
-**Why**: `src/routes/world.tsx` is **836 lines** today. It's the orchestrator route — combat hook, all eight-or-so modals, twelve+ mutations with optimistic closures, the view-mode state machine (map / city / combat), the priority text log. The agent who needs to add a new button in the HUD or wire a new mutation has to read the whole thing before they're confident they won't break adjacent logic.
+**Shipped on the branch**:
 
-### Suggested cut
+- `src/hooks/useWorldMutations.ts` (216 lines) — all 10 mutations with their optimistic closures. The shared `moveDocsIntoInventory` helper deduplicates the `exitZone` / `pickFromBag` recipe; the inventory-slot allocator lifted into `src/game/inventory/constants.ts:createInventorySlotAllocator` (also adopted by `InventoryModal`'s equip / unequip closures, killing a third copy).
+- `src/hooks/useViewMode.ts` (130 lines) — view state machine + three travel-arrival effects + `enterDestination`. Setters stay exposed because outgoing transitions still drive from the route body.
+- `src/components/world/WorldModals.tsx` (123 lines) — sibling component bundling the six modal renders. Uses `ModalHandle` from `useModal.ts` (exported on this branch).
+- Drive-by: `ItemCard` selection ring switched from yellow to white (collided with rare-tier border).
+- Drive-by: `VendorModal` gained per-product in-flight tracking for buy and a single in-flight flag for sell, so spam clicks no longer fire N round-trips (see the dedicated entry below for the wider "extend this pattern" follow-up).
 
-- **`useWorldMutations`** custom hook — extracts the `useMutation(...).withOptimisticUpdate(...)` declarations into one place. Each declaration is 10-40 lines today; pulling them out drops world.tsx by ~250 lines and makes the optimistic recipes easier to compare.
-- **`useViewMode`** custom hook — encapsulates the `viewMode: "map" | "city" | "combat"` state machine + the auto-transitions on `enterZone` / `enterCity` / `exitZone` arrival.
-- **Modal manager** — the 8+ `useModal()` calls + state for which item / loot bag / vendor product the modal targets could collapse into one `useWorldModals()` hook returning a stable typed API. Or extract each modal block into a sibling component that owns its own visibility.
-- **Combat HUD section** — the JSX for the bottom-of-screen combat buttons (potion, teleport stone, retreat, loot preview) is its own thing — pull into `<CombatHud character={...} />`.
-
-### Validation
-
-- `npx tsc --noEmit`, `npx vitest run` (no UI test coverage today; rely on TS + manual smoke).
-- Manual smoke: enter zone → kill mob → exit with loot picker → equip new item → travel to next zone. The five main user-flows touch every part of world.tsx.
+**Result**: `world.tsx` 900 → 645 lines (−28%). The "Combat HUD section" cut from the original plan turned out to already be encapsulated in `<CombatScene>` — world.tsx only passes props — so that cut wasn't needed.
 
 ---
 
@@ -259,6 +255,35 @@ This is the next "right" step for the time-based-zone scope, but it requires sch
 ### Why this matters
 
 Without this, the cap is a **client-cooperation** boundary, not a security one. The user's framing in PR #40 — *"backend tem que proteger isso"* — only fully holds once phase derives from server state.
+
+---
+
+## In-flight tracking for spam-click action handlers (queued)
+
+**Status**: Planned, not started. Triggered by the vendor spam-click fix that landed in the world.tsx-split branch.
+
+**Why**: `VendorModal` now tracks per-product `pendingBuys: Set<VendorProductId>` and a single `isSelling: boolean`, and disables the corresponding buttons while the mutation is in flight. The same shape applies to every other action handler that today fires one round-trip per click with no guard. Without it, a fast-clicking user (or impatient one mid-lag) bounces N requests off Convex that the server then rejects, polluting the toast log and burning quota.
+
+### Handlers to cover
+
+Each one has the same fix shape: `useState<boolean>` (or `Set` if multiple instances of the same action coexist), early-return at the top of the handler, set/clear in `try` / `finally`, plus `disabled` on the button.
+
+- **`combat.usePotion`** (CombatScene HUD) — clicked rapidly when low HP. Optimistic decrements `potions` so the button greys out on count=0, but a double-tap before the local count updates can fire twice.
+- **`handleUseTeleportStone`** (world.tsx → CombatScene HUD button + map-click teleport-stone path) — same race against the local `teleportStones` count.
+- **`handleRetreat` / `handlePickAll` / `handleDiscardAll`** (ExitZoneModal) — close-on-success protects against most double-clicks, but a slow round-trip leaves the buttons live.
+- **`handleEnterNode`** (map click → `startTravel`) — `pendingArrival` guards subsequent clicks once it's set, but the set→await→pendingArrival flow has a small window where two clicks could both fire `startTravel`.
+- **`combat.triggerIncense`** — same shape as potion.
+
+### Scope
+
+- Track in-flight at the handler call site (not inside `useWorldMutations` — the hook stays mutation-only; UX guards belong to the consumer).
+- Reset on the natural close boundary (modal close, zone exit) so a slow request mid-close doesn't leave stale state.
+- Defer until the world.tsx + useCombatLoop splits merge — both move the handler call sites around, and threading the new state through during a refactor wastes effort.
+
+### Validation
+
+- Manual: spam each action button, confirm only one toast/error per intended action.
+- No new tests — this is UX behavior on top of stable mutation contracts.
 
 ---
 
