@@ -97,59 +97,69 @@ The cinematic was designed to include ambient sound cues per biome ("Sons da nat
 
 ---
 
-## Item tooltip i18n + item name lexicon (NEXT)
+## Item naming lexicon — open follow-ups (low priority)
 
-**Status**: PR1 in progress on branch `feat/tooltip-i18n`. PR2 not started. Mirrors the pattern from `feat/per-locale-monster-name-renderer` (commit `e304c76`) — same render-at-display + per-locale lexicon shape that monsters already use.
+**Status**: PRs #39 (tooltip labels + slot-aware mods) and #41 (decomposed lexicon + renderer + 20 tests) landed. The four items below are real but were intentionally deferred — none blocks a beta, but each one closes a small hole that will widen as more locales / modifiers land.
 
-**Why**: today the item tooltip mixes localized mod descriptions (PT via `mod-i18n.ts`) with hardcoded English labels (Physical Damage, Armour, Item Level, Requires) and English item names baked at generation time. Three concrete bugs:
+### 1. Cross-coverage test: lexicon affix forms ↔ `mod-i18n.ts`
 
-1. Static labels in `src/components/game/ItemTooltip.tsx` ignore the active locale entirely.
-2. PT formatter for `localDefenseFlat`/`localDefenseIncrease` always renders "Defesa", ignoring the item's `armorType` — so a leather glove with +20 evasion shows "+20 de Defesa" instead of "+20 de Evasão". In EN the same path resolves correctly because `resolveDefenseFormat` (`generator.ts:176`) bakes the right word into `mod.description` at roll time; the PT formatter is keyed by `modifierId` and never sees `armorType`.
-3. Item names (`item.name`) are frozen as English strings at generation. Switching to PT does nothing — same shape as the bug the monster-naming PR fixed for enemies. Bonus: commit `4436da0` silently reverted the PT jewelry rename from `ee15ce2` — having names inline in templates is fragile.
+**Risk**: The same `ModifierId` universe is translated in two independent tables — `lexicon.prefixForms` / `suffixPhrases` (magic-item compound name) and `mod-i18n.ts:PT_EXPLICIT_FORMATTERS` (tooltip mod line). Different data, but a new modifier needs entries in both. Today nothing forces that — a missing entry on either side renders the modifier id as a string fallback.
 
-### PR1: Tooltip labels + slot-aware mod renderer (this branch)
+**Fix** (estimated: ~10 lines of test). One vitest file that iterates `MODIFIERS` and, per locale, asserts every prefix has a `lexicon.prefixForms` entry AND every modifier has a `PT_EXPLICIT_FORMATTERS` entry (or its EN equivalent path). Catches drift at CI time instead of at the tooltip.
 
-**Branch**: `feat/tooltip-i18n` (based on origin/master).
+**Why deferred**: low rate of new modifiers — the pool is mature, drift is unlikely in the next month. Worth adding before the next big modifier expansion.
 
-- Replace hardcoded labels in `ItemTooltip.tsx` with `m.*` calls. Reuse existing keys (`stats_armor`, `element_cold`, `attribute_strength`) where shape matches; add new keys for tooltip-specific contexts (e.g. `tooltip_attacks_per_second` separate from `stats_attack_speed`, since the former is a rate stat and the latter is the `% increased` mod label).
-- Refactor `localizeMod(mod)` → `localizeMod(mod, item)`. PT formatter for `localDefenseFlat`/`localDefenseIncrease` reads `item.armorType` and picks `Armadura`/`Evasão`/`Barreira` from a small lookup table.
-- **Migrate both locales to render-at-display-time**. EN stops trusting `mod.description` and re-renders from `modifierId + value + item` the same way PT does. The slot-aware resolver (`resolveDefenseFormat`) gets duplicated/moved into the display layer. `mod.description` stays on the stored shape (legacy data) but is no longer consumed by the tooltip.
-- `(Local)` keeps the same string in both locales (chave nova `m.mod_local_suffix()`).
-- No schema migration.
+### 2. Native PT-BR review of bulk-translated entries
 
-**Validation**:
-- `npx tsc --noEmit`, `npx vitest run`
-- Manual: drop a plate helmet with `+X local defense` → "+X de Armadura" / "+X Armour". Same mod on a leather glove → "+X de Evasão" / "+X Evasion Rating". Same on a silk chest → "+X de Barreira" / "+X Barrier". Toggle language in Settings — every tooltip string flips locale without touching the items.
+**Risk**: 130-ish lexicon entries (55 bases + 80 modifiers) were AI-bulk-translated. The four manually reviewed (Espada Bastarda, Estrela da Manhã, Maculado pelo Vazio, Gume) caught real awkwardness, so the rest probably has 5–10 similar issues. Fine for indie / pre-release. Not fine before a paid release in Brazil.
 
-### PR2: Item name lexicon refactor
+**Fix**: Walk through `lexicon/pt.ts` with a native speaker, especially:
 
-**Branch**: suggested `feat/item-name-lexicon`, based on PR1.
+- All `gendered` adj forms — check the `m`/`f` inflection
+- The 21-tier "owner" ladder (warden / champion / templar / archon / sovereign / etc.) reads as a power progression — does the PT chain feel like ascending power?
+- Tier-21 void specials — the new `void_touched` / `void_forged` / `void_woven` / `void_inscribed` family is intentional, but each adjective should feel epic in PT.
 
-Mirrors `src/game/world/lexicon/`. New directory `src/game/items/lexicon/{en,pt}.ts`.
+**Why deferred**: project is solo dev pre-release. Translation quality is the kind of thing a real audience surfaces, not a code reviewer.
 
-- **EN lexicon shape**: `{ TEMPLATE_NAMES: Record<templateId, string>, PREFIX: Record<modId, string>, SUFFIX: Record<modId, string>, NAME_FIRST: string[], NAME_SECOND: string[] }`.
-- **PT lexicon shape**: `{ TEMPLATE_NAMES: Record<templateId, { name: string, gender: "m" | "f" }>, PREFIX: Record<modId, { m: string, f: string }>, SUFFIX: Record<modId, string>, PRIMEIRO: string[], SEGUNDO: string[] }`. Suffix string carries its own `da`/`do`/`das` particle; `SEGUNDO[]` carries its connector too (e.g. `"da Tempestade"`, `"do Vazio"`).
-- **Renderer**: single `translateItemName(item)` in `src/game/items/item-name.ts` (or similar). Dispatch on `getLocale()`, then on `item.rarity`:
-  - Normal: `templateName`.
-  - Magic: PT composes `${templateName} ${prefix-gendered} ${suffix}` ("Espada de Ferro Pesada da Rapidez"); EN composes `${prefix} ${templateName} ${suffix}` ("Heavy Iron Sword of Swiftness"). Prefix picks the gender form per `TEMPLATE_NAMES_PT[templateId].gender`.
-  - Rare/Legendary/Epic: `${pool1[idx0]} ${pool2[idx1]}` where `idx0 = floor(hash(item.id, 0) * pool1.length)` and same for `idx1`. Result: "Lâmina da Tempestade" / "Doom Mark". **No `nameSeed` stored** — derived deterministically from `item.id` (UUID), so a single item renders the same proper name forever, and legacy items get a name without migration.
-- **Delete `name` from templates** (`data/templates/*.ts`) — language-neutral. Adding a new locale = one new lexicon file.
-- **Delete `name` from modifier definitions** (`data/modifiers/*.ts`). `RolledMod.modifierName` becomes `v.optional()` in the items validator (legacy items still parse; new items can omit it).
-- **Delete `buildItemName` from `generator.ts`** — naming migrates entirely to the display layer.
-- `item.name` on `GeneratedItem` becomes optional/legacy; new items don't populate it (or populate with `translateItemName(item, "en")` for log-friendly debugging — TBD when implementing).
-- Lexicon EN + PT shipped together — no bilingual interim. Estimate: ~200 template entries × 2 locales, ~50 modifier prefix/suffix entries × 2 locales, two 30-word pools × 2 locales. Mechanical, reviewable line-by-line.
+### 3. Codegen for `TemplateBaseId` / `TemplateModifierId`
 
-**Validation**:
-- `npx tsc --noEmit`, `npx vitest run`
-- Manual: each rarity (normal, magic, rare, legendary, epic) for at least one weapon, one armor, one jewelry, one offhand. Toggle locale — same item, name flips PT↔EN. Same rare item across sessions/page reloads — name stays the same (seed comes from UUID).
-- Spot-check gender agreement: same prefix on a feminine template ("Espada Pesada") and a masculine template ("Elmo Pesado").
+**Risk**: `src/game/items/lexicon/template-ids.ts` declares the two literal unions by hand. The data files (`data/templates/*.ts`) reference these unions but the union itself is human-maintained — if someone adds a base/modifier to a template file using a string that isn't yet in the union, TypeScript catches it. But adding the union member doesn't force them to add a lexicon entry until they re-run tsc.
 
-### Risks / conflicts
+**Fix**: small codegen step. Walk `data/templates/*.ts` at build time (or via a `vitest` snapshot), collect every `nameBase` / `nameModifier` value, emit `template-ids.generated.ts`. The hand-written file just re-exports the generated union. Lexicons then can't compile if the unions grow without entries.
 
-- **Shared with planned "rarity-tinted card primitive" refactor** (entry below): both touch `ItemTooltip.tsx`. Land the i18n PRs first — they're higher signal — then the card primitive can refactor structure without worrying about the label set.
-- **`mod.description` becomes legacy** after PR1. Anywhere else in the codebase that reads it (admin panel, debug logs, tests) needs to either re-render via `localizeMod` or accept stale strings on legacy items.
-- **No schema migration** for PR2 because the seed is derived from UUID — but the items validator still needs to accept items WITHOUT `modifierName`/`name` (make those `v.optional()`).
-- **Shared file with parallel combat feature**: `messages/{pt,en}.json`. PR1 inserts new keys grouped near existing `stats_*` (mid-file) to avoid line-adjacency merge conflicts with feature work appending at the end.
+**Why deferred**: the hand-maintained file works for now. Codegen is the right call if/when there's a sustained pace of adding new bases.
+
+### 4. Hash function → `src/lib/rng.ts`
+
+**Risk**: `hashItemId` in `item-name.ts` is FNV-1a; `CombatScene.tsx` has a separate `*31`-walk hash. Both are deterministic string→[0, 1) hashes. Two implementations, same purpose, will drift.
+
+**Fix**: extract to `src/lib/rng.ts` as `hashStringToUnit(s, salt?)` (or two-output variant). Both callers consume from there. Was flagged in the first simplify pass and deferred — the second caller (CombatScene) uses a weaker hash that probably should upgrade to match.
+
+**Why deferred**: not load-bearing, both implementations currently work. Worth doing when next touching `CombatScene`'s hash.
+
+### 5. Convex validator can't enforce literal unions
+
+**Constraint, not a bug**. `nameBase` / `nameModifier` are stored as `v.optional(v.string())` because Convex validators don't have ergonomic literal-union support. The in-process `GeneratedItem` type widens to `string` at the persistence boundary — the lexicon files themselves keep the union enforcement. If Convex ever ships a `v.unionLiteral([...])` helper, swap in.
+
+---
+
+## Split `src/routes/world.tsx` (queued)
+
+**Status**: Planned, not started. User has requested this be picked up after the in-flight time-based-zones work wraps.
+
+**Why**: `src/routes/world.tsx` is **836 lines** today. It's the orchestrator route — combat hook, all eight-or-so modals, twelve+ mutations with optimistic closures, the view-mode state machine (map / city / combat), the priority text log. The agent who needs to add a new button in the HUD or wire a new mutation has to read the whole thing before they're confident they won't break adjacent logic.
+
+### Suggested cut
+
+- **`useWorldMutations`** custom hook — extracts the `useMutation(...).withOptimisticUpdate(...)` declarations into one place. Each declaration is 10-40 lines today; pulling them out drops world.tsx by ~250 lines and makes the optimistic recipes easier to compare.
+- **`useViewMode`** custom hook — encapsulates the `viewMode: "map" | "city" | "combat"` state machine + the auto-transitions on `enterZone` / `enterCity` / `exitZone` arrival.
+- **Modal manager** — the 8+ `useModal()` calls + state for which item / loot bag / vendor product the modal targets could collapse into one `useWorldModals()` hook returning a stable typed API. Or extract each modal block into a sibling component that owns its own visibility.
+- **Combat HUD section** — the JSX for the bottom-of-screen combat buttons (potion, teleport stone, retreat, loot preview) is its own thing — pull into `<CombatHud character={...} />`.
+
+### Validation
+
+- `npx tsc --noEmit`, `npx vitest run` (no UI test coverage today; rely on TS + manual smoke).
+- Manual smoke: enter zone → kill mob → exit with loot picker → equip new item → travel to next zone. The five main user-flows touch every part of world.tsx.
 
 ---
 

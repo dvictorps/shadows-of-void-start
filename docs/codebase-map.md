@@ -42,13 +42,14 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 |---|---|---|
 | `classes/` | Character class definitions (Warrior/Rogue/Mage) | `data.ts` (CLASS_DEFINITIONS), `types.ts` |
 | `combat/` | Damage/defense math, constants | `damage.ts`, `barrier.ts`, `leech.ts`, `constants.ts` |
+| `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `pickGendered`) |
 | `inventory/` | Inventory constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, bySlotAsc) |
-| `items/` | Item generator, modifier data, equip helpers | See below — the biggest subdir |
+| `items/` | Item generator, modifier data, equip helpers, lexicon | See below — the biggest subdir |
 | `loot/` | Drop tables | `drops.ts` (rollDrop, rollMonsterLevel) |
 | `monsters/` | Monster definitions | `data.ts`, `types.ts` |
 | `progression/` | XP curves, death penalty | `levels.ts` (xpToNextLevel, applyXpGain, applyDeathXpPenalty) |
 | `stats/` | The stat engine | `compute.ts` (computeCharacterStats), `types.ts` (EquippedSlot, narrowEquippedSlot, ComputedCharacterStats) |
-| `world/` | Acts, zones, node graph, zone-name i18n | `act-1.ts`, `index.ts`, `types.ts`, `i18n.ts` |
+| `world/` | Acts, zones, node graph, zone-name i18n, monster-name lexicon | `act-1.ts`, `index.ts`, `types.ts`, `i18n.ts`, `lexicon/{en,pt,types}.ts` |
 
 ### `src/game/items/` — item subsystem detail
 
@@ -59,11 +60,14 @@ items/
 ├── equipment.ts             # planEquip, validSlotsForItem, isTwoHanded, weaponArchetype — shared client+server
 ├── equipment.test.ts        # planEquip rules (2H displacement, archetype, etc.)
 ├── starter-gear.ts          # Hand-crafted starter weapons (rusty_sword, rusty_dagger, cracked_wand)
-├── mod-i18n.ts              # PT formatters for explicit mods + implicit pattern-match
+├── item-name.ts             # translateItemName / translateTemplateName — display-time renderer (locale × rarity, UUID-seeded rare names)
+├── item-name.test.ts        # 20 tests: gender concord, UUID determinism, locale switch, fallback
+├── mod-i18n.ts              # PT formatters for explicit mods + implicit pattern-match (tooltip mod lines)
 ├── MODIFIER_GUIDELINES.md   # Notes on individual modifier semantics (crit, leech)
 ├── data/
 │   ├── modifiers/           # One file per category — defines the modifier pool
 │   │   ├── index.ts         # Aggregates everything into MODIFIERS + ModifierId type
+│   │   ├── affix-ids.ts     # PrefixModifierId / SuffixModifierId literal unions (lexicon coverage)
 │   │   ├── weapon-damage.ts # Local attack mods
 │   │   ├── spell-damage.ts  # Flat spell damage (staff/wand only)
 │   │   ├── global-damage.ts # Global %, attack/cast speed, global crit
@@ -71,18 +75,37 @@ items/
 │   │   ├── resistances.ts
 │   │   ├── attributes.ts
 │   │   ├── utility.ts       # Movement speed, leech, stun, reduced reqs
+│   │   ├── tome.ts          # Tome-exclusive gain-as-extra elemental
 │   │   └── magic-find.ts
 │   └── templates/           # Equipment base templates, one file per slot/weapon type
 │       ├── swords.ts, daggers.ts, axes.ts, ...  (one per weapon type)
 │       ├── helmets.ts, chestplates.ts, boots.ts, gloves.ts
-│       ├── shields.ts
+│       ├── shields.ts, tomes.ts, quivers.ts
 │       └── rings.ts, amulets.ts, belts.ts
+├── lexicon/                 # Per-locale item naming data (composed by item-name.ts)
+│   ├── template-ids.ts      # TemplateBaseId + TemplateModifierId literal unions
+│   ├── types.ts             # ItemNameLexicon contract (bases, modifiers, prefix/suffix, rare pools)
+│   ├── en.ts                # English lexicon
+│   └── pt.ts                # Portuguese lexicon (gendered)
 └── types/
     ├── base.ts              # EquipmentType, WeaponType, ArmorType, BaseStatKey, EQUIPMENT_GROUPS
     ├── mods.ts              # Modifier, RolledMod, StatEffect, ModifierTier
     ├── item.ts              # GeneratedItem (the thing stored in the items table)
     └── index.ts
 ```
+
+### `src/game/items/lexicon/` — naming data
+
+Item display names compose at render time from `(nameBase, nameModifier)` tuples on each template. Two locales today (en, pt) sharing a single contract in `types.ts`. Adding a new locale = one new file under this directory.
+
+| File | Role |
+|---|---|
+| `template-ids.ts` | Literal-union sources of truth: `TemplateBaseId` (~55 bases) and `TemplateModifierId` (~80 modifiers). Templates and lexicons reference these unions — missing entries fail at compile. |
+| `types.ts` | `ItemNameLexicon` interface. `bases` keyed by `TemplateBaseId`, `modifiers` keyed by `TemplateModifierId`, `prefixForms`/`suffixPhrases` keyed by `PrefixModifierId`/`SuffixModifierId`. |
+| `en.ts` | English entries. Bases as `{ name: string }`. Modifiers as flat strings. |
+| `pt.ts` | Portuguese entries. Bases as `{ name, gender: "m" \| "f" }`. Modifiers as `string` (invariant phrase) or `{ m, f }` (gendered adjective). |
+
+See `docs/playbooks/i18n-which-system.md` for the broader decision tree (paraglide vs lexicon vs `mod-i18n.ts`).
 
 ### `src/game/stats/compute.ts` — the stat engine
 
@@ -201,4 +224,6 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | "What does the stat engine actually do?" | `src/game/stats/compute.ts` + tests in `compute.test.ts` |
 | "How does dual-wield work?" | `CONTEXT.md` → Dual-wielding |
 | "Why doesn't this Convex error look like English?" | `src/lib/convex-errors.ts:translateServerError` |
-| "How are items shown in the tooltip translated?" | `src/game/items/mod-i18n.ts` |
+| "How are item tooltip mod lines translated?" | `src/game/items/mod-i18n.ts` |
+| "How are item names rendered (per locale)?" | `src/game/items/item-name.ts` + `lexicon/{en,pt}.ts` |
+| "Which i18n system should I use for new strings?" | `docs/playbooks/i18n-which-system.md` |
