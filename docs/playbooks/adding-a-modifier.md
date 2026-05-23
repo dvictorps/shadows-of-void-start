@@ -42,6 +42,8 @@ myNewStatIncrease: {
 },
 ```
 
+The exact compile-checked shape lives in [`_examples/modifier-example.ts`](./_examples/modifier-example.ts) — if the playbook drifts, that sentinel fails `tsc` and forces a sync.
+
 **No `name` field**. The magic-item compound name pulls from `lexicon.prefixForms` / `lexicon.suffixPhrases` (step 4 below) so EN/PT can have different forms with gender concord.
 
 Local mods (the ones that mutate a weapon's `computedStats`) need a `statEffect` declaration instead of `isGlobalStat: true`. See CLAUDE.md "statEffect" for the target/operation table.

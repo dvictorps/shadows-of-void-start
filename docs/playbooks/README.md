@@ -11,9 +11,16 @@ Use these when the task matches an existing pattern. For one-off architectural c
 - [Adding a monster](./adding-a-monster.md) — new mob template + zone hookup
 - [Adding a zone](./adding-a-zone.md) — new combat/city node in an act
 - [Adding a class](./adding-a-class.md) — new playable class
+- [Adding a vendor product](./adding-a-vendor-product.md) — new consumable in the vendor catalog
 - [Adding an i18n key](./adding-an-i18n-key.md) — new user-facing string (paraglide)
 - [Which i18n system to use](./i18n-which-system.md) — decision tree: paraglide vs lexicon vs `mod-i18n.ts`
 - [Touching combat](./touching-combat.md) — read this before editing `useCombatLoop.ts`
+
+### Stubs (orientation docs for systems not yet built)
+
+- [Adding a skill](./adding-a-skill.md) — active skill (gem-style). System not yet implemented.
+- [Adding a passive](./adding-a-passive.md) — passive tree node. System not yet implemented.
+- [Adding a stash tab](./adding-a-stash-tab.md) — stash + ruby loop. System not yet implemented.
 
 ## Conventions
 
@@ -32,3 +39,9 @@ npx convex dev --once  # one-shot deploy check
 ```
 
 Don't bypass these. If a check fails, fix it before adding more changes.
+
+## CI gate against drift
+
+The playbooks for adding a modifier / template / monster / zone / class each link to a sentinel file under [`_examples/`](./_examples/) that mirrors the exact compile-checked shape. The sentinels are part of the regular `tsc --noEmit` pass — if a future refactor changes a domain type in an incompatible way, the matching sentinel fails and the playbook must be updated in the same PR.
+
+When you change a domain shape **or** when you change a playbook example, update both. The sentinels exist to make that coupling hard to forget.

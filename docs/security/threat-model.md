@@ -62,7 +62,23 @@ setInterval(() => convex.mutation("combat:syncHp", { characterId, hpCurrent: 999
 
 **Why it works**: `syncHp` was designed as "send your local HP for persistence" with no validation that the local HP is a plausible result of the combat that happened since the last sync.
 
-### 3. No mutation-level rate limiting (MEDIUM severity)
+### 3. `phase` arg trust → bag retention cap bypass (MEDIUM severity)
+
+`exitZone`, `pickFromBag`, and `discardFromBag` accept a `phase` argument that drives the bag-retention cap (camp = 100%, exploração / combate = 30%). The server enforces the cap math correctly for non-camp phases (PR #40), but the `phase` arg itself is **client-supplied** and unvalidated against server state.
+
+```js
+// Player is actually in combat — bag should cap at 30%
+convex.mutation("items:exitZone", { characterId, keepIds, phase: "camp" })
+// → server accepts phase: "camp", skips the 30% cap, lets the player keep 100%
+```
+
+The exploit is bounded to "keep more of the current zone's loot than the rules permit" — local impact, no cross-player effect — but it directly defeats a deliberate game-balance mechanism.
+
+**Why it works**: combat phase is currently maintained only on the client (the combat loop tracks whether the player is in exploração / combate / camp). The server has no record of "this player is in camp right now," so it has nothing to compare the arg against. Same architectural cause as exploits #1 and #2.
+
+**Status**: queued as its own deferred work item in `docs/plans/in-progress.md` → "Server-authoritative camp/phase derivation" — that entry has the full schema + mutation plan. The fix is independent of Layers 1-3 below (it doesn't need rate limits or session combat; it just needs the server to track `inCamp` itself and derive phase from it instead of accepting an arg).
+
+### 4. No mutation-level rate limiting (MEDIUM severity)
 
 There are no per-character per-mutation rate limits at the application level. Convex has infrastructure protections but each call still:
 
@@ -72,7 +88,7 @@ There are no per-character per-mutation rate limits at the application level. Co
 
 A determined attacker can multiply Convex cost meaningfully with sustained spam against a single character.
 
-### 4. Lesser issues that are NOT urgent
+### 5. Lesser issues that are NOT urgent
 
 These are real but the impact is bounded:
 

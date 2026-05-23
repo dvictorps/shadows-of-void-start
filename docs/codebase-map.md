@@ -218,6 +218,9 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | "How does crit work?" | `CONTEXT.md` → Combat Resolution → Damage formula. Code: `src/game/combat/damage.ts:rollPlayerSwing` |
 | "How do I add a new modifier?" | `docs/playbooks/adding-a-modifier.md` |
 | "Why does the inventory feel snappy?" | `docs/adr/0001-optimistic-mutations.md` |
+| "Why three i18n systems instead of one?" | `docs/adr/0002-i18n-systems.md` |
+| "Why aren't item / monster names cached?" | `docs/adr/0003-render-at-display-names.md` |
+| "Why is class/monster/template data in `src/game/` and not in the DB?" | `docs/adr/0004-static-data-conventions.md` |
 | "Where are the rules for what rolls on a belt?" | `CONTEXT.md` → Equipment Slots → Belt |
 | "What's an EquippedSlot?" | `src/game/stats/types.ts:EQUIPPED_SLOTS` + `narrowEquippedSlot` |
 | "Why is `convex/characters.ts` so big?" | `docs/plans/in-progress.md` — split is queued |
@@ -227,3 +230,6 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | "How are item tooltip mod lines translated?" | `src/game/items/mod-i18n.ts` |
 | "How are item names rendered (per locale)?" | `src/game/items/item-name.ts` + `lexicon/{en,pt}.ts` |
 | "Which i18n system should I use for new strings?" | `docs/playbooks/i18n-which-system.md` |
+| "How do I add a new vendor consumable?" | `docs/playbooks/adding-a-vendor-product.md` |
+| "How do I start the skill / passive tree / stash system?" | `docs/playbooks/adding-a-skill.md` (or `-passive`, `-stash-tab`) — stubs that list the open questions |
+| "Why does this playbook example match the current types?" | `docs/playbooks/_examples/` — sentinel files type-checked by `tsc --noEmit` |

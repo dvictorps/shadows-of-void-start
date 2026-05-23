@@ -8,7 +8,7 @@ Read these in order if you're new to the codebase:
 2. **[docs/codebase-map.md](./docs/codebase-map.md)** — where each domain lives in the repo. Use this instead of grepping blindly.
 3. **[docs/playbooks/](./docs/playbooks/)** — task recipes (add modifier, add monster, touch combat, etc). If your task matches one, follow it.
 4. **[docs/plans/in-progress.md](./docs/plans/in-progress.md)** — decisions made but not yet executed. Check before starting work to avoid colliding with a planned refactor.
-5. **[docs/adr/](./docs/adr/)** — architecture decisions (optimistic mutations, etc).
+5. **[docs/adr/](./docs/adr/)** — architecture decisions (optimistic mutations, three-system i18n split, render-at-display naming, static-data conventions).
 
 ## Tech Stack
 
