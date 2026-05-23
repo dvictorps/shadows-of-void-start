@@ -45,9 +45,12 @@ function AdminUsersPage() {
 	const filtered = useMemo(() => {
 		const q = search.trim().toLowerCase();
 		if (q.length === 0) return users;
+		// Match the row display's `user.name || "—"` defensiveness — better-auth
+		// allows missing name/email despite the typed shape.
 		return users.filter(
 			(u) =>
-				u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+				(u.name?.toLowerCase() ?? "").includes(q) ||
+				(u.email?.toLowerCase() ?? "").includes(q),
 		);
 	}, [users, search]);
 
