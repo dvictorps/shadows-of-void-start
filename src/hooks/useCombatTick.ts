@@ -98,6 +98,15 @@ export function useCombatTick({
 	const leechRef = useRef<LeechInstance[]>([]);
 	const deadRef = useRef(false);
 
+	// Mirror the `enemy` prop into a ref so the tick reads the live value
+	// even if React hasn't committed a re-render between two consecutive
+	// 50ms ticks. The orchestrator's `updateEnemy` callback syncs both the
+	// state machine's enemyRef AND this one (we write here explicitly below)
+	// so mid-tick HP updates from a player swing are visible to subsequent
+	// reads in the same tick.
+	const enemyRef = useRef<Enemy | null>(enemy);
+	enemyRef.current = enemy;
+
 	// Combat-progress refs: how far each side is into its next swing (in
 	// "swings", incremented by dt*rate per tick; ≥1 fires the swing).
 	const playerProgressRef = useRef(0);
@@ -164,7 +173,7 @@ export function useCombatTick({
 
 	useTicker(active && isEngaged && enemy !== null, TICK_INTERVAL_MS, () => {
 		if (deadRef.current) return;
-		const currentEnemy = enemy;
+		const currentEnemy = enemyRef.current;
 		if (!currentEnemy || currentEnemy.currentHp <= 0) return;
 
 		const dt = TICK_INTERVAL_MS / 1000;
@@ -227,6 +236,7 @@ export function useCombatTick({
 			if (!result.isMiss && result.amount > 0) {
 				const newEnemyHp = Math.max(0, currentEnemy.currentHp - result.amount);
 				const updated: Enemy = { ...currentEnemy, currentHp: newEnemyHp };
+				enemyRef.current = updated;
 				updateEnemy(updated);
 				pushEvent({
 					amount: result.amount,
@@ -344,6 +354,7 @@ export function useCombatTick({
 				const reflected = Math.max(1, Math.floor(stats.thorns));
 				const enemyAfter = Math.max(0, currentEnemy.currentHp - reflected);
 				const updated: Enemy = { ...currentEnemy, currentHp: enemyAfter };
+				enemyRef.current = updated;
 				updateEnemy(updated);
 				pushEvent({
 					amount: reflected,
