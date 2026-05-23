@@ -1,26 +1,47 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  Mutations consumed by the /world route. Bundled into one hook so the route
-//  body stays focused on view/state composition rather than 10 declarations of
-//  useMutation(...).withOptimisticUpdate(...).
-//
-//  The optimistic closures inline the recipe for each mutation's local-state
-//  preview. They mirror the server's truth so the UI repaints in <16ms instead
-//  of waiting on the ~100-200ms round-trip. When the server response lands it
-//  replaces the prediction transparently.
-//
-//  See docs/adr/0001-optimistic-mutations.md for the recipe pattern.
-// ─────────────────────────────────────────────────────────────────────────────
+// World-route mutations bundled into one hook. Each optimistic closure
+// mirrors the server's recipe so the UI repaints in <16ms instead of
+// waiting on the round-trip. See docs/adr/0001-optimistic-mutations.md.
 
+import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
 import { useRef } from "react";
 import { teleportStoneTravelSeconds } from "#/game/combat/constants";
-import { bySlotAsc, INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
+import {
+	bySlotAsc,
+	createInventorySlotAllocator,
+} from "#/game/inventory/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { ACT_1, findNode } from "#/game/world";
 import { computeTravelTime } from "#/game/world/travel";
 import { applyCharacterDelta, findCharacter } from "#/lib/optimistic-character";
 import { api } from "../../convex/_generated/api";
+import type { Doc, Id } from "../../convex/_generated/dataModel";
+
+// Places the docs into the next available inventory slots, sorted, and
+// writes them back through the optimistic store. Shared by exitZone /
+// pickFromBag which both move bag docs into inventory.
+function moveDocsIntoInventory(
+	localStore: OptimisticLocalStore,
+	characterId: Id<"characters">,
+	docs: ReadonlyArray<Doc<"items">>,
+): void {
+	if (docs.length === 0) return;
+	const bagKey = { characterId };
+	const inv = localStore.getQuery(api.items.inventory, bagKey) ?? [];
+	const nextFreeSlot = createInventorySlotAllocator(inv);
+	const moved = docs.map((d) => ({
+		...d,
+		locationKind: "inventory" as const,
+		zoneSession: undefined,
+		inventorySlot: nextFreeSlot(),
+	}));
+	localStore.setQuery(
+		api.items.inventory,
+		bagKey,
+		[...inv, ...moved].sort(bySlotAsc),
+	);
+}
 
 export function useWorldMutations({
 	movementSpeed,
@@ -38,39 +59,12 @@ export function useWorldMutations({
 
 	const exitZone = useMutation(api.items.exitZone).withOptimisticUpdate(
 		(localStore, args) => {
-			// On commit, the bag goes to zero and `keepIds` items become inventory
-			// docs. Mirror that locally so the modal can auto-close immediately.
 			const bagKey = { characterId: args.characterId };
 			const bag = localStore.getQuery(api.items.zoneBag, bagKey);
 			if (bag) localStore.setQuery(api.items.zoneBag, bagKey, []);
 			const keep = new Set(args.keepIds.map((id) => id.toString()));
 			const keptDocs = (bag ?? []).filter((it) => keep.has(it._id.toString()));
-			if (keptDocs.length === 0) return;
-			const inv = localStore.getQuery(api.items.inventory, bagKey) ?? [];
-			const occupied = new Set<number>();
-			for (const it of inv) {
-				if (typeof it.inventorySlot === "number")
-					occupied.add(it.inventorySlot);
-			}
-			let cursor = 0;
-			const nextFreeSlot = (): number => {
-				while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
-				if (cursor >= INVENTORY_MAX_SLOTS) return -1;
-				const s = cursor++;
-				occupied.add(s);
-				return s;
-			};
-			const moved = keptDocs.map((d) => ({
-				...d,
-				locationKind: "inventory" as const,
-				zoneSession: undefined,
-				inventorySlot: nextFreeSlot(),
-			}));
-			localStore.setQuery(
-				api.items.inventory,
-				bagKey,
-				[...inv, ...moved].sort(bySlotAsc),
-			);
+			moveDocsIntoInventory(localStore, args.characterId, keptDocs);
 		},
 	);
 
@@ -82,33 +76,12 @@ export function useWorldMutations({
 			const idSet = new Set(args.itemIds.map((id) => id.toString()));
 			const picked = bag.filter((it) => idSet.has(it._id.toString()));
 			if (picked.length === 0) return;
-			const remaining = bag.filter((it) => !idSet.has(it._id.toString()));
-			localStore.setQuery(api.items.zoneBag, bagKey, remaining);
-			const inv = localStore.getQuery(api.items.inventory, bagKey) ?? [];
-			const occupied = new Set<number>();
-			for (const it of inv) {
-				if (typeof it.inventorySlot === "number")
-					occupied.add(it.inventorySlot);
-			}
-			let cursor = 0;
-			const nextFreeSlot = (): number => {
-				while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
-				if (cursor >= INVENTORY_MAX_SLOTS) return -1;
-				const s = cursor++;
-				occupied.add(s);
-				return s;
-			};
-			const moved = picked.map((d) => ({
-				...d,
-				locationKind: "inventory" as const,
-				zoneSession: undefined,
-				inventorySlot: nextFreeSlot(),
-			}));
 			localStore.setQuery(
-				api.items.inventory,
+				api.items.zoneBag,
 				bagKey,
-				[...inv, ...moved].sort(bySlotAsc),
+				bag.filter((it) => !idSet.has(it._id.toString())),
 			);
+			moveDocsIntoInventory(localStore, args.characterId, picked);
 		},
 	);
 

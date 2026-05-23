@@ -1,12 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  Modal render block extracted from /world. Each modal is independently
-//  visible/dismissable — this component just bundles their JSX so world.tsx's
-//  render body stays focused on the scene + side panels.
-//
-//  Props are split by modal target so a future addition (e.g. a new modal)
-//  only touches the relevant block, not a megabag interface.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import BagPreviewModal from "#/components/world/BagPreviewModal";
 import ExitZoneModal from "#/components/world/ExitZoneModal";
 import InventoryModal from "#/components/world/InventoryModal";
@@ -15,13 +6,8 @@ import ShowStatsModal from "#/components/world/ShowStatsModal";
 import VendorModal from "#/components/world/VendorModal";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import type { VendorProductId } from "#/game/vendor/products";
+import type { ModalHandle } from "#/hooks/useModal";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
-
-type ModalHandle = { isOpen: boolean; close: () => void };
-
-type EquippedDoc = Doc<"items">;
-type InventoryDoc = Doc<"items">;
-type BagItem = Doc<"items">;
 
 export function WorldModals({
 	// Modal visibility handles
@@ -63,7 +49,7 @@ export function WorldModals({
 	inventoryModal: ModalHandle;
 	vendorModal: ModalHandle;
 	settingsModal: ModalHandle;
-	zoneBag: BagItem[];
+	zoneBag: Doc<"items">[];
 	exitKeepCap: number;
 	onExitClose: () => void;
 	onPickSelected: (ids: Id<"items">[]) => void | Promise<void>;
@@ -76,8 +62,8 @@ export function WorldModals({
 	currentLife: number;
 	characterId: Id<"characters">;
 	characterLevel: number;
-	equippedItems: EquippedDoc[];
-	inventoryItems: InventoryDoc[];
+	equippedItems: Doc<"items">[];
+	inventoryItems: Doc<"items">[];
 	rubys: number;
 	potions: number;
 	teleportStones: number;

@@ -23,7 +23,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ACT_1, findNode } from "#/game/world";
 import type { Id } from "../../convex/_generated/dataModel";
 
-export type ViewMode = "map" | "city" | "combat";
+type ViewMode = "map" | "city" | "combat";
 
 type EnterCity = (args: { characterId: Id<"characters"> }) => Promise<unknown>;
 type EnterZone = (args: {
