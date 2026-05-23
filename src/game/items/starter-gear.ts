@@ -6,10 +6,11 @@ import type { GeneratedItem } from "./types";
 // through the random generator. IDs are namespaced with the "starter:" prefix
 // so equipped-item references can distinguish them from rolled items later.
 
-// Starter weapons sit one step below the T1 dropped equivalents — the player
-// is meant to feel a clear upgrade the moment any T1 drops, and the early
-// pacing aims for ~5 hits/kill in forest_starter vs ~4 hits/kill once the
-// first T1 weapon lands.
+// Starter weapons sit just below their T1 dropped equivalents — sword has a
+// full point cut (3-7 → 2-6), dagger and wand keep the same min and lose 1
+// off the top. The bigger upgrade incentive is the T1 implicit (accuracy /
+// crit multi / spell damage), which starters never roll. Early pacing aims
+// for ~5 hits/kill in forest_starter vs ~4 hits/kill once a T1 weapon lands.
 
 const rustySword: GeneratedItem = {
 	id: "starter:rusty_sword",
