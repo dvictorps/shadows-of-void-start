@@ -11,7 +11,8 @@ Use these when the task matches an existing pattern. For one-off architectural c
 - [Adding a monster](./adding-a-monster.md) — new mob template + zone hookup
 - [Adding a zone](./adding-a-zone.md) — new combat/city node in an act
 - [Adding a class](./adding-a-class.md) — new playable class
-- [Adding an i18n key](./adding-an-i18n-key.md) — new user-facing string
+- [Adding an i18n key](./adding-an-i18n-key.md) — new user-facing string (paraglide)
+- [Which i18n system to use](./i18n-which-system.md) — decision tree: paraglide vs lexicon vs `mod-i18n.ts`
 - [Touching combat](./touching-combat.md) — read this before editing `useCombatLoop.ts`
 
 ## Conventions
