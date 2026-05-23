@@ -437,15 +437,19 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		onPlayerDeath: handlePlayerDeath,
 	});
 
-	// Bag retention cap by exit phase. Camp keeps the full bag (player picks
-	// freely); exploração / combate cap at 30% (min 1) — the "punished but
-	// not zeroed" tier. See CONTEXT.md → Bag retention tiers.
-	const exitKeepCap = useMemo(() => {
-		const bagSize = zoneBag?.length ?? 0;
-		if (bagSize === 0) return 0;
-		if (combat.phase === "acampamento") return bagSize;
-		return Math.max(1, Math.floor(bagSize * 0.3));
-	}, [zoneBag, combat.phase]);
+	// Bag retention cap by exit phase, frozen at modal-open time so
+	// incremental picks don't dilute the 30% punishment ("bag shrinks each
+	// pick → cap recomputes lower → effective share grows"). Reset when
+	// the modal closes.
+	const [exitKeepCap, setExitKeepCap] = useState(0);
+	const computeKeepCap = useCallback(
+		(bagSize: number, phase: typeof combat.phase): number => {
+			if (bagSize === 0) return 0;
+			if (phase === "acampamento") return bagSize;
+			return Math.max(1, Math.floor(bagSize * 0.3));
+		},
+		[],
+	);
 
 	// Enter a node's area directly (no travel). Caller has already verified
 	// the player is "at" the node either by arrival or by clicking the
@@ -595,6 +599,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		// See CONTEXT.md → Bag retention tiers.
 		if (zoneBag.length > 0) {
 			pendingStoneRef.current = true;
+			setExitKeepCap(computeKeepCap(zoneBag.length, combat.phase));
 			exitModal.open();
 			return;
 		}
@@ -611,6 +616,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		if (zoneBag === undefined) return;
 		handleBackToMap();
 		if (zoneBag.length > 0) {
+			setExitKeepCap(computeKeepCap(zoneBag.length, combat.phase));
 			exitModal.open();
 		} else {
 			void exitZone({ characterId: character._id, keepIds: [] });
