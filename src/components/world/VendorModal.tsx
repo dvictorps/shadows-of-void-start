@@ -43,9 +43,12 @@ export default function VendorModal({
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [rubyDeltas, setRubyDeltas] = useState<RubyDelta[]>([]);
 	// Per-product in-flight tracking so spamming buy on the same product
-	// (or distinct products in parallel) only fires one request each at a
-	// time. The button-disabled state is the user-facing guard; the
-	// early-return in handleBuy is defense against programmatic abuse.
+	// only fires one request at a time. The button-disabled state is the
+	// actual guard; the early-return in handleBuy is belt-and-suspenders
+	// for the render-cycle window where a click arrives before React
+	// commits the disabled state. Real abuse hardening (e.g. someone
+	// hitting the Convex endpoint directly) needs server-side rate
+	// limiting — deferred, see docs/security/threat-model.md.
 	const [pendingBuys, setPendingBuys] = useState<Set<VendorProductId>>(
 		new Set(),
 	);
