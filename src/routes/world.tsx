@@ -228,6 +228,12 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		monsterPool,
 		zoneLevel,
 		encounterPlan,
+		// Camp thresholds are server-rolled by enterZone; the time bar reads
+		// them off the character query so the markers and the ticker stay
+		// in lockstep with what enterCamp will accept. See
+		// docs/plans/in-progress.md "Server-authoritative camp/phase
+		// derivation".
+		serverCampThresholdsMs: character.campThresholdsMs ?? [],
 		// Pause combat while the loot picker is open so the player can't die
 		// mid-selection from a goblin they've already retreated from.
 		active: view === "combat" && !exitModal.isOpen,
@@ -353,6 +359,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			setExitKeepCap(computeBagKeepCap(zoneBag.length, combat.phase));
 			exitModal.open();
 		} else {
+			// TODO(merge): drop phase arg — server derives it from inCamp now.
 			void exitZone({
 				characterId: character._id,
 				keepIds: [],
@@ -367,12 +374,14 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		// Routing here matches the server gate (pickFromBag rejects non-camp).
 		try {
 			if (combat.phase === "camp") {
+				// TODO(merge): drop phase arg — server derives it from inCamp now.
 				await pickFromBag({
 					characterId: character._id,
 					itemIds: ids,
 					phase: combat.phase,
 				});
 			} else {
+				// TODO(merge): drop phase arg — server derives it from inCamp now.
 				await exitZone({
 					characterId: character._id,
 					keepIds: ids,
@@ -388,6 +397,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const handleDiscardSelected = async (ids: Id<"items">[]) => {
 		// Camp-only action — the modal hides the button outside camp.
 		if (combat.phase !== "camp") return;
+		// TODO(merge): drop phase arg — server derives it from inCamp now.
 		await discardFromBag({
 			characterId: character._id,
 			itemIds: ids,
@@ -397,6 +407,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const handlePickAll = async (ids: Id<"items">[]) => {
 		try {
+			// TODO(merge): drop phase arg — server derives it from inCamp now.
 			await exitZone({
 				characterId: character._id,
 				keepIds: ids,
@@ -409,6 +420,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	};
 
 	const handleDiscardAll = async () => {
+		// TODO(merge): drop phase arg — server derives it from inCamp now.
 		await exitZone({
 			characterId: character._id,
 			keepIds: [],

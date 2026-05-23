@@ -67,6 +67,21 @@ export default defineSchema({
 		// fills at 30, resets to 0 on miniboss kill OR on leaving the zone
 		// with the miniboss unsummoned.
 		currentZoneKills: v.optional(v.number()),
+		// Server-authoritative camp/phase derivation — see docs/plans/in-progress.md
+		// "Server-authoritative camp/phase derivation". Set on enterZone, consumed
+		// by enterCamp / exitCamp, cleared on exitZone / death.
+		// `zoneStartedAt` is the wall-clock ms timestamp when enterZone fired —
+		// enterCamp gates `Date.now() - zoneStartedAt >= campThresholdsMs[i]`.
+		zoneStartedAt: v.optional(v.number()),
+		// `campThresholdsMs` is the array of cumulative ms thresholds rolled by
+		// enterZone (from the zone's encounterPlan). Each entry corresponds to
+		// one camp the player can claim by calling enterCamp(thresholdIndex).
+		campThresholdsMs: v.optional(v.array(v.number())),
+		// `inCamp` is the authoritative phase flag. exitZone/pickFromBag/
+		// discardFromBag derive their `phase` from this server-side; the
+		// `phase` arg they still accept is ignored (kept for backwards-compat
+		// during the parallel-branch rollout).
+		inCamp: v.optional(v.boolean()),
 	}).index("by_authUserId", ["authUserId"]),
 
 	// All items live here — drops, inventory, equipped, stash. Location is

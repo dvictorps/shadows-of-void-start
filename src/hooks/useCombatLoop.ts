@@ -64,6 +64,11 @@ type Params = {
 	monsterPool: readonly MonsterId[];
 	zoneLevel: number;
 	encounterPlan: ZoneEncounterPlan;
+	// Camp thresholds (cumulative calmaria ms) rolled server-side by enterZone
+	// and persisted on the character. Empty until enterZone resolves — the
+	// ticker simply has no camps to fire during that gap. See
+	// docs/plans/in-progress.md "Server-authoritative camp/phase derivation".
+	serverCampThresholdsMs: readonly number[];
 	active: boolean;
 	onPlayerDeath: () => void;
 };
@@ -80,6 +85,7 @@ export function useCombatLoop({
 	monsterPool,
 	zoneLevel,
 	encounterPlan,
+	serverCampThresholdsMs,
 	active,
 	onPlayerDeath,
 }: Params) {
@@ -106,14 +112,26 @@ export function useCombatLoop({
 	const enemyRef = useRef<Enemy | null>(enemy);
 	enemyRef.current = enemy;
 
+	const enterCamp = useMutation(api.combat.enterCamp);
+	const exitCampMutation = useMutation(api.combat.exitCamp);
+	const enterCampViaIncense = useMutation(api.combat.enterCampViaIncense);
+
 	const schedule = useEncounterSchedule({
 		active,
 		encounterPlan,
+		serverCampThresholdsMs,
 		isSearching: state === "searching",
 		postMinibossPauseRef: lastKillWasMinibossRef,
-		onCampTriggered: () => {
+		onCampTriggered: (thresholdIndex) => {
 			stateRef.current = "acampamento";
 			setState("acampamento");
+			// Persist the camp claim server-side so phase-derived bag mutations
+			// (pickFromBag / discardFromBag / exitZone) accept the camp tier
+			// for this visit. The server validates the time threshold; if the
+			// call rejects (e.g. clock drift past the grace window) we still
+			// keep the cinematic on-screen and let the player retreat — the
+			// 30% cap will apply in that edge case, which is the safe default.
+			enterCamp({ characterId, thresholdIndex }).catch(() => {});
 		},
 	});
 
@@ -206,11 +224,14 @@ export function useCombatLoop({
 	}, [active]);
 
 	// Player chose "Seguir em frente" on the camp modal. Resume the loop.
+	// Server-side `inCamp` flips back to false via exitCamp so the bag-cap
+	// derivation returns to the 30% combat tier.
 	const dismissCamp = useCallback(() => {
 		if (stateRef.current !== "acampamento") return;
 		stateRef.current = "searching";
 		setState("searching");
-	}, []);
+		exitCampMutation({ characterId }).catch(() => {});
+	}, [characterId, exitCampMutation]);
 
 	// Player activated Incenso Etéreo. The gameplay rules (see CONTEXT.md →
 	// Active player input → Incenso Etéreo) gate this:
@@ -247,9 +268,13 @@ export function useCombatLoop({
 		schedule.setCampSource("incense");
 		stateRef.current = "acampamento";
 		setState("acampamento");
+		// Persist the camp claim server-side so the bag mutations see the
+		// camp phase. Incense camps bypass the time-threshold gate.
+		enterCampViaIncense({ characterId }).catch(() => {});
 	}, [
 		characterId,
 		consumeIncense,
+		enterCampViaIncense,
 		incense,
 		schedule.isAmbushPackActive,
 		schedule.cancelAmbush,
@@ -333,11 +358,14 @@ export function useCombatLoop({
 			// Incenso queued during the fight — enter camp instead of the next
 			// spawn. Cancels any in-flight ambush pack so the remaining mobs
 			// don't fire after dismissCamp (per CONTEXT.md → Incenso Etéreo).
+			// The incense was already consumed; persist the camp claim now
+			// that the cinematic actually fires.
 			pendingIncenseRef.current = false;
 			schedule.cancelAmbush();
 			schedule.setCampSource("incense");
 			stateRef.current = "acampamento";
 			setState("acampamento");
+			enterCampViaIncense({ characterId }).catch(() => {});
 		} else {
 			setState("searching");
 		}
