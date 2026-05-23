@@ -37,86 +37,114 @@ async function listAllUsers(ctx: Parameters<typeof assertAdmin>[0]): Promise<Aut
 }
 
 /**
- * Top-of-page metrics. Cheap aggregations over the small tables (`characters`,
- * `userRoles`) and a single page of users — explicit `.collect()` on
- * `characters` is fine while it stays in friends-beta range. If `characters`
- * grows past a few thousand, swap to a denormalized counter pattern.
+ * Top-of-page metrics. Aggregates over auth users + `userRoles` (filtered by
+ * the `by_role` index for the admin count) + a per-user index walk on
+ * `characters` so we never scan the entire characters table — see the
+ * comment on `listUsers` for the same rationale.
  */
 export const pulse = query({
 	args: {},
 	handler: async (ctx) => {
 		await assertAdmin(ctx)
 
-		const [users, characters, roles] = await Promise.all([
+		const [users, admins] = await Promise.all([
 			listAllUsers(ctx),
-			ctx.db.query("characters").collect(),
-			ctx.db.query("userRoles").collect(),
+			ctx.db
+				.query("userRoles")
+				.withIndex("by_role", (q) => q.eq("role", "admin"))
+				.collect(),
 		])
 
-		const adminCount = roles.filter((r) => r.role === "admin").length
-		const hardcoreCount = characters.filter((c) => c.hardcore === true).length
-		const softcoreCount = characters.length - hardcoreCount
+		// Per-user character walks via `by_authUserId`. Each one is O(charsPerUser),
+		// not O(allCharacters), so this scales with the friends-beta user count
+		// instead of the global characters table.
+		const counts = await Promise.all(
+			users.map(async (u) => {
+				const chars = await ctx.db
+					.query("characters")
+					.withIndex("by_authUserId", (q) => q.eq("authUserId", u._id))
+					.collect()
+				return {
+					total: chars.length,
+					hardcore: chars.filter((c) => c.hardcore === true).length,
+				}
+			}),
+		)
+
+		const characterCount = counts.reduce((acc, c) => acc + c.total, 0)
+		const hardcoreCount = counts.reduce((acc, c) => acc + c.hardcore, 0)
 
 		return {
 			userCount: users.length,
-			characterCount: characters.length,
-			adminCount,
+			characterCount,
+			adminCount: admins.length,
 			hardcoreCount,
-			softcoreCount,
+			softcoreCount: characterCount - hardcoreCount,
 		}
 	},
 })
 
 /**
- * Joined user listing for the dashboard. Returns one row per auth user with
- * their role + character count denormalized so the UI doesn't need N+1
- * queries. Sorted newest-first via the adapter `sortBy`.
+ * Joined user listing for the dashboard. One row per auth user with role +
+ * character count denormalised so the UI doesn't need N+1 queries.
+ *
+ * Both per-user reads use `by_authUserId` indexes so a single dashboard
+ * load scales with active users, not with totals of `characters` /
+ * `userRoles` (per Gemini review on PR #46).
  */
 export const listUsers = query({
 	args: {},
 	handler: async (ctx) => {
 		await assertAdmin(ctx)
 
-		const [users, roles, characters] = await Promise.all([
-			listAllUsers(ctx),
-			ctx.db.query("userRoles").collect(),
-			ctx.db.query("characters").collect(),
-		])
+		const users = await listAllUsers(ctx)
 
-		const roleByUser = new Map(roles.map((r) => [r.authUserId, r.role]))
-		const charsByUser = new Map<string, number>()
-		for (const c of characters) {
-			charsByUser.set(c.authUserId, (charsByUser.get(c.authUserId) ?? 0) + 1)
-		}
+		return await Promise.all(
+			users.map(async (u) => {
+				const [chars, roleDoc] = await Promise.all([
+					ctx.db
+						.query("characters")
+						.withIndex("by_authUserId", (q) => q.eq("authUserId", u._id))
+						.collect(),
+					ctx.db
+						.query("userRoles")
+						.withIndex("by_authUserId", (q) => q.eq("authUserId", u._id))
+						.unique(),
+				])
 
-		return users.map((u) => ({
-			authUserId: u._id,
-			name: u.name,
-			email: u.email,
-			emailVerified: u.emailVerified,
-			createdAt: u.createdAt,
-			role: roleByUser.get(u._id) ?? ("user" as const),
-			characterCount: charsByUser.get(u._id) ?? 0,
-		}))
+				return {
+					authUserId: u._id,
+					name: u.name,
+					email: u.email,
+					emailVerified: u.emailVerified,
+					createdAt: u.createdAt,
+					role: roleDoc?.role ?? ("user" as const),
+					characterCount: chars.length,
+				}
+			}),
+		)
 	},
 })
 
 /**
  * Slim listing of just the admins. Powers the dedicated admins table, which
- * is the surface that mutates permissions. Includes `joinedAt` so the table
+ * is the surface that mutates permissions. Includes `grantedAt` so the table
  * can show how long someone has held the role (admin records are inserted
  * on promotion — `_creationTime` is the promotion time, NOT the user's
  * signup time).
+ *
+ * Filtered server-side via the `by_role` index so the scan size is bounded
+ * by admin count, not total userRoles records.
  */
 export const listAdmins = query({
 	args: {},
 	handler: async (ctx) => {
 		await assertAdmin(ctx)
 
-		const roles = await ctx.db
+		const admins = await ctx.db
 			.query("userRoles")
+			.withIndex("by_role", (q) => q.eq("role", "admin"))
 			.collect()
-		const admins = roles.filter((r) => r.role === "admin")
 
 		const enriched = await Promise.all(
 			admins.map(async (r) => {

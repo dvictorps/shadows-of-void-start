@@ -1,41 +1,42 @@
+import { convexQuery } from "@convex-dev/react-query";
 import {
 	createFileRoute,
 	Link,
 	Outlet,
 	redirect,
 } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
+import type { ReactNode } from "react";
 import { Button } from "#/components/ui/button";
-import { fetchAuthQuery } from "#/lib/auth-server";
+import { prefetchAdminTabs } from "#/lib/admin-prefetch";
+import { m } from "#/paraglide/messages";
 import { api } from "../../convex/_generated/api";
 
-// Server-side admin check used by the route guard. Runs on every navigation
-// into the /admin subtree (TanStack Router caches per-navigation, not across
-// navigations). The actual security boundary is `assertAdmin(ctx)` inside
-// every admin Convex endpoint — this guard is UX only.
-const checkIsAdmin = createServerFn({ method: "GET" }).handler(async () => {
-	return await fetchAuthQuery(api.users.isAdmin);
-});
-
 export const Route = createFileRoute("/admin")({
-	beforeLoad: async ({ context }) => {
+	// Auth fence is sync — no server roundtrip on the navigation hot path.
+	// The actual security boundary is `assertAdmin(ctx)` on every admin
+	// Convex endpoint; this guard is UX only, so we resolve the admin check
+	// from the React Query cache instead of an HTTP server fn.
+	beforeLoad: ({ context }) => {
 		if (!context.isAuthenticated) {
 			throw redirect({ to: "/sign-in" });
 		}
-
-		try {
-			const isAdmin = await checkIsAdmin();
-			if (!isAdmin) {
-				throw redirect({ to: "/" });
-			}
-		} catch (err) {
-			if (err instanceof Response) throw err;
-			if (typeof err === "object" && err !== null && "isRedirect" in err)
-				throw err;
+	},
+	loader: async ({ context }) => {
+		const role = await context.queryClient.ensureQueryData(
+			convexQuery(api.users.getUserRole, {}),
+		);
+		if (role?.role !== "admin") {
 			throw redirect({ to: "/" });
 		}
+		prefetchAdminTabs(context.queryClient);
 	},
 	component: AdminLayout,
+	pendingComponent: AdminLayoutPending,
+	// Defense-in-depth for direct-URL hits where the role isn't pre-cached.
+	// In the typical /character-select → /admin flow the loader is sync, so
+	// this pending shell never paints.
+	pendingMs: 0,
+	pendingMinMs: 0,
 });
 
 type NavItem = {
@@ -51,9 +52,11 @@ const NAV_ITEMS: NavItem[] = [
 	{ to: "/admin/items", label: "Item Generator" },
 ];
 
-function AdminLayout() {
+// Outer container is viewport-constrained (h - header) so the sidebar can't
+// scroll out of view and `<main>` is the only scroll container.
+function AdminShell({ children }: { children: ReactNode }) {
 	return (
-		<div className="flex min-h-[calc(100vh-64px)] bg-black text-white">
+		<div className="flex h-[calc(100dvh-4rem)] bg-black text-white">
 			<aside className="flex w-56 shrink-0 flex-col justify-between border-r border-white/15 p-4">
 				<div>
 					<h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-white/60">
@@ -64,6 +67,7 @@ function AdminLayout() {
 							<Link
 								key={item.to}
 								to={item.to}
+								preload="render"
 								activeOptions={{ exact: item.exact ?? false }}
 								className="block border border-transparent px-3 py-2 text-sm font-medium uppercase tracking-wider text-white/80 no-underline transition hover:border-white/40 hover:text-white"
 								activeProps={{
@@ -86,9 +90,70 @@ function AdminLayout() {
 					</Button>
 				</Link>
 			</aside>
-			<main className="flex-1 overflow-auto p-6">
-				<Outlet />
-			</main>
+			<main className="min-w-0 flex-1 overflow-y-auto p-6">{children}</main>
 		</div>
+	);
+}
+
+function AdminLayout() {
+	return (
+		<AdminShell>
+			<Outlet />
+		</AdminShell>
+	);
+}
+
+// Same shell as the real layout — flipping to /admin from character-select
+// without it leaves the header on top of stale content while the loader runs.
+function AdminLayoutPending() {
+	return (
+		<AdminShell>
+			<p className="text-[10px] uppercase tracking-wider text-white/40">
+				{m.admin_loading()}
+			</p>
+		</AdminShell>
+	);
+}
+
+export function AdminPageHeader({
+	title,
+	subtitle,
+	right,
+}: {
+	title: string;
+	subtitle: ReactNode;
+	right?: ReactNode;
+}) {
+	return (
+		<header className="flex items-end justify-between border-b border-white/15 pb-4">
+			<div>
+				<h1 className="display-title text-2xl uppercase tracking-[0.15em] text-white">
+					{title}
+				</h1>
+				<p className="mt-1 text-xs uppercase tracking-wider text-white/50">
+					{subtitle}
+				</p>
+			</div>
+			{right}
+		</header>
+	);
+}
+
+export function EmptyTableRow({
+	colSpan,
+	message,
+}: {
+	colSpan: number;
+	message: string;
+}) {
+	return (
+		<tr>
+			<td
+				colSpan={colSpan}
+				className="px-3 py-8 text-center text-xs uppercase tracking-wider text-white/40"
+			>
+				{message}
+			</td>
+		</tr>
 	);
 }

@@ -118,6 +118,8 @@ function RootComponent() {
 function RootDocument({ children }: { children: React.ReactNode }) {
 	const { pathname } = useLocation();
 	const chromeless = CHROMELESS_ROUTES.has(pathname);
+	// Admin is a control dashboard — header for nav consistency, no footer.
+	const showFooter = !chromeless && !pathname.startsWith("/admin");
 
 	useEffect(() => {
 		consumeFlashToast();
@@ -135,7 +137,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 							<TooltipPrimitive.Provider delayDuration={150}>
 								{!chromeless && <Header />}
 								{children}
-								{!chromeless && <Footer />}
+								{showFooter && <Footer />}
 							</TooltipPrimitive.Provider>
 						</ConfirmationProvider>
 						<Toaster />

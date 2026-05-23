@@ -6,7 +6,11 @@ export default defineSchema({
 	userRoles: defineTable({
 		authUserId: v.string(),
 		role: v.union(v.literal("user"), v.literal("admin")),
-	}).index("by_authUserId", ["authUserId"]),
+	})
+		.index("by_authUserId", ["authUserId"])
+		// Used by the admin dashboard's `listAdmins` to scan admins without
+		// fanning out across every userRole row.
+		.index("by_role", ["role"]),
 
 	characters: defineTable({
 		authUserId: v.string(),

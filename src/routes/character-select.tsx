@@ -1,3 +1,5 @@
+import { convexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
@@ -8,6 +10,7 @@ import { findClassDefinition } from "#/game/classes/data";
 import type { CharacterClassId } from "#/game/classes/types";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useModal } from "#/hooks/useModal";
+import { prefetchAdminTabs } from "#/lib/admin-prefetch";
 import { authClient } from "#/lib/auth-client";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { queueFlashToast } from "#/lib/flash-toast";
@@ -22,13 +25,29 @@ const CLASS_NAME: Record<CharacterClassId, () => string> = {
 };
 
 export const Route = createFileRoute("/character-select")({
+	// Role check happens here so the page can render the admin button on the
+	// very first frame (no flash where it appears late). Admin-only queries
+	// are fired non-blocking from the same loader — by the time the user
+	// reaches for the "Admin Dashboard" button, the three tab queries are
+	// in-flight and TanStack Query caches the results. Non-admins never
+	// trigger the admin queries.
+	loader: async ({ context }) => {
+		const role = await context.queryClient.ensureQueryData(
+			convexQuery(api.users.getUserRole, {}),
+		);
+		if (role?.role === "admin") {
+			prefetchAdminTabs(context.queryClient);
+		}
+	},
 	component: CharacterSelectPage,
 });
 
 function CharacterSelectPage() {
 	const navigate = useNavigate();
 	const characters = useQuery(api.characters.list);
-	const userRole = useQuery(api.users.getUserRole);
+	const { data: userRole } = useSuspenseQuery(
+		convexQuery(api.users.getUserRole, {}),
+	);
 	const removeCharacter = useMutation(api.characters.remove);
 
 	const isAdmin = userRole?.role === "admin";
@@ -82,7 +101,7 @@ function CharacterSelectPage() {
 		<main className="relative h-screen overflow-hidden bg-black text-white">
 			{isAdmin && (
 				<div className="absolute right-6 top-6 z-10">
-					<Link to="/admin" className="no-underline">
+					<Link to="/admin" preload="render" className="no-underline">
 						<Button variant="stark">{m.admin_dashboard()}</Button>
 					</Link>
 				</div>

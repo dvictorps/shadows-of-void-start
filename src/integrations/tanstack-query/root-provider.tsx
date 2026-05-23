@@ -15,7 +15,18 @@ export function getContext() {
 		return context;
 	}
 
-	const queryClient = new QueryClient();
+	// Defaults wire `convexQuery(api.foo, args)` keys into the live Convex
+	// subscription pipeline — without these, route loaders can't prefetch
+	// via `queryClient.ensureQueryData(convexQuery(...))`. The hashFn keeps
+	// FunctionReference values stable across navigations.
+	const queryClient = new QueryClient({
+		defaultOptions: {
+			queries: {
+				queryKeyHashFn: convexQueryClient.hashFn(),
+				queryFn: convexQueryClient.queryFn(),
+			},
+		},
+	});
 	convexQueryClient.connect(queryClient);
 
 	context = {

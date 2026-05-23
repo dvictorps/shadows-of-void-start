@@ -1,19 +1,23 @@
+import { convexQuery } from "@convex-dev/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { findClassDefinition } from "#/game/classes/data";
 import type { CharacterClassId } from "#/game/classes/types";
-import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { formatDate } from "#/lib/format";
 import { m } from "#/paraglide/messages";
+import { AdminPageHeader, EmptyTableRow } from "#/routes/admin";
 import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/admin/users")({
+	loader: ({ context }) =>
+		context.queryClient.ensureQueryData(convexQuery(api.admin.listUsers, {})),
 	component: AdminUsersPage,
 });
 
@@ -31,13 +35,14 @@ function classDisplayName(classId: string): string {
 }
 
 function AdminUsersPage() {
-	const users = useCachedQuery("admin.users", useQuery(api.admin.listUsers));
+	const { data: users } = useSuspenseQuery(
+		convexQuery(api.admin.listUsers, {}),
+	);
 
 	const [search, setSearch] = useState("");
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 
 	const filtered = useMemo(() => {
-		if (!users) return undefined;
 		const q = search.trim().toLowerCase();
 		if (q.length === 0) return users;
 		return users.filter(
@@ -52,18 +57,18 @@ function AdminUsersPage() {
 
 	const handlePromote = async (row: UserRow) => {
 		const ok = await confirm({
-			title: "Promote to admin",
-			message: `Conceder permissão de admin para ${row.email}?`,
-			confirmLabel: "Promote",
-			cancelLabel: "Cancel",
+			title: m.admin_promote_title(),
+			message: m.admin_promote_message({ email: row.email }),
+			confirmLabel: m.admin_promote_action(),
+			cancelLabel: m.cancel(),
 		});
 		if (!ok) return;
 		setPendingId(row.authUserId);
 		try {
 			await setUserRole({ authUserId: row.authUserId, role: "admin" });
-			toast.success(`${row.email} promovido a admin`);
+			toast.success(m.admin_promote_success({ email: row.email }));
 		} catch (err) {
-			toast.error(convexErrorMessage(err, "Falha ao promover"));
+			toast.error(convexErrorMessage(err, m.admin_promote_failed()));
 		} finally {
 			setPendingId(null);
 		}
@@ -71,58 +76,51 @@ function AdminUsersPage() {
 
 	return (
 		<div className="flex h-full flex-col gap-5">
-			<header className="flex items-end justify-between border-b border-white/15 pb-4">
-				<div>
-					<h1 className="display-title text-2xl uppercase tracking-[0.15em] text-white">
-						Users
-					</h1>
-					<p className="mt-1 text-xs uppercase tracking-wider text-white/50">
-						{users
-							? `${filtered?.length ?? 0} / ${users.length}`
-							: "carregando…"}
-					</p>
-				</div>
-				<input
-					type="search"
-					placeholder="Buscar por nome ou email"
-					value={search}
-					onChange={(e) => setSearch(e.target.value)}
-					className="w-72 border border-white/30 bg-black px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white focus:outline-none"
-				/>
-			</header>
+			<AdminPageHeader
+				title={m.admin_users_title()}
+				subtitle={`${filtered.length} / ${users.length}`}
+				right={
+					<input
+						type="search"
+						placeholder={m.admin_users_search_placeholder()}
+						value={search}
+						onChange={(e) => setSearch(e.target.value)}
+						className="w-72 border border-white/30 bg-black px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white focus:outline-none"
+					/>
+				}
+			/>
 
 			<div className="flex-1 overflow-y-auto border border-white/15">
 				<table className="w-full text-sm">
 					<thead className="sticky top-0 bg-black">
 						<tr className="border-b border-white/20 text-[10px] uppercase tracking-wider text-white/50">
-							<th className="w-8" aria-label="Toggle characters" />
-							<th className="px-3 py-2 text-left font-medium">Email</th>
-							<th className="px-3 py-2 text-left font-medium">Name</th>
-							<th className="px-3 py-2 text-left font-medium">Role</th>
-							<th className="px-3 py-2 text-right font-medium">Chars</th>
-							<th className="px-3 py-2 text-left font-medium">Joined</th>
-							<th className="px-3 py-2 text-right font-medium">Actions</th>
+							<th
+								className="w-8"
+								aria-label={m.admin_users_col_toggle_aria()}
+							/>
+							<th className="px-3 py-2 text-left font-medium">
+								{m.admin_col_email()}
+							</th>
+							<th className="px-3 py-2 text-left font-medium">
+								{m.admin_col_name()}
+							</th>
+							<th className="px-3 py-2 text-left font-medium">
+								{m.admin_users_col_role()}
+							</th>
+							<th className="px-3 py-2 text-right font-medium">
+								{m.admin_users_col_chars()}
+							</th>
+							<th className="px-3 py-2 text-left font-medium">
+								{m.admin_users_col_joined()}
+							</th>
+							<th className="px-3 py-2 text-right font-medium">
+								{m.admin_col_actions()}
+							</th>
 						</tr>
 					</thead>
 					<tbody>
-						{filtered === undefined ? (
-							<tr>
-								<td
-									colSpan={7}
-									className="px-3 py-8 text-center text-xs uppercase tracking-wider text-white/40"
-								>
-									carregando usuários…
-								</td>
-							</tr>
-						) : filtered.length === 0 ? (
-							<tr>
-								<td
-									colSpan={7}
-									className="px-3 py-8 text-center text-xs uppercase tracking-wider text-white/40"
-								>
-									nenhum usuário encontrado
-								</td>
-							</tr>
+						{filtered.length === 0 ? (
+							<EmptyTableRow colSpan={7} message={m.admin_users_empty()} />
 						) : (
 							filtered.map((u) => (
 								<UserRowDisplay
@@ -171,7 +169,11 @@ function UserRowDisplay({
 						type="button"
 						onClick={onToggle}
 						aria-expanded={expanded}
-						aria-label={expanded ? "Hide characters" : "Show characters"}
+						aria-label={
+							expanded
+								? m.admin_users_row_hide_aria()
+								: m.admin_users_row_show_aria()
+						}
 						className="inline-flex h-6 w-6 items-center justify-center text-white/60 transition hover:text-white"
 					>
 						<svg
@@ -210,11 +212,11 @@ function UserRowDisplay({
 							onClick={onPromote}
 							disabled={pending}
 						>
-							{pending ? "…" : "Promote"}
+							{pending ? "…" : m.admin_promote_action()}
 						</Button>
 					) : (
 						<span className="text-[10px] uppercase tracking-wider text-white/40">
-							already admin
+							{m.admin_users_already_admin()}
 						</span>
 					)}
 				</td>
@@ -234,26 +236,26 @@ function RoleBadge({ role }: { role: "user" | "admin" }) {
 	if (role === "admin") {
 		return (
 			<span className="border border-white bg-white px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-black">
-				Admin
+				{m.admin_role_admin()}
 			</span>
 		);
 	}
 	return (
 		<span className="border border-white/30 bg-black px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white/60">
-			User
+			{m.admin_role_user()}
 		</span>
 	);
 }
 
 function UserCharacters({ authUserId }: { authUserId: string }) {
-	const characters = useQuery(api.admin.listCharactersForUser, {
-		authUserId,
-	});
+	const { data: characters } = useQuery(
+		convexQuery(api.admin.listCharactersForUser, { authUserId }),
+	);
 
 	if (characters === undefined) {
 		return (
 			<p className="text-xs uppercase tracking-wider text-white/40">
-				carregando personagens…
+				{m.admin_users_chars_loading()}
 			</p>
 		);
 	}
@@ -261,7 +263,7 @@ function UserCharacters({ authUserId }: { authUserId: string }) {
 	if (characters.length === 0) {
 		return (
 			<p className="text-xs uppercase tracking-wider text-white/40">
-				este usuário não tem personagens
+				{m.admin_users_chars_empty()}
 			</p>
 		);
 	}
@@ -271,12 +273,24 @@ function UserCharacters({ authUserId }: { authUserId: string }) {
 			<table className="w-full text-xs">
 				<thead className="bg-white/5">
 					<tr className="border-b border-white/15 text-[10px] uppercase tracking-wider text-white/50">
-						<th className="px-3 py-1.5 text-left font-medium">Name</th>
-						<th className="px-3 py-1.5 text-left font-medium">Class</th>
-						<th className="px-3 py-1.5 text-right font-medium">Level</th>
-						<th className="px-3 py-1.5 text-left font-medium">Mode</th>
-						<th className="px-3 py-1.5 text-left font-medium">Location</th>
-						<th className="px-3 py-1.5 text-left font-medium">Created</th>
+						<th className="px-3 py-1.5 text-left font-medium">
+							{m.admin_users_chars_col_name()}
+						</th>
+						<th className="px-3 py-1.5 text-left font-medium">
+							{m.admin_users_chars_col_class()}
+						</th>
+						<th className="px-3 py-1.5 text-right font-medium">
+							{m.admin_users_chars_col_level()}
+						</th>
+						<th className="px-3 py-1.5 text-left font-medium">
+							{m.admin_users_chars_col_mode()}
+						</th>
+						<th className="px-3 py-1.5 text-left font-medium">
+							{m.admin_users_chars_col_location()}
+						</th>
+						<th className="px-3 py-1.5 text-left font-medium">
+							{m.admin_users_chars_col_created()}
+						</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -291,9 +305,13 @@ function UserCharacters({ authUserId }: { authUserId: string }) {
 							</td>
 							<td className="px-3 py-1.5">
 								{c.hardcore ? (
-									<span className="text-red-300">Hardcore</span>
+									<span className="text-red-300">
+										{m.admin_users_chars_hardcore()}
+									</span>
 								) : (
-									<span className="text-white/50">Softcore</span>
+									<span className="text-white/50">
+										{m.admin_users_chars_softcore()}
+									</span>
 								)}
 							</td>
 							<td className="px-3 py-1.5 text-white/60">{c.currentLocation}</td>

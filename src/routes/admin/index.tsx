@@ -1,68 +1,64 @@
+import { convexQuery } from "@convex-dev/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
-import { useCachedQuery } from "#/hooks/useCachedQuery";
+import { m } from "#/paraglide/messages";
+import { AdminPageHeader } from "#/routes/admin";
 import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/admin/")({
+	loader: ({ context }) =>
+		context.queryClient.ensureQueryData(convexQuery(api.admin.pulse, {})),
 	component: AdminOverviewPage,
 });
 
 function AdminOverviewPage() {
-	const pulse = useCachedQuery("admin.pulse", useQuery(api.admin.pulse));
+	const { data: pulse } = useSuspenseQuery(convexQuery(api.admin.pulse, {}));
 
 	return (
 		<div className="flex h-full flex-col gap-6">
-			<header className="flex items-end justify-between border-b border-white/15 pb-4">
-				<div>
-					<h1 className="display-title text-2xl uppercase tracking-[0.15em] text-white">
-						Overview
-					</h1>
-					<p className="mt-1 text-xs uppercase tracking-wider text-white/50">
-						Pulse do servidor — atualizado em tempo real
-					</p>
-				</div>
-				<span className="text-[10px] uppercase tracking-wider text-white/40">
-					{pulse ? "live" : "loading…"}
-				</span>
-			</header>
+			<AdminPageHeader
+				title={m.admin_overview_title()}
+				subtitle={m.admin_overview_subtitle()}
+				right={
+					<span className="text-[10px] uppercase tracking-wider text-white/40">
+						{m.admin_overview_live_pill()}
+					</span>
+				}
+			/>
 
 			<section className="grid grid-cols-2 gap-4 md:grid-cols-4">
 				<MetricCard
-					label="Users"
-					value={pulse?.userCount}
-					hint="contas registradas"
+					label={m.admin_metric_users()}
+					value={pulse.userCount}
+					hint={m.admin_metric_users_hint()}
 				/>
 				<MetricCard
-					label="Admins"
-					value={pulse?.adminCount}
-					hint="com permissão"
+					label={m.admin_metric_admins()}
+					value={pulse.adminCount}
+					hint={m.admin_metric_admins_hint()}
 					accent="white"
 				/>
 				<MetricCard
-					label="Characters"
-					value={pulse?.characterCount}
-					hint="total no jogo"
+					label={m.admin_metric_characters()}
+					value={pulse.characterCount}
+					hint={m.admin_metric_characters_hint()}
 				/>
 				<MetricCard
-					label="Hardcore"
-					value={
-						pulse
-							? `${pulse.hardcoreCount} / ${pulse.softcoreCount}`
-							: undefined
-					}
-					hint="hardcore vs softcore"
+					label={m.admin_metric_hardcore()}
+					value={`${pulse.hardcoreCount} / ${pulse.softcoreCount}`}
+					hint={m.admin_metric_hardcore_hint()}
 					accent="muted"
 				/>
 			</section>
 
 			<section className="grid gap-4 md:grid-cols-2">
 				<InfoCard
-					title="Permissões"
-					body="Use a aba Admins para promover ou revogar admins. O backend bloqueia auto-revogação para evitar lockout."
+					title={m.admin_info_permissions_title()}
+					body={m.admin_info_permissions_body()}
 				/>
 				<InfoCard
-					title="Investigando um usuário?"
-					body="Vá em Users e clique numa linha pra abrir os personagens dela. Útil pra suporte e debug."
+					title={m.admin_info_investigate_title()}
+					body={m.admin_info_investigate_body()}
 				/>
 			</section>
 		</div>
@@ -76,7 +72,7 @@ function MetricCard({
 	accent = "default",
 }: {
 	label: string;
-	value: number | string | undefined;
+	value: number | string;
 	hint: string;
 	accent?: "default" | "white" | "muted";
 }) {
@@ -94,7 +90,7 @@ function MetricCard({
 			<p
 				className={`display-title mt-2 text-3xl uppercase tracking-wider ${valueClass}`}
 			>
-				{value === undefined ? "—" : value}
+				{value}
 			</p>
 			<p className="mt-1 text-[10px] uppercase tracking-wider text-white/40">
 				{hint}
