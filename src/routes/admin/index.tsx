@@ -7,19 +7,8 @@ export const Route = createFileRoute("/admin/")({
 	component: AdminOverviewPage,
 });
 
-const PULSE_CACHE_KEY = "admin.pulse.v1";
-
-type Pulse = {
-	userCount: number;
-	characterCount: number;
-	adminCount: number;
-	hardcoreCount: number;
-	softcoreCount: number;
-};
-
 function AdminOverviewPage() {
-	const live = useQuery(api.admin.pulse) as Pulse | undefined;
-	const pulse = useCachedQuery(PULSE_CACHE_KEY, live);
+	const pulse = useCachedQuery("admin.pulse", useQuery(api.admin.pulse));
 
 	return (
 		<div className="flex h-full flex-col gap-6">

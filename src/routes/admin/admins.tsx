@@ -1,46 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { convexErrorMessage } from "#/lib/convex-errors";
+import { formatDate } from "#/lib/format";
 import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/admin/admins")({
 	component: AdminAdminsPage,
 });
 
-const ADMINS_CACHE_KEY = "admin.admins.v1";
-
-type AdminRow = {
-	authUserId: string;
-	name: string;
-	email: string;
-	grantedAt: number;
-};
-
-type WhoAmI = {
-	authUserId: string;
-	role: "user" | "admin";
-	name: string;
-	email: string;
-};
-
-function formatDate(ts: number): string {
-	const d = new Date(ts);
-	return d.toLocaleDateString(undefined, {
-		year: "numeric",
-		month: "short",
-		day: "2-digit",
-	});
-}
+type AdminRow = FunctionReturnType<typeof api.admin.listAdmins>[number];
 
 function AdminAdminsPage() {
-	const live = useQuery(api.admin.listAdmins) as AdminRow[] | undefined;
-	const admins = useCachedQuery(ADMINS_CACHE_KEY, live);
-	const me = useQuery(api.users.getUserRole) as WhoAmI | null | undefined;
+	const admins = useCachedQuery("admin.admins", useQuery(api.admin.listAdmins));
+	const me = useQuery(api.users.getUserRole);
 
 	const setUserRole = useMutation(api.users.setUserRole);
 	const confirm = useConfirmationModal();

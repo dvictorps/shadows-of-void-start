@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
@@ -8,6 +9,7 @@ import type { CharacterClassId } from "#/game/classes/types";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { convexErrorMessage } from "#/lib/convex-errors";
+import { formatDate } from "#/lib/format";
 import { m } from "#/paraglide/messages";
 import { api } from "../../../convex/_generated/api";
 
@@ -15,17 +17,7 @@ export const Route = createFileRoute("/admin/users")({
 	component: AdminUsersPage,
 });
 
-const USERS_CACHE_KEY = "admin.users.v1";
-
-type UserRow = {
-	authUserId: string;
-	name: string;
-	email: string;
-	emailVerified: boolean;
-	createdAt: number;
-	role: "user" | "admin";
-	characterCount: number;
-};
+type UserRow = FunctionReturnType<typeof api.admin.listUsers>[number];
 
 const CLASS_NAME: Record<CharacterClassId, () => string> = {
 	warrior: m.class_warrior_name,
@@ -38,18 +30,8 @@ function classDisplayName(classId: string): string {
 	return def ? CLASS_NAME[def.id]() : classId;
 }
 
-function formatDate(ts: number): string {
-	const d = new Date(ts);
-	return d.toLocaleDateString(undefined, {
-		year: "numeric",
-		month: "short",
-		day: "2-digit",
-	});
-}
-
 function AdminUsersPage() {
-	const live = useQuery(api.admin.listUsers) as UserRow[] | undefined;
-	const users = useCachedQuery(USERS_CACHE_KEY, live);
+	const users = useCachedQuery("admin.users", useQuery(api.admin.listUsers));
 
 	const [search, setSearch] = useState("");
 	const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -263,20 +245,10 @@ function RoleBadge({ role }: { role: "user" | "admin" }) {
 	);
 }
 
-type CharacterRow = {
-	_id: string;
-	name: string;
-	classId: string;
-	level: number;
-	hardcore: boolean;
-	currentLocation: string;
-	createdAt: number;
-};
-
 function UserCharacters({ authUserId }: { authUserId: string }) {
 	const characters = useQuery(api.admin.listCharactersForUser, {
 		authUserId,
-	}) as CharacterRow[] | undefined;
+	});
 
 	if (characters === undefined) {
 		return (

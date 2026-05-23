@@ -6,7 +6,7 @@
 //  sit next to `assertAdmin` and the existing role-record helpers.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { ConvexError, v } from "convex/values"
+import { v } from "convex/values"
 import { components } from "./_generated/api"
 import { query } from "./_generated/server"
 import { authComponent } from "./auth"
@@ -143,9 +143,6 @@ export const listCharactersForUser = query({
 	args: { authUserId: v.string() },
 	handler: async (ctx, { authUserId }) => {
 		await assertAdmin(ctx)
-
-		const target = await authComponent.getAnyUserById(ctx, authUserId)
-		if (!target) throw new ConvexError("User not found")
 
 		const docs = await ctx.db
 			.query("characters")
