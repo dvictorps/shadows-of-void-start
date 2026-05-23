@@ -35,6 +35,7 @@ import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useModal } from "#/hooks/useModal";
+import { useViewMode } from "#/hooks/useViewMode";
 import { useWorldMutations } from "#/hooks/useWorldMutations";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { m } from "#/paraglide/messages";
@@ -87,42 +88,27 @@ function WorldView() {
 	return <WorldLayout character={character} />;
 }
 
-type ViewMode = "map" | "city" | "combat";
-
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const navigate = useNavigate();
 	const confirm = useConfirmationModal();
 	const classDef = findClassDefinition(character.classId);
 
-	const [view, setView] = useState<ViewMode>("map");
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const [deathLog, setDeathLog] = useState<string | null>(null);
 	const [consumableHover, setConsumableHover] = useState<ConsumableKey | null>(
 		null,
 	);
-	// Set when the player clicks a node that requires travel — the auto-arrival
-	// effect transitions the view to this node's area when travel completes.
-	// Also reseeded from `travelDestination` on mount so a refresh mid-travel
-	// still arrives in the right view.
-	const [pendingArrival, setPendingArrival] = useState<string | null>(null);
 	const bagModal = useModal();
 	const exitModal = useModal();
 	const inventoryModal = useModal();
 	const settingsModal = useModal();
 	const statsModal = useModal();
 	const vendorModal = useModal();
-	const wantsBag = view === "combat" || exitModal.isOpen;
-	const zoneBag = useQuery(
-		api.items.zoneBag,
-		wantsBag ? { characterId: character._id } : "skip",
-	);
 	const currentLocation = character.currentLocation ?? "city";
 	const currentNode = findNode(ACT_1, currentLocation);
 	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
 	const travelDestination = character.travelDestination;
 	const travelArrivesAt = character.travelArrivesAt;
-	const isTraveling =
-		travelDestination !== undefined && travelArrivesAt !== undefined;
 
 	// Always-on subscriptions (lifted from InventoryModal so the queries are
 	// warm whenever the modal opens — no flicker on first open). Combined with
@@ -179,6 +165,24 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		vendorSellMany,
 	} = useWorldMutations({ movementSpeed: stats.movementSpeed });
 
+	const { view, setView, setPendingArrival, isTraveling, enterDestination } =
+		useViewMode({
+			characterId: character._id,
+			currentLocation,
+			travelDestination,
+			travelArrivesAt,
+			enterCity,
+			enterZone,
+			arriveAtTravel,
+			onEnterNewArea: () => setDeathLog(null),
+		});
+
+	const wantsBag = view === "combat" || exitModal.isOpen;
+	const zoneBag = useQuery(
+		api.items.zoneBag,
+		wantsBag ? { characterId: character._id } : "skip",
+	);
+
 	const equippedBySlot = useMemo<
 		ReadonlyMap<EquippedSlot, { id: string; data: EquippedItem["item"] }>
 	>(() => {
@@ -216,7 +220,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		} catch {
 			toast.error(m.failed_handle_death());
 		}
-	}, [respawnDead, character._id]);
+	}, [respawnDead, character._id, setView, setPendingArrival]);
 
 	const combat = useCombatLoop({
 		characterId: character._id,
@@ -240,58 +244,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// the modal closes. Math lives in `computeBagKeepCap` so the client
 	// preview can't drift from the server's enforcement.
 	const [exitKeepCap, setExitKeepCap] = useState(0);
-
-	// Enter a node's area directly (no travel). Caller has already verified
-	// the player is "at" the node either by arrival or by clicking the
-	// already-current node.
-	const enterDestination = useCallback(
-		(nodeId: string) => {
-			const node = findNode(ACT_1, nodeId);
-			if (!node) return;
-			setDeathLog(null);
-			if (node.kind === "city") {
-				setView("city");
-				void enterCity({ characterId: character._id });
-			} else if (node.kind === "combat" || node.kind === "boss") {
-				setView("combat");
-				void enterZone({ characterId: character._id, zoneId: nodeId });
-			}
-		},
-		[character._id, enterCity, enterZone],
-	);
-
-	// Refresh resilience: if we land on this view mid-travel (no client-side
-	// pendingArrival yet), seed it from the server so the auto-arrival effect
-	// triggers the correct view transition when the timer fires.
-	useEffect(() => {
-		if (travelDestination && !pendingArrival) {
-			setPendingArrival(travelDestination);
-		}
-	}, [travelDestination, pendingArrival]);
-
-	// Auto-arrival: schedule arriveAtTravel at travelArrivesAt. If we're already
-	// past the arrival time (long-tab-closed case), fire immediately.
-	useEffect(() => {
-		if (!isTraveling || travelArrivesAt === undefined) return;
-		const remaining = travelArrivesAt - Date.now();
-		if (remaining <= 0) {
-			void arriveAtTravel({ characterId: character._id });
-			return;
-		}
-		const timer = window.setTimeout(() => {
-			void arriveAtTravel({ characterId: character._id });
-		}, remaining);
-		return () => window.clearTimeout(timer);
-	}, [isTraveling, travelArrivesAt, arriveAtTravel, character._id]);
-
-	// Auto-enter destination after the server confirms arrival. Detects the
-	// transition "was traveling → not traveling AND now at the pendingArrival".
-	useEffect(() => {
-		if (!pendingArrival || isTraveling) return;
-		if (currentLocation !== pendingArrival) return;
-		enterDestination(pendingArrival);
-		setPendingArrival(null);
-	}, [pendingArrival, isTraveling, currentLocation, enterDestination]);
 
 	const unlockedNodeIds = useMemo(
 		() => new Set(character.unlockedNodes ?? ["city"]),
