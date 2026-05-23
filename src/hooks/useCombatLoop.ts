@@ -87,6 +87,10 @@ type CombatState =
 function derivePhase(state: CombatState): CombatPhase {
 	if (state === "searching") return "exploration";
 	if (state === "acampamento") return "camp";
+	// miniboss_victory intentionally stays "combat" — 100% retention is
+	// gated to camps, so the player commits to either continuing toward the
+	// next camp or eating the 30% penalty now. The ZoneCompletePanel makes
+	// this trade-off explicit. See CONTEXT.md → Bag retention tiers.
 	return "combat";
 }
 

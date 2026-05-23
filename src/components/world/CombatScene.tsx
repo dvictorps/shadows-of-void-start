@@ -670,7 +670,7 @@ function ZoneCompletePanel({
 			>
 				{m.zone_complete_title()}
 			</div>
-			<p className="max-w-xs text-center text-sm text-white/70">
+			<p className="max-w-sm text-balance text-center text-sm text-white/70">
 				{m.miniboss_modal_body()}
 			</p>
 			<div className="flex gap-3">
