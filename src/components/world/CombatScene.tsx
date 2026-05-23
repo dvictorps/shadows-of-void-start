@@ -267,11 +267,12 @@ export default function CombatScene({
 	}, [state, enemy, enemyControls]);
 
 	const inCamp = state === "acampamento";
-	// Camp arrival is staged so the transition feels lived-in: the player
-	// still sees "Explorando..." for ~1.5s, the HUD then fades out over
-	// 2.5s, the cinematic only mounts once the HUD is gone (T=4s). When
-	// the decision panel mounts (onPanelShow callback below) the HUD fades
-	// back in alongside it — same "panel + HUD" presence as ZoneCompletePanel.
+	// Camp arrival is immediate: hitting the threshold triggers the HUD
+	// fade-out and the cinematic at the same instant. The earlier staged
+	// "Explorando…" pause was intentionally removed — felt like a delay,
+	// not atmosphere. When the decision panel mounts (onPanelShow callback
+	// below) the HUD fades back in alongside it — same "panel + HUD"
+	// presence as ZoneCompletePanel.
 	const [hudFading, setHudFading] = useState(false);
 	const [cinematicEnabled, setCinematicEnabled] = useState(false);
 	const [campSkipped, setCampSkipped] = useState(false);
@@ -282,22 +283,16 @@ export default function CombatScene({
 			setCampSkipped(false);
 			return;
 		}
-		const t1 = window.setTimeout(() => setHudFading(true), 1500);
-		const t2 = window.setTimeout(() => setCinematicEnabled(true), 4000);
-		return () => {
-			window.clearTimeout(t1);
-			window.clearTimeout(t2);
-		};
+		setHudFading(true);
+		setCinematicEnabled(true);
 	}, [inCamp]);
 
-	// Click anywhere on the combat section while a camp is staging skips
-	// straight to the decision panel. Button clicks inside the panel are
-	// unaffected — the skip handler no-ops once campSkipped flips.
+	// Click anywhere on the combat section while a camp's text stages run
+	// jumps straight to the decision panel. Button clicks inside the panel
+	// are unaffected — the skip handler no-ops once campSkipped flips.
 	const handleSectionClick = () => {
 		if (!inCamp || campSkipped) return;
 		setCampSkipped(true);
-		setHudFading(true);
-		setCinematicEnabled(true);
 	};
 
 	return (
@@ -441,7 +436,7 @@ export default function CombatScene({
 
 			<div className="relative flex flex-1 flex-col items-center justify-center gap-4">
 				<div className="relative flex flex-1 items-center justify-center">
-					{(state === "searching" || (inCamp && !cinematicEnabled)) && (
+					{state === "searching" && (
 						<p className="animate-pulse text-xs uppercase tracking-[0.25em] text-white/40">
 							{m.searching_enemy()}
 						</p>
