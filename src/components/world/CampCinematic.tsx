@@ -4,6 +4,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import type { CampSource } from "#/game/world";
 import { translateCampLines } from "#/game/world/i18n";
 import { playSfx } from "#/lib/sfx";
 import { m } from "#/paraglide/messages";
@@ -32,7 +33,7 @@ type Props = {
 	zoneId: string;
 	// Baked camps read the zone's CAMP_LINES; incenso-triggered camps read a
 	// generic set. See CONTEXT.md → Incenso Etéreo.
-	source: "baked" | "incense";
+	source: CampSource;
 	skip: boolean;
 	onReturn: () => void;
 	onContinue: () => void;

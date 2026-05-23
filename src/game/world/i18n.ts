@@ -1,4 +1,7 @@
 import {
+	MONSTER_ACCURACY_PER_LEVEL,
+	MONSTER_ARMOR_PER_LEVEL,
+	MONSTER_EVASION_PER_LEVEL,
 	MONSTER_MODIFIERS,
 	type MonsterDefinition,
 	type MonsterId,
@@ -16,7 +19,7 @@ import type {
 	PrefixMonsterModId,
 	SuffixMonsterModId,
 } from "./lexicon/types";
-import type { WorldNode } from "./types";
+import type { CampSource, WorldNode } from "./types";
 
 // Three independent uniform-[0, 1] seeds drive the rare proper-name pick.
 // Held on each spawned Enemy so re-renders / locale switches keep the same
@@ -133,7 +136,7 @@ const CAMP_LINES_INCENSE: [() => string, () => string, () => string] = [
  */
 export function translateCampLines(
 	zoneId: string,
-	source: "baked" | "incense" = "baked",
+	source: CampSource = "baked",
 ): [string, string, string] {
 	if (source === "incense") {
 		return [
@@ -370,9 +373,13 @@ export function translateMonsterModDescription(
 		case "monsterIncreasedAttackSpeed":
 			return m.monster_mod_increased_attack_speed_desc();
 		case "monsterIncreasedEvasion":
-			return m.monster_mod_increased_evasion_desc({ value: 30 * level });
+			return m.monster_mod_increased_evasion_desc({
+				value: MONSTER_EVASION_PER_LEVEL * level,
+			});
 		case "monsterIncreasedAccuracy":
-			return m.monster_mod_increased_accuracy_desc({ value: 30 * level });
+			return m.monster_mod_increased_accuracy_desc({
+				value: MONSTER_ACCURACY_PER_LEVEL * level,
+			});
 		case "monsterColdResistance":
 			return m.monster_mod_cold_resistance_desc();
 		case "monsterFireResistance":
@@ -384,6 +391,8 @@ export function translateMonsterModDescription(
 		case "monsterAdditionalBarrier":
 			return m.monster_mod_additional_barrier_desc();
 		case "monsterMoreArmor":
-			return m.monster_mod_more_armor_desc({ value: 15 * level });
+			return m.monster_mod_more_armor_desc({
+				value: MONSTER_ARMOR_PER_LEVEL * level,
+			});
 	}
 }

@@ -27,7 +27,6 @@ import {
 	MAX_POTIONS,
 	POTION_DROP_CHANCE,
 	POTION_HEAL_FRACTION,
-	POTION_REFILL_FLOOR,
 	teleportStoneTravelSeconds,
 } from "../src/game/combat/constants"
 import { rollDrop, rollMinibossDrops } from "../src/game/loot/drops"
@@ -47,6 +46,7 @@ import {
 	loadEquippedSet,
 	loadOwnedCharacter,
 	newZoneSession,
+	refillPotionsToFloor,
 } from "./_shared/character"
 import type { Doc, Id } from "./_generated/dataModel"
 import { mutation } from "./_generated/server"
@@ -267,7 +267,7 @@ export const enterCity = mutation({
 			equippedItems,
 		})
 		const maxHp = stats.maxLife
-		const refilledPotions = Math.max(char.potions ?? 0, POTION_REFILL_FLOOR)
+		const refilledPotions = refillPotionsToFloor(char)
 
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxHp,
@@ -312,7 +312,7 @@ export const respawnDead = mutation({
 		})
 		const maxHp = stats.maxLife
 
-		const refilledPotions = Math.max(char.potions ?? 0, POTION_REFILL_FLOOR)
+		const refilledPotions = refillPotionsToFloor(char)
 
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxHp,
@@ -541,10 +541,7 @@ export const useTeleportStone = mutation({
 				level: char.level,
 				equippedItems,
 			})
-			const refilledPotions = Math.max(
-				char.potions ?? 0,
-				POTION_REFILL_FLOOR,
-			)
+			const refilledPotions = refillPotionsToFloor(char)
 
 			await ctx.db.patch(args.characterId, {
 				teleportStones: stones - 1,

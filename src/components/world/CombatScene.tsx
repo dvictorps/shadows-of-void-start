@@ -3,7 +3,12 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateEnemyName } from "#/game/world/i18n";
-import type { BossIntroStage, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
+import type {
+	BossIntroStage,
+	CampSource,
+	DamageEvent,
+	Enemy,
+} from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 import CampCinematic from "./CampCinematic";
 import HealthGlobe from "./HealthGlobe";
@@ -63,7 +68,7 @@ type Props = {
 	onUseIncense: () => void;
 	// Active camp source — drives flavor text + (future) ambient audio in the
 	// cinematic. See CONTEXT.md → Incenso Etéreo.
-	campSource: "baked" | "incense";
+	campSource: CampSource;
 	// True while an ambush pack is firing — drives the "Ambush!" banner. See
 	// CONTEXT.md → Ambush events.
 	ambushActive: boolean;

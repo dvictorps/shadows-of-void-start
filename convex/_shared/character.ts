@@ -1,5 +1,8 @@
 import { ConvexError, v } from "convex/values"
-import { COMBAT_PHASES } from "../../src/game/combat/constants"
+import {
+	COMBAT_PHASES,
+	POTION_REFILL_FLOOR,
+} from "../../src/game/combat/constants"
 import { INVENTORY_MAX_SLOTS } from "../../src/game/inventory/constants"
 import {
 	EQUIPPED_SLOTS,
@@ -99,6 +102,14 @@ export function assertInCity(char: Doc<"characters">): void {
 		throw new ConvexError("Must be in the city")
 	if (char.travelDestination !== undefined)
 		throw new ConvexError("Cannot do this while travelling")
+}
+
+// City-safety potion refill — reaching a safe state (manual return to city,
+// teleport-stone-to-city arrival, softcore respawn) tops the carried potion
+// count up to POTION_REFILL_FLOOR. Player keeps anything ≥ the floor; only
+// the gap is filled. Centralised so a future tuning pass touches one place.
+export function refillPotionsToFloor(char: Doc<"characters">): number {
+	return Math.max(char.potions ?? 0, POTION_REFILL_FLOOR)
 }
 
 // Derived from the single source of truth in src/game/stats/types so the

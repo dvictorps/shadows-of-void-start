@@ -3,6 +3,9 @@ export { findMonster, MONSTERS } from "./data";
 export type { MonsterModId, MonsterModifier } from "./modifiers";
 export {
 	applyMonsterMods,
+	MONSTER_ACCURACY_PER_LEVEL,
+	MONSTER_ARMOR_PER_LEVEL,
+	MONSTER_EVASION_PER_LEVEL,
 	MONSTER_MODIFIERS,
 	modCountForRarity,
 	rollMonsterMods,

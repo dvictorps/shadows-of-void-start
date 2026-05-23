@@ -71,6 +71,10 @@ import {
 	type ZoneEncounterPlan,
 } from "#/game/world/encounter-schedule";
 import type { RareNameSeed } from "#/game/world/i18n";
+import {
+	applyCharacterDelta,
+	findCharacter,
+} from "#/lib/optimistic-character";
 import { pickRandom } from "#/lib/rng";
 import { playMonsterDeathSfx, playSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
@@ -160,10 +164,11 @@ type Params = {
 	onPlayerDeath: () => void;
 };
 
-// Drives flavor-text selection in the camp cinematic — baked camps read the
-// zone's CAMP_LINES; incenso-triggered camps read a generic incense set.
-// See CONTEXT.md → Incenso Etéreo.
-export type CampSource = "baked" | "incense";
+// Drives flavor-text selection in the camp cinematic — re-exported here so
+// existing imports keep working; the canonical declaration lives in
+// `#/game/world/types` because the i18n helper there also reads it.
+import type { CampSource } from "#/game/world";
+export type { CampSource };
 
 const VICTORY_DELAY_MS = 800;
 const TICK_INTERVAL_MS = 50;
@@ -282,22 +287,14 @@ export function useCombatLoop({
 	// Optimistic potion decrement lives on the mutation hook so the
 	// localStore patch and the server mutation complete in lockstep —
 	// no client-side state mirror is needed, and concurrent recordKill
-	// drops can't race the drink. See applyCharacterDelta in world.tsx
-	// for the canonical helper this duplicates intentionally (avoiding
-	// a hooks-into-route-file import cycle).
+	// drops can't race the drink.
 	const consumePotion = useMutation(api.combat.usePotion).withOptimisticUpdate(
 		(localStore, args) => {
-			const list = localStore.getQuery(api.characters.list, {});
-			if (!list) return;
-			localStore.setQuery(
-				api.characters.list,
-				{},
-				list.map((c) =>
-					c._id === args.characterId
-						? { ...c, potions: Math.max(0, (c.potions ?? 0) - 1) }
-						: c,
-				),
-			);
+			const char = findCharacter(localStore, args.characterId);
+			if (!char) return;
+			applyCharacterDelta(localStore, args.characterId, {
+				potions: Math.max(0, (char.potions ?? 0) - 1),
+			});
 		},
 	);
 	const consumeIncense = useMutation(api.combat.useEtherealIncense);
@@ -618,7 +615,7 @@ export function useCombatLoop({
 			pendingIncenseRef.current = false;
 			ambushPackRemainingRef.current = 0;
 			setAmbushActive(false);
-				setCampSource("incense");
+			setCampSource("incense");
 			stateRef.current = "acampamento";
 			setState("acampamento");
 		} else {

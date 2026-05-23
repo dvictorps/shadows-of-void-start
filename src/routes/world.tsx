@@ -1,5 +1,8 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import type { OptimisticLocalStore } from "convex/browser";
+import {
+	applyCharacterDelta,
+	findCharacter,
+} from "#/lib/optimistic-character";
 import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -94,33 +97,6 @@ function WorldView() {
 }
 
 type ViewMode = "map" | "city" | "combat";
-
-// Helpers for the optimistic-update closures below. `findCharacter` reads the
-// current `api.characters.list` cache and locates the active character;
-// `applyCharacterDelta` writes a shallow patch on top of that character.
-// Both are no-ops when the query hasn't resolved yet — same defensive shape
-// every Convex optimistic closure uses.
-function findCharacter(
-	localStore: OptimisticLocalStore,
-	characterId: Id<"characters">,
-): Doc<"characters"> | undefined {
-	const characters = localStore.getQuery(api.characters.list, {});
-	return characters?.find((c) => c._id === characterId);
-}
-
-function applyCharacterDelta(
-	localStore: OptimisticLocalStore,
-	characterId: Id<"characters">,
-	delta: Partial<Doc<"characters">>,
-): void {
-	const characters = localStore.getQuery(api.characters.list, {});
-	if (!characters) return;
-	localStore.setQuery(
-		api.characters.list,
-		{},
-		characters.map((c) => (c._id === characterId ? { ...c, ...delta } : c)),
-	);
-}
 
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const navigate = useNavigate();

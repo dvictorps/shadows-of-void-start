@@ -1,6 +1,13 @@
 import type { MonsterId } from "../monsters";
 import type { ZoneEncounterPlan } from "./encounter-schedule";
 
+// Drives flavor-text selection in the camp cinematic — baked camps read the
+// zone's CAMP_LINES, incenso-triggered camps read a generic incense set.
+// Lives here (game domain) so the i18n helper, the combat hook, and the
+// scene components can all reference the same union without redeclaring.
+// See CONTEXT.md → Incenso Etéreo.
+export type CampSource = "baked" | "incense";
+
 export type NodeKind = "city" | "combat" | "boss";
 
 export interface NodeConnection {

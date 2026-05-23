@@ -9,6 +9,14 @@ import type { MonsterRarity } from "./types";
 // PoE-style ("Tough Goblin of Swiftness"). The roller caps at 2 of each
 // affix per spawn so a 3-mod rare always mixes prefix + suffix.
 
+// Per-level magnitudes for the defensive flats. Exported so the tooltip
+// renderer reads the same constants and can't drift from the apply()s.
+// The numbers are calibrated against act 1 (lvl ~17 ceiling): +30/lvl
+// evasion / accuracy ≈ +510 at the end of the act, +15/lvl armor ≈ +255.
+export const MONSTER_EVASION_PER_LEVEL = 30;
+export const MONSTER_ACCURACY_PER_LEVEL = 30;
+export const MONSTER_ARMOR_PER_LEVEL = 15;
+
 export type MonsterModAffixType = "prefix" | "suffix";
 
 export interface MonsterModifier {
@@ -47,19 +55,24 @@ export const MONSTER_MODIFIERS = {
 		affixType: "suffix",
 		apply: (s) => ({ ...s, attackSpeed: s.attackSpeed * 1.3 }),
 	},
-	// Defensive flats scale with monster level so they're not lopsided at low
-	// area level. +30 / level lines up with player accuracy growth in act 1
-	// (caps act 1 ~lvl 17 at +510, matching the previous flat at the tier
-	// where it was originally calibrated).
+	// Defensive flats scale with monster level via the *_PER_LEVEL constants
+	// above so they're not lopsided at low area level. Tooltip strings read
+	// the same constants — keep both sides in lockstep.
 	monsterIncreasedEvasion: {
 		id: "monsterIncreasedEvasion",
 		affixType: "prefix",
-		apply: (s) => ({ ...s, evasion: s.evasion + 30 * s.level }),
+		apply: (s) => ({
+			...s,
+			evasion: s.evasion + MONSTER_EVASION_PER_LEVEL * s.level,
+		}),
 	},
 	monsterIncreasedAccuracy: {
 		id: "monsterIncreasedAccuracy",
 		affixType: "suffix",
-		apply: (s) => ({ ...s, accuracy: s.accuracy + 30 * s.level }),
+		apply: (s) => ({
+			...s,
+			accuracy: s.accuracy + MONSTER_ACCURACY_PER_LEVEL * s.level,
+		}),
 	},
 	monsterColdResistance: {
 		id: "monsterColdResistance",
@@ -106,7 +119,10 @@ export const MONSTER_MODIFIERS = {
 	monsterMoreArmor: {
 		id: "monsterMoreArmor",
 		affixType: "prefix",
-		apply: (s) => ({ ...s, armor: s.armor + 15 * s.level }),
+		apply: (s) => ({
+			...s,
+			armor: s.armor + MONSTER_ARMOR_PER_LEVEL * s.level,
+		}),
 	},
 } as const satisfies Record<string, MonsterModifier>;
 
