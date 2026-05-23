@@ -670,16 +670,22 @@ export function computeCharacterStats(
 
 export interface ArmorMitigation {
 	reductionPct: number;
-	atEnemyLevel: number;
+	atReferenceHit: number;
 }
 
+// PoE-style armor mitigation is hit-size-relative: the same armor pool
+// shaves a much bigger % off a 5-damage hit than off a 500-damage hit.
+// The stats panel asks for a reference hit size (typical incoming attack
+// at the player's expected encounter level) and returns the reduction
+// against it. See applyArmor in src/game/combat/damage.ts.
 export function computeArmorMitigation(
 	armor: number,
-	enemyLevel: number,
+	referenceHit: number,
 ): ArmorMitigation {
-	const raw = (armor / (armor + 10 * Math.max(1, enemyLevel))) * 100;
+	const hit = Math.max(1, referenceHit);
+	const raw = (armor / (armor + 10 * hit)) * 100;
 	const capped = Math.min(ARMOR_REDUCTION_CAP, Math.max(0, raw));
-	return { reductionPct: capped, atEnemyLevel: enemyLevel };
+	return { reductionPct: capped, atReferenceHit: hit };
 }
 
 export interface EvasionAvoid {

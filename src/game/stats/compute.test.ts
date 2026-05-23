@@ -487,7 +487,10 @@ describe("computeCharacterStats — broken state", () => {
 });
 
 describe("derived helpers", () => {
-	it("armor mitigation follows armor / (armor + 10×enemyLevel), capped 85%", () => {
+	it("armor mitigation follows armor / (armor + 10×referenceHit), capped 85%", () => {
+		// Same numerics as before — the arg semantically renamed from
+		// "enemy level" to "reference hit size" so the panel preview
+		// matches the gameplay PoE-style formula.
 		expect(computeArmorMitigation(100, 10).reductionPct).toBeCloseTo(50);
 		expect(computeArmorMitigation(100, 50).reductionPct).toBeCloseTo(16.67, 1);
 		expect(computeArmorMitigation(10000, 10).reductionPct).toBe(85);

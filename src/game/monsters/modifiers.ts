@@ -47,15 +47,19 @@ export const MONSTER_MODIFIERS = {
 		affixType: "suffix",
 		apply: (s) => ({ ...s, attackSpeed: s.attackSpeed * 1.3 }),
 	},
+	// Defensive flats scale with monster level so they're not lopsided at low
+	// area level. +30 / level lines up with player accuracy growth in act 1
+	// (caps act 1 ~lvl 17 at +510, matching the previous flat at the tier
+	// where it was originally calibrated).
 	monsterIncreasedEvasion: {
 		id: "monsterIncreasedEvasion",
 		affixType: "prefix",
-		apply: (s) => ({ ...s, evasion: s.evasion + 500 }),
+		apply: (s) => ({ ...s, evasion: s.evasion + 30 * s.level }),
 	},
 	monsterIncreasedAccuracy: {
 		id: "monsterIncreasedAccuracy",
 		affixType: "suffix",
-		apply: (s) => ({ ...s, accuracy: s.accuracy + 500 }),
+		apply: (s) => ({ ...s, accuracy: s.accuracy + 30 * s.level }),
 	},
 	monsterColdResistance: {
 		id: "monsterColdResistance",
@@ -102,7 +106,7 @@ export const MONSTER_MODIFIERS = {
 	monsterMoreArmor: {
 		id: "monsterMoreArmor",
 		affixType: "prefix",
-		apply: (s) => ({ ...s, armor: s.armor + 200 }),
+		apply: (s) => ({ ...s, armor: s.armor + 15 * s.level }),
 	},
 } as const satisfies Record<string, MonsterModifier>;
 

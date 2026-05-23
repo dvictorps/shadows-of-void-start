@@ -712,7 +712,6 @@ export function useCombatLoop({
 
 			if (enemySwing) {
 				const attack = rollEnemyAttack({
-					enemyLevel: currentEnemy.level,
 					enemyAccuracy: currentEnemy.scaled.accuracy,
 					physicalDamage: currentEnemy.scaled.physicalDamage,
 					elementalDamage: currentEnemy.scaled.elementalDamage,

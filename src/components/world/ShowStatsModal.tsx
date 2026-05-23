@@ -95,7 +95,12 @@ function DefensesSection({
 	currentLife: number;
 	referenceEnemyLevel: number;
 }) {
-	const armor = computeArmorMitigation(stats.armor, referenceEnemyLevel);
+	// Rough heuristic for "typical enemy hit at this level" — calibrated
+	// against monster baseline damage in act 1 (goblin: 2-4 phys at lvl 1,
+	// scaling ~1.06^(L-1)). Used only as the reference hit for the panel's
+	// armor mitigation preview; the gameplay formula reads the actual hit.
+	const referenceHit = Math.max(5, referenceEnemyLevel * 5);
+	const armor = computeArmorMitigation(stats.armor, referenceHit);
 	const enemyAccuracyEstimate = referenceEnemyLevel * 10;
 	const avoid = computeEvasionAvoid(stats.evasion, enemyAccuracyEstimate);
 	return (
