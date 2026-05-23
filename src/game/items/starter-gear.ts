@@ -6,8 +6,10 @@ import type { GeneratedItem } from "./types";
 // through the random generator. IDs are namespaced with the "starter:" prefix
 // so equipped-item references can distinguish them from rolled items later.
 
-// Base stats mirror the T1 dropped equivalents; the upgrade incentive is the
-// implicit, not raw damage.
+// Starter weapons sit one step below the T1 dropped equivalents — the player
+// is meant to feel a clear upgrade the moment any T1 drops, and the early
+// pacing aims for ~5 hits/kill in forest_starter vs ~4 hits/kill once the
+// first T1 weapon lands.
 
 const rustySword: GeneratedItem = {
 	id: "starter:rusty_sword",
@@ -20,15 +22,15 @@ const rustySword: GeneratedItem = {
 	itemLevel: 1,
 	icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	baseStats: {
-		minDamage: 3,
-		maxDamage: 7,
+		minDamage: 2,
+		maxDamage: 6,
 		attackSpeed: 1.5,
 		criticalChance: 5,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 3, max: 7 },
+		physicalDamage: { min: 2, max: 6 },
 		elementalDamage: [],
 		attackSpeed: 1.5,
 		criticalChance: 5,
@@ -49,14 +51,14 @@ const rustyDagger: GeneratedItem = {
 	// the emoji override. Add a sprite + populate this field when art lands.
 	baseStats: {
 		minDamage: 2,
-		maxDamage: 5,
+		maxDamage: 4,
 		attackSpeed: 1.7,
 		criticalChance: 6.5,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 2, max: 5 },
+		physicalDamage: { min: 2, max: 4 },
 		elementalDamage: [],
 		attackSpeed: 1.7,
 		criticalChance: 6.5,
@@ -75,14 +77,14 @@ const crackedWand: GeneratedItem = {
 	icon: "/assets/sprites/armas/caster/varinha.png",
 	baseStats: {
 		minDamage: 2,
-		maxDamage: 6,
+		maxDamage: 5,
 		attackSpeed: 1.4,
 		criticalChance: 7,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 2, max: 6 },
+		physicalDamage: { min: 2, max: 5 },
 		elementalDamage: [],
 		attackSpeed: 1.4,
 		criticalChance: 7,
