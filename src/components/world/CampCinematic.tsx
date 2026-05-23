@@ -5,14 +5,19 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { translateCampLines } from "#/game/world/i18n";
+import { playSfx } from "#/lib/sfx";
 import { m } from "#/paraglide/messages";
 
 type Stage = 0 | 1 | 2 | "fading_out" | "panel";
 
+// Last stage is held a hair longer than the first because nothing fades in
+// behind it — stage 0's hold is followed by stage 1 entering, which keeps
+// the eye occupied; stage 2 is followed by an empty pause that otherwise
+// reads as "the last message went by faster than the first".
 const STAGE_HOLD_MS: Record<0 | 1 | 2, number> = {
 	0: 2000,
 	1: 3000,
-	2: 2000,
+	2: 3000,
 };
 const TEXT_EXIT_MS = 1200;
 const POST_TEXT_PAUSE_MS = 1000;
@@ -54,6 +59,12 @@ export default function CampCinematic({
 	}, [skip, stage]);
 
 	useEffect(() => {
+		// Wind sweeps: one with the first line (open), one with the last line
+		// (settle into the camp). Non-exclusive so the two plays can ride
+		// each other if the pacing changes later.
+		if (stage === 0 || stage === 2) {
+			playSfx("vento.wav", { volume: 0.45 });
+		}
 		if (stage === "panel") {
 			onPanelShow();
 			return;
