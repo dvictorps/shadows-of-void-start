@@ -236,10 +236,15 @@ export default function CombatScene({
 		const amp = lastDamagingHit.isCrit ? 6 : 4;
 		enemyControls.start({
 			x: [0, -amp, amp, -Math.round(amp * 0.7), Math.round(amp * 0.5), 0],
+			// `sepia(1) saturate(20) hue-rotate(-30deg)` is the classic CSS
+			// recipe to paint any sprite a solid color — sepia first normalizes
+			// to a tan tone, saturate cranks intensity, hue-rotate aims at red.
+			// Pure `hue-rotate` alone only shifts hues and leaves natural
+			// colors looking lightly tinted instead of flashing red.
 			filter: [
-				"brightness(1) saturate(1) hue-rotate(0deg)",
-				"brightness(1.8) saturate(2) hue-rotate(320deg)",
-				"brightness(1) saturate(1) hue-rotate(0deg)",
+				"brightness(1) saturate(1) sepia(0) hue-rotate(0deg)",
+				"brightness(1.2) saturate(20) sepia(1) hue-rotate(-30deg)",
+				"brightness(1) saturate(1) sepia(0) hue-rotate(0deg)",
 			],
 			transition: { duration: 0.2, times: [0, 0.2, 0.4, 0.6, 0.8, 1] },
 		});
