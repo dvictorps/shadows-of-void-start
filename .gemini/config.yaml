@@ -1,0 +1,31 @@
+# Gemini Code Assist configuration for Shadows of Void.
+# See https://developers.google.com/gemini-code-assist/docs/customize-gemini-behavior-github
+
+have_fun: false
+
+# Generated artifacts — never useful to review.
+ignore_patterns:
+  - "src/paraglide/**"
+  - "src/routeTree.gen.ts"
+  - "convex/_generated/**"
+  - "**/*.snap"
+
+code_review:
+  # HIGH filters out nitpick / stylistic suggestions and keeps only findings
+  # the reviewer would meaningfully act on. We have a senior-style internal
+  # review pass on every PR, so Gemini's job here is "second pair of eyes for
+  # real bugs", not "find every possible improvement". Tuned after PR #39
+  # where the only useful Gemini comment was severity:HIGH and the noise was
+  # MEDIUM (replaceAll-vs-replace nitpick on a single-occurrence pattern).
+  comment_severity_threshold: HIGH
+
+  # Cap to keep reviews focused. If Gemini is finding > 8 HIGH-severity items
+  # in a single PR, the PR is probably doing too much and should be split —
+  # the cap nudges that conversation instead of producing a 30-item wall.
+  max_review_comments: 8
+
+  pull_request_opened:
+    help: false        # we don't need the meta-help message on every PR
+    summary: true      # the PR summary is useful for distilling intent
+    code_review: true
+    include_drafts: false  # drafts are work-in-progress, no need to review yet
