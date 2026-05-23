@@ -72,6 +72,14 @@ function tryTranslate(raw: string): string | null {
 	)
 		return m.error_inventory_overflow();
 
+	// Bag retention cap (non-camp exitZone with too many keepIds). Pull the
+	// cap number out so the UI can show "you can take N right now".
+	const capMatch = msg.match(/Phase cap exceeded: kept \d+ > cap (\d+)/);
+	if (capMatch) {
+		return m.error_phase_cap_exceeded({ cap: Number(capMatch[1]) });
+	}
+	if (msg.includes("is camp-only")) return m.error_pick_camp_only();
+
 	const reqMatch = msg.match(
 		/(Level|Strength|Dexterity|Intelligence)\s+(\d+)\s+required/,
 	);

@@ -517,12 +517,17 @@ export const useTeleportStone = mutation({
 				throw new ConvexError("zone-locked")
 		}
 
-		// The bag is the client's responsibility now — when the player has a
-		// non-empty bag, the UI routes them through ExitZoneModal first to
-		// pick their phase-capped share, and the bag is committed via
-		// `exitZone` before this mutation runs. Any orphan items (e.g. flow
-		// broken by a disconnect) get purged on the next `enterZone` /
-		// `enterCity`, so no defensive wipe is needed here.
+		// Defensively wipe the zone bag here — the normal flow routes the
+		// player through ExitZoneModal → `exitZone` before this mutation
+		// fires, but if the modal is bypassed (page refresh, network blip,
+		// direct SDK call) any items still tagged to the session would
+		// leak into the items table: this mutation clears
+		// `currentZoneSession` below, so without a wipe the session id is
+		// lost and `enterZone`'s `if (char.currentZoneSession)` guard can
+		// never reach them again.
+		if (char.currentZoneSession) {
+			await deleteZoneBag(ctx, char.currentZoneSession)
+		}
 		const startedAt = Date.now()
 		const arrivesAt =
 			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000

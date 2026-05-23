@@ -229,6 +229,8 @@
   "tooltip_requires_bow_in_main_hand": "Requires Bow in Main Hand",
   "error_offhand_not_weapon": "Off-hand only accepts weapons, shields, tomes, or quivers",
   "error_zone_locked": "Complete the previous zone",
+  "error_phase_cap_exceeded": "You can only take {cap} items right now.",
+  "error_pick_camp_only": "Loot pickup is camp-only.",
   "miniboss_modal_title": "Miniboss defeated",
   "miniboss_modal_body": "Retreating now keeps 100% of the loot. Continue and the bag rides on you — the next 100% banking is at the next camp.",
   "miniboss_modal_continue": "Keep hunting",

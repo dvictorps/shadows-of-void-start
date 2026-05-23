@@ -1,4 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { convexErrorMessage } from "#/lib/convex-errors";
 import {
 	applyCharacterDelta,
 	findCharacter,
@@ -409,7 +410,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
 		potions: character.potions ?? 0,
-		initialIncense: character.etherealIncense ?? 0,
+		incense: character.etherealIncense ?? 0,
 		monsterPool,
 		zoneLevel,
 		encounterPlan,
@@ -526,9 +527,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				});
 			} catch (err) {
 				setPendingArrival(null);
-				toast.error(
-					err instanceof Error ? err.message : m.wind_crystal_failed(),
-				);
+				toast.error(convexErrorMessage(err, m.wind_crystal_failed()));
 			}
 			return;
 		}
@@ -556,9 +555,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			});
 		} catch (err) {
 			setPendingArrival(null);
-			toast.error(
-				err instanceof Error ? err.message : m.teleport_stone_failed(),
-			);
+			toast.error(convexErrorMessage(err, m.teleport_stone_failed()));
 		}
 	};
 
@@ -622,9 +619,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				exitModal.close();
 			}
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : m.inventory_full_error(),
-			);
+			toast.error(convexErrorMessage(err, m.inventory_full_error()));
 		}
 	};
 
@@ -647,9 +642,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			});
 			exitModal.close();
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : m.inventory_full_error(),
-			);
+			toast.error(convexErrorMessage(err, m.inventory_full_error()));
 		}
 	};
 

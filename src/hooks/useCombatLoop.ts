@@ -156,7 +156,10 @@ type Params = {
 	// bug where a drop arrived during the drink and the local +1 from the
 	// drop overwrote the optimistic -1 from the drink).
 	potions: number;
-	initialIncense: number;
+	// Live ethereal-incense count from the character query. Same rationale
+	// as `potions` — keep the source of truth on the server side so a kill's
+	// optimistic drop can't race the consume.
+	incense: number;
 	monsterPool: readonly MonsterId[];
 	zoneLevel: number;
 	encounterPlan: ZoneEncounterPlan;
@@ -189,7 +192,7 @@ export function useCombatLoop({
 	stats,
 	initialHp,
 	potions,
-	initialIncense,
+	incense,
 	monsterPool,
 	zoneLevel,
 	encounterPlan,
@@ -209,7 +212,6 @@ export function useCombatLoop({
 	const [barrier, setBarrier] = useState(() =>
 		makeBarrierState(stats.maxBarrier),
 	);
-	const [incense, setIncense] = useState(initialIncense);
 	// Source of the active camp (drives cinematic flavor text). Read by the
 	// CampCinematic component to switch the line set.
 	const [campSource, setCampSource] = useState<CampSource>("baked");
@@ -243,8 +245,6 @@ export function useCombatLoop({
 
 	const initialHpRef = useRef(initialHp);
 	initialHpRef.current = initialHp;
-	const initialIncenseRef = useRef(initialIncense);
-	initialIncenseRef.current = initialIncense;
 	const playerHpRef = useRef(playerHp);
 	playerHpRef.current = playerHp;
 	const lastSyncedHpRef = useRef(initialHp);
@@ -297,7 +297,18 @@ export function useCombatLoop({
 			});
 		},
 	);
-	const consumeIncense = useMutation(api.combat.useEtherealIncense);
+	// Same pattern as consumePotion — optimistic localStore patch keeps the
+	// counter in lockstep with the mutation, so concurrent recordKill drops
+	// can't race the consume.
+	const consumeIncense = useMutation(
+		api.combat.useEtherealIncense,
+	).withOptimisticUpdate((localStore, args) => {
+		const char = findCharacter(localStore, args.characterId);
+		if (!char) return;
+		applyCharacterDelta(localStore, args.characterId, {
+			etherealIncense: Math.max(0, (char.etherealIncense ?? 0) - 1),
+		});
+	});
 
 	// Optimistic XP popup mounts immediately; potion drop is patched in once the
 	// server replies. Shared between player-swing kills and thorns-reflect kills.
@@ -344,9 +355,8 @@ export function useCombatLoop({
 						// commits. Mirroring locally created a race with usePotion
 						// (the +1 could overwrite the optimistic -1 from a drink).
 					}
-					if (result.incenseDropped) {
-						setIncense((i) => i + 1);
-					}
+					// Incense drop follows the same pattern — `etherealIncense`
+					// is the live query value, no local mirror.
 				})
 				.catch(() => {});
 		},
@@ -366,7 +376,6 @@ export function useCombatLoop({
 		if (active && !wasActive) {
 			playerHpRef.current = initialHpRef.current;
 			setPlayerHp(initialHpRef.current);
-			setIncense(initialIncenseRef.current);
 			pendingIncenseRef.current = false;
 			setCampSource("baked");
 			lastSyncedHpRef.current = initialHpRef.current;
@@ -477,9 +486,9 @@ export function useCombatLoop({
 		// one render after the pack drains.
 		if (ambushPackRemainingRef.current > 0) return;
 
-		consumeIncense({ characterId })
-			.then((result) => setIncense(result.etherealIncense))
-			.catch(() => {});
+		// The optimistic update on the mutation hook handles the
+		// localStore decrement; we only need to swallow the rejection.
+		consumeIncense({ characterId }).catch(() => {});
 
 		if (s === "engaged") {
 			// Let the current fight resolve. The victory branch reads this and
