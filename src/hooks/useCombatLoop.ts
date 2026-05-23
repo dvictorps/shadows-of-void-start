@@ -372,11 +372,16 @@ export function useCombatLoop({
 	});
 
 	// Retreat is handled by the existing active=false transition in the world view.
+	// `recordKill` flipped server `inCamp=true` on the miniboss kill so the
+	// implicit "miniboss victory" tier still grants 100% retention if the
+	// player retreats. Continuing past the panel returns them to combat tier;
+	// `exitCamp` clears the server flag so subsequent bag commits cap at 30%.
 	const dismissMinibossModal = useCallback(() => {
 		if (stateRef.current !== "miniboss_victory") return;
 		stateRef.current = "searching";
 		setState("searching");
-	}, []);
+		exitCampMutation({ characterId }).catch(() => {});
+	}, [characterId, exitCampMutation]);
 
 	return {
 		state,

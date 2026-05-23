@@ -84,6 +84,12 @@ function WorldView() {
 	return <WorldLayout character={character} />;
 }
 
+// Stable identity for the "no thresholds yet" case — Convex reactive queries
+// return undefined briefly between mount and the first enterZone result. A
+// fresh `?? []` would allocate a new reference per render, retriggering the
+// downstream ref-sync useEffect in useEncounterSchedule for no reason.
+const EMPTY_THRESHOLDS: readonly number[] = [];
+
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const navigate = useNavigate();
 	const confirm = useConfirmationModal();
@@ -233,7 +239,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		// in lockstep with what enterCamp will accept. See
 		// docs/plans/in-progress.md "Server-authoritative camp/phase
 		// derivation".
-		serverCampThresholdsMs: character.campThresholdsMs ?? [],
+		serverCampThresholdsMs: character.campThresholdsMs ?? EMPTY_THRESHOLDS,
 		// Pause combat while the loot picker is open so the player can't die
 		// mid-selection from a goblin they've already retreated from.
 		active: view === "combat" && !exitModal.isOpen,

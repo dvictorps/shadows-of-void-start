@@ -28,11 +28,13 @@ import { isBow, isQuiver, isWeapon, planEquip } from "../src/game/items/equipmen
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, narrowEquippedSlot } from "../src/game/stats/types"
 import {
+	clearPerVisitZoneState,
 	combatPhaseValidator,
 	equippedSlotValidator,
 	fetchInventoryAllocator,
 	loadOwnedCharacter,
 } from "./_shared/character"
+import type { Doc } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
 
@@ -41,9 +43,7 @@ import { authComponent } from "./auth"
 // for backwards-compat with branches running in parallel against the same
 // dev deployment. See docs/plans/in-progress.md "Server-authoritative
 // camp/phase derivation".
-function derivePhaseFromCharacter(char: {
-	inCamp?: boolean
-}): CombatPhase {
+function derivePhaseFromCharacter(char: Doc<"characters">): CombatPhase {
 	return char.inCamp ? "camp" : "combat"
 }
 
@@ -116,15 +116,7 @@ export const exitZone = mutation({
 			...toDelete.map((it) => ctx.db.delete(it._id)),
 		])
 
-		// Clear the per-visit camp/phase state alongside the zone session so
-		// the next enterZone starts from a clean slate (mirrors the death and
-		// teleport-stone paths in convex/combat.ts).
-		await ctx.db.patch(args.characterId, {
-			currentZoneSession: undefined,
-			zoneStartedAt: undefined,
-			campThresholdsMs: undefined,
-			inCamp: false,
-		})
+		await ctx.db.patch(args.characterId, clearPerVisitZoneState())
 		return { kept: validKeeps.length, discarded: toDelete.length }
 	},
 })

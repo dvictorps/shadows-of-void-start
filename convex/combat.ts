@@ -46,6 +46,7 @@ import { ACT_1, findNode, isNodeAccessible } from "../src/game/world"
 import { computeTravelTime } from "../src/game/world/travel"
 import {
 	appendUnique,
+	clearPerVisitZoneState,
 	deleteZoneBag,
 	loadEquippedSet,
 	loadOwnedCharacter,
@@ -353,13 +354,8 @@ export const respawnDead = mutation({
 			hpCurrent: maxHp,
 			xp,
 			potions: refilledPotions,
-			currentZoneSession: undefined,
+			...clearPerVisitZoneState(),
 			currentZoneKills: 0,
-			// Server-authoritative camp/phase state is per-visit; clear it on
-			// death so the next enterZone rolls a fresh schedule.
-			zoneStartedAt: undefined,
-			campThresholdsMs: undefined,
-			inCamp: false,
 			// Respawn resets you to the city and clears any in-flight travel.
 			currentLocation: "city",
 			travelDestination: undefined,
@@ -663,10 +659,7 @@ export const useTeleportStone = mutation({
 				teleportStones: stones - 1,
 				hpCurrent: stats.maxLife,
 				potions: refilledPotions,
-				currentZoneSession: undefined,
-				zoneStartedAt: undefined,
-				campThresholdsMs: undefined,
-				inCamp: false,
+				...clearPerVisitZoneState(),
 				travelDestination: "city",
 				travelStartedAt: startedAt,
 				travelArrivesAt: arrivesAt,
@@ -676,10 +669,7 @@ export const useTeleportStone = mutation({
 
 		await ctx.db.patch(args.characterId, {
 			teleportStones: stones - 1,
-			currentZoneSession: undefined,
-			zoneStartedAt: undefined,
-			campThresholdsMs: undefined,
-			inCamp: false,
+			...clearPerVisitZoneState(),
 			travelDestination: destinationNodeId,
 			travelStartedAt: startedAt,
 			travelArrivesAt: arrivesAt,
