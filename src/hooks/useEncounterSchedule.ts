@@ -137,8 +137,7 @@ export function useEncounterSchedule({
 			}
 
 			// Ambush trigger — checked after camps so a co-located camp wins.
-			const nextAmbush =
-				ambushScheduleRef.current[nextAmbushIndexRef.current];
+			const nextAmbush = ambushScheduleRef.current[nextAmbushIndexRef.current];
 			if (
 				ambushPlan &&
 				nextAmbush !== undefined &&

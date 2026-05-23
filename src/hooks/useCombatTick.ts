@@ -30,15 +30,12 @@ import {
 } from "#/game/combat/damage";
 import type { LeechInstance } from "#/game/combat/leech";
 import { createLeechInstance, tickLeechInstances } from "#/game/combat/leech";
+import type { Enemy } from "#/game/combat/types";
 import type { ComputedCharacterStats } from "#/game/stats/types";
-import {
-	applyCharacterDelta,
-	findCharacter,
-} from "#/lib/optimistic-character";
+import { applyCharacterDelta, findCharacter } from "#/lib/optimistic-character";
 import { playSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import type { Enemy } from "./useCombatLoop";
 import type { DamageEvent } from "./useDamageEvents";
 import { useTicker } from "./useTicker";
 
@@ -127,19 +124,20 @@ export function useCombatTick({
 	}, [stats.maxBarrier]);
 
 	// Fresh spawn → reset progress refs so the first swing fires at the same
-	// cadence as a from-zero fight. `enemy?.scaled` identity is stable through
-	// a single fight (damage swaps `currentHp` but keeps `scaled` by reference)
+	// cadence as a from-zero fight. `scaled` identity is stable through a
+	// single fight (damage swaps `currentHp` but keeps `scaled` by reference)
 	// and changes only when a new monster is rolled. INVARIANT: every code
 	// path that creates a new `Enemy` MUST allocate a fresh `scaled` object —
 	// reusing or mutating in place would silently stop resetting swing
 	// alternation across fights.
+	const enemyScaled = enemy?.scaled;
 	useEffect(() => {
-		if (enemy) {
+		if (enemyScaled) {
 			playerProgressRef.current = 0;
 			enemyProgressRef.current = 0;
 			nextSwingIndexRef.current = 0;
 		}
-	}, [enemy?.scaled]);
+	}, [enemyScaled]);
 
 	// Activation: reset vitals on zone entry. Deactivation: flush HP sync if
 	// the player is alive (graceful retreat / view change).

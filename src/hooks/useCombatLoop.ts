@@ -7,86 +7,41 @@
 import { useMutation } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CombatPhase } from "#/game/combat/constants";
-
-export type { CombatPhase };
+import {
+	BOSS_INTRO_STAGE_MS,
+	type BossIntroStage,
+	type CombatState,
+	derivePhase,
+	type Enemy,
+} from "#/game/combat/types";
 import { rollMonsterLevel } from "#/game/loot/drops";
 import {
 	applyMonsterMods,
 	findMonster,
-	type MonsterDefinition,
 	type MonsterId,
-	type MonsterModId,
-	type MonsterRarity,
 	modCountForRarity,
 	rollMonsterMods,
-	type ScaledMonsterStats,
 	scaleMonsterStats,
 } from "#/game/monsters";
 import { applyOverlevelPenalty } from "#/game/progression/levels";
 import type { ComputedCharacterStats } from "#/game/stats/types";
+import type { CampSource } from "#/game/world";
 import type { ZoneEncounterPlan } from "#/game/world/encounter-schedule";
 import type { RareNameSeed } from "#/game/world/i18n";
-import {
-	applyCharacterDelta,
-	findCharacter,
-} from "#/lib/optimistic-character";
+import { applyCharacterDelta, findCharacter } from "#/lib/optimistic-character";
 import { pickRandom } from "#/lib/rng";
 import { playMonsterDeathSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
 import { useCombatTick } from "./useCombatTick";
+import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
 import { useDelay } from "./useDelay";
 import { useEncounterSchedule } from "./useEncounterSchedule";
 
-type CombatState =
-	| "searching"
-	| "boss_intro"
-	| "engaged"
-	| "victory"
-	| "miniboss_victory"
-	| "acampamento";
-
-function derivePhase(state: CombatState): CombatPhase {
-	if (state === "searching") return "exploration";
-	// Camp and post-miniboss share the 100% retention tier per
-	// CONTEXT.md → Bag retention tiers ("Boss kill → 100%"). The
-	// miniboss-victory panel pause is itself a safe banking moment: the
-	// player either retreats with the full bag they just earned, or
-	// continues hunting and gives up that safety until the next camp.
-	if (state === "acampamento" || state === "miniboss_victory") return "camp";
-	return "combat";
-}
-
-// Three-stage dramatic spawn for rare minibosses. The ticker stays paused
-// (gated on state === "engaged") for the full intro, so the player can't
-// pre-empt the build-up and the boss can't swing before its HP bar shows.
-export type BossIntroStage = "sprite" | "name" | "hp" | null;
-
-const BOSS_INTRO_STAGE_MS: Record<Exclude<BossIntroStage, null>, number> = {
-	// Each value is how long the stage holds BEFORE advancing — so it must be
-	// at least as long as the visual transition kicked off when the stage
-	// becomes active. Sprite enters with scale 1.2 → 1.0 over ~700 ms, then
-	// the nameplate fades + slides in over ~400 ms, then the HP bar.
-	sprite: 750,
-	name: 500,
-	hp: 500,
-};
-
-export type Enemy = {
-	def: MonsterDefinition;
-	currentHp: number;
-	level: number;
-	rarity: MonsterRarity;
-	mods: readonly MonsterModId[];
-	scaled: ScaledMonsterStats;
-	// Seeds for the rare proper-name generator. Sampled once on spawn so the
-	// rare's name stays stable across re-renders and locale switches.
-	// Non-rare spawns still carry the field (unused) to keep the shape narrow.
-	nameSeed: RareNameSeed;
-};
-
-export type { DamageEvent };
+// CampSource / DamageEvent are passed through unchanged to CombatScene; the
+// other re-exports give external consumers a single import surface for the
+// hook's domain types.
+export type { BossIntroStage, CampSource, CombatPhase, DamageEvent, Enemy };
 
 type Params = {
 	characterId: Id<"characters">;
@@ -112,12 +67,6 @@ type Params = {
 	active: boolean;
 	onPlayerDeath: () => void;
 };
-
-// Drives flavor-text selection in the camp cinematic — re-exported here so
-// existing imports keep working; the canonical declaration lives in
-// `#/game/world/types` because the i18n helper there also reads it.
-import type { CampSource } from "#/game/world";
-export type { CampSource };
 
 const VICTORY_DELAY_MS = 800;
 
@@ -274,11 +223,7 @@ export function useCombatLoop({
 	const triggerIncense = useCallback(() => {
 		if (incense <= 0) return;
 		const s = stateRef.current;
-		if (
-			s === "boss_intro" ||
-			s === "acampamento" ||
-			s === "miniboss_victory"
-		)
+		if (s === "boss_intro" || s === "acampamento" || s === "miniboss_victory")
 			return;
 		if (s === "engaged" && enemyRef.current?.rarity === "rare") return;
 		// Ambush packs commit you to the burst — incense must wait until the
