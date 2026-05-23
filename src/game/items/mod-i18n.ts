@@ -53,7 +53,9 @@ const ptTomeGainAsExtra =
 	(m) =>
 		`Ganha ${m.value}% do Dano de Conjuração como Dano de ${element} Adicional`;
 
-const PT_EXPLICIT_FORMATTERS: Record<string, ModFormatter> = {
+// Exported for the cross-coverage test in `translation-coverage.test.ts` —
+// catches drift between MODIFIERS and the PT formatter table at CI time.
+export const PT_EXPLICIT_FORMATTERS: Record<string, ModFormatter> = {
 	strengthFlat: (m) => `+${m.value} de Força`,
 	dexterityFlat: (m) => `+${m.value} de Destreza`,
 	intelligenceFlat: (m) => `+${m.value} de Inteligência`,

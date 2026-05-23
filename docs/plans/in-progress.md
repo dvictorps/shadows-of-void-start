@@ -192,17 +192,9 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 ## Item naming lexicon — open follow-ups (low priority)
 
-**Status**: PRs #39 (tooltip labels + slot-aware mods) and #41 (decomposed lexicon + renderer + 20 tests) landed. The four items below are real but were intentionally deferred — none blocks a beta, but each one closes a small hole that will widen as more locales / modifiers land.
+**Status**: PRs #39 (tooltip labels + slot-aware mods) and #41 (decomposed lexicon + renderer + 20 tests) landed. The three items below are real but were intentionally deferred — none blocks a beta, but each one closes a small hole that will widen as more locales / modifiers land.
 
-### 1. Cross-coverage test: lexicon affix forms ↔ `mod-i18n.ts`
-
-**Risk**: The same `ModifierId` universe is translated in two independent tables — `lexicon.prefixForms` / `suffixPhrases` (magic-item compound name) and `mod-i18n.ts:PT_EXPLICIT_FORMATTERS` (tooltip mod line). Different data, but a new modifier needs entries in both. Today nothing forces that — a missing entry on either side renders the modifier id as a string fallback.
-
-**Fix** (estimated: ~10 lines of test). One vitest file that iterates `MODIFIERS` and, per locale, asserts every prefix has a `lexicon.prefixForms` entry AND every modifier has a `PT_EXPLICIT_FORMATTERS` entry (or its EN equivalent path). Catches drift at CI time instead of at the tooltip.
-
-**Why deferred**: low rate of new modifiers — the pool is mature, drift is unlikely in the next month. Worth adding before the next big modifier expansion.
-
-### 2. Native PT-BR review of bulk-translated entries
+### 1. Native PT-BR review of bulk-translated entries
 
 **Risk**: 130-ish lexicon entries (55 bases + 80 modifiers) were AI-bulk-translated. The four manually reviewed (Espada Bastarda, Estrela da Manhã, Maculado pelo Vazio, Gume) caught real awkwardness, so the rest probably has 5–10 similar issues. Fine for indie / pre-release. Not fine before a paid release in Brazil.
 
@@ -214,7 +206,7 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 **Why deferred**: project is solo dev pre-release. Translation quality is the kind of thing a real audience surfaces, not a code reviewer.
 
-### 3. Codegen for `TemplateBaseId` / `TemplateModifierId`
+### 2. Codegen for `TemplateBaseId` / `TemplateModifierId`
 
 **Risk**: `src/game/items/lexicon/template-ids.ts` declares the two literal unions by hand. The data files (`data/templates/*.ts`) reference these unions but the union itself is human-maintained — if someone adds a base/modifier to a template file using a string that isn't yet in the union, TypeScript catches it. But adding the union member doesn't force them to add a lexicon entry until they re-run tsc.
 
@@ -222,7 +214,7 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 **Why deferred**: the hand-maintained file works for now. Codegen is the right call if/when there's a sustained pace of adding new bases.
 
-### 4. Hash function → `src/lib/rng.ts`
+### 3. Hash function → `src/lib/rng.ts`
 
 **Risk**: `hashItemId` in `item-name.ts` is FNV-1a; `CombatScene.tsx` has a separate `*31`-walk hash. Both are deterministic string→[0, 1) hashes. Two implementations, same purpose, will drift.
 
@@ -230,7 +222,7 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 **Why deferred**: not load-bearing, both implementations currently work. Worth doing when next touching `CombatScene`'s hash.
 
-### 5. Convex validator can't enforce literal unions
+### 4. Convex validator can't enforce literal unions
 
 **Constraint, not a bug**. `nameBase` / `nameModifier` are stored as `v.optional(v.string())` because Convex validators don't have ergonomic literal-union support. The in-process `GeneratedItem` type widens to `string` at the persistence boundary — the lexicon files themselves keep the union enforcement. If Convex ever ships a `v.unionLiteral([...])` helper, swap in.
 
@@ -258,6 +250,7 @@ These are starting points based on the file's preamble — refine them once the 
 - **Verify each cut against the live file before fragmenting.** The original world.tsx plan included a `<CombatHud>` cut that turned out to be a no-op — that JSX already lived inside `<CombatScene>`. Don't assume the suggested cuts above are still valid as the file evolves; read the actual code first, propose adjustments, then split.
 - **Combat-internal mutations stay inside the split.** `useCombatLoop` calls `recordKill`, `syncHp`, `usePotion`, and `useEtherealIncense` — these are tick-driven combat mutations, distinct from the 10 world-route mutations that live in `useWorldMutations.ts`. They belong inside whichever sub-hook owns the tick / victory routing (probably `useCombatTick`), NOT bundled into `useWorldMutations`. Conflating the two surfaces will widen useWorldMutations beyond its current scope.
 - **WorldModals re-renders on every combat tick** because `combat.barrier.current` and `combat.playerHp` are passed through as props (for `ShowStatsModal`). The fix is to wrap `WorldModals` in `React.memo` and split combat-tick props from modal-render props (or gate them on `statsModal.isOpen`). The simplify pass on the world.tsx split flagged this but deferred — splitting `useCombatLoop` is the natural moment to fix it because the data flow is being restructured anyway. Don't fix it independently; fold into this split if you touch the consumer interface.
+- **MonsterTooltip reconciles every combat tick** (same shape as the WorldModals issue above). `CombatScene.tsx:510-514` mounts `<MonsterTooltip enemy={enemy} />` inside a `hidden group-hover:block` wrapper — the tooltip is always mounted, only CSS-hidden, so any CombatScene re-render reconciles it for every magic/rare enemy on screen even when not hovered. Surfaced by the simplify pass on the rarity-card primitive lift. Fix: wrap `MonsterTooltip` in `React.memo` (props are just `enemy`, and the displayed fields — rarity / level / mods / name — are stable across an enemy's lifetime even if the object ref churns) and/or gate the mount on JS hover state instead of CSS visibility. Defer to this split because the enemy data flow is in motion; fold in if you touch how the CombatScene consumes the enemy.
 
 ### Validation
 
@@ -396,24 +389,6 @@ Each one has the same fix shape: `useState<boolean>` (or `Set` if multiple insta
 
 - Manual: spam each action button, confirm only one toast/error per intended action.
 - No new tests — this is UX behavior on top of stable mutation contracts.
-
----
-
-## Shared rarity-tinted card primitive (low priority refactor)
-
-**Status**: Planned, not started.
-
-**Why**: `src/components/world/MonsterTooltip.tsx` (added in `feat/zone-progression`) and `src/components/game/ItemTooltip.tsx` (in master) share non-trivial structure: identical `RARITY_COLORS` and `HEADER_BG` tables, identical `Separator` JSX, identical outer shell (tinted border + glow + `boxShadow` recipe + header-with-bg). The first two RARITY_COLORS rows of MonsterTooltip are a strict subset of ItemTooltip's 5-row map.
-
-### Scope
-
-- Lift `Separator` from `ItemTooltip` into a shared location (`src/components/ui/Separator.tsx` or similar).
-- Centralize rarity-color tables (`RARITY_COLORS`, `HEADER_BG`) into a single source — perhaps `src/game/items/rarity-style.ts` re-exported by both tooltips.
-- Optionally extract a `RarityCard` primitive (top accent line + tinted border + glow + header). Both tooltips consume it and add their own body content.
-
-### Why deferred
-
-The duplication is real but small enough that the refactor takes a focused PR. Doing it inline would have bloated `feat/zone-progression`. The current shape is correct; this is purely about reducing parallel maintenance.
 
 ---
 
