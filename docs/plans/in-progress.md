@@ -4,6 +4,53 @@ Decisions made but not yet executed. Read this before starting a session — if 
 
 When a planned item starts, move it to a feature branch and reference back here. When it ships, delete the entry (closed work belongs in commit history, not this file).
 
+**Doc language convention**: narrative + meta-docs in English (CLAUDE.md, CONTEXT.md, codebase-map, playbooks, ADRs, and the prose in this file all follow this). PT preserved only for game-domain proper nouns — `Acampamento`, `Incenso Etéreo`, `Calmaria`, item-name examples (`Espada de Ferro`), monster names, etc. Code identifiers stay English. Mixing the two in narrative produces the kind of code-switching that confuses future agents and downstream tooling (translation platforms, search) — don't.
+
+---
+
+## Project health snapshot (as of 2026-05-23)
+
+**Current grade: A-** (composite across architecture / code quality / docs / scalability / agent ergonomics).
+
+This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n + slot-aware mods), #41 (decomposed item-name lexicon + 20 renderer tests), and #42 (playbook + codebase-map refresh). The grade exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't.
+
+### Why A- (criteria that earned the current grade)
+
+- **Architecture: A-** — render-at-display-time naming + literal-union enforcement is the correct choice for a multi-locale ARPG. Lexicon pattern is now battle-tested across two domains (monsters + items). Convex/TanStack split is coherent (Convex for live state, TanStack Router for routing + auth guards). Remaining hole: drift risk between lexicon and `mod-i18n.ts` (same modifier id in two independent tables) — flagged but not enforced.
+- **Code quality: A-** — `src/game/` is pure + tested. 315 vitest cases. Comments are WHY-focused. Two known stains: residual `as TemplateBaseId` casts at the Convex boundary (Convex validators can't express literal unions) and `src/routes/world.tsx` at 836 lines.
+- **Docs: A-** — `CONTEXT.md` is best-in-class for a solo-dev project (879 lines of single-source-of-truth game rules). Playbooks (`adding-an-equipment-template`, `adding-a-modifier`, `i18n-which-system`) accurate post-#42. `codebase-map.md` current. Only one ADR exists; structural decisions like the three-system i18n split aren't yet codified.
+- **Scalability: A** — adding a new locale = 1 new lexicon file. Adding a new template = 1 entry + 0 lexicon changes if base/modifier already exist. Decomposition cut lexicon size by 88% (562 entries → 135). Literal-union enforcement makes "forgot a translation" a compile error, not a runtime fallback.
+- **Translation quality: B-** — 130 PT lexicon entries were AI-bulk-translated. Four hand-revised (Espada Bastarda, Estrela da Manhã, Maculado pelo Vazio, Gume) caught real awkwardness, so the rest probably has 5–10 similar issues. Fine for indie pre-release, not for a paid Brazilian release.
+- **Agent ergonomics for ONBOARDING: A+** — `CONTEXT.md` + `CLAUDE.md` + `codebase-map.md` get an agent productive in ~30 minutes.
+- **Agent ergonomics for MODIFYING existing things: A-** — strong TS catches mistakes, but `world.tsx` (836 lines) is a navigation tax.
+- **Agent ergonomics for ADDING NEW systems (skills, passive tree, stash): C+** — no playbooks exist for the queued Future domains, so the first agent on each will improvise from precedents and may diverge from intent.
+
+### What raises the grade
+
+| Move | Outcome |
+|---|---|
+| Complete the "Agent ergonomics hardening" entry below (5 items) | **A pleno** — drift blocked via CI, future-domain agents have orientation, decisions codified in ADRs, no more 800-line orchestrators |
+| Above + native PT review of `lexicon/pt.ts` | A with translation quality also in A range |
+| Above + 3+ months of system additions (skills / passive / stash) WITHOUT emergency refactor | **A+** — architecture proven at scale, not just at theory. Until then A+ is hypothetical. |
+
+### What lowers the grade
+
+| Risk | Drop |
+|---|---|
+| Next major refactor ships without updating relevant playbooks (drift recurs) | A- → B+. The PR #41 → #42 cycle should not repeat. The CI gate exists exactly to prevent this. |
+| New domain shipped without a playbook (skills, passive, stash, vendor product) | Scalability slips C+ → C. Adding the next is harder because the first set a precedent without guidance. |
+| `world.tsx` grows further (or another orchestrator route hits the same shape) | Modifying existing → B+. Agent navigation tax compounds. |
+| Someone "optimizes" render-at-display by pre-rendering names | Locale switching silently breaks. Architecture grade drops + UX regression. Mitigated by ADR-0003 once it lands. |
+| `mod.description` (legacy field) becomes load-bearing again in any consumer | Defeats the render-at-display invariant. Tooltips diverge by locale. |
+
+### Reading this from a fresh session
+
+If you're picking up where we left off:
+
+1. Read this snapshot first — know where the project sits and what's at stake.
+2. Pick from the **MAX PRIORITY** entry below before starting any feature work that's not already in flight.
+3. When a major refactor lands, **update the relevant playbook in the same PR** (this is the single most important habit for keeping the grade trajectory positive).
+
 ---
 
 ## Agent ergonomics hardening (MAX PRIORITY — pick up after current in-flight work)
