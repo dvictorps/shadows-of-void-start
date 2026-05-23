@@ -4,21 +4,16 @@ import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import BagPreviewModal from "#/components/world/BagPreviewModal";
 import CityScene from "#/components/world/CityScene";
 import CombatScene, {
 	type ConsumableKey,
 } from "#/components/world/CombatScene";
 import EquipmentPanel from "#/components/world/EquipmentPanel";
-import ExitZoneModal from "#/components/world/ExitZoneModal";
-import InventoryModal from "#/components/world/InventoryModal";
 import MapScene from "#/components/world/MapScene";
-import SettingsModal from "#/components/world/SettingsModal";
-import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
-import VendorModal from "#/components/world/VendorModal";
+import { WorldModals } from "#/components/world/WorldModals";
 import { findClassDefinition } from "#/game/classes/data";
 import { computeBagKeepCap } from "#/game/combat/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
@@ -613,55 +608,37 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				/>
 			</aside>
 
-			<BagPreviewModal
-				isOpen={bagModal.isOpen}
-				onClose={bagModal.close}
-				items={zoneBag ?? []}
-			/>
-			<ExitZoneModal
-				isOpen={exitModal.isOpen}
-				onClose={handleCloseExit}
+			<WorldModals
+				bagModal={bagModal}
+				exitModal={exitModal}
+				statsModal={statsModal}
+				inventoryModal={inventoryModal}
+				vendorModal={vendorModal}
+				settingsModal={settingsModal}
+				zoneBag={zoneBag ?? []}
+				exitKeepCap={exitKeepCap}
+				onExitClose={handleCloseExit}
 				onPickSelected={handlePickSelected}
 				onDiscardSelected={handleDiscardSelected}
 				onPickAll={handlePickAll}
 				onDiscardAll={handleDiscardAll}
-				bagItems={zoneBag ?? []}
-				keepCap={exitKeepCap}
-			/>
-			<ShowStatsModal
-				isOpen={statsModal.isOpen}
-				onClose={statsModal.close}
 				stats={stats}
-				referenceEnemyLevel={zoneLevel}
+				zoneLevel={zoneLevel}
 				currentBarrier={combat.barrier.current}
 				currentLife={combat.playerHp}
-			/>
-			<InventoryModal
-				isOpen={inventoryModal.isOpen}
-				onClose={inventoryModal.close}
 				characterId={character._id}
-				stats={stats}
 				characterLevel={character.level}
 				equippedItems={equippedItems ?? []}
 				inventoryItems={inventoryItems ?? []}
-			/>
-			<VendorModal
-				isOpen={vendorModal.isOpen}
-				onClose={vendorModal.close}
 				rubys={character.rubys ?? 0}
 				potions={character.potions ?? 0}
 				teleportStones={character.teleportStones ?? 0}
-				inventoryItems={inventoryItems ?? []}
-				onBuy={async (productId) => {
+				onVendorBuy={async (productId) => {
 					await vendorBuy({ characterId: character._id, productId });
 				}}
-				onSellMany={async (itemIds) => {
+				onVendorSellMany={async (itemIds) => {
 					await vendorSellMany({ characterId: character._id, itemIds });
 				}}
-			/>
-			<SettingsModal
-				isOpen={settingsModal.isOpen}
-				onClose={settingsModal.close}
 			/>
 		</main>
 	);
