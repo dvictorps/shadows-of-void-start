@@ -20,7 +20,9 @@ templar: {
 },
 ```
 
-`CharacterClassId` in `types.ts` derives from `keyof typeof CLASS_DEFINITIONS`, so TS will surface compile errors at every consumer (starter-gear map, class-name i18n map, etc) that doesn't handle the new class.
+The exact compile-checked shape lives in [`_examples/class-example.ts`](./_examples/class-example.ts) — if the playbook drifts, that sentinel fails `tsc` and forces a sync. (The sentinel reuses an existing class id so it compiles without modifying the `CharacterClassId` union.)
+
+`CharacterClassId` is a hand-maintained closed union in `types.ts` (`"warrior" | "mage" | "rogue"`). To register a new class, add the id to that union first — every consumer (starter-gear map, class-name i18n maps in step 4) will then fail compile until you wire it through.
 
 ## Step 2 — Hook up the starter weapon
 

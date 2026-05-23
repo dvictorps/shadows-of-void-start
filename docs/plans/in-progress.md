@@ -8,39 +8,51 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ---
 
+## Next session — pick up here
+
+The agent-ergonomics hardening pass shipped (CI gate via sentinel examples in `docs/playbooks/_examples/`, ADRs 0002 / 0003 / 0004, stub playbooks for skill / passive / stash / vendor product, threat-model entry for phase-arg trust, drift fixes in the monster / zone / class playbooks).
+
+**Next high-leverage item: the `src/routes/world.tsx` split** — 836-line orchestrator route. The detailed suggested cut (into `useWorldMutations`, `useViewMode`, `useWorldModals`, and a `<CombatHud>` component) lives in the dedicated entry below — see "Split `src/routes/world.tsx` (queued)" further down this file.
+
+The downstream "Server-authoritative camp/phase derivation" security work (closes Threat #3 in the threat model) is blocked on the world.tsx split landing first — both touch the same combat-hook + mutation surface and would collide in a single PR.
+
+Before starting, read: `src/routes/world.tsx` (the file being split), `src/hooks/useCombatLoop.ts` (combat orchestrator the route consumes), and `convex/items.ts` + `convex/combat.ts` (mutations the route's optimistic handlers mirror). Then align scope before fragmenting.
+
+---
+
 ## Project health snapshot (as of 2026-05-23)
 
-**Current grade: A-** (composite across architecture / code quality / docs / scalability / agent ergonomics).
+**Current grade: A** (composite across architecture / code quality / docs / scalability / agent ergonomics).
 
-This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n + slot-aware mods), #41 (decomposed item-name lexicon + 20 renderer tests), and #42 (playbook + codebase-map refresh). The grade exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't.
+This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n + slot-aware mods), #41 (decomposed item-name lexicon + 20 renderer tests), #42 (playbook + codebase-map refresh), and the agent-ergonomics-hardening pass (sentinel CI gate against playbook drift, stub playbooks for queued Future domains, ADRs 0002 + 0003). The grade exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't.
 
-### Why A- (criteria that earned the current grade)
+### Why A (criteria that earned the current grade)
 
-- **Architecture: A-** — render-at-display-time naming + literal-union enforcement is the correct choice for a multi-locale ARPG. Lexicon pattern is now battle-tested across two domains (monsters + items). Convex/TanStack split is coherent (Convex for live state, TanStack Router for routing + auth guards). Remaining hole: drift risk between lexicon and `mod-i18n.ts` (same modifier id in two independent tables) — flagged but not enforced.
-- **Code quality: A-** — `src/game/` is pure + tested. 315 vitest cases. Comments are WHY-focused. Two known stains: residual `as TemplateBaseId` casts at the Convex boundary (Convex validators can't express literal unions) and `src/routes/world.tsx` at 836 lines.
-- **Docs: A-** — `CONTEXT.md` is best-in-class for a solo-dev project (879 lines of single-source-of-truth game rules). Playbooks (`adding-an-equipment-template`, `adding-a-modifier`, `i18n-which-system`) accurate post-#42. `codebase-map.md` current. Only one ADR exists; structural decisions like the three-system i18n split aren't yet codified.
-- **Scalability: A** — adding a new locale = 1 new lexicon file. Adding a new template = 1 entry + 0 lexicon changes if base/modifier already exist. Decomposition cut lexicon size by 88% (562 entries → 135). Literal-union enforcement makes "forgot a translation" a compile error, not a runtime fallback.
+- **Architecture: A-** — render-at-display-time naming + literal-union enforcement is the correct choice for a multi-locale ARPG (codified now in [ADR 0003](../adr/0003-render-at-display-names.md)). Lexicon pattern is battle-tested across two domains (monsters + items). Convex/TanStack split is coherent. Remaining hole: drift risk between lexicon and `mod-i18n.ts` (same modifier id in two independent tables) — flagged in the lexicon follow-ups below.
+- **Code quality: A-** — `src/game/` is pure + tested. 334 vitest cases. Comments are WHY-focused. Two known stains: residual `as TemplateBaseId` casts at the Convex boundary (Convex validators can't express literal unions — captured in [ADR 0003](../adr/0003-render-at-display-names.md)) and `src/routes/world.tsx` at 836 lines.
+- **Docs: A** — `CONTEXT.md` is best-in-class for a solo-dev project (879 lines of single-source-of-truth game rules). Three ADRs codify the load-bearing architectural decisions (optimistic mutations, three-system i18n, render-at-display naming). Playbooks accurate and link to type-checked sentinel examples; new system stubs let an agent picking up skills / passives / stash know which questions need answering before coding.
+- **Scalability: A** — adding a new locale = 1 new lexicon file per domain + matching paraglide JSON. Adding a new template = 1 entry + 0 lexicon changes if base/modifier already exist. Decomposition cut lexicon size by 88% (562 → 135). Literal-union enforcement makes "forgot a translation" a compile error.
 - **Translation quality: B-** — 130 PT lexicon entries were AI-bulk-translated. Four hand-revised (Espada Bastarda, Estrela da Manhã, Maculado pelo Vazio, Gume) caught real awkwardness, so the rest probably has 5–10 similar issues. Fine for indie pre-release, not for a paid Brazilian release.
 - **Agent ergonomics for ONBOARDING: A+** — `CONTEXT.md` + `CLAUDE.md` + `codebase-map.md` get an agent productive in ~30 minutes.
 - **Agent ergonomics for MODIFYING existing things: A-** — strong TS catches mistakes, but `world.tsx` (836 lines) is a navigation tax.
-- **Agent ergonomics for ADDING NEW systems (skills, passive tree, stash): C+** — no playbooks exist for the queued Future domains, so the first agent on each will improvise from precedents and may diverge from intent.
+- **Agent ergonomics for ADDING NEW systems (skills, passive tree, stash): B** — stub playbooks now exist for each queued Future domain, listing the decisions to resolve + the ADRs the agent will need to write. The systems themselves aren't built, but the orientation infrastructure is. The grade returns to A once the first new system ships against its stub without an emergency refactor.
 
 ### What raises the grade
 
 | Move | Outcome |
 |---|---|
-| Complete the "Agent ergonomics hardening" entry below (5 items) | **A pleno** — drift blocked via CI, future-domain agents have orientation, decisions codified in ADRs, no more 800-line orchestrators |
-| Above + native PT review of `lexicon/pt.ts` | A with translation quality also in A range |
-| Above + 3+ months of system additions (skills / passive / stash) WITHOUT emergency refactor | **A+** — architecture proven at scale, not just at theory. Until then A+ is hypothetical. |
+| Split `src/routes/world.tsx` (see queued entry below) | Agent ergonomics for MODIFYING → A. Composite **A → A+** if combined with native PT review. |
+| Native PT review of `lexicon/pt.ts` | Translation quality B- → A. |
+| 3+ months of system additions (skills / passive / stash) WITHOUT emergency refactor against the stubs | **A+** — architecture proven at scale, not just at theory. Until then A+ is hypothetical. |
 
 ### What lowers the grade
 
 | Risk | Drop |
 |---|---|
-| Next major refactor ships without updating relevant playbooks (drift recurs) | A- → B+. The PR #41 → #42 cycle should not repeat. The CI gate exists exactly to prevent this. |
-| New domain shipped without a playbook (skills, passive, stash, vendor product) | Scalability slips C+ → C. Adding the next is harder because the first set a precedent without guidance. |
+| Next major refactor ships without updating relevant playbooks (drift recurs) | A → B+. The sentinel CI gate covers the playbook code blocks — but a refactor that *also* changes the surrounding prose without updating it is still possible. |
+| New domain shipped that ignores its stub playbook (and doesn't write the ADRs it flagged) | Scalability slips A → B+. The first system to do this sets a precedent that's hard to walk back. |
 | `world.tsx` grows further (or another orchestrator route hits the same shape) | Modifying existing → B+. Agent navigation tax compounds. |
-| Someone "optimizes" render-at-display by pre-rendering names | Locale switching silently breaks. Architecture grade drops + UX regression. Mitigated by ADR-0003 once it lands. |
+| Someone "optimizes" render-at-display by pre-rendering names | Locale switching silently breaks. Now explicitly forbidden by [ADR 0003](../adr/0003-render-at-display-names.md). |
 | `mod.description` (legacy field) becomes load-bearing again in any consumer | Defeats the render-at-display invariant. Tooltips diverge by locale. |
 
 ### Reading this from a fresh session
@@ -48,92 +60,8 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 If you're picking up where we left off:
 
 1. Read this snapshot first — know where the project sits and what's at stake.
-2. Pick from the **MAX PRIORITY** entry below before starting any feature work that's not already in flight.
-3. When a major refactor lands, **update the relevant playbook in the same PR** (this is the single most important habit for keeping the grade trajectory positive).
-
----
-
-## Agent ergonomics hardening (MAX PRIORITY — pick up after current in-flight work)
-
-**Why this is max priority**: this project is built almost entirely through prompt engineering with AI agents. The codebase's value compounds with the quality of agent-facing infrastructure — docs accuracy, type safety, decision capture. Every hour invested here pays back as faster, safer features for the rest of the project's life. Letting these debts accumulate is the single biggest risk to project velocity.
-
-Pick up these tasks after the time-based-zone-progression work wraps (or in parallel if scope allows). Order is suggested — the CI gate is the highest-leverage item, the rest are independent.
-
-### 1. CI gate against playbook drift (HIGH leverage)
-
-**Problem**: PR #41 (item naming lexicon) shipped without updating `adding-an-equipment-template.md` and `adding-a-modifier.md`. PR #42 fixed them, but the only thing that caught the drift was a senior-style audit. The next major refactor will introduce the same drift.
-
-**Fix**: small vitest file (`docs/playbooks-smoke.test.ts` or similar) that:
-
-- Reads each playbook with a code-block annotation (`// from playbook: adding-an-equipment-template.md`).
-- Extracts the example TypeScript blocks.
-- Wraps them in a minimal harness and runs `tsc --noEmit` against the example.
-- Asserts: every playbook example must compile against current types.
-
-Alternative shape: include a sentinel "playbook example" file per playbook (e.g. `docs/playbooks/_examples/template-example.ts`) that gets type-checked as part of the regular tsc pass. Any drift between code shape and the example breaks CI.
-
-**Estimate**: 1-3 hours depending on shape chosen. Worth every minute — it's the only mechanism that prevents repeat-drift.
-
-### 2. Playbook stubs for queued domains
-
-**Problem**: `in-progress.md` lists Future domains (passive tree, active skills, stash, vendor, bestiary, etc.) with design notes but no scaffolding. When an agent picks one up, they'll improvise from the closest existing precedent — usually monsters or items — and the resulting structure may not match what a senior would design.
-
-**Fix**: For each Future domain in `in-progress.md`, add a stub playbook `docs/playbooks/adding-a-<domain>.md` that:
-
-- Lists the design questions the agent must resolve before coding (the same shape as `adding-a-zone.md`'s "Decide first" section).
-- Points at the existing precedents to learn from (e.g. skills should mirror `src/game/monsters/` for data structure, `src/game/items/lexicon/` for naming).
-- Flags the open ADR-worthy decisions (where does skill data live? how do they interact with the stat engine?).
-
-Specifically queue stubs for:
-- `adding-a-skill.md` (active skill, gem-style)
-- `adding-a-passive.md` (passive tree node)
-- `adding-a-stash-tab.md` (vendor + ruby loop)
-- `adding-a-vendor-product.md` (the slot is set up but only consumables are listed)
-
-These aren't full recipes (the systems don't exist yet). They're orientation docs that get filled in when each system lands.
-
-**Estimate**: 30 min per stub. Low individual cost, high collective payoff.
-
-### 3. ADR for the i18n architecture (lexicon × paraglide × mod-i18n)
-
-**Problem**: The three-system split is non-obvious and was the result of real trade-offs (PR #41 review surfaced "why not unify?" questions). The `i18n-which-system.md` playbook explains the decision tree but not the rejected alternatives or the underlying constraints.
-
-**Fix**: `docs/adr/0002-i18n-systems.md`. Short — five paragraphs. Covers:
-
-- Why paraglide alone wasn't enough (gender concord at scale = key-suffix explosion).
-- Why a single lexicon couldn't replace paraglide (lexicons run through a renderer per call; static UI strings don't need that overhead and lose tooling).
-- Why mod-i18n.ts isn't folded into the lexicon (different shape: value-interpolation + min-max range support).
-- Status: Accepted. Date.
-
-This codifies the decision so a future contributor doesn't redo the analysis from scratch (or, worse, "simplifies" the architecture without knowing why it exists).
-
-**Estimate**: 30 min.
-
-### 4. ADR for render-at-display naming (items + monsters)
-
-**Problem**: Both the item-name and monster-name renderers chose to derive display strings from data at render time rather than store them. The reasoning is solid (locale switching, no name baked into the row) but it's also the kind of decision a future contributor might "improve" without context — pre-rendering names "for performance" would silently break locale switching.
-
-**Fix**: `docs/adr/0003-render-at-display-names.md`. Same shape as 0002. Covers:
-
-- Why we don't store rendered names (locale switch retranslates everything; no stale-cache problem).
-- Why UUID-seeded proper names (no `nameSeed` column needed; the seed is implicit in the existing id).
-- The Convex-validator literal-union limitation that drove the `v.optional(v.string())` widening.
-
-**Estimate**: 30 min.
-
-### 5. Split `src/routes/world.tsx` (already queued)
-
-The 836-line orchestrator. Already has an entry below — keeping the cross-reference here to make sure it's not forgotten in the same priority sweep. See the dedicated entry for details.
-
-### Validation across all items
-
-```bash
-npx tsc --noEmit       # passes if playbook examples + ADR snippets compile
-npx vitest run         # passes if playbooks-smoke.test.ts is green
-npx biome check src/
-```
-
-No runtime change. All deliverables are docs / tests / type-level guarantees. Low risk, high agent-ergonomics payoff.
+2. The MAX PRIORITY agent-ergonomics hardening is **done**. The next high-leverage debt is the `world.tsx` split (queued entry below).
+3. When a major refactor lands, **update the relevant playbook + sentinel in the same PR** (this is the single most important habit for keeping the grade trajectory positive).
 
 ---
 
