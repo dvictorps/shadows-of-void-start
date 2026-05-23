@@ -471,11 +471,11 @@ export const useTeleportStone = mutation({
 		}
 
 		// The bag is the client's responsibility now — when the player has a
-		// non-empty bag, the UI routes them through ExitZoneModal first to pick
-		// their phase-capped share, and the bag is committed via `exitZone`
-		// before this mutation is called. By the time we get here the session
-		// is either empty or about to be — clearing it here just closes the
-		// loose end if the bag commit somehow didn't run.
+		// non-empty bag, the UI routes them through ExitZoneModal first to
+		// pick their phase-capped share, and the bag is committed via
+		// `exitZone` before this mutation runs. Any orphan items (e.g. flow
+		// broken by a disconnect) get purged on the next `enterZone` /
+		// `enterCity`, so no defensive wipe is needed here.
 		const startedAt = Date.now()
 		const arrivesAt =
 			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000

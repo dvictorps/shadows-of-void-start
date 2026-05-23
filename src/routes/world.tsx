@@ -629,17 +629,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		await discardFromBag({ characterId: character._id, itemIds: ids });
 	};
 
-	const consumePendingStone = async () => {
-		if (!pendingStoneRef.current) return;
-		pendingStoneRef.current = false;
-		await fireStoneToCity();
-	};
-
 	const handlePickAll = async (ids: Id<"items">[]) => {
 		try {
 			await exitZone({ characterId: character._id, keepIds: ids });
 			exitModal.close();
-			await consumePendingStone();
 		} catch {
 			toast.error(m.inventory_full_error());
 		}
@@ -648,15 +641,16 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const handleDiscardAll = async () => {
 		await exitZone({ characterId: character._id, keepIds: [] });
 		exitModal.close();
-		await consumePendingStone();
 	};
 
 	const handleCloseExit = async () => {
-		// Auto-close from the modal (bag emptied via incremental picks) lands
-		// here too. When a stone was pending and the bag is now empty, that
-		// counts as a successful commit — fire the stone. An empty close with
-		// a non-empty bag is a user cancel — clear the pending flag and leave
-		// the bag in place; the next enterZone purges any orphan session.
+		// All exit paths funnel here — the explicit Get-all / Discard-all
+		// handlers call exitModal.close() which fires this via onClose, and
+		// the modal also auto-closes when incremental picks empty the bag.
+		// When a stone was pending and the bag is empty, fire the stone.
+		// An empty close with a non-empty bag is a user cancel — clear the
+		// pending flag and leave the bag; the next enterZone purges any
+		// orphan session.
 		const wasPendingStone = pendingStoneRef.current;
 		pendingStoneRef.current = false;
 		exitModal.close();
