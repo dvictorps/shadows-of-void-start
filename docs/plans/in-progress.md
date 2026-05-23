@@ -12,9 +12,10 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 **Next high-leverage item: the `src/hooks/useCombatLoop.ts` split** — 916 lines, the single largest file in the repo. The world.tsx split (PR #45) cleared the previous worst MODIFYING-friction surface; this is the new one. Same orchestrator-monolith shape, with a dedicated entry below containing the suggested cut + lessons-learned from the world.tsx split.
 
-After that, two queued follow-ups can land in any order:
+After that, three queued follow-ups can land in any order:
 
 - **Server-authoritative camp/phase derivation** — closes Threat #3 in the threat model.
+- **Single active session per character** — closes Threat #5 in the threat model (multi-tab races). Same architectural shape as phase derivation (schema add + `sessionToken` arg threaded through every state-mutating mutation + a helper that bundles ownership + session check). **Hard-blocker before any leaderboard / rank ships** — a rank built on multi-tab kills is fraud-by-construction even without intent. Also see the "Convex cost envelope" section below — multi-tab abuse multiplies a single user's function-call cost by tab count.
 - **In-flight tracking for spam-click action handlers** — extends the vendor pattern (shipped in PR #45) to potion / teleport stone / exit-zone buttons / map travel / incense.
 
 Before starting the useCombatLoop split, read: the file itself (top comment block already decomposes its concerns along lifecycle / refs / state / public-mutation lines — use that as the seam), and the consumer wiring in `src/routes/world.tsx` (stable post-split).
@@ -63,6 +64,61 @@ If you're picking up where we left off:
 1. Read this snapshot first — know where the project sits and what's at stake.
 2. The world.tsx split (PR #45) and agent-ergonomics hardening are **done**. The next high-leverage debt is the `useCombatLoop.ts` split (queued entry below).
 3. When a major refactor lands, **update the relevant playbook + sentinel in the same PR** (this is the single most important habit for keeping the grade trajectory positive).
+
+---
+
+## Beta readiness — Convex cost envelope (snapshot, refine with real telemetry)
+
+Reference material, not planned work. Snapshot taken 2026-05-23 in response to the deployment / scaling question. Update this section when real call-rate observations diverge from the model below.
+
+### Per-active-hour call rate (estimated)
+
+Combat-tick mutations driven by `useCombatLoop` against `convex/combat.ts`:
+
+- `recordKill` — 1 per monster kill. At ~6s/kill cycle (spawn gap + ~3s fight typical) that's ~600/hour. Endgame burst rates (heavy dual-wield + ambush packs) approach ~1200/hour.
+- `syncHp` — gated on `hp !== lastSyncedHpRef` + 10s ticker → ceiling 360/hour, but most idle players hit far less because HP only changes during active combat.
+- `usePotion` / `useEtherealIncense` — ~10-30/hour.
+
+Out-of-combat mutations driven by `useWorldMutations`:
+
+- `enterZone` / `exitZone` / `pickFromBag` / `discardFromBag` — ~20-40/hour. Zone changes are deliberate, not spammed.
+- `startTravel` / `arriveAtTravel` — pair on each node transition. ~10-20/hour.
+- `equipItem` / `unequipItem` / `reorderInventory` — ~10-50/hour during active loot sessions.
+- `vendorBuy` / `vendorSellMany` — bursty around vendor visits. ~5-20/hour averaged.
+
+**Total mutations per active hour: ~700-1500.**
+
+### Reactive query updates also bill
+
+Convex meters function calls, which includes query re-runs triggered by mutations on watched tables. Every `recordKill` invalidates `api.characters.list` (level/xp/potions/incense) and `api.items.zoneBag` (the new drop). Every `equipItem` invalidates `api.items.inventory` + `api.items.equipped`. Multiplier from reactive reads is roughly **2-3× the mutation count**.
+
+**Estimated chargeable function calls per active hour: ~2000-4000.**
+
+### Projection against tiers
+
+Verify exact numbers at [convex.dev/pricing](https://www.convex.dev/pricing) — Convex adjusts plans periodically. Approximations as understood today:
+
+| Tier | Included calls / month | Active hours / month it supports | Reads as |
+|---|---|---|---|
+| Free (Starter) | ~1M | ~250-500 | Friends beta (10 friends × ~10h each = 100h) fits with headroom |
+| Pro ($25 base) | ~25M | ~6000-12000 | ~100 daily-active players × ~2h/day fits inside the included quota |
+| Above Pro | Usage-based overage | — | Depends on per-call overage rate |
+
+### What inflates this estimate
+
+- **Layer 2 of the threat-model fix** (per-hit mutation instead of per-kill): 5-10× the call rate. Defer until ranking ships and the cost is justified.
+- **Frequent leaderboard subscriptions**: a "live top 100" view re-runs the leaderboard query for every subscriber whenever any one of the top 100 levels up.
+- **Multi-tab abuse** (see Threat #5 in `docs/security/threat-model.md`): a 5-tab user costs 5× their fair share until the active-session lock ships.
+
+### What does NOT matter for Convex cost
+
+Bandwidth. Convex bandwidth allowances are generous and SPA payloads are tiny (character doc + inventory + zone bag is well under 100KB even at endgame). Bandwidth is the **frontend host's** concern (Vercel / Cloudflare Pages), not Convex's.
+
+### Action items before opening a public beta
+
+- Watch the Convex dashboard's function-call counter after the first week of real play. Compare actual rate to the ~2000-4000/hour model above; refine the projection.
+- Ship Layer 1 rate limits (threat-model). They serve double duty: anti-cheat **and** cost ceiling against scripted spam.
+- Ship the single-active-session lock (queued entry below). It serves double duty: anti-cheat-vs-multi-tab **and** cost protection against the same vector.
 
 ---
 
@@ -243,6 +299,74 @@ This is the next "right" step for the time-based-zone scope, but it requires sch
 ### Why this matters
 
 Without this, the cap is a **client-cooperation** boundary, not a security one. The user's framing in PR #40 — *"backend tem que proteger isso"* — only fully holds once phase derives from server state.
+
+---
+
+## Single active session per character (queued — gates leaderboards)
+
+**Status**: Planned, not started. Closes Threat #5 in [`docs/security/threat-model.md`](../security/threat-model.md). Triggered by the user's observation that opening the same character in two browser tabs runs two independent `useCombatLoop` instances with no coordination.
+
+**Why**: better-auth identifies the **user**, not the **client**. `loadOwnedCharacter(authUserId, characterId)` returns the same character to every tab, and nothing on the character doc identifies which client is currently authoritative. Concrete consequences with N overlapping tabs:
+
+- `recordKill` is credited **N×** per real kill cycle. Each tab spawns its own enemy locally, fights it locally, and reports the kill. The server has no way to dedupe.
+- `enterZone` is last-writer-wins on `currentZoneSession`. Second tab's call orphans the first tab's bag (still in the items table tagged with the old session id, but invisible to the `zoneBag` query keyed on the new session).
+- `syncHp` is last-writer-wins every 10s — HP becomes incoherent; a healthy tab can resurrect a "dead" tab's character.
+- Convex function-call cost is multiplied by tab count (see "Convex cost envelope" above).
+
+Pre-ranking impact is bounded ("weird bugs" + cost amplifier). **Post-ranking impact is fraud-by-construction** — a leaderboard entry built on multi-tab kills isn't ranked legitimately even if the player didn't intend to cheat. **Must ship before the first competitive feature lands.**
+
+### Scope
+
+- **Schema** (`convex/schema.ts`): add to `characters`:
+
+  ```ts
+  activeSessionToken: v.optional(v.string()),
+  activeSessionAt: v.optional(v.number()),
+  ```
+
+- **New mutation** `claimCharacterSession({ characterId, sessionToken })` in `convex/characters.ts` (or a new `convex/sessions.ts` if other session work accumulates): writes the token + `Date.now()` onto the character. Idempotent on the same token. Stealing the session does NOT require any kind of confirm — the second tab just wins.
+
+- **New helper** in `convex/_shared/character.ts`: `loadOwnedCharacterWithSession(ctx, authUserId, characterId, sessionToken)` — runs the existing ownership check, then asserts `char.activeSessionToken === sessionToken`. Throws `ConvexError("Session lost")` on mismatch. Read-only queries deliberately do NOT call this — a stale tab can still observe its character coherently, it just can't write.
+
+- **Every state-mutating mutation** in `convex/combat.ts`, `convex/items.ts`, `convex/vendor.ts`: add `sessionToken: v.string()` arg, swap `loadOwnedCharacter` → `loadOwnedCharacterWithSession`. Mechanical but wide — ~15 call sites.
+
+- **Client**:
+  - Generate a UUID once per tab on mount (`crypto.randomUUID()` stored in an in-memory ref — NOT persisted, so a refresh creates a fresh token and re-claims, which is the desired UX).
+  - Call `claimCharacterSession` immediately after `api.characters.list` resolves and a character is selected.
+  - Thread the token through `useWorldMutations`, `useCombatLoop`, and any other mutation call site (consider a `useSessionToken()` hook that returns the active token + a `withSession(args)` helper so each call site doesn't have to remember).
+  - Catch `ConvexError("Session lost")` globally — translate via `src/lib/convex-errors.ts`, route to a non-dismissible "Another tab has taken over this character" modal that offers a Refresh button. Refresh re-mounts, regenerates the token, re-claims.
+
+### Watch out for
+
+- **Mount-time race**: combat loop's `active=true` must wait until the claim mutation resolves AND the next `characters.list` snapshot shows the new token. Otherwise the first few `recordKill` calls from a freshly-mounted tab race against the prior tab's stale token and get rejected. Gate the loop activation on `char.activeSessionToken === ourToken`.
+- **Network blip false-positives**: a laggy mutation that arrives after a competing claim looks like a tab-takeover to the user. Mitigate by surfacing the "session lost" modal only after a second consecutive rejection, OR by including the timestamp comparison ("if `activeSessionAt` is within 2s of ours, it's a race, not a takeover"). Pick whichever is cheaper once the first pass lands.
+- **Optimistic mutations**: `withOptimisticUpdate` closures patch local store before the mutation commits. If the server rejects with "Session lost", the optimistic patch is rolled back automatically by Convex — verify this in manual testing rather than assuming.
+- **Mobile background tabs**: iOS Safari aggressively suspends backgrounded tabs. A user playing on phone, switching apps, coming back 10 minutes later — that tab may have lost its session to another device's claim. The "session lost" modal must be reachable from a suspended-tab state (it is, because the next mutation attempt triggers it).
+
+### Validation
+
+- `npx tsc --noEmit`, `npx vitest run`, `npx convex dev --once`, `npx biome check`.
+- Manual:
+  - Open same character in two tabs. Confirm tab 2 wins on its claim — tab 1's next mutation shows the session-lost modal.
+  - Refresh tab 1 (modal's Refresh button). It re-claims, starts working. Tab 2 now loses on its next mutation.
+  - In DevTools, call a mutation with no `sessionToken` arg → rejected at the validator level.
+  - In DevTools, call a mutation with a fake token → rejected with "Session lost".
+  - Cross-device: log in on phone, open character. Log in on desktop, open same character. Desktop wins; phone shows the modal next time it tries to act.
+- Cost check: the claim mutation fires once per tab mount. Acceptable overhead. The validation check inside `loadOwnedCharacterWithSession` is one extra equality on an already-loaded doc — no extra round-trip.
+
+### Why this matters before Convex Pro upgrade
+
+The "Convex cost envelope" section above assumes one player = one active loop. Multi-tab abuse can N× a single user's function-call cost — the protection here pays for itself in the cost dimension well before it pays for itself in the anti-cheat dimension. Layer 1 rate limits (in the threat-model) don't help against this because the spam is distributed across legitimate-looking sessions from one user.
+
+### Why not just BroadcastChannel client-side
+
+`BroadcastChannel` (or `localStorage` events) can detect cross-tab presence inside the same browser and degrade one tab to "view only". But it does NOT cover:
+
+- Two browsers on the same device (Chrome + Firefox).
+- Two devices on the same account (laptop + phone).
+- A determined exploiter who patches out the client-side check (the whole point of moving validation to the server).
+
+A client-side coordinator is a UX nicety on top of the server lock, never a replacement. Defer it until the server lock proves the modal-based UX is too disruptive — at which point a `BroadcastChannel` "Another tab on this browser is active — Switch to this tab" inline handoff is a polish item, not a fix.
 
 ---
 

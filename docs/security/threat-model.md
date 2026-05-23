@@ -88,7 +88,24 @@ There are no per-character per-mutation rate limits at the application level. Co
 
 A determined attacker can multiply Convex cost meaningfully with sustained spam against a single character.
 
-### 5. Lesser issues that are NOT urgent
+### 5. Concurrent multi-tab / multi-device sessions (HIGH severity once ranking ships)
+
+The auth model identifies the **user**, not the **client**. `loadOwnedCharacter(authUserId, characterId)` answers "does this user own this character" — yes, in every tab. There is no "is this the active client" check anywhere on the character doc. Two tabs of the same browser (or a tab plus a phone browser logged into the same account) can both open the same character and run independent `useCombatLoop` instances against it.
+
+Per-tab consequences when N tabs overlap:
+
+- `recordKill` is credited N times per real kill cycle (each tab spawns its own enemy locally and reports a kill when its local fight ends) → **XP rate is N×**, drop rolls are N×, potion drops are N×, incense drops are N×.
+- `enterZone` is last-writer-wins on `currentZoneSession`. Second tab's call rotates the session id, so the first tab's drops keep writing to a session id that's no longer tied to the character. The bag is effectively orphaned in the `items` table (still owned by the character via `authUserId`, but invisible to `zoneBag` query which keys on `currentZoneSession`).
+- `syncHp` races — last-writer-wins every 10s. HP becomes incoherent: a healthy tab can resurrect a "dead" tab's character mid-tick.
+- `usePotion` / `useEtherealIncense` — server clamps the count at 0 correctly, but optimistic local counts diverge per tab. The user sees ghosts.
+
+Severity changes with the leaderboard. **Today (pre-ranking)**: bounded to weird bugs for a single character, no cross-player effect — same posture as the other threats above. **The day ranking ships**: any leaderboard entry built on multi-tab gameplay is fraudulent *by construction* — even **without intent**. A casual player who leaves the game open on phone + desktop is double-billing. Ranks become unsignal.
+
+Cost amplifier: multi-tab abuse also multiplies the user's Convex function-call cost. A determined exploiter with 5 tabs makes their own character account for 5× quota. Layer 1 rate limits help, but per-tab limits don't fire against the same character — the spam is *distributed* across legitimate-looking sessions.
+
+**Why it works**: nothing on the character doc identifies the session that's currently driving it. Fix shape lives in `docs/plans/in-progress.md` → "Single active session per character" (active-session token, threaded through every state-mutating mutation).
+
+### 6. Lesser issues that are NOT urgent
 
 These are real but the impact is bounded:
 
@@ -199,6 +216,15 @@ This is the "thin client" architecture that PoE / D4 / etc. use. It makes cheati
 | Layer 3 | Competitive mode (e.g., HC race), OR significant trade economy where cheats translate to real-world value, OR repeated Layer 2 bypasses observed |
 
 The architecture is currently fine for "MVP closed development". Don't preemptively spend Layer 2/3 budget — wait for the trigger and ship the layer that matches the threat.
+
+### Discrete fixes that don't fit the layered scheme
+
+These close a specific exploit without depending on the broader rate-limit / session-combat infrastructure. Each is independent; ship in any order.
+
+| Fix | Closes | Trigger |
+|---|---|---|
+| Server-authoritative camp/phase derivation (see `docs/plans/in-progress.md`) | Threat #3 (`phase` arg trust) | Combat-hook surface stabilises after the useCombatLoop split |
+| Single active session per character (see `docs/plans/in-progress.md`) | Threat #5 (multi-tab) | **First competitive feature ships (leaderboard / rank / shared ladder)**. Pre-leaderboard the bug is annoying; post-leaderboard it is fraud-by-construction. |
 
 ---
 
