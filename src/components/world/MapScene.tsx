@@ -25,6 +25,11 @@ type Props = {
 	currentLocationNodeId: string;
 	unlockedNodeIds: ReadonlySet<string>;
 	completedZoneIds: ReadonlySet<string>;
+	// True only when the player carries at least one Teleport Stone — drives
+	// the cyan "reachable via stone" border tint. Without a stone the
+	// unlocked-but-disconnected nodes still aren't clickable, so the cue
+	// would be misleading.
+	hasTeleportStone: boolean;
 	onOpenSettings: () => void;
 };
 
@@ -52,6 +57,7 @@ export default function MapScene({
 	currentLocationNodeId,
 	unlockedNodeIds,
 	completedZoneIds,
+	hasTeleportStone,
 	onOpenSettings,
 }: Props) {
 	const edges = useMemo(() => buildEdges(act.nodes), [act.nodes]);
@@ -82,7 +88,9 @@ export default function MapScene({
 
 			{act.nodes.map((node) => {
 				const reachableByStone =
-					!connectedIds.has(node.id) && unlockedNodeIds.has(node.id);
+					hasTeleportStone &&
+					!connectedIds.has(node.id) &&
+					unlockedNodeIds.has(node.id);
 				const isComplete = completedZoneIds.has(node.id);
 				const isLocked =
 					node.kind !== "city" && !isNodeAccessible(node, completedZoneIds);

@@ -792,6 +792,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 							currentLocationNodeId={currentLocation}
 							unlockedNodeIds={unlockedNodeIds}
 							completedZoneIds={completedZoneIds}
+							hasTeleportStone={(character.teleportStones ?? 0) > 0}
 							onOpenSettings={settingsModal.open}
 						/>
 						{travelOverlay}
