@@ -191,6 +191,7 @@
   "loot_discard_message_one": "{count} item será descartado permanentemente.",
   "loot_discard_message_other": "{count} itens serão descartados permanentemente.",
   "loot_discard_confirm_button": "Descartar tudo",
+  "loot_keep_cap_hint": "Saída sem acampamento — você só pode levar {cap} itens ({selected} selecionados)",
 
   "modal_close_label": "Fechar",
 

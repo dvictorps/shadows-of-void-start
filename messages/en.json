@@ -191,6 +191,7 @@
   "loot_discard_message_one": "{count} item will be discarded permanently.",
   "loot_discard_message_other": "{count} items will be discarded permanently.",
   "loot_discard_confirm_button": "Discard all",
+  "loot_keep_cap_hint": "Non-camp exit — you can keep only {cap} items ({selected} selected)",
 
   "modal_close_label": "Close",
 

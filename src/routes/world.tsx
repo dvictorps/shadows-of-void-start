@@ -437,6 +437,16 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		onPlayerDeath: handlePlayerDeath,
 	});
 
+	// Bag retention cap by exit phase. Camp keeps the full bag (player picks
+	// freely); exploração / combate cap at 30% (min 1) — the "punished but
+	// not zeroed" tier. See CONTEXT.md → Bag retention tiers.
+	const exitKeepCap = useMemo(() => {
+		const bagSize = zoneBag?.length ?? 0;
+		if (bagSize === 0) return 0;
+		if (combat.phase === "acampamento") return bagSize;
+		return Math.max(1, Math.floor(bagSize * 0.3));
+	}, [zoneBag, combat.phase]);
+
 	// Enter a node's area directly (no travel). Caller has already verified
 	// the player is "at" the node either by arrival or by clicking the
 	// already-current node.
@@ -554,11 +564,11 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		}
 	};
 
-	const handleUseTeleportStone = async () => {
-		const stones = character.teleportStones ?? 0;
-		if (stones <= 0) return;
-		// The HUD button always sends to city — the panic-return contract.
-		// Non-city destinations come through `handleEnterNode` instead.
+	// Set while the exit modal is acting as the bag-handling step for a stone
+	// jump. Cleared on cancel or after the stone fires.
+	const pendingStoneRef = useRef(false);
+
+	const fireStoneToCity = async () => {
 		setPendingArrival("city");
 		try {
 			await useTeleportStone({
@@ -571,6 +581,24 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				err instanceof Error ? err.message : m.teleport_stone_failed(),
 			);
 		}
+	};
+
+	const handleUseTeleportStone = async () => {
+		if (exitModal.isOpen) return;
+		const stones = character.teleportStones ?? 0;
+		if (stones <= 0) return;
+		if (zoneBag === undefined) return;
+		// The HUD button always sends to city — the panic-return contract.
+		// Non-city destinations come through `handleEnterNode` instead.
+		// Bag with items routes through the exit modal so the player keeps
+		// their phase-capped share (camp → 100%, exploração/combate → 30%).
+		// See CONTEXT.md → Bag retention tiers.
+		if (zoneBag.length > 0) {
+			pendingStoneRef.current = true;
+			exitModal.open();
+			return;
+		}
+		await fireStoneToCity();
 	};
 
 	const handleBackToMap = () => {
@@ -601,10 +629,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		await discardFromBag({ characterId: character._id, itemIds: ids });
 	};
 
+	const consumePendingStone = async () => {
+		if (!pendingStoneRef.current) return;
+		pendingStoneRef.current = false;
+		await fireStoneToCity();
+	};
+
 	const handlePickAll = async (ids: Id<"items">[]) => {
 		try {
 			await exitZone({ characterId: character._id, keepIds: ids });
 			exitModal.close();
+			await consumePendingStone();
 		} catch {
 			toast.error(m.inventory_full_error());
 		}
@@ -613,12 +648,21 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const handleDiscardAll = async () => {
 		await exitZone({ characterId: character._id, keepIds: [] });
 		exitModal.close();
+		await consumePendingStone();
 	};
 
-	const handleCloseExit = () => {
-		// Leftover bag items survive until the next enterZone/enterCity, which
-		// purges any orphan session.
+	const handleCloseExit = async () => {
+		// Auto-close from the modal (bag emptied via incremental picks) lands
+		// here too. When a stone was pending and the bag is now empty, that
+		// counts as a successful commit — fire the stone. An empty close with
+		// a non-empty bag is a user cancel — clear the pending flag and leave
+		// the bag in place; the next enterZone purges any orphan session.
+		const wasPendingStone = pendingStoneRef.current;
+		pendingStoneRef.current = false;
 		exitModal.close();
+		if (wasPendingStone && zoneBag && zoneBag.length === 0) {
+			await fireStoneToCity();
+		}
 	};
 
 	// TextLog priority: death > consumable hover (combat) > low-HP warning >
@@ -795,6 +839,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				onPickAll={handlePickAll}
 				onDiscardAll={handleDiscardAll}
 				bagItems={zoneBag ?? []}
+				keepCap={exitKeepCap}
 			/>
 			<ShowStatsModal
 				isOpen={statsModal.isOpen}

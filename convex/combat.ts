@@ -470,10 +470,12 @@ export const useTeleportStone = mutation({
 				throw new ConvexError("zone-locked")
 		}
 
-		if (char.currentZoneSession) {
-			await deleteZoneBag(ctx, char.currentZoneSession)
-		}
-
+		// The bag is the client's responsibility now — when the player has a
+		// non-empty bag, the UI routes them through ExitZoneModal first to pick
+		// their phase-capped share, and the bag is committed via `exitZone`
+		// before this mutation is called. By the time we get here the session
+		// is either empty or about to be — clearing it here just closes the
+		// loose end if the bag commit somehow didn't run.
 		const startedAt = Date.now()
 		const arrivesAt =
 			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000

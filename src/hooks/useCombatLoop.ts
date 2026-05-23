@@ -707,5 +707,17 @@ export function useCombatLoop({
 		campThresholdsMs,
 		dismissMinibossModal,
 		dismissCamp,
+		// Combat phase derived from `state`. Drives the bag-retention cap on
+		// exit (camp = 100%, exploração/combate = 30%). See CONTEXT.md →
+		// Bag retention tiers.
+		phase: derivePhase(state),
 	};
+}
+
+export type CombatPhase = "combate" | "exploração" | "acampamento";
+
+function derivePhase(state: CombatState): CombatPhase {
+	if (state === "searching") return "exploração";
+	if (state === "acampamento") return "acampamento";
+	return "combate";
 }
