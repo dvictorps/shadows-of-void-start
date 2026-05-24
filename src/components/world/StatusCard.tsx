@@ -103,7 +103,7 @@ export default function StatusCard({
 								</span>
 							}
 						>
-							<p className="cursor-help text-glow-red">
+							<p className="text-glow-red">
 								{m.status_strength_label()} {stats.attributes.strength}
 							</p>
 						</Tooltip>
@@ -117,7 +117,7 @@ export default function StatusCard({
 								</span>
 							}
 						>
-							<p className="cursor-help text-glow-green">
+							<p className="text-glow-green">
 								{m.status_dexterity_label()} {stats.attributes.dexterity}
 							</p>
 						</Tooltip>
@@ -130,7 +130,7 @@ export default function StatusCard({
 								</span>
 							}
 						>
-							<p className="cursor-help text-glow-blue">
+							<p className="text-glow-blue">
 								{m.status_intelligence_label()} {stats.attributes.intelligence}
 							</p>
 						</Tooltip>
