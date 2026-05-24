@@ -6,6 +6,7 @@ import {
 import type { CharacterClassId } from "../src/game/classes/types"
 import { findStarterItem, STARTER_WEAPON_BY_CLASS } from "../src/game/items/starter-gear"
 import { computeCharacterStats } from "../src/game/stats/compute"
+import { loadOwnedCharacter } from "./_shared/character"
 import type { Doc } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
@@ -172,5 +173,31 @@ export const byId = query({
 		if (!char) return null
 		if (char.authUserId !== authUser._id) return null
 		return { ...char, ...normalize(char) }
+	},
+})
+
+// Stamps this client's UUID as the character's single active session — closes
+// Threat #5 in docs/security/threat-model.md. Stealing is unconditional: the
+// caller writes their token + timestamp, the prior tab's next state-mutating
+// mutation fails the `loadOwnedCharacterWithSession` check and gets bumped
+// to the "Session lost" modal. Idempotent on the same token (re-issued claims
+// just refresh the timestamp). The `/character-select` Play button awaits this
+// mutation before navigating to /world so the combat loop's token-equality
+// gate sees a fresh character snapshot on mount.
+export const claimCharacterSession = mutation({
+	args: {
+		characterId: v.id("characters"),
+		sessionToken: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		await ctx.db.patch(args.characterId, {
+			activeSessionToken: args.sessionToken,
+			activeSessionAt: Date.now(),
+		})
+		return { sessionToken: args.sessionToken }
 	},
 })

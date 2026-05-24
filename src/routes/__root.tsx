@@ -15,6 +15,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useEffect } from "react";
 import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
+import { SessionTokenProvider } from "#/hooks/useSessionToken";
 import { authClient } from "#/lib/auth-client";
 import { getToken } from "#/lib/auth-server";
 import { consumeFlashToast } from "#/lib/flash-toast";
@@ -134,11 +135,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<PostHogProvider>
 					<TanStackQueryProvider>
 						<ConfirmationProvider>
-							<TooltipPrimitive.Provider delayDuration={150}>
-								{!chromeless && <Header />}
-								{children}
-								{showFooter && <Footer />}
-							</TooltipPrimitive.Provider>
+							<SessionTokenProvider>
+								<TooltipPrimitive.Provider delayDuration={150}>
+									{!chromeless && <Header />}
+									{children}
+									{showFooter && <Footer />}
+								</TooltipPrimitive.Provider>
+							</SessionTokenProvider>
 						</ConfirmationProvider>
 						<Toaster />
 						<TanStackDevtools

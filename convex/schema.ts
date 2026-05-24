@@ -88,6 +88,17 @@ export default defineSchema({
 		// replay). Reset on enterZone / exitZone / death / miniboss kill via
 		// clearPerVisitZoneState (and explicitly in the miniboss reroll path).
 		lastCampIndex: v.optional(v.number()),
+		// Single active session per character — closes Threat #5 in
+		// docs/security/threat-model.md. Every state-mutating mutation
+		// validates `args.sessionToken === char.activeSessionToken` so a
+		// second tab/device that claimed the character bumps the first
+		// tab into a "session lost" modal on its next write. Read-only
+		// queries deliberately ignore this field so a stale tab can still
+		// observe coherent character state. `activeSessionAt` is kept for
+		// observability (admin debug, future race-window heuristics);
+		// the current modal trigger uses simple first-rejection.
+		activeSessionToken: v.optional(v.string()),
+		activeSessionAt: v.optional(v.number()),
 	}).index("by_authUserId", ["authUserId"]),
 
 	// All items live here — drops, inventory, equipped, stash. Location is

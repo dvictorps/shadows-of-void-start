@@ -49,7 +49,7 @@ import {
 	clearPerVisitZoneState,
 	deleteZoneBag,
 	loadEquippedSet,
-	loadOwnedCharacter,
+	loadOwnedCharacterWithSession,
 	newZoneSession,
 	refillPotionsToFloor,
 } from "./_shared/character"
@@ -60,6 +60,7 @@ import { authComponent } from "./auth"
 export const recordKill = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		monsterId: v.string(),
 		// Server trusts the client-rolled level + rarity for now — see
 		// docs/security/threat-model.md.
@@ -73,7 +74,7 @@ export const recordKill = mutation({
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const monster = findMonster(args.monsterId)
 		if (!monster) throw new ConvexError(`Unknown monster: ${args.monsterId}`)
@@ -206,11 +207,11 @@ export const recordKill = mutation({
 })
 
 export const usePotion = mutation({
-	args: { characterId: v.id("characters") },
+	args: { characterId: v.id("characters"), sessionToken: v.string() },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const potions = char.potions ?? 0
 		if (potions <= 0) throw new ConvexError("No potions to use")
@@ -244,11 +245,11 @@ export const usePotion = mutation({
 // the client (no shared state to validate against here). Client-event trust
 // model documented in docs/security/threat-model.md.
 export const useEtherealIncense = mutation({
-	args: { characterId: v.id("characters") },
+	args: { characterId: v.id("characters"), sessionToken: v.string() },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const count = char.etherealIncense ?? 0
 		if (count <= 0) throw new ConvexError("No incense to use")
@@ -272,11 +273,11 @@ export const useEtherealIncense = mutation({
 // be widened by accident. See docs/plans/in-progress.md
 // "Server-authoritative camp/phase derivation".
 export const enterCampViaIncense = mutation({
-	args: { characterId: v.id("characters") },
+	args: { characterId: v.id("characters"), sessionToken: v.string() },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		if (char.zoneStartedAt === undefined)
 			throw new ConvexError("Not in a zone")
@@ -289,12 +290,13 @@ export const enterCampViaIncense = mutation({
 export const syncHp = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		hpCurrent: v.number(),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const classDef = findClassDefinition(char.classId)
 		const equippedItems = await loadEquippedSet(ctx, args.characterId)
@@ -312,11 +314,11 @@ export const syncHp = mutation({
 })
 
 export const enterCity = mutation({
-	args: { characterId: v.id("characters") },
+	args: { characterId: v.id("characters"), sessionToken: v.string() },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const classDef = findClassDefinition(char.classId)
 		const equippedItems = await loadEquippedSet(ctx, args.characterId)
@@ -337,11 +339,11 @@ export const enterCity = mutation({
 })
 
 export const respawnDead = mutation({
-	args: { characterId: v.id("characters") },
+	args: { characterId: v.id("characters"), sessionToken: v.string() },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		// Wipe the zone bag — death loses everything staged.
 		if (char.currentZoneSession) {
@@ -392,12 +394,13 @@ export const respawnDead = mutation({
 export const enterZone = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		zoneId: v.string(),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const zone = findNode(ACT_1, args.zoneId)
 		if (!zone || zone.kind !== "combat")
@@ -457,12 +460,13 @@ const ENTER_CAMP_GRACE_MS = 500
 export const enterCamp = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		thresholdIndex: v.number(),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const zoneStartedAt = char.zoneStartedAt
 		if (zoneStartedAt === undefined) throw new ConvexError("Not in a zone")
@@ -509,11 +513,11 @@ export const enterCamp = mutation({
 // em frente" on the camp panel. No time gate; the cinematic is purely a
 // player-driven dismiss.
 export const exitCamp = mutation({
-	args: { characterId: v.id("characters") },
+	args: { characterId: v.id("characters"), sessionToken: v.string() },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		await ctx.db.patch(args.characterId, { inCamp: false })
 		return { inCamp: false }
@@ -523,12 +527,13 @@ export const exitCamp = mutation({
 export const startTravel = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		destinationNodeId: v.string(),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		if (char.travelDestination !== undefined)
 			throw new ConvexError("Already traveling")
@@ -586,11 +591,11 @@ export const startTravel = mutation({
 const TRAVEL_ARRIVAL_GRACE_MS = 1000
 
 export const arriveAtTravel = mutation({
-	args: { characterId: v.id("characters") },
+	args: { characterId: v.id("characters"), sessionToken: v.string() },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		// Idempotent: if there's no active travel, the caller is either retrying
 		// a successful arrival or hitting a stale timer. Either way, succeed
@@ -628,6 +633,7 @@ export const arriveAtTravel = mutation({
 export const useTeleportStone = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		// Optional for backward-compat with call sites that haven't been
 		// updated yet — undefined is interpreted as `"city"`.
 		destinationNodeId: v.optional(v.string()),
@@ -635,7 +641,7 @@ export const useTeleportStone = mutation({
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const stones = char.teleportStones ?? 0
 		if (stones <= 0) throw new ConvexError("No teleport stones")

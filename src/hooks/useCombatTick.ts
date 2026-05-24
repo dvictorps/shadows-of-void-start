@@ -37,6 +37,7 @@ import { playSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { DamageEvent } from "./useDamageEvents";
+import { useSessionToken } from "./useSessionToken";
 import { useTicker } from "./useTicker";
 
 const TICK_INTERVAL_MS = 50;
@@ -115,6 +116,8 @@ export function useCombatTick({
 	// alternates main / off hand.
 	const nextSwingIndexRef = useRef(0);
 
+	const { withSession } = useSessionToken();
+
 	const syncHp = useMutation(api.combat.syncHp);
 	const consumePotion = useMutation(api.combat.usePotion).withOptimisticUpdate(
 		(localStore, args) => {
@@ -161,11 +164,13 @@ export function useCombatTick({
 			leechRef.current = [];
 			nextSwingIndexRef.current = 0;
 		} else if (!active && wasActive && !deadRef.current) {
-			syncHp({ characterId, hpCurrent: playerHpRef.current }).catch(() => {});
+			syncHp(
+				withSession({ characterId, hpCurrent: playerHpRef.current }),
+			).catch(() => {});
 			lastSyncedHpRef.current = playerHpRef.current;
 		}
 		activeRef.current = active;
-	}, [active, characterId, syncHp]);
+	}, [active, characterId, syncHp, withSession]);
 
 	const enemyAttackSpeed = enemy?.scaled.attackSpeed ?? 1;
 	const tickRate = stats.tickRate || 1;
@@ -379,7 +384,7 @@ export function useCombatTick({
 		const hp = playerHpRef.current;
 		if (hp === lastSyncedHpRef.current) return;
 		lastSyncedHpRef.current = hp;
-		syncHp({ characterId, hpCurrent: hp }).catch(() => {
+		syncHp(withSession({ characterId, hpCurrent: hp })).catch(() => {
 			lastSyncedHpRef.current = -1;
 		});
 	});
@@ -401,14 +406,14 @@ export function useCombatTick({
 		// character query; `consumePotion` wraps the localStore decrement so
 		// no race against concurrent `recordKill` drops.
 		try {
-			await consumePotion({ characterId });
+			await consumePotion(withSession({ characterId }));
 		} catch {
 			const reverted = Math.max(0, playerHpRef.current - appliedHeal);
 			playerHpRef.current = reverted;
 			setPlayerHp(reverted);
 			lastSyncedHpRef.current = -1;
 		}
-	}, [potions, maxHp, characterId, consumePotion]);
+	}, [potions, maxHp, characterId, consumePotion, withSession]);
 
 	return {
 		playerHp,

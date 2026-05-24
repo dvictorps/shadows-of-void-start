@@ -37,6 +37,7 @@ import { useCombatTick } from "./useCombatTick";
 import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
 import { useDelay } from "./useDelay";
 import { useEncounterSchedule } from "./useEncounterSchedule";
+import { useSessionToken } from "./useSessionToken";
 
 // CampSource / DamageEvent are passed through unchanged to CombatScene; the
 // other re-exports give external consumers a single import surface for the
@@ -112,6 +113,8 @@ export function useCombatLoop({
 	const enemyRef = useRef<Enemy | null>(enemy);
 	enemyRef.current = enemy;
 
+	const { withSession } = useSessionToken();
+
 	const enterCamp = useMutation(api.combat.enterCamp);
 	const exitCampMutation = useMutation(api.combat.exitCamp);
 	const enterCampViaIncense = useMutation(api.combat.enterCampViaIncense);
@@ -131,7 +134,7 @@ export function useCombatLoop({
 			// call rejects (e.g. clock drift past the grace window) we still
 			// keep the cinematic on-screen and let the player retreat — the
 			// 30% cap will apply in that edge case, which is the safe default.
-			enterCamp({ characterId, thresholdIndex }).catch(() => {});
+			enterCamp(withSession({ characterId, thresholdIndex })).catch(() => {});
 		},
 	});
 
@@ -172,12 +175,14 @@ export function useCombatLoop({
 			if (killed.rarity === "rare") {
 				schedule.resetForMiniboss();
 			}
-			recordKill({
-				characterId,
-				monsterId: killed.def.id,
-				monsterLevel: killed.level,
-				monsterRarity: killed.rarity,
-			})
+			recordKill(
+				withSession({
+					characterId,
+					monsterId: killed.def.id,
+					monsterLevel: killed.level,
+					monsterRarity: killed.rarity,
+				}),
+			)
 				.then((result) => {
 					if (result.potionDropped) {
 						setLastKill({ xp: xpGained, potion: true });
@@ -191,7 +196,13 @@ export function useCombatLoop({
 				})
 				.catch(() => {});
 		},
-		[characterId, characterLevel, recordKill, schedule.resetForMiniboss],
+		[
+			characterId,
+			characterLevel,
+			recordKill,
+			schedule.resetForMiniboss,
+			withSession,
+		],
 	);
 
 	const { playerHp, barrier, usePotion } = useCombatTick({
@@ -230,8 +241,8 @@ export function useCombatLoop({
 		if (stateRef.current !== "acampamento") return;
 		stateRef.current = "searching";
 		setState("searching");
-		exitCampMutation({ characterId }).catch(() => {});
-	}, [characterId, exitCampMutation]);
+		exitCampMutation(withSession({ characterId })).catch(() => {});
+	}, [characterId, exitCampMutation, withSession]);
 
 	// Player activated Incenso Etéreo. The gameplay rules (see CONTEXT.md →
 	// Active player input → Incenso Etéreo) gate this:
@@ -253,7 +264,7 @@ export function useCombatLoop({
 
 		// The optimistic update on the mutation hook handles the
 		// localStore decrement; we only need to swallow the rejection.
-		consumeIncense({ characterId }).catch(() => {});
+		consumeIncense(withSession({ characterId })).catch(() => {});
 
 		if (s === "engaged") {
 			// Let the current fight resolve. The victory branch reads this and
@@ -270,7 +281,7 @@ export function useCombatLoop({
 		setState("acampamento");
 		// Persist the camp claim server-side so the bag mutations see the
 		// camp phase. Incense camps bypass the time-threshold gate.
-		enterCampViaIncense({ characterId }).catch(() => {});
+		enterCampViaIncense(withSession({ characterId })).catch(() => {});
 	}, [
 		characterId,
 		consumeIncense,
@@ -279,6 +290,7 @@ export function useCombatLoop({
 		schedule.isAmbushPackActive,
 		schedule.cancelAmbush,
 		schedule.setCampSource,
+		withSession,
 	]);
 
 	// ── Search delay → spawn enemy ──
@@ -365,7 +377,7 @@ export function useCombatLoop({
 			schedule.setCampSource("incense");
 			stateRef.current = "acampamento";
 			setState("acampamento");
-			enterCampViaIncense({ characterId }).catch(() => {});
+			enterCampViaIncense(withSession({ characterId })).catch(() => {});
 		} else {
 			setState("searching");
 		}
@@ -380,8 +392,8 @@ export function useCombatLoop({
 		if (stateRef.current !== "miniboss_victory") return;
 		stateRef.current = "searching";
 		setState("searching");
-		exitCampMutation({ characterId }).catch(() => {});
-	}, [characterId, exitCampMutation]);
+		exitCampMutation(withSession({ characterId })).catch(() => {});
+	}, [characterId, exitCampMutation, withSession]);
 
 	return {
 		state,

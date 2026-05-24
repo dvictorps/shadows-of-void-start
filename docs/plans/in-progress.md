@@ -10,9 +10,9 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ## Next session — pick up here
 
-Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation (PR #48), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), the phase-arg dead-weight cleanup (PR #51), and the `useInFlight` extraction (PR #52) all merged. Remaining queue in priority order:
+Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation (PR #48), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), the phase-arg dead-weight cleanup (PR #51), the `useInFlight` extraction (PR #52), and the single-active-session lock (`feat/single-active-session`) all shipped. The leaderboard hard-blocker is now cleared.
 
-- **Single active session per character** — closes Threat #5 in the threat model (multi-tab races). Same architectural shape as phase derivation (schema add + `sessionToken` arg threaded through every state-mutating mutation + a helper that bundles ownership + session check). **Hard-blocker before any leaderboard / rank ships** — a rank built on multi-tab kills is fraud-by-construction even without intent. Also see the "Convex cost envelope" section below — multi-tab abuse multiplies a single user's function-call cost by tab count.
+Pick the next item by readiness: **monster crit** (queued below — finally activates the build-pressure that the PoE-style armor formula assumes) is the highest-leverage gameplay debt; **native monster barrier** is mechanical; **CLASS_NAME helper extraction** is a 30-minute polish PR that retires four duplicate maps.
 
 ### world.tsx size — closed decision
 
@@ -59,7 +59,7 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 If you're picking up where we left off:
 
 1. Read this snapshot first — know where the project sits and what's at stake.
-2. world.tsx split (PR #45), useCombatLoop split (PR #47), camp/phase derivation (PR #48, closed Threat #3), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), phase-arg cleanup (PR #51), and `useInFlight` extraction (PR #52) are all **done**. The next high-leverage debt is the single-active-session lock (queued entry below) — hard-blocker before any leaderboard.
+2. world.tsx split (PR #45), useCombatLoop split (PR #47), camp/phase derivation (PR #48, closed Threat #3), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), phase-arg cleanup (PR #51), `useInFlight` extraction (PR #52), and the single-active-session lock (`feat/single-active-session`, closed Threat #5) are all **done**. The leaderboard hard-blocker is cleared — competitive features are unblocked architecturally.
 3. When a major refactor lands, **update the relevant playbook + sentinel + codebase-map + CONTEXT.md + this file in the same PR** (this is the single most important habit for keeping the grade trajectory positive — see the "Doc-update discipline" section in `CLAUDE.md`).
 
 ---
@@ -105,7 +105,7 @@ Verify exact numbers at [convex.dev/pricing](https://www.convex.dev/pricing) —
 
 - **Layer 2 of the threat-model fix** (per-hit mutation instead of per-kill): 5-10× the call rate. Defer until ranking ships and the cost is justified.
 - **Frequent leaderboard subscriptions**: a "live top 100" view re-runs the leaderboard query for every subscriber whenever any one of the top 100 levels up.
-- **Multi-tab abuse** (see Threat #5 in `docs/security/threat-model.md`): a 5-tab user costs 5× their fair share until the active-session lock ships.
+- **Multi-tab abuse** was the worst offender here, multiplying a single user's call rate by tab count. Closed in `feat/single-active-session` (see Threat #5 in `docs/security/threat-model.md`) — every state-mutating mutation now rejects stale tabs.
 
 ### What does NOT matter for Convex cost
 
@@ -115,7 +115,7 @@ Bandwidth. Convex bandwidth allowances are generous and SPA payloads are tiny (c
 
 - Watch the Convex dashboard's function-call counter after the first week of real play. Compare actual rate to the ~2000-4000/hour model above; refine the projection.
 - Ship Layer 1 rate limits (threat-model). They serve double duty: anti-cheat **and** cost ceiling against scripted spam.
-- Ship the single-active-session lock (queued entry below). It serves double duty: anti-cheat-vs-multi-tab **and** cost protection against the same vector.
+- ~~Ship the single-active-session lock.~~ ✅ Done in `feat/single-active-session`.
 
 ---
 
@@ -222,74 +222,6 @@ experience. The remaining 40% is in (a) biome-themed background art and
 ### 4. Convex validator can't enforce literal unions
 
 **Constraint, not a bug**. `nameBase` / `nameModifier` are stored as `v.optional(v.string())` because Convex validators don't have ergonomic literal-union support. The in-process `GeneratedItem` type widens to `string` at the persistence boundary — the lexicon files themselves keep the union enforcement. If Convex ever ships a `v.unionLiteral([...])` helper, swap in.
-
----
-
-## Single active session per character (queued — gates leaderboards)
-
-**Status**: Planned, not started. Closes Threat #5 in [`docs/security/threat-model.md`](../security/threat-model.md). Triggered by the user's observation that opening the same character in two browser tabs runs two independent `useCombatLoop` instances with no coordination.
-
-**Why**: better-auth identifies the **user**, not the **client**. `loadOwnedCharacter(authUserId, characterId)` returns the same character to every tab, and nothing on the character doc identifies which client is currently authoritative. Concrete consequences with N overlapping tabs:
-
-- `recordKill` is credited **N×** per real kill cycle. Each tab spawns its own enemy locally, fights it locally, and reports the kill. The server has no way to dedupe.
-- `enterZone` is last-writer-wins on `currentZoneSession`. Second tab's call orphans the first tab's bag (still in the items table tagged with the old session id, but invisible to the `zoneBag` query keyed on the new session).
-- `syncHp` is last-writer-wins every 10s — HP becomes incoherent; a healthy tab can resurrect a "dead" tab's character.
-- Convex function-call cost is multiplied by tab count (see "Convex cost envelope" above).
-
-Pre-ranking impact is bounded ("weird bugs" + cost amplifier). **Post-ranking impact is fraud-by-construction** — a leaderboard entry built on multi-tab kills isn't ranked legitimately even if the player didn't intend to cheat. **Must ship before the first competitive feature lands.**
-
-### Scope
-
-- **Schema** (`convex/schema.ts`): add to `characters`:
-
-  ```ts
-  activeSessionToken: v.optional(v.string()),
-  activeSessionAt: v.optional(v.number()),
-  ```
-
-- **New mutation** `claimCharacterSession({ characterId, sessionToken })` in `convex/characters.ts` (or a new `convex/sessions.ts` if other session work accumulates): writes the token + `Date.now()` onto the character. Idempotent on the same token. Stealing the session does NOT require any kind of confirm — the second tab just wins.
-
-- **New helper** in `convex/_shared/character.ts`: `loadOwnedCharacterWithSession(ctx, authUserId, characterId, sessionToken)` — runs the existing ownership check, then asserts `char.activeSessionToken === sessionToken`. Throws `ConvexError("Session lost")` on mismatch. Read-only queries deliberately do NOT call this — a stale tab can still observe its character coherently, it just can't write.
-
-- **Every state-mutating mutation** in `convex/combat.ts`, `convex/items.ts`, `convex/vendor.ts`: add `sessionToken: v.string()` arg, swap `loadOwnedCharacter` → `loadOwnedCharacterWithSession`. Mechanical but wide — ~15 call sites.
-
-- **Client**:
-  - Generate a UUID once per tab on mount (`crypto.randomUUID()` stored in an in-memory ref — NOT persisted, so a refresh creates a fresh token and re-claims, which is the desired UX).
-  - Call `claimCharacterSession` immediately after `api.characters.list` resolves and a character is selected.
-  - Thread the token through `useWorldMutations`, `useCombatLoop`, and any other mutation call site (consider a `useSessionToken()` hook that returns the active token + a `withSession(args)` helper so each call site doesn't have to remember).
-  - Catch `ConvexError("Session lost")` globally — translate via `src/lib/convex-errors.ts`, route to a non-dismissible "Another tab has taken over this character" modal that offers a Refresh button. Refresh re-mounts, regenerates the token, re-claims.
-
-### Watch out for
-
-- **Mount-time race**: combat loop's `active=true` must wait until the claim mutation resolves AND the next `characters.list` snapshot shows the new token. Otherwise the first few `recordKill` calls from a freshly-mounted tab race against the prior tab's stale token and get rejected. Gate the loop activation on `char.activeSessionToken === ourToken`.
-- **Network blip false-positives**: a laggy mutation that arrives after a competing claim looks like a tab-takeover to the user. Mitigate by surfacing the "session lost" modal only after a second consecutive rejection, OR by including the timestamp comparison ("if `activeSessionAt` is within 2s of ours, it's a race, not a takeover"). Pick whichever is cheaper once the first pass lands.
-- **Optimistic mutations**: `withOptimisticUpdate` closures patch local store before the mutation commits. If the server rejects with "Session lost", the optimistic patch is rolled back automatically by Convex — verify this in manual testing rather than assuming.
-- **Mobile background tabs**: iOS Safari aggressively suspends backgrounded tabs. A user playing on phone, switching apps, coming back 10 minutes later — that tab may have lost its session to another device's claim. The "session lost" modal must be reachable from a suspended-tab state (it is, because the next mutation attempt triggers it).
-
-### Validation
-
-- `npx tsc --noEmit`, `npx vitest run`, `npx convex dev --once`, `npx biome check`.
-- Manual:
-  - Open same character in two tabs. Confirm tab 2 wins on its claim — tab 1's next mutation shows the session-lost modal.
-  - Refresh tab 1 (modal's Refresh button). It re-claims, starts working. Tab 2 now loses on its next mutation.
-  - In DevTools, call a mutation with no `sessionToken` arg → rejected at the validator level.
-  - In DevTools, call a mutation with a fake token → rejected with "Session lost".
-  - Cross-device: log in on phone, open character. Log in on desktop, open same character. Desktop wins; phone shows the modal next time it tries to act.
-- Cost check: the claim mutation fires once per tab mount. Acceptable overhead. The validation check inside `loadOwnedCharacterWithSession` is one extra equality on an already-loaded doc — no extra round-trip.
-
-### Why this matters before Convex Pro upgrade
-
-The "Convex cost envelope" section above assumes one player = one active loop. Multi-tab abuse can N× a single user's function-call cost — the protection here pays for itself in the cost dimension well before it pays for itself in the anti-cheat dimension. Layer 1 rate limits (in the threat-model) don't help against this because the spam is distributed across legitimate-looking sessions from one user.
-
-### Why not just BroadcastChannel client-side
-
-`BroadcastChannel` (or `localStorage` events) can detect cross-tab presence inside the same browser and degrade one tab to "view only". But it does NOT cover:
-
-- Two browsers on the same device (Chrome + Firefox).
-- Two devices on the same account (laptop + phone).
-- A determined exploiter who patches out the client-side check (the whole point of moving validation to the server).
-
-A client-side coordinator is a UX nicety on top of the server lock, never a replacement. Defer it until the server lock proves the modal-based UX is too disruptive — at which point a `BroadcastChannel` "Another tab on this browser is active — Switch to this tab" inline handoff is a polish item, not a fix.
 
 ---
 
