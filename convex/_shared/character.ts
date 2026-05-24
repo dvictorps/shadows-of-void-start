@@ -1,8 +1,5 @@
 import { ConvexError, v } from "convex/values"
-import {
-	COMBAT_PHASES,
-	POTION_REFILL_FLOOR,
-} from "../../src/game/combat/constants"
+import { POTION_REFILL_FLOOR } from "../../src/game/combat/constants"
 import { INVENTORY_MAX_SLOTS } from "../../src/game/inventory/constants"
 import {
 	EQUIPPED_SLOTS,
@@ -142,10 +139,3 @@ export const equippedSlotValidator = v.union(
 	v.literal(EQUIPPED_SLOTS[9]),
 )
 
-// Derived from the single source of truth in src/game/combat/constants so
-// the validator and the CombatPhase type can never drift.
-export const combatPhaseValidator = v.union(
-	v.literal(COMBAT_PHASES[0]),
-	v.literal(COMBAT_PHASES[1]),
-	v.literal(COMBAT_PHASES[2]),
-)
