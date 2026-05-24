@@ -352,8 +352,13 @@ export function useCombatTick({
 			// branch the player-swing uses.
 			if (!attack.isMiss && stats.thorns > 0 && !deadRef.current) {
 				const reflected = Math.max(1, Math.floor(stats.thorns));
-				const enemyAfter = Math.max(0, currentEnemy.currentHp - reflected);
-				const updated: Enemy = { ...currentEnemy, currentHp: enemyAfter };
+				// Read from the live ref, not the top-of-tick snapshot — when a
+				// player swing landed earlier in this same tick the snapshot's
+				// `currentHp` is the pre-swing value, and writing it back here
+				// would silently erase the player-swing damage.
+				const enemyAtNow = enemyRef.current ?? currentEnemy;
+				const enemyAfter = Math.max(0, enemyAtNow.currentHp - reflected);
+				const updated: Enemy = { ...enemyAtNow, currentHp: enemyAfter };
 				enemyRef.current = updated;
 				updateEnemy(updated);
 				pushEvent({
