@@ -403,7 +403,6 @@ export function useCombatLoop({
 		barrier: {
 			current: barrier.current,
 			max: barrier.max,
-			recoveryRemaining: barrier.recoveryRemaining,
 		},
 		potions,
 		incense,

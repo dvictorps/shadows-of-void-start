@@ -119,24 +119,6 @@ Bandwidth. Convex bandwidth allowances are generous and SPA payloads are tiny (c
 
 ---
 
-## Attribute baseline rebalance pass (low priority — wait for player feedback)
-
-**Status**: Live, watching. Shipped in the over-level + attributes patch.
-
-**Why**: Initial conversions chosen by gut:
-- Str → +1% Melee Damage / point
-- Dex → +2 Accuracy / point
-- Int → +2% Barrier per 10 points (= 0.2 / point)
-
-At ~80 of the primary attribute that lands at +80% melee / +160 acc / +16% barrier. Str clearly dominates Int — fine if Mage gameplay still feels good (Int is meant as a defensive nudge, not the offensive bedrock; spells lean on `spell` + per-element increased), but if Mage feels flat at level ~15+ revisit:
-
-- Cheapest knob: bump `INT_BARRIER_PCT_PER_POINT` (in `src/game/stats/compute.ts`) from `0.2` → `0.5`.
-- Or: add a second Int conversion (e.g., +1% spell damage / point).
-
-Open until a Mage run reaches Act 1 endgame.
-
----
-
 ## Act-boss node Model B refit for time-bar (deferred)
 
 **Status**: Planned, not started.
@@ -229,36 +211,32 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 **Status**: Planned, not started. Triggered by the "Additional Barrier" monster mod from the zone-progression PR.
 
-**Why**: today the `monsterAdditionalBarrier` mod folds into HP (`hp × 1.3`) as a placeholder because monsters have no barrier mechanism. The player has barrier (pool above HP, 6s recovery timer, full refill — see CONTEXT.md → Defenses → Barrier). Monsters should have the same shape so the mod's flavour matches its identity ("barrier above HP", not "more HP").
+**Why**: today the `monsterAdditionalBarrier` mod folds into HP (`hp × 1.3`) as a placeholder because monsters have no barrier mechanism. The player has barrier (pool above HP, 5%/s regen + 10s cooldown on break — see CONTEXT.md → Defenses → Barrier and [ADR 0005](../adr/0005-barrier-regen-mechanic.md)). Monsters should have the same shape so the mod's flavour matches its identity ("barrier above HP", not "more HP").
 
 ### Scope
 
 - Extend `ScaledMonsterStats` with a `barrier: number` field (currently absent).
-- Add `barrier` and `barrierRecoveryRemaining` to the live enemy state on `Enemy` (mirror the player's `BarrierState`).
-- Reuse `damageBarrier()` / `tickBarrierRecovery()` from `src/game/combat/barrier.ts` on the enemy side of the combat tick.
+- Add `barrier` and `barrierCooldownRemaining` to the live enemy state on `Enemy` (mirror the player's `BarrierState`).
+- Reuse `damageBarrier()` / `tickBarrier()` from `src/game/combat/barrier.ts` on the enemy side of the combat tick.
 - Update `monsterAdditionalBarrier` mod to grant a real barrier pool (e.g., `barrier += hp × 0.3`) instead of inflating HP.
 - UI: render a thin blue strip above the enemy HP bar when barrier > 0 (mirror the player's HealthGlobe barrier ring).
 
 ### Validation
 
 - `npx tsc --noEmit`, `npx vitest run`
-- Manual: roll a magic mob with Additional Barrier. Confirm barrier pool absorbs first, refills 6s after empty, doesn't refill while above zero.
+- Manual: roll a magic mob with Additional Barrier. Confirm barrier absorbs first, regenerates at 5%/s while above zero, enters 10s cooldown when it breaks, resumes regen from zero after cooldown expires.
 
 ---
 
-## PoE-style armor ecosystem — monster crit + CONTEXT.md doc fix (queued)
+## PoE-style armor ecosystem — monster crit (queued)
 
-**Status**: Planned, not started. Two coupled items surfaced during a design pass on combat math.
+**Status**: Planned, not started.
 
 **Background**: armor used to compute as Last Epoch-style (`armor / (armor + 10 × enemyLevel)` — denominator scales with attacker level). That formula gave ~90% physical reduction from a single chestplate in act 1, making the character effectively immortal vs phys. The actual code in `src/game/combat/damage.ts:55-67` now uses PoE-style (`armor / (armor + 10 × physical)` — denominator scales with hit size), capped at 85%. The comment in the code explains the trade-off: "tank against trash, falls off against spikes."
 
 The pivot is correct for the genre — in auto-combat the player can't skill-check a spike, so the defense system has to force diversification (armor + barrier + resistances + evasion) instead of one stat solving everything. **But the spike side of the ecosystem isn't built yet**: `rollEnemyAttack` in `damage.ts:220-251` hardcodes `isCrit: false`. Enemies miss/hit/block but never crit. So PoE-style armor today reads as "always strong" because nothing tests its weakness — the build-diversification pressure the formula assumes doesn't materialize until a big-hit source exists.
 
-### Item 1 — CONTEXT.md armor section is stale
-
-`CONTEXT.md:248-253` still describes the Last Epoch-style formula and explicitly says "The denominator scales with the attacker's level, **not** with hit size. Armor stays effective against same-level enemies regardless of how big any single hit is — unlike PoE…". That contradicts the code. Next agent reading the doc will trust it and may try to "fix" the code back. Update the section to reflect the PoE-style choice + record the historical pivot reason (act-1 immortality) so future passes don't re-litigate it.
-
-### Item 2 — Monster crit (the missing big-hit source)
+### Monster crit (the missing big-hit source)
 
 Add crit roll to `rollEnemyAttack` (the player's crit roll in `rollPlayerSwing` is the reference shape — same `random() × 100 < critChance`, same multiplier). Scope decisions to make first:
 

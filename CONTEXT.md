@@ -265,9 +265,14 @@ Each incoming hit rolls against `hitChance`. A miss deals **zero** damage and tr
 
 **Barrier** (sits over life, blue ring around HP globe):
 - Functions as overflow life — incoming damage hits barrier first; what remains carries to HP.
-- When barrier reaches **0**, a **6-second timer** starts. The timer does **not reset** on further hits — damage during the recovery window just hits HP directly.
-- When the timer expires, barrier refills to **100% instantly** (single-tick refill, not gradual).
-- Barrier does not regenerate while above zero — the refill mechanic is the only recovery.
+- **Barrier regen** ticks **always**: while barrier is above zero, it recovers at **5% of max barrier per second**, **including while taking damage** (regen and damage absorb run independently — incoming hits subtract from current, regen adds to current on its own timer). Caps at max barrier; no floor on how slowly it can tick (the rate is fixed).
+- **Barrier break** = barrier hits zero from damage. Triggers a **10-second cooldown**, during which regen is **paused** and incoming damage hits life directly. The cooldown is not reset by further damage and is not consumed faster by anything.
+- After the cooldown elapses, regen resumes **from zero** at the standard 5%/s rate (so the full recovery from break is 10s pause + 20s of regen ≈ 30s back to full). The barrier never instantly refills.
+- **No cap on regen rate.** A larger max barrier gives proportionally more raw regen per second — investing heavily in barrier is rewarded with sustain, paralleling how leech rewards attack investment but without the 20%-max-life cap (the design accepts this asymmetry — monster damage scaling is the lever if endgame mages become invincible to trash).
+- **Out-of-combat behaviour is the same.** Regen and cooldown both tick in real time during exploração, on the map, and while travelling between zones. The single exception is **city entry**: arriving at the city restores barrier to full and clears any active cooldown (mirroring how city entry restores HP and refills potions).
+- **Gear swap preserves current.** Trading into gear with higher max barrier expands the ceiling but does not refill — current stays where it was, regen now ticks against the new max. Trading into lower max barrier clamps current down. Cooldown state is preserved across swaps.
+
+Historical note: a prior iteration used a binary 6-second timer that instantly refilled barrier to 100%. That model gave heavy-barrier mages a "double HP every 6s" loop trivialised by potions; the current model (gradual regen + hard cooldown on break) preserves the spike-absorption identity of barrier while making it a finite resource per combat. See [ADR 0005](docs/adr/0005-barrier-regen-mechanic.md).
 
 **Block** — granted by **shields** (base + rolled mods) and by **attack dual-wielding** (flat +10% implicit). When a hit lands and is not evaded, roll once against `blockChance`. A blocked hit deals 0 damage to barrier/life but **does** trigger the attacker's on-hit (blocks are still "hits" for the attacker's purposes). Thorns still reflect to the attacker on block, regardless of whether the block came from a shield or from dual-wielding.
 
@@ -386,6 +391,29 @@ Deep class identity — active skills, passive tree branches — is **future wor
 3. **Active skills** per class are added on top of the passive tree
 
 Until passive tree + skills exist, classes effectively play the same way; they just start in different stat positions.
+
+---
+
+## Attributes
+
+The three core attributes — **Strength**, **Dexterity**, **Intelligence** — each convert into derived stats at a fixed rate per point. Each class starts with a baseline distribution (see Classes) and grows the totals by rolling `+X` attribute mods on gear. There is no passive tree yet, so the attribute totals are entirely class-base + gear-driven.
+
+### What each point gives
+
+| Attribute | Effect per point | Notes |
+|---|---|---|
+| **Strength** | `+1% Melee Damage Increased` and `+8 Maximum Life` | Two effects from one stat — STR is the warrior identity (damage AND survivability). Mage with low STR still gets a small life floor; rogue with mid STR sits between the two. |
+| **Dexterity** | `+2 Accuracy Rating` and `+1% Evasion Increased` | Multiplicative on flat evasion sources, so DEX only converts into real evasion if the player is wearing leather pieces or has flat evasion mods rolled. A mage with 100 DEX and zero leather gear gets the accuracy but no evasion (matches how INT works for silk). |
+| **Intelligence** | `+0.2% Barrier Increased` per point (= +2% per 10 points) | Multiplicative on flat barrier sources. Mana scaling is planned for INT in a future iteration but **mage-only** — for now INT is the defensive scaler of the caster. |
+
+The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all funnel into the existing increased / global-defense pipelines — they don't bypass caps and they don't stack their own special multiplier. Same math as a gear roll, just sourced from the attribute instead of an explicit mod.
+
+### Design intent
+
+- **STR pulls double duty** so the warrior's primary stat is genuinely rewarding to stack without making STR-on-jewelry trivialise the class. Endgame: a 140-STR warrior gets +140% melee damage and +1 120 life from STR alone — meaningful but bounded by realistic attribute totals (~120-150 endgame).
+- **DEX gets evasion** to give the dexterity build a defensive identity beyond accuracy. Rogue stacks DEX + leather; mage with zero leather gets nothing from the evasion conversion (parallel to how INT × 0 silk = 0 barrier from gear).
+- **INT stays single-purpose** until the future mana / spell system gives it a second outlet. Barrier-only is the deliberate choice — the mage's offensive scaling comes from spell damage % and gain-as-extra mods on tomes / wands, not from raw INT.
+- **No attribute caps.** Crit, resists, block, and armor reduction have hard caps; attributes do not. Investment scales linearly. The natural ceiling is "how many slots am I willing to spend rolling +attribute mods instead of life / damage / resists?" — opportunity cost is the lever.
 
 ---
 

@@ -59,7 +59,9 @@ const BASE_CRIT_MULTIPLIER = 50;
 // tooltip can render the rule without duplicating the magnitude. Keep
 // these numbers in sync with the i18n hint strings.
 export const STR_MELEE_PCT_PER_POINT = 1;
+export const STR_LIFE_PER_POINT = 8;
 export const DEX_ACCURACY_PER_POINT = 2;
+export const DEX_EVASION_PCT_PER_POINT = 1;
 export const INT_BARRIER_PCT_PER_POINT = 0.2;
 
 const ATTACK_WEAPONS = new Set([
@@ -420,19 +422,25 @@ function applyItem(
 	}
 }
 
-// Attribute baselines: Str feeds melee%, Dex feeds accuracy, Int feeds
-// barrier%. Folded in AFTER all gear-driven attribute mods so it reads
-// the final totals; the barrier % rides on `pcts.barrier` so the
-// existing fold below applies it.
+// Attribute baselines. Folded in AFTER all gear-driven attribute mods so it
+// reads the final totals. % bonuses ride on the `pcts` accumulator so the
+// existing global-defense fold below applies them.
+//   Str → +1% melee increased AND +8 max life (flat).
+//   Dex → +2 accuracy (flat) AND +1% evasion increased (multiplicative on flat evasion sources).
+//   Int → +0.2% barrier increased (multiplicative on flat barrier sources).
 function applyAttributeBonuses(
 	stats: ComputedCharacterStats,
 	pcts: DefensePcts,
 ): void {
 	const a = stats.attributes;
-	if (a.strength > 0)
+	if (a.strength > 0) {
 		stats.increased.melee += a.strength * STR_MELEE_PCT_PER_POINT;
-	if (a.dexterity > 0)
+		stats.maxLife += a.strength * STR_LIFE_PER_POINT;
+	}
+	if (a.dexterity > 0) {
 		stats.accuracy += a.dexterity * DEX_ACCURACY_PER_POINT;
+		pcts.evasion += a.dexterity * DEX_EVASION_PCT_PER_POINT;
+	}
 	if (a.intelligence > 0)
 		pcts.barrier += a.intelligence * INT_BARRIER_PCT_PER_POINT;
 }
