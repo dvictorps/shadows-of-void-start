@@ -95,6 +95,7 @@ export function clearPerVisitZoneState() {
 		zoneStartedAt: undefined,
 		campThresholdsMs: undefined,
 		inCamp: false,
+		lastCampIndex: undefined,
 	} as const
 }
 

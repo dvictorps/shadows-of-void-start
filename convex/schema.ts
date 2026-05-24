@@ -82,6 +82,13 @@ export default defineSchema({
 		// `phase` arg they still accept is ignored (kept for backwards-compat
 		// during the parallel-branch rollout).
 		inCamp: v.optional(v.boolean()),
+		// Highest camp threshold index consumed so far in the current visit.
+		// enterCamp rejects indices ≤ this so a player can't exit camp and
+		// re-claim an earlier threshold (each one would still pass the
+		// elapsed-time gate, and inCamp would flip back to true on every
+		// replay). Reset on enterZone / exitZone / death / miniboss kill via
+		// clearPerVisitZoneState (and explicitly in the miniboss reroll path).
+		lastCampIndex: v.optional(v.number()),
 	}).index("by_authUserId", ["authUserId"]),
 
 	// All items live here — drops, inventory, equipped, stash. Location is

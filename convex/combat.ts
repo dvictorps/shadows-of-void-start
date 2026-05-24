@@ -122,8 +122,29 @@ export const recordKill = mutation({
 			// inCamp flag so exitZone/pickFromBag derive the camp phase
 			// during the post-miniboss modal pause.
 			updates.inCamp = true
+			// Per CONTEXT.md → Zone Miniboss: continuing past the panel resets
+			// the bar to 0 and rerolls the schedule. The client's calmaria
+			// ticker resets locally; the server must mirror that by rerolling
+			// thresholds and resetting `zoneStartedAt` so the next loop's
+			// enterCamp time-gate isn't trivially satisfied by stale wall-clock
+			// elapsed from the previous loop. lastCampIndex resets so the new
+			// loop can claim camp[0] again.
+			const zone = findNode(ACT_1, currentLocation)
+			if (zone && zone.kind === "combat") {
+				const plan = zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN
+				updates.campThresholdsMs = rollCampThresholdsMs(plan)
+				updates.zoneStartedAt = Date.now()
+				updates.lastCampIndex = undefined
+			}
 		} else {
 			updates.currentZoneKills = currentZoneKills + 1
+			// Defense-in-depth: a miniboss kill flips `inCamp = true` and
+			// expects the client to call `exitCamp` via dismissMinibossModal
+			// before resuming normal combat. If a client skips the dismiss and
+			// keeps farming, leaving `inCamp` set would grant 100% retention
+			// to subsequent bag commits. Clearing it on every non-miniboss
+			// kill closes that gap without changing the legitimate flow.
+			updates.inCamp = false
 		}
 
 		// Potion drop — independent of the equipment roll. At the 10-potion cap
@@ -409,12 +430,15 @@ export const enterZone = mutation({
 		const encounterPlan = zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN
 		const campThresholdsMs = rollCampThresholdsMs(encounterPlan)
 		const zoneStartedAt = Date.now()
+		// Spread the helper first so every per-visit field (including future
+		// additions like `lastCampIndex`) gets a clean slate; the explicit
+		// writes below then set this visit's session/timestamp/thresholds.
 		await ctx.db.patch(args.characterId, {
+			...clearPerVisitZoneState(),
 			currentZoneSession: zoneSession,
 			currentZoneKills: 0,
 			zoneStartedAt,
 			campThresholdsMs,
-			inCamp: false,
 		})
 		return { zoneSession, zoneStartedAt, campThresholdsMs }
 	},
@@ -453,13 +477,28 @@ export const enterCamp = mutation({
 		// instead of throwing — the player is already where they want to be.
 		if (char.inCamp) return { inCamp: true }
 
+		// Strictly-increasing index: each camp threshold is single-use per visit.
+		// Without this, a player could enter camp[0], exit, then re-call
+		// enterCamp(0) any time later — the elapsed-time gate still passes
+		// because time only moves forward, so inCamp would flip back to true
+		// and grant another 100% retention exit.
+		if (
+			char.lastCampIndex !== undefined &&
+			args.thresholdIndex <= char.lastCampIndex
+		) {
+			throw new ConvexError("Camp threshold already consumed")
+		}
+
 		const threshold = thresholds[args.thresholdIndex]
 		const elapsed = Date.now() - zoneStartedAt
 		if (elapsed < threshold - ENTER_CAMP_GRACE_MS) {
 			throw new ConvexError("Camp threshold not reached")
 		}
 
-		await ctx.db.patch(args.characterId, { inCamp: true })
+		await ctx.db.patch(args.characterId, {
+			inCamp: true,
+			lastCampIndex: args.thresholdIndex,
+		})
 		return { inCamp: true }
 	},
 })

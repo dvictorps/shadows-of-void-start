@@ -98,10 +98,13 @@ export function useEncounterSchedule({
 
 	// Shared by the activation effect and resetForMiniboss — zero the time
 	// bar, re-roll ambushes, drain any in-flight pack. Camp thresholds are
-	// not re-rolled here: the server rolls them once on enterZone (and after
-	// miniboss kill the player keeps the existing schedule for the
-	// remaining run, same as before). Activation additionally resets
-	// campSource ("baked") above this call.
+	// owned by the server: enterZone rolls them on entry, and recordKill on a
+	// miniboss reroll them + resets zoneStartedAt per CONTEXT.md → Zone
+	// Miniboss ("the bar resets to 0 and the schedule is rerolled"). The
+	// reactive `serverCampThresholdsMs` prop carries the new values into the
+	// ref via the effect above, so this client-side reset only needs to clear
+	// the consumed-index counter. Activation additionally resets campSource
+	// ("baked") above this call.
 	const resetSchedule = useCallback(() => {
 		calmariaElapsedMsRef.current = 0;
 		setCalmariaElapsedMs(0);
