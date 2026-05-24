@@ -18,7 +18,7 @@ state:      │ searching│ ───────────── ▶│ enga
 Each tick at `engaged`:
 
 1. Update leech instances (delivers regen).
-2. Tick the barrier recovery timer (refills at expiry).
+2. Tick the barrier: regen 5%/s of max while above zero; count down the 10s cooldown after a break. See [ADR 0005](../adr/0005-barrier-regen-mechanic.md).
 3. Advance `playerProgress` by `dt × stats.tickRate`.
 4. Advance `enemyProgress` by `dt × enemyAttackSpeed`.
 5. If `playerProgress >= 1`, subtract 1 and fire a player swing.
@@ -94,4 +94,4 @@ npx vitest run src/game/stats/
 npx biome check src/hooks/ src/game/combat/
 ```
 
-Then `npm run dev`, kill at least 5 mobs to verify victory transitions work, take damage to barrier to verify the 6s recovery, and use a potion mid-combat to verify the optimistic update doesn't conflict with HP sync.
+Then `npm run dev`, kill at least 5 mobs to verify victory transitions work, take damage to barrier to verify the regen ticks back up while above zero and a break triggers the 10s cooldown, and use a potion mid-combat to verify the optimistic update doesn't conflict with HP sync.
