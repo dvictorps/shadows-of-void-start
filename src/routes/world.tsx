@@ -113,17 +113,34 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// dismissible modal. We deliberately do NOT re-claim after a takeover —
 	// otherwise the two tabs ping-pong forever; the user must refresh to
 	// recover.
+	//
+	// `useInFlight` belt-and-suspenders: with Convex's stable mutation refs
+	// the effect's dep array already gates re-runs to tokenMatches/hasMatched
+	// flips, but the guard removes any reliance on that invariant — if a
+	// future Convex change makes the mutation ref change identity, the
+	// 50ms-tick combat re-render can't burst-fire claims.
 	const claimSession = useMutation(api.characters.claimCharacterSession);
 	const [hasMatched, setHasMatched] = useState(false);
+	const [isClaiming, runClaim] = useInFlight();
 	const sessionLost = hasMatched && !tokenMatches;
 	useEffect(() => {
 		if (tokenMatches) {
 			if (!hasMatched) setHasMatched(true);
 			return;
 		}
-		if (hasMatched) return;
-		void claimSession({ characterId: character._id, sessionToken });
-	}, [tokenMatches, hasMatched, claimSession, character._id, sessionToken]);
+		if (hasMatched || isClaiming) return;
+		void runClaim(() =>
+			claimSession({ characterId: character._id, sessionToken }),
+		);
+	}, [
+		tokenMatches,
+		hasMatched,
+		isClaiming,
+		runClaim,
+		claimSession,
+		character._id,
+		sessionToken,
+	]);
 
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const [deathLog, setDeathLog] = useState<string | null>(null);
