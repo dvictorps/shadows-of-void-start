@@ -6,6 +6,7 @@ import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { CLASS_DEFINITIONS } from "#/game/classes/data";
+import { getClassDisplayName } from "#/game/classes/i18n";
 import type { CharacterClassId } from "#/game/classes/types";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { m } from "#/paraglide/messages";
@@ -15,12 +16,6 @@ import type { Id } from "../../convex/_generated/dataModel";
 const MAX_NAME_LENGTH = 20;
 
 const CLASS_LIST: CharacterClassId[] = ["warrior", "rogue", "mage"];
-
-const CLASS_NAME: Record<CharacterClassId, () => string> = {
-	warrior: m.class_warrior_name,
-	rogue: m.class_rogue_name,
-	mage: m.class_mage_name,
-};
 
 const CLASS_DESCRIPTION: Record<CharacterClassId, () => string> = {
 	warrior: m.class_warrior_description,
@@ -136,7 +131,7 @@ export default function CreateCharacterModal({
 									}`}
 								>
 									<div className="display-title text-base uppercase tracking-wider text-white">
-										{CLASS_NAME[id]()}
+										{getClassDisplayName(id)}
 									</div>
 									<div className="mt-1 text-[10px] uppercase tracking-wider text-white/50">
 										{ATTRIBUTE_LABEL[CLASS_DEFINITIONS[id].primaryAttribute]()}

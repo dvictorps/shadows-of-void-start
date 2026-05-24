@@ -40,7 +40,7 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 
 | Directory | What lives there | Key files |
 |---|---|---|
-| `classes/` | Character class definitions (Warrior/Rogue/Mage) | `data.ts` (CLASS_DEFINITIONS), `types.ts` |
+| `classes/` | Character class definitions (Warrior/Rogue/Mage) | `data.ts` (CLASS_DEFINITIONS), `types.ts`, `i18n.ts` (`getClassDisplayName`) |
 | `combat/` | Damage/defense math, constants | `damage.ts`, `barrier.ts`, `leech.ts`, `constants.ts` |
 | `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `pickGendered`) |
 | `inventory/` | Inventory constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, bySlotAsc) |

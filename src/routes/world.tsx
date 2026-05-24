@@ -729,7 +729,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				/>
 				<StatusCard
 					character={character}
-					classDef={classDef}
 					stats={stats}
 					hpOverride={hpOverride}
 					barrierOverride={barrierOverride}

@@ -6,8 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import CreateCharacterModal from "#/components/CreateCharacterModal";
 import { Button } from "#/components/ui/button";
-import { findClassDefinition } from "#/game/classes/data";
-import type { CharacterClassId } from "#/game/classes/types";
+import { getClassDisplayName } from "#/game/classes/i18n";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useModal } from "#/hooks/useModal";
@@ -19,12 +18,6 @@ import { queueFlashToast } from "#/lib/flash-toast";
 import { m } from "#/paraglide/messages";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-
-const CLASS_NAME: Record<CharacterClassId, () => string> = {
-	warrior: m.class_warrior_name,
-	rogue: m.class_rogue_name,
-	mage: m.class_mage_name,
-};
 
 export const Route = createFileRoute("/character-select")({
 	// Role check happens here so the page can render the admin button on the
@@ -221,8 +214,7 @@ function CharacterRow({
 	onSelect: () => void;
 	onDelete: () => void;
 }) {
-	const classDef = findClassDefinition(character.classId);
-	const className = classDef ? CLASS_NAME[classDef.id]() : m.unknown_class();
+	const className = getClassDisplayName(character.classId);
 
 	return (
 		<li
