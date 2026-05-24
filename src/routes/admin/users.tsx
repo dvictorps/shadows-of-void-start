@@ -6,8 +6,7 @@ import type { FunctionReturnType } from "convex/server";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "#/components/ui/button";
-import { findClassDefinition } from "#/game/classes/data";
-import type { CharacterClassId } from "#/game/classes/types";
+import { getClassDisplayName } from "#/game/classes/i18n";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { formatDate } from "#/lib/format";
@@ -22,17 +21,6 @@ export const Route = createFileRoute("/admin/users")({
 });
 
 type UserRow = FunctionReturnType<typeof api.admin.listUsers>[number];
-
-const CLASS_NAME: Record<CharacterClassId, () => string> = {
-	warrior: m.class_warrior_name,
-	rogue: m.class_rogue_name,
-	mage: m.class_mage_name,
-};
-
-function classDisplayName(classId: string): string {
-	const def = findClassDefinition(classId);
-	return def ? CLASS_NAME[def.id]() : classId;
-}
 
 function AdminUsersPage() {
 	const { data: users } = useSuspenseQuery(
@@ -301,7 +289,7 @@ function UserCharacters({ authUserId }: { authUserId: string }) {
 						<tr key={c._id} className="border-b border-white/5 last:border-b-0">
 							<td className="px-3 py-1.5 text-white">{c.name}</td>
 							<td className="px-3 py-1.5 text-white/70">
-								{classDisplayName(c.classId)}
+								{getClassDisplayName(c.classId)}
 							</td>
 							<td className="px-3 py-1.5 text-right tabular-nums text-white">
 								{c.level}

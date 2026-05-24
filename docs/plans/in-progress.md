@@ -12,7 +12,7 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation (PR #48), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), the phase-arg dead-weight cleanup (PR #51), the `useInFlight` extraction (PR #52), and the single-active-session lock (`feat/single-active-session`) all shipped. The leaderboard hard-blocker is now cleared.
 
-Pick the next item by readiness: **monster crit** (queued below — finally activates the build-pressure that the PoE-style armor formula assumes) is the highest-leverage gameplay debt; **native monster barrier** is mechanical; **CLASS_NAME helper extraction** is a 30-minute polish PR that retires four duplicate maps.
+Pick the next item by readiness: **monster crit** (queued below — finally activates the build-pressure that the PoE-style armor formula assumes) is the highest-leverage gameplay debt; **native monster barrier** is mechanical. The pure-refactor backlog is now empty — what remains is rebalance + features.
 
 ### world.tsx size — closed decision
 
@@ -346,49 +346,6 @@ Both are documented with severity, mechanism, and layered fixes in the threat-mo
 - Layer 3 (server-tick combat, days): competitive mode with real value at stake.
 
 When a session starts on this, read the threat-model doc first — it has the schema changes, acceptance criteria, and tradeoffs per layer.
-
----
-
-## Extract `CLASS_NAME` paraglide map to a shared helper (queued)
-
-**Status**: Planned, not started. Flagged by the simplify pass on the admin dashboard PR (#46) and deferred from that PR to avoid scope creep. Both agents that reviewed the admin diff (reuse + quality) called out this duplication as a real concern.
-
-**Why**: the same `Record<CharacterClassId, () => string>` paraglide-message map is inlined in **four** call sites today:
-
-- `src/routes/character-select.tsx:18-22`
-- `src/components/CreateCharacterModal.tsx:19-23`
-- `src/components/world/StatusCard.tsx:13-17`
-- `src/routes/admin/users.tsx:21-25` (added in PR #46)
-
-The comment at `src/game/classes/data.ts:5-6` already calls out that consumers maintain these maps — the codebase has been waiting for someone to extract the helper. Four copies is the tipping point: any future change to a class name (rename, new class, locale-specific tweak) has to touch four files and risks drift.
-
-### Scope
-
-- Add a new helper in `src/game/classes/i18n.ts` (matches the world/items locale-i18n shape) exporting:
-  ```ts
-  export function getClassDisplayName(classId: string): string {
-    const def = findClassDefinition(classId);
-    if (!def) return classId;
-    // CLASS_NAME map lives here, keyed by CharacterClassId, paraglide getters as values.
-    return CLASS_NAME[def.id]();
-  }
-  ```
-- Replace the inline `CLASS_NAME` + ad-hoc resolution in all four call sites with `getClassDisplayName(c.classId)`.
-- Remove the now-stale comment in `src/game/classes/data.ts` (the one that flags this duplication).
-
-### Watch out for
-
-- `src/routes/admin/users.tsx` (PR #46) wraps the call in a tiny `classDisplayName` helper that handles the unknown-class fallback. The shared helper should keep that fallback so the admin drill-down doesn't crash on a legacy character with a removed class id.
-- The three non-admin call sites currently use `m.unknown_class()` as the fallback, not the raw id. Check whether the shared helper should also fall back via paraglide (consistency) or return the raw id (admin behavior). Reasonable answer: paraglide fallback, since the admin row would also benefit from a translated "Unknown class" label.
-
-### Validation
-
-- `npx tsc --noEmit`, `npx vitest run`, `npx biome check`.
-- Manual: open character-select, the create-character modal (after picking each class), the world status card, and `/admin/users` (expand a row). Class names render in the active locale for every site.
-
-### Why deferred from PR #46
-
-PR #46 added one of the four duplicates as part of building the admin dashboard. Extracting in the same PR would have pulled `CreateCharacterModal.tsx` and `StatusCard.tsx` into the diff — files unrelated to admin work — bloating the review surface and conflicting with the in-flight `useCombatLoop` split work in adjacent areas. The extraction is small enough that a focused follow-up PR is the cleaner path.
 
 ---
 

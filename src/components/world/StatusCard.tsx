@@ -1,24 +1,14 @@
 import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
-import type {
-	CharacterClassDefinition,
-	CharacterClassId,
-} from "#/game/classes/types";
+import { getClassDisplayName } from "#/game/classes/i18n";
 import { xpToNextLevel } from "#/game/progression/levels";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import { m } from "#/paraglide/messages";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import HealthGlobe from "./HealthGlobe";
 
-const CLASS_NAME: Record<CharacterClassId, () => string> = {
-	warrior: m.class_warrior_name,
-	rogue: m.class_rogue_name,
-	mage: m.class_mage_name,
-};
-
 type Props = {
 	character: Doc<"characters">;
-	classDef: CharacterClassDefinition | null;
 	stats: ComputedCharacterStats;
 	hpOverride?: number;
 	barrierOverride?: number;
@@ -45,7 +35,6 @@ function estimateDps(stats: ComputedCharacterStats): number {
 
 export default function StatusCard({
 	character,
-	classDef,
 	stats,
 	hpOverride,
 	barrierOverride,
@@ -55,7 +44,7 @@ export default function StatusCard({
 	onUsePotion,
 	onUseTeleportStone,
 }: Props) {
-	const classResolved = classDef ? CLASS_NAME[classDef.id]() : "Unknown";
+	const classResolved = getClassDisplayName(character.classId);
 	const maxHp = stats.maxLife;
 	const hpServer = character.hpCurrent ?? maxHp;
 	const hp = hpOverride ?? hpServer;
