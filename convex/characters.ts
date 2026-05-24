@@ -180,10 +180,10 @@ export const byId = query({
 // Threat #5 in docs/security/threat-model.md. Stealing is unconditional: the
 // caller writes their token + timestamp, the prior tab's next state-mutating
 // mutation fails the `loadOwnedCharacterWithSession` check and gets bumped
-// to the "Session lost" modal. Idempotent on the same token (re-issued claims
-// just refresh the timestamp). The `/character-select` Play button awaits this
-// mutation before navigating to /world so the combat loop's token-equality
-// gate sees a fresh character snapshot on mount.
+// to the "Session lost" modal. Re-issuing the same token is a no-op (skips
+// the patch entirely) so the /world auto-reclaim effect after a /character-
+// select claim doesn't invalidate the reactive character query for every
+// downstream subscriber.
 export const claimCharacterSession = mutation({
 	args: {
 		characterId: v.id("characters"),
@@ -192,12 +192,14 @@ export const claimCharacterSession = mutation({
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
 
-		await ctx.db.patch(args.characterId, {
-			activeSessionToken: args.sessionToken,
-			activeSessionAt: Date.now(),
-		})
+		if (char.activeSessionToken !== args.sessionToken) {
+			await ctx.db.patch(args.characterId, {
+				activeSessionToken: args.sessionToken,
+				activeSessionAt: Date.now(),
+			})
+		}
 		return { sessionToken: args.sessionToken }
 	},
 })

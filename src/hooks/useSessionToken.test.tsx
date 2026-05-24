@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
 
 import { renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { SessionTokenProvider, useSessionToken } from "./useSessionToken";
+import { describe, expect, it, vi } from "vitest";
+import {
+	SessionTokenProvider,
+	useSessionedMutation,
+	useSessionToken,
+} from "./useSessionToken";
 
 describe("useSessionToken", () => {
 	it("returns a stable UUID + a withSession helper that tacks it on", () => {
@@ -53,5 +57,33 @@ describe("useSessionToken", () => {
 			),
 		});
 		expect(a.current.sessionToken).not.toBe(b.current.sessionToken);
+	});
+});
+
+describe("useSessionedMutation", () => {
+	it("injects the per-tab sessionToken into the wrapped mutation's args", async () => {
+		const mutation = vi.fn(
+			async (_args: { x: number; sessionToken: string }) => "ok",
+		);
+		const { result } = renderHook(() => useSessionedMutation(mutation), {
+			wrapper: ({ children }) => (
+				<SessionTokenProvider>{children}</SessionTokenProvider>
+			),
+		});
+
+		const callerArgs = { x: 42 };
+		const out = await result.current(callerArgs);
+
+		expect(out).toBe("ok");
+		expect(mutation).toHaveBeenCalledTimes(1);
+		const passed = mutation.mock.calls[0][0];
+		expect(passed.x).toBe(42);
+		expect(passed.sessionToken).toMatch(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+		);
+		// Caller's args object must not be mutated — the helper spreads to a fresh
+		// object so the public signature stays session-free even if the caller
+		// reuses the args reference.
+		expect(callerArgs).toEqual({ x: 42 });
 	});
 });

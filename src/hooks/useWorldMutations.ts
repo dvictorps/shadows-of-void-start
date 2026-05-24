@@ -2,15 +2,15 @@
 // mirrors the server's recipe so the UI repaints in <16ms instead of
 // waiting on the round-trip. See docs/adr/0001-optimistic-mutations.md.
 //
-// Single-active-session threading: the hook reads `sessionToken` from
-// `useSessionToken()` and useCallback-wraps every mutation so the public
-// signature stays session-free. Consumers (world.tsx, useViewMode) keep
-// passing `{ characterId, ... }` — the token is injected here. See
+// Single-active-session threading: every mutation is wrapped with
+// `useSessionedMutation` so the public signature stays session-free —
+// consumers (world.tsx, useViewMode) keep passing `{ characterId, ... }`
+// while the per-tab token is injected here. See
 // docs/security/threat-model.md → Threat #5.
 
 import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
-import { useCallback, useRef } from "react";
+import { useRef } from "react";
 import { teleportStoneTravelSeconds } from "#/game/combat/constants";
 import {
 	bySlotAsc,
@@ -23,7 +23,7 @@ import { computeTravelTime } from "#/game/world/travel";
 import { applyCharacterDelta, findCharacter } from "#/lib/optimistic-character";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import { useSessionToken } from "./useSessionToken";
+import { useSessionedMutation } from "./useSessionToken";
 
 // Places the docs into the next available inventory slots, sorted, and
 // writes them back through the optimistic store. Shared by exitZone /
@@ -71,215 +71,174 @@ export function useWorldMutations({
 	const movementSpeedRef = useRef(movementSpeed);
 	movementSpeedRef.current = movementSpeed;
 
-	const { sessionToken } = useSessionToken();
+	const enterCity = useSessionedMutation(useMutation(api.combat.enterCity));
+	const enterZone = useSessionedMutation(useMutation(api.combat.enterZone));
 
-	const _enterCity = useMutation(api.combat.enterCity);
-	const enterCity = useCallback(
-		(args: { characterId: Id<"characters"> }) =>
-			_enterCity({ ...args, sessionToken }),
-		[_enterCity, sessionToken],
-	);
-
-	const _enterZone = useMutation(api.combat.enterZone);
-	const enterZone = useCallback(
-		(args: { characterId: Id<"characters">; zoneId: string }) =>
-			_enterZone({ ...args, sessionToken }),
-		[_enterZone, sessionToken],
-	);
-
-	const _exitZone = useMutation(api.items.exitZone).withOptimisticUpdate(
-		(localStore, args) => {
+	const exitZone = useSessionedMutation(
+		useMutation(api.items.exitZone).withOptimisticUpdate((localStore, args) => {
 			const bagKey = { characterId: args.characterId };
 			const bag = localStore.getQuery(api.items.zoneBag, bagKey);
 			if (bag) localStore.setQuery(api.items.zoneBag, bagKey, []);
 			const keep = new Set(args.keepIds.map((id) => id.toString()));
 			const keptDocs = (bag ?? []).filter((it) => keep.has(it._id.toString()));
 			moveDocsIntoInventory(localStore, args.characterId, keptDocs);
-		},
-	);
-	const exitZone = useCallback(
-		(args: { characterId: Id<"characters">; keepIds: Id<"items">[] }) =>
-			_exitZone({ ...args, sessionToken }),
-		[_exitZone, sessionToken],
+		}),
 	);
 
-	const _pickFromBag = useMutation(api.items.pickFromBag).withOptimisticUpdate(
-		(localStore, args) => {
-			const bagKey = { characterId: args.characterId };
-			const bag = localStore.getQuery(api.items.zoneBag, bagKey);
-			if (!bag) return;
-			const idSet = new Set(args.itemIds.map((id) => id.toString()));
-			const picked = bag.filter((it) => idSet.has(it._id.toString()));
-			if (picked.length === 0) return;
-			localStore.setQuery(
-				api.items.zoneBag,
-				bagKey,
-				bag.filter((it) => !idSet.has(it._id.toString())),
-			);
-			moveDocsIntoInventory(localStore, args.characterId, picked);
-		},
-	);
-	const pickFromBag = useCallback(
-		(args: { characterId: Id<"characters">; itemIds: Id<"items">[] }) =>
-			_pickFromBag({ ...args, sessionToken }),
-		[_pickFromBag, sessionToken],
+	const pickFromBag = useSessionedMutation(
+		useMutation(api.items.pickFromBag).withOptimisticUpdate(
+			(localStore, args) => {
+				const bagKey = { characterId: args.characterId };
+				const bag = localStore.getQuery(api.items.zoneBag, bagKey);
+				if (!bag) return;
+				const idSet = new Set(args.itemIds.map((id) => id.toString()));
+				const picked = bag.filter((it) => idSet.has(it._id.toString()));
+				if (picked.length === 0) return;
+				localStore.setQuery(
+					api.items.zoneBag,
+					bagKey,
+					bag.filter((it) => !idSet.has(it._id.toString())),
+				);
+				moveDocsIntoInventory(localStore, args.characterId, picked);
+			},
+		),
 	);
 
-	const _discardFromBag = useMutation(
-		api.items.discardFromBag,
-	).withOptimisticUpdate((localStore, args) => {
-		const bagKey = { characterId: args.characterId };
-		const bag = localStore.getQuery(api.items.zoneBag, bagKey);
-		if (!bag) return;
-		const idSet = new Set(args.itemIds.map((id) => id.toString()));
-		localStore.setQuery(
-			api.items.zoneBag,
-			bagKey,
-			bag.filter((it) => !idSet.has(it._id.toString())),
-		);
-	});
-	const discardFromBag = useCallback(
-		(args: { characterId: Id<"characters">; itemIds: Id<"items">[] }) =>
-			_discardFromBag({ ...args, sessionToken }),
-		[_discardFromBag, sessionToken],
+	const discardFromBag = useSessionedMutation(
+		useMutation(api.items.discardFromBag).withOptimisticUpdate(
+			(localStore, args) => {
+				const bagKey = { characterId: args.characterId };
+				const bag = localStore.getQuery(api.items.zoneBag, bagKey);
+				if (!bag) return;
+				const idSet = new Set(args.itemIds.map((id) => id.toString()));
+				localStore.setQuery(
+					api.items.zoneBag,
+					bagKey,
+					bag.filter((it) => !idSet.has(it._id.toString())),
+				);
+			},
+		),
 	);
 
-	const _respawnDead = useMutation(api.combat.respawnDead);
-	const respawnDead = useCallback(
-		(args: { characterId: Id<"characters"> }) =>
-			_respawnDead({ ...args, sessionToken }),
-		[_respawnDead, sessionToken],
+	const respawnDead = useSessionedMutation(useMutation(api.combat.respawnDead));
+
+	const startTravel = useSessionedMutation(
+		useMutation(api.combat.startTravel).withOptimisticUpdate(
+			(localStore, args) => {
+				const char = findCharacter(localStore, args.characterId);
+				if (!char) return;
+				const fromId = char.currentLocation ?? "city";
+				const fromNode = findNode(ACT_1, fromId);
+				const conn = fromNode?.connections.find(
+					(c) => c.id === args.destinationNodeId,
+				);
+				if (!conn) return;
+				const seconds = computeTravelTime(
+					conn.distance,
+					movementSpeedRef.current,
+				);
+				const startedAt = Date.now();
+				const arrivesAt = startedAt + Math.round(seconds * 1000);
+				applyCharacterDelta(localStore, args.characterId, {
+					travelDestination: args.destinationNodeId,
+					travelStartedAt: startedAt,
+					travelArrivesAt: arrivesAt,
+				});
+			},
+		),
 	);
 
-	const _startTravel = useMutation(api.combat.startTravel).withOptimisticUpdate(
-		(localStore, args) => {
-			const char = findCharacter(localStore, args.characterId);
-			if (!char) return;
-			const fromId = char.currentLocation ?? "city";
-			const fromNode = findNode(ACT_1, fromId);
-			const conn = fromNode?.connections.find(
-				(c) => c.id === args.destinationNodeId,
-			);
-			if (!conn) return;
-			const seconds = computeTravelTime(
-				conn.distance,
-				movementSpeedRef.current,
-			);
-			const startedAt = Date.now();
-			const arrivesAt = startedAt + Math.round(seconds * 1000);
-			applyCharacterDelta(localStore, args.characterId, {
-				travelDestination: args.destinationNodeId,
-				travelStartedAt: startedAt,
-				travelArrivesAt: arrivesAt,
-			});
-		},
-	);
-	const startTravel = useCallback(
-		(args: { characterId: Id<"characters">; destinationNodeId: string }) =>
-			_startTravel({ ...args, sessionToken }),
-		[_startTravel, sessionToken],
-	);
-
-	const _arriveAtTravel = useMutation(api.combat.arriveAtTravel);
-	const arriveAtTravel = useCallback(
-		(args: { characterId: Id<"characters"> }) =>
-			_arriveAtTravel({ ...args, sessionToken }),
-		[_arriveAtTravel, sessionToken],
+	const arriveAtTravel = useSessionedMutation(
+		useMutation(api.combat.arriveAtTravel),
 	);
 
 	// Vendor mutations with optimistic updates so fast/repeat clicks don't
 	// outrun the reactive query and trigger "cap reached" / "item not found"
 	// errors from a stale client view.
-	const _vendorBuy = useMutation(api.vendor.vendorBuy).withOptimisticUpdate(
-		(localStore, args) => {
-			const char = findCharacter(localStore, args.characterId);
-			if (!char) return;
-			const product = VENDOR_PRODUCTS[args.productId as VendorProductId];
-			if (!product) return;
-			const rubys = char.rubys ?? 0;
-			if (rubys < product.priceRubys) return;
-			const currentCount = char[product.counterField] ?? 0;
-			if (product.cap !== undefined && currentCount >= product.cap) return;
-			applyCharacterDelta(localStore, args.characterId, {
-				rubys: rubys - product.priceRubys,
-				[product.counterField]: currentCount + 1,
-			});
-		},
-	);
-	const vendorBuy = useCallback(
-		(args: { characterId: Id<"characters">; productId: string }) =>
-			_vendorBuy({ ...args, sessionToken }),
-		[_vendorBuy, sessionToken],
+	const vendorBuy = useSessionedMutation(
+		useMutation(api.vendor.vendorBuy).withOptimisticUpdate(
+			(localStore, args) => {
+				const char = findCharacter(localStore, args.characterId);
+				if (!char) return;
+				const product = VENDOR_PRODUCTS[args.productId as VendorProductId];
+				if (!product) return;
+				const rubys = char.rubys ?? 0;
+				if (rubys < product.priceRubys) return;
+				const currentCount = char[product.counterField] ?? 0;
+				if (product.cap !== undefined && currentCount >= product.cap) return;
+				applyCharacterDelta(localStore, args.characterId, {
+					rubys: rubys - product.priceRubys,
+					[product.counterField]: currentCount + 1,
+				});
+			},
+		),
 	);
 
 	// Aliased to `teleportStone` (no `use` prefix) so consumers can call it
 	// from inside async handlers without tripping biome's useHookAtTopLevel
 	// rule — Convex's mutation name happens to start with `use`, but the
 	// returned function is a regular async call, not a React hook.
-	const _teleportStone = useMutation(
-		api.combat.useTeleportStone,
-	).withOptimisticUpdate((localStore, args) => {
-		const char = findCharacter(localStore, args.characterId);
-		if (!char) return;
-		const stones = char.teleportStones ?? 0;
-		if (stones <= 0) return;
-		const destinationNodeId = args.destinationNodeId ?? "city";
-		const startedAt = Date.now();
-		const arrivesAt =
-			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000;
-		// Per-visit fields mirror the server's `clearPerVisitZoneState()`
-		// (see convex/_shared/character.ts) — without this, the camp markers
-		// from the previous visit linger in the UI for the round-trip window.
-		applyCharacterDelta(localStore, args.characterId, {
-			teleportStones: stones - 1,
-			currentZoneSession: undefined,
-			zoneStartedAt: undefined,
-			campThresholdsMs: undefined,
-			inCamp: false,
-			lastCampIndex: undefined,
-			travelDestination: destinationNodeId,
-			travelStartedAt: startedAt,
-			travelArrivesAt: arrivesAt,
-		});
-	});
-	const teleportStone = useCallback(
-		(args: { characterId: Id<"characters">; destinationNodeId?: string }) =>
-			_teleportStone({ ...args, sessionToken }),
-		[_teleportStone, sessionToken],
+	const teleportStone = useSessionedMutation(
+		useMutation(api.combat.useTeleportStone).withOptimisticUpdate(
+			(localStore, args) => {
+				const char = findCharacter(localStore, args.characterId);
+				if (!char) return;
+				const stones = char.teleportStones ?? 0;
+				if (stones <= 0) return;
+				const destinationNodeId = args.destinationNodeId ?? "city";
+				const startedAt = Date.now();
+				const arrivesAt =
+					startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000;
+				// Per-visit fields mirror the server's `clearPerVisitZoneState()`
+				// (see convex/_shared/character.ts) — without this, the camp markers
+				// from the previous visit linger in the UI for the round-trip window.
+				applyCharacterDelta(localStore, args.characterId, {
+					teleportStones: stones - 1,
+					currentZoneSession: undefined,
+					zoneStartedAt: undefined,
+					campThresholdsMs: undefined,
+					inCamp: false,
+					lastCampIndex: undefined,
+					travelDestination: destinationNodeId,
+					travelStartedAt: startedAt,
+					travelArrivesAt: arrivesAt,
+				});
+			},
+		),
 	);
 
-	const _vendorSellMany = useMutation(
-		api.vendor.vendorSellMany,
-	).withOptimisticUpdate((localStore, args) => {
-		const inventory = localStore.getQuery(api.items.inventory, {
-			characterId: args.characterId,
-		});
-		if (!inventory) return;
-		const idSet = new Set(args.itemIds.map((id) => id.toString()));
-		const sold = inventory.filter((it) => idSet.has(it._id.toString()));
-		if (sold.length === 0) return;
-		const total = sold.reduce((sum, it) => sum + computeSellPrice(it.data), 0);
-		localStore.setQuery(
-			api.items.inventory,
-			{ characterId: args.characterId },
-			inventory.filter((it) => !idSet.has(it._id.toString())),
-		);
-		const characters = localStore.getQuery(api.characters.list, {});
-		if (!characters) return;
-		localStore.setQuery(
-			api.characters.list,
-			{},
-			characters.map((c) =>
-				c._id === args.characterId
-					? { ...c, rubys: (c.rubys ?? 0) + total }
-					: c,
-			),
-		);
-	});
-	const vendorSellMany = useCallback(
-		(args: { characterId: Id<"characters">; itemIds: Id<"items">[] }) =>
-			_vendorSellMany({ ...args, sessionToken }),
-		[_vendorSellMany, sessionToken],
+	const vendorSellMany = useSessionedMutation(
+		useMutation(api.vendor.vendorSellMany).withOptimisticUpdate(
+			(localStore, args) => {
+				const inventory = localStore.getQuery(api.items.inventory, {
+					characterId: args.characterId,
+				});
+				if (!inventory) return;
+				const idSet = new Set(args.itemIds.map((id) => id.toString()));
+				const sold = inventory.filter((it) => idSet.has(it._id.toString()));
+				if (sold.length === 0) return;
+				const total = sold.reduce(
+					(sum, it) => sum + computeSellPrice(it.data),
+					0,
+				);
+				localStore.setQuery(
+					api.items.inventory,
+					{ characterId: args.characterId },
+					inventory.filter((it) => !idSet.has(it._id.toString())),
+				);
+				const characters = localStore.getQuery(api.characters.list, {});
+				if (!characters) return;
+				localStore.setQuery(
+					api.characters.list,
+					{},
+					characters.map((c) =>
+						c._id === args.characterId
+							? { ...c, rubys: (c.rubys ?? 0) + total }
+							: c,
+					),
+				);
+			},
+		),
 	);
 
 	return {

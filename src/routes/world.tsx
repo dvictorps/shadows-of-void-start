@@ -107,25 +107,23 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	// Single-active-session reconciliation. A fresh tab arriving directly at
 	// /world (refresh, bookmark, restored tab) has no prior claim — auto-fire
-	// one. Once we've ever observed our token win, treat any subsequent
-	// divergence as a takeover by another tab/device and surface the
-	// non-dismissible modal. We deliberately do NOT re-claim after a
-	// takeover — otherwise the two tabs ping-pong forever; the user must
-	// refresh to recover.
+	// one. `hasMatched` flips true the first time the reactive query shows
+	// our token win; from that point on a divergence means another tab/device
+	// stole the session, and `sessionLost` (derived) surfaces the non-
+	// dismissible modal. We deliberately do NOT re-claim after a takeover —
+	// otherwise the two tabs ping-pong forever; the user must refresh to
+	// recover.
 	const claimSession = useMutation(api.characters.claimCharacterSession);
-	const wasAuthoritativeRef = useRef(false);
-	const [sessionLost, setSessionLost] = useState(false);
+	const [hasMatched, setHasMatched] = useState(false);
+	const sessionLost = hasMatched && !tokenMatches;
 	useEffect(() => {
 		if (tokenMatches) {
-			wasAuthoritativeRef.current = true;
+			if (!hasMatched) setHasMatched(true);
 			return;
 		}
-		if (wasAuthoritativeRef.current) {
-			setSessionLost(true);
-			return;
-		}
+		if (hasMatched) return;
 		void claimSession({ characterId: character._id, sessionToken });
-	}, [tokenMatches, claimSession, character._id, sessionToken]);
+	}, [tokenMatches, hasMatched, claimSession, character._id, sessionToken]);
 
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const [deathLog, setDeathLog] = useState<string | null>(null);

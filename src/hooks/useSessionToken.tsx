@@ -13,6 +13,7 @@
 import {
 	createContext,
 	type ReactNode,
+	useCallback,
 	useContext,
 	useMemo,
 	useState,
@@ -36,11 +37,12 @@ export function SessionTokenProvider({ children }: { children: ReactNode }) {
 export type WithSession<A> = A & { sessionToken: string };
 
 // Hook returns the token plus a `withSession(args)` helper. The helper is
-// the recommended call shape — every Convex mutation call site reads as
-// `await something(withSession({ characterId, ... }))`, which centralises
-// the token threading and makes the diff against a session-less call site
-// minimal. See docs/plans/in-progress.md "Single active session per
-// character" → useSessionToken hook + withSession helper.
+// the recommended call shape for mutations called directly via useMutation
+// inside hooks/components — every Convex mutation call site reads as
+// `await something(withSession({ characterId, ... }))`. For hooks that
+// expose a bundle of pre-wrapped mutations (see `useWorldMutations`), use
+// `useSessionedMutation` below instead so the public signature stays
+// session-free.
 export function useSessionToken(): {
 	sessionToken: string;
 	withSession: <A extends object>(args: A) => WithSession<A>;
@@ -57,5 +59,29 @@ export function useSessionToken(): {
 			}),
 		}),
 		[token],
+	);
+}
+
+// Wraps a Convex mutation function so the per-tab session token is injected
+// automatically — the returned callable has the same args shape minus
+// `sessionToken`. Idiomatic for hooks that expose a bundle of mutations
+// (`useWorldMutations`): the consumer's call site stays the same as before
+// the session-token threading; the wiring lives here.
+//
+// The `Omit<TArgs, "sessionToken">` signature is what lets the type inference
+// strip the token from the public shape — a more naive `A & { sessionToken }`
+// form leaves TS unable to split the intersection back out, so callers would
+// still be required to pass `sessionToken` even though we inject it.
+export function useSessionedMutation<
+	TArgs extends { sessionToken: string },
+	TReturn,
+>(
+	mutation: (args: TArgs) => TReturn,
+): (args: Omit<TArgs, "sessionToken">) => TReturn {
+	const { sessionToken } = useSessionToken();
+	return useCallback(
+		(args: Omit<TArgs, "sessionToken">) =>
+			mutation({ ...args, sessionToken } as unknown as TArgs),
+		[mutation, sessionToken],
 	);
 }
