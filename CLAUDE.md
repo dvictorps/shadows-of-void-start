@@ -10,6 +10,38 @@ Read these in order if you're new to the codebase:
 4. **[docs/plans/in-progress.md](./docs/plans/in-progress.md)** — decisions made but not yet executed. Check before starting work to avoid colliding with a planned refactor.
 5. **[docs/adr/](./docs/adr/)** — architecture decisions (optimistic mutations, three-system i18n split, render-at-display naming, static-data conventions).
 
+## Doc-update discipline (read this before you ship)
+
+**The docs are part of the codebase, not a wiki.** Treat doc updates as part of the change, not a follow-up — the docs that drift first are the ones that get stale fastest, and a stale `CONTEXT.md` / `codebase-map.md` is what makes the next agent burn 30 minutes grepping for files that moved. There is no CI gate enforcing this (no `.github/workflows/` exists yet); the discipline is the only guard.
+
+**Update docs in the same PR as the code change. Concretely:**
+
+| If your PR… | Update… |
+|---|---|
+| Adds, removes, or renames a file/directory referenced in `docs/codebase-map.md` | The matching table row(s) in `codebase-map.md` |
+| Changes a game-design rule (combat formula, drop rate, balance number, retention tier, etc) | The relevant section of `CONTEXT.md` — that file is the single source of truth |
+| Ships a queued item from `docs/plans/in-progress.md` | Remove (or rewrite) the queued entry; closed work belongs in commit history, not this file |
+| Materially changes line counts the docs cite (a refactor that breaks a "currently N lines" claim) | The cited number(s) in `codebase-map.md` and `in-progress.md` |
+| Adds a new system that didn't exist before (skill, passive node, stash, leaderboard, etc) | Write a new playbook under `docs/playbooks/` + a sentinel under `_examples/` + a `CONTEXT.md` section. If the choice is load-bearing, write a new ADR under `docs/adr/` |
+| Changes the shape of a type that a playbook documents (Modifier, Template, Monster, Zone, Class) | The sentinel under `docs/playbooks/_examples/` AND the playbook's example block. `tsc --noEmit` will fail otherwise |
+| Reverses an architectural decision already in an ADR | Append an "Update" or "Superseded by" note to the existing ADR; do NOT silently rewrite it |
+| Closes a threat in `docs/security/threat-model.md` | Mark the threat closed inline, link the PR/commit |
+
+**Triggers that mean "find the doc and update it":**
+
+- A reviewer comment says "this contradicts CONTEXT.md / the playbook / the ADR" — that's the doc asking to be updated, not the code.
+- You introduce a new convention (file naming, import style, modifier weight band, etc) — write it down in `CLAUDE.md` or the playbook, or it will be re-litigated by the next agent.
+- You discover a divergence between docs and code while working — fix the doc in the same PR even if it's tangential. Drift compounds; small fixes prevent it.
+
+**Validation before merging a PR that touched docs:**
+
+- `npx tsc --noEmit` — the playbook sentinels live under `tsconfig.json`'s include glob, so type drift in `docs/playbooks/_examples/*.ts` fails here. This is the only automated gate against playbook drift.
+- Manual: grep for the renamed file or moved directory across `docs/` and make sure no other doc still references the old path.
+
+When in doubt, **prefer updating an existing doc to creating a new one**. The orientation tree (`CONTEXT.md` → `codebase-map.md` → playbooks → ADRs) is the established place to look — fragmenting it makes the next agent slower, not faster.
+
+---
+
 ## Tech Stack
 
 - **Frontend:** React + TypeScript + Tailwind CSS + TanStack Router
@@ -45,11 +77,19 @@ src/game/items/
 │   │   ├── resistances.ts     # Cold/fire/lightning/void resistance
 │   │   ├── attributes.ts      # Str/dex/int
 │   │   ├── utility.ts         # Movement speed, leech, stun, light radius
+│   │   ├── tome.ts            # Tome-exclusive `% Spell Damage as Extra <Element>`
 │   │   ├── magic-find.ts      # Item rarity (prefix + suffix)
+│   │   ├── affix-ids.ts       # PrefixModifierId / SuffixModifierId literal unions (lexicon coverage)
 │   │   └── index.ts           # Aggregates all modifiers into MODIFIERS, exports helpers
-│   └── templates.ts     # Equipment base templates (weapons, armor, jewelry)
+│   └── templates/       # Equipment base templates — one file per weapon type + per armor slot + per jewelry slot
+├── lexicon/             # Per-locale display-name data (en.ts, pt.ts, types.ts, template-ids.ts)
 ├── generator.ts         # Item generation logic (public API: generateItem())
-└── generator.test.ts    # 71 tests
+├── generator.test.ts    # 93 tests
+├── item-name.ts         # Display-time renderer (locale × rarity × seed)
+├── mod-i18n.ts          # Explicit/implicit mod-line formatters
+├── equipment.ts         # planEquip, weaponArchetype, isTwoHanded — shared client+server
+├── sell-price.ts        # Vendor sell-price formula (per-act, ilvl + mod quality)
+└── starter-gear.ts      # Hand-crafted starter weapons
 ```
 
 ### How to Add a New Modifier

@@ -40,8 +40,10 @@ npx convex dev --once  # one-shot deploy check
 
 Don't bypass these. If a check fails, fix it before adding more changes.
 
-## CI gate against drift
+## Type-check gate against drift
 
-The playbooks for adding a modifier / template / monster / zone / class each link to a sentinel file under [`_examples/`](./_examples/) that mirrors the exact compile-checked shape. The sentinels are part of the regular `tsc --noEmit` pass — if a future refactor changes a domain type in an incompatible way, the matching sentinel fails and the playbook must be updated in the same PR.
+The playbooks for adding a modifier / template / monster / zone / class each link to a sentinel file under [`_examples/`](./_examples/) that mirrors the exact compile-checked shape. The sentinels are included in `tsconfig.json` (via `**/*.ts`) so `npx tsc --noEmit` fails on the sentinel when a domain type changes incompatibly — the playbook must then be updated in the same PR.
+
+**Caveat — this is a local-only gate, not CI.** There is no `.github/workflows/` in the repo today, so nothing automatically runs `tsc --noEmit` on push. The sentinel only fires when *you* (or a reviewing agent) run the validation sequence above before merging. If a PR lands without that run, a stale sentinel can ship undetected. Treat the discipline as load-bearing until a CI workflow gets wired up.
 
 When you change a domain shape **or** when you change a playbook example, update both. The sentinels exist to make that coupling hard to forget.
