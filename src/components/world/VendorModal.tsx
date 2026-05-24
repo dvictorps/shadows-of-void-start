@@ -7,6 +7,7 @@ import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
+import { useInFlight } from "#/hooks/useInFlight";
 import { m } from "#/paraglide/messages";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
@@ -52,14 +53,13 @@ export default function VendorModal({
 	const [pendingBuys, setPendingBuys] = useState<Set<VendorProductId>>(
 		new Set(),
 	);
-	const [isSelling, setIsSelling] = useState(false);
+	const [isSelling, runSell] = useInFlight(isOpen);
 
 	useEffect(() => {
 		if (!isOpen) return;
 		setSelected(new Set());
 		setRubyDeltas([]);
 		setPendingBuys(new Set());
-		setIsSelling(false);
 	}, [isOpen]);
 
 	const pushRubyDelta = (amount: number, sign: "+" | "-") => {
@@ -115,24 +115,24 @@ export default function VendorModal({
 	}, [inventoryItems, selected]);
 
 	const handleSellSelected = async () => {
-		if (isSelling) return;
 		if (selectedItems.length === 0) return;
 		const total = selectedTotal;
 		const itemIds = selectedItems.map((it) => it._id);
 		const previousSelection = new Set(selected);
-		setIsSelling(true);
-		pushRubyDelta(total, "+");
-		setSelected(new Set());
-		try {
-			await onSellMany(itemIds);
-		} catch (err) {
-			// Reverse the optimistic delta + restore the selection so the user can retry.
-			pushRubyDelta(total, "-");
-			setSelected(previousSelection);
-			toast.error(err instanceof Error ? err.message : m.vendor_sell_failed());
-		} finally {
-			setIsSelling(false);
-		}
+		await runSell(async () => {
+			pushRubyDelta(total, "+");
+			setSelected(new Set());
+			try {
+				await onSellMany(itemIds);
+			} catch (err) {
+				// Reverse the optimistic delta + restore the selection so the user can retry.
+				pushRubyDelta(total, "-");
+				setSelected(previousSelection);
+				toast.error(
+					err instanceof Error ? err.message : m.vendor_sell_failed(),
+				);
+			}
+		});
 	};
 
 	return (
