@@ -33,7 +33,7 @@ export function rescaleBarrier(
 	newMax: number,
 ): BarrierState {
 	if (newMax <= 0) {
-		return { current: 0, max: 0, cooldownRemaining: 0 };
+		return { current: 0, max: 0, cooldownRemaining: state.cooldownRemaining };
 	}
 	const current = Math.min(state.current, newMax);
 	return { current, max: newMax, cooldownRemaining: state.cooldownRemaining };
@@ -69,21 +69,23 @@ export function damageBarrier(
 /**
  * Advances the barrier state by `dt` seconds.
  *
- * - During cooldown (`cooldownRemaining > 0`): decrement the cooldown; regen
- *   is paused.
+ * - During cooldown (`cooldownRemaining > 0`): decrement the cooldown. This
+ *   runs regardless of `max` so the cooldown can't be paused by unequipping
+ *   barrier gear mid-cooldown — see ADR 0005's "cooldown counts down in real
+ *   time" rule.
  * - Otherwise: regen `max × BARRIER_REGEN_FRACTION_PER_SECOND × dt` into
- *   `current`, clamped to `max`.
+ *   `current`, clamped to `max`. Regen requires a non-zero max.
  *
  * Safe to call every frame regardless of barrier state — returns the same
- * reference when no change is needed. See ADR 0005.
+ * reference when no change is needed.
  */
 export function tickBarrier(state: BarrierState, dt: number): BarrierState {
-	if (state.max <= 0) return state;
 	if (state.cooldownRemaining > 0) {
 		const nextCd = Math.max(0, state.cooldownRemaining - dt);
 		if (nextCd === state.cooldownRemaining) return state;
 		return { ...state, cooldownRemaining: nextCd };
 	}
+	if (state.max <= 0) return state;
 	if (state.current >= state.max) return state;
 	const regen = state.max * BARRIER_REGEN_FRACTION_PER_SECOND * dt;
 	const nextCurrent = Math.min(state.max, state.current + regen);

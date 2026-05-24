@@ -100,10 +100,30 @@ describe("barrier state", () => {
 		expect(s.cooldownRemaining).toBe(0);
 	});
 
-	it("rescaling to 0 zeroes the state entirely", () => {
-		const s = rescaleBarrier(makeBarrierState(50), 0);
+	it("rescaling to 0 clears current and max but preserves cooldown", () => {
+		// Unequipping silk mid-cooldown must NOT let the player skip the
+		// 10s penalty by re-equipping after the dust settles.
+		let s = makeBarrierState(100);
+		s = damageBarrier(s, 100).state; // empty → cooldown 10
+		s = rescaleBarrier(s, 0);
 		expect(s.current).toBe(0);
 		expect(s.max).toBe(0);
+		expect(s.cooldownRemaining).toBe(10);
+	});
+
+	it("cooldown ticks down even while max is zero (no gear-swap exploit)", () => {
+		// Player breaks barrier, unequips silk, waits the cooldown, re-equips:
+		// the cooldown must have advanced in real time so the re-equip lands
+		// a regen-ready barrier.
+		let s = makeBarrierState(100);
+		s = damageBarrier(s, 100).state; // cooldown 10
+		s = rescaleBarrier(s, 0); // unequip silk
+		s = tickBarrier(s, 10); // 10s pass on the map
 		expect(s.cooldownRemaining).toBe(0);
+		// Re-equip silk → max restored, cooldown still 0, regen will tick.
+		s = rescaleBarrier(s, 100);
+		expect(s.cooldownRemaining).toBe(0);
+		s = tickBarrier(s, 1);
+		expect(s.current).toBeCloseTo(5);
 	});
 });
