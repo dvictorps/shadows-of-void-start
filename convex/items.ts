@@ -40,6 +40,13 @@ import { authComponent } from "./auth"
 // Server-authoritative phase derivation — bag mutations consult
 // `char.inCamp` rather than trusting a client-supplied value, so a tampered
 // client can't widen its retention share.
+//
+// Intentional simplification: `CombatPhase` distinguishes "combat" vs
+// "exploration" (see src/game/combat/constants.ts), but the server doesn't
+// track which of the two the player is in — and both share the 30% retention
+// cap. Returning "combat" as the catch-all keeps the cap computation correct
+// today. If future logic ever needs the distinction (analytics, phase-gated
+// mechanics), the character doc has to gain a real phase field first.
 function derivePhaseFromCharacter(char: Doc<"characters">): CombatPhase {
 	return char.inCamp ? "camp" : "combat"
 }
