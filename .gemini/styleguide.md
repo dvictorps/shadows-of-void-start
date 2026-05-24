@@ -96,9 +96,18 @@ them is a real finding, not a stylistic preference.
   items rolled before the lexicon refactor. The tooltip MUST NOT read it
   as a primary display source for new code. If a PR uses it as anything
   but a fallback for legacy rows, flag.
-- **`world.tsx` growing.** It's already 836 lines and queued for a split
-  (see `docs/plans/in-progress.md`). Net additions to that file without
-  decomposition are a finding.
+- **`world.tsx` mixing concerns.** The 900→740-line decomposition (PRs
+  #45 + #52) split the file into four contiguous sections —
+  composition (queries + memos + hooks), handlers, derivations
+  (text-log / travel-overlay), and JSX. The original problem was
+  concerns *interleaved* inside the same scope, not raw line count.
+  Flag a PR that re-mixes concerns (e.g., business logic inside JSX, a
+  new mutation hook called inline outside the composition block, fetch
+  or state-of-truth derivation in a handler). Do NOT flag growth that
+  stays inside the right section — adding a new handler in the handlers
+  block or new JSX in the render block is fine, even if it bumps line
+  count. The current floor for an orchestrator route at this app's scale
+  is ~700-750 lines.
 - **Pre-rendering display strings.** Item / monster names are rendered at
   display time on purpose so locale switching retranslates everything. If a
   PR caches a rendered name on a row, in localStorage, or anywhere
