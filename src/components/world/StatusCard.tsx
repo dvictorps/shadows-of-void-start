@@ -26,6 +26,37 @@ type Props = {
 	onShowStats?: () => void;
 };
 
+function attributeReadouts(stats: ComputedCharacterStats) {
+	return [
+		{
+			label: m.status_strength_label(),
+			value: stats.attributes.strength,
+			glow: "text-glow-red",
+			tooltip: m.attribute_tooltip_strength({
+				melee: STR_MELEE_PCT_PER_POINT,
+				life: STR_LIFE_PER_POINT,
+			}),
+		},
+		{
+			label: m.status_dexterity_label(),
+			value: stats.attributes.dexterity,
+			glow: "text-glow-green",
+			tooltip: m.attribute_tooltip_dexterity({
+				accuracy: DEX_ACCURACY_PER_POINT,
+				evasion: DEX_EVASION_PCT_PER_POINT,
+			}),
+		},
+		{
+			label: m.status_intelligence_label(),
+			value: stats.attributes.intelligence,
+			glow: "text-glow-blue",
+			tooltip: m.attribute_tooltip_intelligence({
+				barrier: INT_BARRIER_PCT_PER_POINT,
+			}),
+		},
+	];
+}
+
 function estimateDps(stats: ComputedCharacterStats): number {
 	if (stats.swings.length === 0) return 0;
 	const avgPerSwing =
@@ -93,47 +124,16 @@ export default function StatusCard({
 						</p>
 					</div>
 					<div className="display-title space-y-1.5 text-right text-xl tracking-wider">
-						<Tooltip
-							content={
-								<span className="whitespace-pre-line">
-									{m.attribute_tooltip_strength({
-										melee: STR_MELEE_PCT_PER_POINT,
-										life: STR_LIFE_PER_POINT,
-									})}
-								</span>
-							}
-						>
-							<p className="text-glow-red">
-								{m.status_strength_label()} {stats.attributes.strength}
-							</p>
-						</Tooltip>
-						<Tooltip
-							content={
-								<span className="whitespace-pre-line">
-									{m.attribute_tooltip_dexterity({
-										accuracy: DEX_ACCURACY_PER_POINT,
-										evasion: DEX_EVASION_PCT_PER_POINT,
-									})}
-								</span>
-							}
-						>
-							<p className="text-glow-green">
-								{m.status_dexterity_label()} {stats.attributes.dexterity}
-							</p>
-						</Tooltip>
-						<Tooltip
-							content={
-								<span className="whitespace-pre-line">
-									{m.attribute_tooltip_intelligence({
-										barrier: INT_BARRIER_PCT_PER_POINT,
-									})}
-								</span>
-							}
-						>
-							<p className="text-glow-blue">
-								{m.status_intelligence_label()} {stats.attributes.intelligence}
-							</p>
-						</Tooltip>
+						{attributeReadouts(stats).map((row) => (
+							<Tooltip
+								key={row.label}
+								content={<span className="whitespace-pre-line">{row.tooltip}</span>}
+							>
+								<p className={row.glow}>
+									{row.label} {row.value}
+								</p>
+							</Tooltip>
+						))}
 					</div>
 				</div>
 

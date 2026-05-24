@@ -422,12 +422,9 @@ function applyItem(
 	}
 }
 
-// Attribute baselines. Folded in AFTER all gear-driven attribute mods so it
-// reads the final totals. % bonuses ride on the `pcts` accumulator so the
-// existing global-defense fold below applies them.
-//   Str → +1% melee increased AND +8 max life (flat).
-//   Dex → +2 accuracy (flat) AND +1% evasion increased (multiplicative on flat evasion sources).
-//   Int → +0.2% barrier increased (multiplicative on flat barrier sources).
+// Folded in AFTER gear-driven mods so attribute totals are final. % bonuses
+// ride on `pcts` so the existing global-defense fold below applies them in
+// one pass alongside gear-rolled % defenses.
 function applyAttributeBonuses(
 	stats: ComputedCharacterStats,
 	pcts: DefensePcts,

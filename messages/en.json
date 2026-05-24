@@ -48,9 +48,6 @@
   "attribute_strength": "Strength",
   "attribute_dexterity": "Dexterity",
   "attribute_intelligence": "Intelligence",
-  "attribute_strength_hint": "+1% Melee Damage per point",
-  "attribute_dexterity_hint": "+2 Accuracy per point",
-  "attribute_intelligence_hint": "+2% Barrier per 10 points",
 
   "city_safe_zone": "Safe Zone",
   "city_description": "Your HP has been fully restored. The vendor and stash will be available here soon.",

@@ -202,12 +202,10 @@ export function useCombatTick({
 
 		// Barrier ticks every frame: regen while above zero (5%/s of max),
 		// cooldown countdown while below zero (10s after a break). See ADR 0005.
-		{
-			const next = tickBarrier(barrierRef.current, dt);
-			if (next !== barrierRef.current) {
-				barrierRef.current = next;
-				setBarrier(next);
-			}
+		const nextBarrier = tickBarrier(barrierRef.current, dt);
+		if (nextBarrier !== barrierRef.current) {
+			barrierRef.current = nextBarrier;
+			setBarrier(nextBarrier);
 		}
 
 		playerProgressRef.current += dt * tickRate;
