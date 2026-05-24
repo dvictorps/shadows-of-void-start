@@ -4,6 +4,8 @@
 // promise rejection is silently swallowed so first-touch quirks don't crash
 // the combat loop.
 
+import type { WeaponType } from "#/game/items/types/base";
+import { WEAPON_FX } from "#/game/combat/weapon-fx";
 import { randSymmetric } from "./rng";
 
 type SfxOptions = {
@@ -141,4 +143,15 @@ export function playMonsterDeathSfx(monsterId: string): void {
 	const file = MONSTER_DEATH_SOUNDS[monsterId];
 	if (!file) return;
 	playSfx(`creatures/${file}`, { volume: 0.5 });
+}
+
+// Player swing hit-sound, derived from the weapon's WEAPON_FX entry. Volume
+// + pitch jitter mirror the previous generic hit.wav call so per-weapon
+// swap drops in without rebalancing the audio mix.
+export function playPlayerSwingSfx(weaponType: WeaponType): void {
+	playSfx(WEAPON_FX[weaponType].sound, {
+		volume: 0.3,
+		pitchVariance: 0.1,
+		exclusive: true,
+	});
 }

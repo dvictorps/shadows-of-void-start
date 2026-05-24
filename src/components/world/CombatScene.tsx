@@ -549,7 +549,12 @@ export default function CombatScene({
 							delay: showHpBar ? hpBarDelay : 0,
 						}}
 					>
-						<EnemyHpBar current={enemy.currentHp} max={enemy.scaled.hp} />
+						<EnemyHpBar
+							current={enemy.currentHp}
+							max={enemy.scaled.hp}
+							currentBarrier={enemy.currentBarrier}
+							maxBarrier={enemy.scaled.barrier}
+						/>
 					</motion.div>
 				)}
 			</div>
@@ -737,10 +742,32 @@ function FloatingXp({ amount }: { amount: number }) {
 	);
 }
 
-function EnemyHpBar({ current, max }: { current: number; max: number }) {
+function EnemyHpBar({
+	current,
+	max,
+	currentBarrier,
+	maxBarrier,
+}: {
+	current: number;
+	max: number;
+	currentBarrier: number;
+	maxBarrier: number;
+}) {
 	const pct = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
+	const barrierPct =
+		maxBarrier > 0
+			? Math.max(0, Math.min(100, (currentBarrier / maxBarrier) * 100))
+			: 0;
 	return (
 		<div className="mb-4 flex w-full max-w-sm flex-col items-center gap-1">
+			{maxBarrier > 0 && (
+				<div className="h-1.5 w-full overflow-hidden rounded-full border border-white/40 bg-black">
+					<div
+						className="h-full bg-gradient-to-r from-sky-600 to-sky-300 transition-[width] duration-150"
+						style={{ width: `${barrierPct}%` }}
+					/>
+				</div>
+			)}
 			<div className="h-3 w-full overflow-hidden rounded-full border border-white/40 bg-black">
 				<div
 					className="h-full bg-gradient-to-r from-red-700 to-red-500 transition-[width] duration-150"

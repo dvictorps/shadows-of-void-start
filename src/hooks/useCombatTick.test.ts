@@ -31,7 +31,11 @@ vi.mock("convex/react", () => {
 });
 
 // Stub SFX — jsdom has no real audio backend and we don't need the side effect.
-vi.mock("#/lib/sfx", () => ({ playSfx: () => {} }));
+vi.mock("#/lib/sfx", () => ({
+	playSfx: () => {},
+	playPlayerSwingSfx: () => {},
+	playMonsterDeathSfx: () => {},
+}));
 
 // Stub the damage roll functions so we control exactly how much each side
 // deals — the bug under test is in HOW the hook composes those results, not
@@ -129,6 +133,7 @@ function makeEnemy(currentHp: number): Enemy {
 	return {
 		def,
 		currentHp,
+		currentBarrier: 0,
 		level: 1,
 		rarity: "normal",
 		mods: [],
@@ -144,6 +149,9 @@ function makeEnemy(currentHp: number): Enemy {
 			evasion: 0,
 			accuracy: 1000,
 			resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
+			barrier: 0,
+			criticalChance: 0,
+			criticalMultiplier: 0,
 		},
 		nameSeed: { primary: 0, secondary: 0, epithet: 0 },
 	};

@@ -52,6 +52,11 @@ export const BOSS_INTRO_STAGE_MS: Record<
 export type Enemy = {
 	def: MonsterDefinition;
 	currentHp: number;
+	// Live barrier value. Max lives on `scaled.barrier` (immutable per spawn).
+	// 0 when the monster has no barrier mod. The barrier cooldown is internal
+	// state owned by useCombatTick — only the live current value is exposed
+	// here for UI rendering.
+	currentBarrier: number;
 	level: number;
 	rarity: MonsterRarity;
 	mods: readonly MonsterModId[];

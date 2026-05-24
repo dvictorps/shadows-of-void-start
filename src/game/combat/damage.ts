@@ -208,20 +208,28 @@ interface EnemyAttackArgs {
 	physicalDamage: { min: number; max: number };
 	elementalDamage: readonly MonsterElementDamage[];
 	defender: DefenderProfile;
+	// Crit chance % and multiplier % on the monster (post-mods). Default to
+	// the baseline 5% / 50% if omitted so callers that haven't migrated yet
+	// still get the floor behaviour (every monster carries a baseline crit).
+	enemyCriticalChance?: number;
+	enemyCriticalMultiplier?: number;
 	random?: () => number;
 }
 
 /**
  * Roll one enemy attack. Mirrors `rollPlayerSwing`'s damage pipeline:
  * roll a flat amount per type (physical + each element on the template),
- * mitigate physical via armor and each element via its resistance, sum.
- * Defender's evasion gates the hit. No crit on enemies in MVP.
+ * crit-roll against the monster's chance, mitigate physical via armor and
+ * each element via its resistance, sum. Defender's evasion gates the hit
+ * before any of the damage math runs.
  */
 export function rollEnemyAttack({
 	enemyAccuracy,
 	physicalDamage,
 	elementalDamage,
 	defender,
+	enemyCriticalChance = 5,
+	enemyCriticalMultiplier = 50,
 	random = Math.random,
 }: EnemyAttackArgs): RolledSwing {
 	const hit = random() <= hitChance(enemyAccuracy, defender.evasion);
@@ -250,11 +258,19 @@ export function rollEnemyAttack({
 		};
 	}
 
+	// No floor on the enemy side — the 5% baseline lives in
+	// `scaleMonsterStats`, so a caller that explicitly passes 0 is opting
+	// out of crit (e.g. tests, future "anti-crit" mob). Capped at 100% so
+	// stacked crit-chance mods don't overflow.
+	const finalCritChance = clamp(enemyCriticalChance, 0, CRIT_CHANCE_CAP);
+	const isCrit = random() * 100 < finalCritChance;
+	const critMult = isCrit ? 1 + enemyCriticalMultiplier / 100 : 1;
+
 	const physRaw = randInt(
 		Math.max(0, physicalDamage.min),
 		Math.max(physicalDamage.min, physicalDamage.max),
 	);
-	const physFinal = applyArmor(physRaw, defender.armor);
+	const physFinal = applyArmor(physRaw * critMult, defender.armor);
 
 	const elementRolls: Record<"Cold" | "Fire" | "Lightning" | "Void", number> = {
 		Cold: 0,
@@ -269,19 +285,19 @@ export function rollEnemyAttack({
 		);
 	}
 	const coldFinal = applyResistance(
-		elementRolls.Cold,
+		elementRolls.Cold * critMult,
 		defender.resistances.cold,
 	);
 	const fireFinal = applyResistance(
-		elementRolls.Fire,
+		elementRolls.Fire * critMult,
 		defender.resistances.fire,
 	);
 	const lightningFinal = applyResistance(
-		elementRolls.Lightning,
+		elementRolls.Lightning * critMult,
 		defender.resistances.lightning,
 	);
 	const voidFinal = applyResistance(
-		elementRolls.Void,
+		elementRolls.Void * critMult,
 		defender.resistances.void,
 	);
 
@@ -301,7 +317,7 @@ export function rollEnemyAttack({
 
 	return {
 		amount: Math.max(1, total),
-		isCrit: false,
+		isCrit,
 		isMiss: false,
 		isBlocked: false,
 		breakdown,

@@ -17,6 +17,19 @@ export const MONSTER_EVASION_PER_LEVEL = 30;
 export const MONSTER_ACCURACY_PER_LEVEL = 30;
 export const MONSTER_ARMOR_PER_LEVEL = 15;
 
+// Crit mods. Magnitudes mirror the design discussion captured in CONTEXT.md
+// → Monster Modifier Pool (and the grilling that produced them): +150%
+// increased chance puts a 5% baseline at 12.5%; +50% multiplier turns a
+// baseline 50% (= 1.5× crit damage) into 100% (= 2× crit damage).
+export const MONSTER_CRIT_CHANCE_INCREASE_PCT = 150;
+export const MONSTER_CRIT_MULTIPLIER_PCT = 50;
+
+// Barrier mod magnitude (fraction of post-other-mods HP that becomes a
+// barrier pool). The mod is applied last in `applyMonsterMods` so the HP
+// reference is post-`monsterIncreasedLife` — see CONTEXT.md → Defenses →
+// Barrier (monster mirror note).
+export const MONSTER_BARRIER_HP_FRACTION = 0.3;
+
 export type MonsterModAffixType = "prefix" | "suffix";
 
 export interface MonsterModifier {
@@ -110,11 +123,17 @@ export const MONSTER_MODIFIERS = {
 		}),
 	},
 	monsterAdditionalBarrier: {
-		// Placeholder: HP × 1.3. Real barrier pool comes in the next PR — see
-		// docs/plans/in-progress.md → Native monster barrier.
+		// Grants a barrier pool equal to MONSTER_BARRIER_HP_FRACTION of the
+		// monster's HP at the time the mod is applied. `applyMonsterMods`
+		// always processes this mod last so the HP reference is post-Increased
+		// Life — the player reads the barrier number as "30% of the displayed
+		// HP".
 		id: "monsterAdditionalBarrier",
 		affixType: "prefix",
-		apply: (s) => ({ ...s, hp: Math.round(s.hp * 1.3) }),
+		apply: (s) => ({
+			...s,
+			barrier: Math.max(1, Math.round(s.hp * MONSTER_BARRIER_HP_FRACTION)),
+		}),
 	},
 	monsterMoreArmor: {
 		id: "monsterMoreArmor",
@@ -122,6 +141,22 @@ export const MONSTER_MODIFIERS = {
 		apply: (s) => ({
 			...s,
 			armor: s.armor + MONSTER_ARMOR_PER_LEVEL * s.level,
+		}),
+	},
+	monsterCriticalChanceIncrease: {
+		id: "monsterCriticalChanceIncrease",
+		affixType: "prefix",
+		apply: (s) => ({
+			...s,
+			criticalChance: s.criticalChance * (1 + MONSTER_CRIT_CHANCE_INCREASE_PCT / 100),
+		}),
+	},
+	monsterCriticalMultiplier: {
+		id: "monsterCriticalMultiplier",
+		affixType: "suffix",
+		apply: (s) => ({
+			...s,
+			criticalMultiplier: s.criticalMultiplier + MONSTER_CRIT_MULTIPLIER_PCT,
 		}),
 	},
 } as const satisfies Record<string, MonsterModifier>;
@@ -183,13 +218,21 @@ export function rollMonsterMods(
 	return picked;
 }
 
+// Mods that must run AFTER everything else because they read a derived stat
+// (e.g. barrier reads the post-increased-life HP). Reordering happens here so
+// `rollMonsterMods` can pick in any sequence.
+const TRAILING_MOD_IDS: ReadonlySet<MonsterModId> = new Set([
+	"monsterAdditionalBarrier",
+]);
+
 export function applyMonsterMods(
 	scaled: ScaledMonsterStats,
 	modIds: readonly MonsterModId[],
 ): ScaledMonsterStats {
+	const leading = modIds.filter((id) => !TRAILING_MOD_IDS.has(id));
+	const trailing = modIds.filter((id) => TRAILING_MOD_IDS.has(id));
 	let out = scaled;
-	for (const id of modIds) {
-		out = MONSTER_MODIFIERS[id].apply(out);
-	}
+	for (const id of leading) out = MONSTER_MODIFIERS[id].apply(out);
+	for (const id of trailing) out = MONSTER_MODIFIERS[id].apply(out);
 	return out;
 }

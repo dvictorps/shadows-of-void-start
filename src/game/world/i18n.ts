@@ -1,12 +1,15 @@
 import {
 	MONSTER_ACCURACY_PER_LEVEL,
 	MONSTER_ARMOR_PER_LEVEL,
+	MONSTER_CRIT_CHANCE_INCREASE_PCT,
+	MONSTER_CRIT_MULTIPLIER_PCT,
 	MONSTER_EVASION_PER_LEVEL,
 	MONSTER_MODIFIERS,
 	type MonsterDefinition,
 	type MonsterId,
 	type MonsterModId,
 	type MonsterRarity,
+	type ScaledMonsterStats,
 } from "#/game/monsters";
 import { m } from "#/paraglide/messages";
 import { getLocale, type Locale } from "#/paraglide/runtime";
@@ -358,13 +361,16 @@ function pickRareEpithetPool(
 	return lex.rareCompoundEpithets;
 }
 
-// `level` is required for the level-scaled defensive flats (evasion,
-// accuracy, more armor). Other mods ignore it. Keep this in sync with
-// the apply()s in src/game/monsters/modifiers.ts.
+// `scaled` carries everything: `scaled.level` drives the level-scaled flats
+// (evasion, accuracy, more armor); `scaled.barrier` is the precomputed
+// barrier amount (depends on whether Increased Life co-rolled, so it isn't
+// derivable from level alone). Keep this in sync with the apply()s in
+// src/game/monsters/modifiers.ts.
 export function translateMonsterModDescription(
 	id: MonsterModId,
-	level: number,
+	scaled: ScaledMonsterStats,
 ): string {
+	const level = scaled.level;
 	switch (id) {
 		case "monsterIncreasedLife":
 			return m.monster_mod_increased_life_desc();
@@ -389,10 +395,18 @@ export function translateMonsterModDescription(
 		case "monsterVoidResistance":
 			return m.monster_mod_void_resistance_desc();
 		case "monsterAdditionalBarrier":
-			return m.monster_mod_additional_barrier_desc();
+			return m.monster_mod_additional_barrier_desc({ value: scaled.barrier });
 		case "monsterMoreArmor":
 			return m.monster_mod_more_armor_desc({
 				value: MONSTER_ARMOR_PER_LEVEL * level,
+			});
+		case "monsterCriticalChanceIncrease":
+			return m.monster_mod_critical_chance_desc({
+				pct: MONSTER_CRIT_CHANCE_INCREASE_PCT,
+			});
+		case "monsterCriticalMultiplier":
+			return m.monster_mod_critical_multiplier_desc({
+				pct: MONSTER_CRIT_MULTIPLIER_PCT,
 			});
 	}
 }

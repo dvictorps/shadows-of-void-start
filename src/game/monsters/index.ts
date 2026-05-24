@@ -5,6 +5,9 @@ export {
 	applyMonsterMods,
 	MONSTER_ACCURACY_PER_LEVEL,
 	MONSTER_ARMOR_PER_LEVEL,
+	MONSTER_BARRIER_HP_FRACTION,
+	MONSTER_CRIT_CHANCE_INCREASE_PCT,
+	MONSTER_CRIT_MULTIPLIER_PCT,
 	MONSTER_EVASION_PER_LEVEL,
 	MONSTER_MODIFIERS,
 	modCountForRarity,
@@ -13,6 +16,8 @@ export {
 } from "./modifiers";
 export type { ScaledMonsterStats } from "./scaling";
 export {
+	BASELINE_CRIT_CHANCE,
+	BASELINE_CRIT_MULTIPLIER,
 	MONSTER_SCALING_BASE,
 	monsterScaleFactor,
 	scaleMonsterStats,

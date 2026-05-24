@@ -5,6 +5,11 @@ import type { MonsterDefinition, MonsterElementDamage } from "./types";
 // "Monster stat scaling" for the rationale and the rejected linear alternative.
 export const MONSTER_SCALING_BASE = 1.06;
 
+// Baseline crit applied to every monster, mirroring the player's
+// CRIT_CHANCE_FLOOR and BASE_CRIT_MULTIPLIER. Magic / rare mods stack on top.
+export const BASELINE_CRIT_CHANCE = 5;
+export const BASELINE_CRIT_MULTIPLIER = 50;
+
 export interface ScaledMonsterStats {
 	// Resolved monster level. Carried through so modifiers can scale their
 	// magnitudes against it — a +500 evasion mod at level 1 is impossible to
@@ -22,6 +27,15 @@ export interface ScaledMonsterStats {
 	evasion: number;
 	accuracy: number;
 	resistances: { cold: number; fire: number; lightning: number; void: number };
+	// Barrier pool above HP, mirrors the player's barrier. Defaults to 0 —
+	// only the monsterAdditionalBarrier mod grants it. See CONTEXT.md →
+	// Defenses → Barrier.
+	barrier: number;
+	// Crit chance % and crit multiplier %. Every monster ships with the same
+	// 5% / 50% baseline as the player's floor; mods stack on top. See
+	// CONTEXT.md → Combat Resolution → Damage formula.
+	criticalChance: number;
+	criticalMultiplier: number;
 }
 
 export function monsterScaleFactor(level: number): number {
@@ -58,5 +72,8 @@ export function scaleMonsterStats(
 		evasion: 0,
 		accuracy: clampedLevel * 10,
 		resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
+		barrier: 0,
+		criticalChance: BASELINE_CRIT_CHANCE,
+		criticalMultiplier: BASELINE_CRIT_MULTIPLIER,
 	};
 }
