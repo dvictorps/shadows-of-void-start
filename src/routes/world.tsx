@@ -408,22 +408,24 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const handleRetreat = async () => {
 		// Spam-click guard: the retreat button unmounts on view change, but a
 		// fast double-tap during the render-cycle window between click and
-		// unmount could fire `exitZone` twice. Early-return on re-entry.
+		// unmount could fire `exitZone` twice — or open the modal + recompute
+		// the cap twice on the bag path. The flag covers both branches, so set
+		// it before the bag check rather than only on the exitZone path.
 		if (isRetreating) return;
 		// Wait for the bag query to resolve before deciding modal vs auto-exit —
 		// otherwise an undefined (still-loading) bag silently discards the loot.
 		if (zoneBag === undefined) return;
-		if (zoneBag.length > 0) {
-			// Bag path is modal-driven; the modal's own buttons carry their own
-			// in-flight tracking. No async work here beyond opening the modal.
-			handleBackToMap();
-			setExitKeepCap(computeBagKeepCap(zoneBag.length, combat.phase));
-			exitModal.open();
-			return;
-		}
 		setIsRetreating(true);
-		handleBackToMap();
 		try {
+			if (zoneBag.length > 0) {
+				// Bag path is modal-driven; the modal's own buttons carry their own
+				// in-flight tracking. No async work here beyond opening the modal.
+				handleBackToMap();
+				setExitKeepCap(computeBagKeepCap(zoneBag.length, combat.phase));
+				exitModal.open();
+				return;
+			}
+			handleBackToMap();
 			// TODO(merge): drop phase arg — server derives it from inCamp now.
 			await exitZone({
 				characterId: character._id,
