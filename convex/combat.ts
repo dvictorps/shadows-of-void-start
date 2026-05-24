@@ -144,7 +144,9 @@ export const recordKill = mutation({
 			// keeps farming, leaving `inCamp` set would grant 100% retention
 			// to subsequent bag commits. Clearing it on every non-miniboss
 			// kill closes that gap without changing the legitimate flow.
-			updates.inCamp = false
+			// Gated on `char.inCamp` so the patch + reactive-query invalidation
+			// only fire on the rare flip transition, not every kill.
+			if (char.inCamp) updates.inCamp = false
 		}
 
 		// Potion drop — independent of the equipment roll. At the 10-potion cap
