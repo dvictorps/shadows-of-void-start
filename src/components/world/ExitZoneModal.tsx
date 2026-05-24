@@ -41,10 +41,27 @@ export default function ExitZoneModal({
 }: Props) {
 	// Selection defaults empty each time the modal opens. Toggling fills the set.
 	const [selected, setSelected] = useState<Set<string>>(new Set());
+	// In-flight tracking for the four action handlers. Modal-close on the
+	// success path already covers the most common spam-click case, but a
+	// slow round-trip would leave the buttons live until the close fires —
+	// hence the early-return + try/finally + disabled-button trio. Mirrors the
+	// VendorModal pattern from PR #45.
+	const [isPickingSelected, setIsPickingSelected] = useState(false);
+	const [isDiscardingSelected, setIsDiscardingSelected] = useState(false);
+	const [isPickingAll, setIsPickingAll] = useState(false);
+	const [isDiscardingAll, setIsDiscardingAll] = useState(false);
 	const confirm = useConfirmationModal();
 
 	useEffect(() => {
-		if (!isOpen) return;
+		if (!isOpen) {
+			// Reset on natural close boundary so a slow request finishing
+			// mid-close doesn't leave the next open with stale disabled state.
+			setIsPickingSelected(false);
+			setIsDiscardingSelected(false);
+			setIsPickingAll(false);
+			setIsDiscardingAll(false);
+			return;
+		}
 		setSelected(new Set());
 	}, [isOpen]);
 
@@ -81,11 +98,18 @@ export default function ExitZoneModal({
 			.map((it) => it._id);
 
 	const handlePickSelected = async () => {
+		if (isPickingSelected) return;
 		if (!hasSelection) return;
-		await onPickSelected(selectedIds());
+		setIsPickingSelected(true);
+		try {
+			await onPickSelected(selectedIds());
+		} finally {
+			setIsPickingSelected(false);
+		}
 	};
 
 	const handleDiscardSelected = async () => {
+		if (isDiscardingSelected) return;
 		if (!hasSelection) return;
 		const ids = selectedIds();
 		const ok = await confirm({
@@ -96,18 +120,30 @@ export default function ExitZoneModal({
 			variant: "destructive",
 		});
 		if (!ok) return;
-		await onDiscardSelected(ids);
+		setIsDiscardingSelected(true);
+		try {
+			await onDiscardSelected(ids);
+		} finally {
+			setIsDiscardingSelected(false);
+		}
 	};
 
 	const handlePickAll = async () => {
+		if (isPickingAll) return;
 		if (!hasItems) return;
 		// Belt-and-suspenders — the button is hidden when isCapped, but a
 		// future regression here can't bypass the 30% cap.
 		if (isCapped) return;
-		await onPickAll(bagItems.map((it) => it._id));
+		setIsPickingAll(true);
+		try {
+			await onPickAll(bagItems.map((it) => it._id));
+		} finally {
+			setIsPickingAll(false);
+		}
 	};
 
 	const handleDiscardAll = async () => {
+		if (isDiscardingAll) return;
 		if (!hasItems) return;
 		const ok = await confirm({
 			title: m.loot_discard_all_title(),
@@ -117,8 +153,21 @@ export default function ExitZoneModal({
 			variant: "destructive",
 		});
 		if (!ok) return;
-		await onDiscardAll();
+		setIsDiscardingAll(true);
+		try {
+			await onDiscardAll();
+		} finally {
+			setIsDiscardingAll(false);
+		}
 	};
+
+	// Any action in-flight disables sibling buttons too so the user can't
+	// queue overlapping mutations (pick-all while discard-all is mid-flight).
+	const anyActionPending =
+		isPickingSelected ||
+		isDiscardingSelected ||
+		isPickingAll ||
+		isDiscardingAll;
 
 	return (
 		<Modal
@@ -166,7 +215,7 @@ export default function ExitZoneModal({
 							type="button"
 							variant="starkMuted"
 							onClick={handlePickSelected}
-							disabled={!hasSelection}
+							disabled={!hasSelection || anyActionPending}
 							className="px-5 py-2 uppercase tracking-wider"
 						>
 							{m.loot_pick_selected_button({ count: selectedCount })}
@@ -176,7 +225,7 @@ export default function ExitZoneModal({
 								type="button"
 								variant="starkMuted"
 								onClick={handleDiscardSelected}
-								disabled={!hasSelection}
+								disabled={!hasSelection || anyActionPending}
 								className="px-5 py-2 uppercase tracking-wider"
 							>
 								{m.loot_discard_selected_button({ count: selectedCount })}
@@ -188,7 +237,7 @@ export default function ExitZoneModal({
 							type="button"
 							variant="stark"
 							onClick={handleDiscardAll}
-							disabled={!hasItems}
+							disabled={!hasItems || anyActionPending}
 							className="px-5 py-2 uppercase tracking-wider"
 						>
 							{m.loot_discard_all_button()}
@@ -198,7 +247,7 @@ export default function ExitZoneModal({
 								type="button"
 								variant="stark"
 								onClick={handlePickAll}
-								disabled={!hasItems}
+								disabled={!hasItems || anyActionPending}
 								className="px-5 py-2 uppercase tracking-wider"
 							>
 								{m.loot_pick_all_button()}
