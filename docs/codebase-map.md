@@ -198,7 +198,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | Hook | Purpose |
 |---|---|
 | `useCombatLoop.ts` | State-machine orchestrator (search → engaged → victory). Owns the spawn loop + zone-bag side effects. 411 lines (split shipped in PR #47 into the three hooks below) |
-| `useCombatTick.ts` | Engaged-state combat tick (50ms): leech heal → barrier recovery → player swing → enemy swing → thorns. Owns player vitals (HP, barrier, leech, dead) + the 10s `syncHp` + the potion mutation. 420 lines |
+| `useCombatTick.ts` | Engaged-state combat tick (50ms): leech heal → barrier regen/cooldown → player swing → enemy swing → thorns. Owns player vitals (HP, barrier, leech, dead) + the 10s `syncHp` + the potion mutation. 420 lines |
 | `useEncounterSchedule.ts` | Per-activation encounter pacing — calmaria time bar, camp threshold rolls, ambush packs, gap rolls, next-spawn rarity decision. 218 lines |
 | `useWorldMutations.ts` | Optimistic mutation bundle for the `/world` route (enterZone, exitZone, pickFromBag, equipItem, etc). See [ADR 0001](./adr/0001-optimistic-mutations.md) |
 | `useViewMode.ts` | View-mode state machine (`"map" | "city" | "combat"`) + the pendingArrival token + the auto-arrival / refresh-resilience effects |

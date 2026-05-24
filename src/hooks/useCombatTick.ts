@@ -20,7 +20,7 @@ import {
 	damageBarrier,
 	makeBarrierState,
 	rescaleBarrier,
-	tickBarrierRecovery,
+	tickBarrier,
 } from "#/game/combat/barrier";
 import { POTION_HEAL_FRACTION } from "#/game/combat/constants";
 import {
@@ -200,16 +200,12 @@ export function useCombatTick({
 			}
 		}
 
-		// Barrier recovery timer ticks too.
-		if (
-			barrierRef.current.recoveryRemaining !== null &&
-			barrierRef.current.recoveryRemaining > 0
-		) {
-			const next = tickBarrierRecovery(barrierRef.current, dt);
-			if (next !== barrierRef.current) {
-				barrierRef.current = next;
-				setBarrier(next);
-			}
+		// Barrier ticks every frame: regen while above zero (5%/s of max),
+		// cooldown countdown while below zero (10s after a break). See ADR 0005.
+		const nextBarrier = tickBarrier(barrierRef.current, dt);
+		if (nextBarrier !== barrierRef.current) {
+			barrierRef.current = nextBarrier;
+			setBarrier(nextBarrier);
 		}
 
 		playerProgressRef.current += dt * tickRate;

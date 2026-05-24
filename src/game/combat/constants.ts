@@ -27,10 +27,19 @@ export function computeBagKeepCap(bagSize: number, phase: CombatPhase): number {
 // this baseline and global cast-speed mods scale it.
 export const BASE_CAST_SPEED = 1.0;
 
-// Barrier recovery: after barrier reaches zero, this many seconds elapse
-// before it refills to 100% in a single tick. The timer does not reset on
-// damage during the window.
-export const BARRIER_RECOVERY_SECONDS = 6;
+// Barrier regen: while barrier is above zero, it ticks back at this fraction
+// of max barrier per second (5% → 20s to fully refill from empty). The rate
+// is fixed; no per-second cap on the absolute regen because heavy barrier
+// investment is intentionally rewarded with proportionally larger raw regen
+// (asymmetric to leech's 20%-max-life cap by design — see ADR 0005).
+export const BARRIER_REGEN_FRACTION_PER_SECOND = 0.05;
+
+// Barrier cooldown: when current barrier hits zero from damage, this many
+// seconds elapse before regen resumes. During the cooldown, regen is paused
+// and incoming damage hits life directly. The cooldown is not reset or
+// extended by further hits. After it expires, regen ticks from zero at the
+// standard rate — there is no instant-refill (see ADR 0005).
+export const BARRIER_COOLDOWN_SECONDS = 10;
 
 // Leech: how much of the magnitude ticks per second (so duration = 1/rate s).
 export const LEECH_RATE_PER_SECOND = 0.2;

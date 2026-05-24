@@ -1,40 +1,49 @@
-import { BARRIER_RECOVERY_SECONDS } from "./constants";
+import {
+	BARRIER_COOLDOWN_SECONDS,
+	BARRIER_REGEN_FRACTION_PER_SECOND,
+} from "./constants";
 
 export interface BarrierState {
 	current: number;
 	max: number;
-	/** Seconds remaining until barrier refills to max. Null while barrier > 0. */
-	recoveryRemaining: number | null;
+	/**
+	 * Seconds remaining until regen resumes after a barrier break. 0 means
+	 * regen is active (the normal state); positive means regen is paused and
+	 * incoming damage bleeds straight to life. See ADR 0005.
+	 */
+	cooldownRemaining: number;
 }
 
 export function makeBarrierState(max: number): BarrierState {
 	return {
 		current: max,
 		max,
-		recoveryRemaining: max > 0 ? null : 0,
+		cooldownRemaining: 0,
 	};
 }
 
 /**
  * Reconcile the barrier state with a possibly-changed max (e.g. after a gear
- * swap). Current is clamped to the new max; if the previous state was
- * recovering, the timer is preserved unless the max dropped to zero.
+ * swap). Current is clamped to the new max; cooldown is preserved. There is
+ * no free refill — a gear swap that raises the ceiling does not refill the
+ * pool. See ADR 0005.
  */
 export function rescaleBarrier(
 	state: BarrierState,
 	newMax: number,
 ): BarrierState {
 	if (newMax <= 0) {
-		return { current: 0, max: 0, recoveryRemaining: null };
+		return { current: 0, max: 0, cooldownRemaining: state.cooldownRemaining };
 	}
 	const current = Math.min(state.current, newMax);
-	return { current, max: newMax, recoveryRemaining: state.recoveryRemaining };
+	return { current, max: newMax, cooldownRemaining: state.cooldownRemaining };
 }
 
 /**
  * Subtracts incoming barrier-portion of damage. Returns new state plus the
- * amount that bled through to life. If barrier just hit zero, kicks off the
- * recovery timer. The timer does NOT reset on subsequent damage.
+ * amount that bled through to life. When the hit empties the barrier, the
+ * cooldown starts. The cooldown does NOT reset on subsequent damage during
+ * the window — damage just hits life directly.
  */
 export function damageBarrier(
 	state: BarrierState,
@@ -49,27 +58,37 @@ export function damageBarrier(
 		state: {
 			current: newCurrent,
 			max: state.max,
-			recoveryRemaining: justEmptied
-				? BARRIER_RECOVERY_SECONDS
-				: state.recoveryRemaining,
+			cooldownRemaining: justEmptied
+				? BARRIER_COOLDOWN_SECONDS
+				: state.cooldownRemaining,
 		},
 		lifeOverflow: damage - absorbed,
 	};
 }
 
 /**
- * Advances the recovery timer. When it elapses, barrier refills to max in one
- * step. Caller passes deltaSeconds elapsed since the last tick.
+ * Advances the barrier state by `dt` seconds.
+ *
+ * - During cooldown (`cooldownRemaining > 0`): decrement the cooldown. This
+ *   runs regardless of `max` so the cooldown can't be paused by unequipping
+ *   barrier gear mid-cooldown — see ADR 0005's "cooldown counts down in real
+ *   time" rule.
+ * - Otherwise: regen `max × BARRIER_REGEN_FRACTION_PER_SECOND × dt` into
+ *   `current`, clamped to `max`. Regen requires a non-zero max.
+ *
+ * Safe to call every frame regardless of barrier state — returns the same
+ * reference when no change is needed.
  */
-export function tickBarrierRecovery(
-	state: BarrierState,
-	dt: number,
-): BarrierState {
-	if (state.recoveryRemaining === null) return state;
-	if (state.max <= 0) return state;
-	const next = state.recoveryRemaining - dt;
-	if (next <= 0) {
-		return { current: state.max, max: state.max, recoveryRemaining: null };
+export function tickBarrier(state: BarrierState, dt: number): BarrierState {
+	if (state.cooldownRemaining > 0) {
+		const nextCd = Math.max(0, state.cooldownRemaining - dt);
+		if (nextCd === state.cooldownRemaining) return state;
+		return { ...state, cooldownRemaining: nextCd };
 	}
-	return { ...state, recoveryRemaining: next };
+	if (state.max <= 0) return state;
+	if (state.current >= state.max) return state;
+	const regen = state.max * BARRIER_REGEN_FRACTION_PER_SECOND * dt;
+	const nextCurrent = Math.min(state.max, state.current + regen);
+	if (nextCurrent === state.current) return state;
+	return { ...state, current: nextCurrent };
 }

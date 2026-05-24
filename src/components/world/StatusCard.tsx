@@ -2,6 +2,13 @@ import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
 import { getClassDisplayName } from "#/game/classes/i18n";
 import { xpToNextLevel } from "#/game/progression/levels";
+import {
+	DEX_ACCURACY_PER_POINT,
+	DEX_EVASION_PCT_PER_POINT,
+	INT_BARRIER_PCT_PER_POINT,
+	STR_LIFE_PER_POINT,
+	STR_MELEE_PCT_PER_POINT,
+} from "#/game/stats/compute";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import { m } from "#/paraglide/messages";
 import type { Doc } from "../../../convex/_generated/dataModel";
@@ -18,6 +25,37 @@ type Props = {
 	onUseTeleportStone?: () => void;
 	onShowStats?: () => void;
 };
+
+function attributeReadouts(stats: ComputedCharacterStats) {
+	return [
+		{
+			label: m.status_strength_label(),
+			value: stats.attributes.strength,
+			glow: "text-glow-red",
+			tooltip: m.attribute_tooltip_strength({
+				melee: STR_MELEE_PCT_PER_POINT,
+				life: STR_LIFE_PER_POINT,
+			}),
+		},
+		{
+			label: m.status_dexterity_label(),
+			value: stats.attributes.dexterity,
+			glow: "text-glow-green",
+			tooltip: m.attribute_tooltip_dexterity({
+				accuracy: DEX_ACCURACY_PER_POINT,
+				evasion: DEX_EVASION_PCT_PER_POINT,
+			}),
+		},
+		{
+			label: m.status_intelligence_label(),
+			value: stats.attributes.intelligence,
+			glow: "text-glow-blue",
+			tooltip: m.attribute_tooltip_intelligence({
+				barrier: INT_BARRIER_PCT_PER_POINT,
+			}),
+		},
+	];
+}
 
 function estimateDps(stats: ComputedCharacterStats): number {
 	if (stats.swings.length === 0) return 0;
@@ -86,15 +124,16 @@ export default function StatusCard({
 						</p>
 					</div>
 					<div className="display-title space-y-1.5 text-right text-xl tracking-wider">
-						<p className="text-glow-red">
-							{m.status_strength_label()} {stats.attributes.strength}
-						</p>
-						<p className="text-glow-green">
-							{m.status_dexterity_label()} {stats.attributes.dexterity}
-						</p>
-						<p className="text-glow-blue">
-							{m.status_intelligence_label()} {stats.attributes.intelligence}
-						</p>
+						{attributeReadouts(stats).map((row) => (
+							<Tooltip
+								key={row.label}
+								content={<span className="whitespace-pre-line">{row.tooltip}</span>}
+							>
+								<p className={row.glow}>
+									{row.label} {row.value}
+								</p>
+							</Tooltip>
+						))}
 					</div>
 				</div>
 

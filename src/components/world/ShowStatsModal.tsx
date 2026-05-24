@@ -3,8 +3,13 @@ import Tooltip from "#/components/ui/tooltip";
 import {
 	computeArmorMitigation,
 	computeEvasionAvoid,
+	DEX_ACCURACY_PER_POINT,
+	DEX_EVASION_PCT_PER_POINT,
 	effectiveCritChance,
+	INT_BARRIER_PCT_PER_POINT,
 	isAttackDualWielding,
+	STR_LIFE_PER_POINT,
+	STR_MELEE_PCT_PER_POINT,
 	totalCritMultiplier,
 } from "#/game/stats/compute";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
@@ -82,7 +87,13 @@ function Row({
 		</div>
 	);
 	if (!tooltip) return row;
-	return <Tooltip content={tooltip}>{row}</Tooltip>;
+	// whitespace-pre-line so multi-line tooltip messages (e.g. attribute
+	// breakdowns with one effect per line) render their newlines.
+	return (
+		<Tooltip content={<span className="whitespace-pre-line">{tooltip}</span>}>
+			{row}
+		</Tooltip>
+	);
 }
 
 function AttributesSection({ stats }: { stats: ComputedCharacterStats }) {
@@ -92,17 +103,25 @@ function AttributesSection({ stats }: { stats: ComputedCharacterStats }) {
 			<Row
 				label={m.attribute_strength()}
 				value={stats.attributes.strength}
-				tooltip={m.attribute_strength_hint()}
+				tooltip={m.attribute_tooltip_strength({
+					melee: STR_MELEE_PCT_PER_POINT,
+					life: STR_LIFE_PER_POINT,
+				})}
 			/>
 			<Row
 				label={m.attribute_dexterity()}
 				value={stats.attributes.dexterity}
-				tooltip={m.attribute_dexterity_hint()}
+				tooltip={m.attribute_tooltip_dexterity({
+					accuracy: DEX_ACCURACY_PER_POINT,
+					evasion: DEX_EVASION_PCT_PER_POINT,
+				})}
 			/>
 			<Row
 				label={m.attribute_intelligence()}
 				value={stats.attributes.intelligence}
-				tooltip={m.attribute_intelligence_hint()}
+				tooltip={m.attribute_tooltip_intelligence({
+					barrier: INT_BARRIER_PCT_PER_POINT,
+				})}
 			/>
 		</section>
 	);

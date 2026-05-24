@@ -143,19 +143,21 @@ describe("computeCharacterStats — base", () => {
 			dexterity: 5,
 			intelligence: 5,
 		});
-		expect(stats.maxLife).toBe(100);
+		// 100 class base + 10 Str * 8 life/point = 180.
+		expect(stats.maxLife).toBe(180);
 		expect(stats.maxBarrier).toBe(0);
 		expect(stats.path).toBe("unarmed");
 		expect(stats.swings).toHaveLength(0);
 	});
 
-	it("scales max life linearly with level", () => {
+	it("scales max life linearly with level (plus Str-from-class contribution)", () => {
 		const stats = computeCharacterStats({
 			classDef: warrior,
 			level: 10,
 			equippedItems: [],
 		});
-		expect(stats.maxLife).toBe(100 + 9 * 10);
+		// 100 class base + 9 * 10 from level + 10 Str * 8 = 270.
+		expect(stats.maxLife).toBe(100 + 9 * 10 + 10 * 8);
 	});
 
 	it("mage starts with class barrier", () => {
@@ -527,6 +529,16 @@ describe("attribute bonuses", () => {
 		expect(stats.increased.melee).toBe(10);
 	});
 
+	it("Str adds 8 life per point (flat) on top of class base + level", () => {
+		const stats = computeCharacterStats({
+			classDef: warriorClass,
+			level: 1,
+			equippedItems: [],
+		});
+		// 100 (warrior base) + 0 (L1 → no level bonus yet) + 10 Str * 8 = 180.
+		expect(stats.maxLife).toBe(180);
+	});
+
 	it("Dex adds 2 accuracy per point", () => {
 		const stats = computeCharacterStats({
 			classDef: warriorClass,
@@ -535,6 +547,37 @@ describe("attribute bonuses", () => {
 		});
 		// 5 Dex → +10 accuracy on top of the class baseline.
 		expect(stats.accuracy).toBeGreaterThanOrEqual(10);
+	});
+
+	it("Dex adds 1% evasion increased per point via the global fold", () => {
+		// Equip a leather helmet so there is a flat evasion source to multiply.
+		// Warrior has 5 Dex baseline → +5% evasion increased.
+		const eq: EquippedItem[] = [
+			{
+				slot: "helmet",
+				item: {
+					...helmet("h1", []),
+					computedDefenseStats: { evasion: 100 },
+				},
+			},
+		];
+		const stats = computeCharacterStats({
+			classDef: warriorClass,
+			level: 1,
+			equippedItems: eq,
+		});
+		// 100 flat evasion * (1 + 5%) = 105 rounded.
+		expect(stats.evasion).toBe(105);
+	});
+
+	it("Dex evasion% does nothing without a flat evasion source (no double-dipping)", () => {
+		// Warrior with no leather and no flat evasion mods — Dex × 1% × 0 = 0.
+		const stats = computeCharacterStats({
+			classDef: warriorClass,
+			level: 1,
+			equippedItems: [],
+		});
+		expect(stats.evasion).toBe(0);
 	});
 
 	it("Int adds 0.2% barrier per point via the global fold", () => {
