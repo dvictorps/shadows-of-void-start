@@ -10,12 +10,11 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ## Next session — pick up here
 
-Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation closing Threat #3 is now in review on `feat/camp-phase-server`. Remaining queue in priority order:
+Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation (PR #48), thorns-reflect fix (PR #49), and spam-click in-flight tracking (PR #50) all merged. Remaining queue in priority order:
 
+- **Drop the `phase` arg from `exitZone` / `pickFromBag` / `discardFromBag`** — now unblocked. All three parallel branches landed, so the `phase` arg kept as `combatPhaseValidator` (with `TODO(merge)` comments at three validator sites in `convex/items.ts` and five client call sites in `src/routes/world.tsx`) is dead weight. Single-PR cleanup: drop the arg, remove the comments, remove the `combatPhaseValidator` import if it has no other users.
+- **Extract `useInFlight` hook + retire per-handler `useState<boolean>` flags** — flagged by Gemini on PR #50 as a violation of the "world.tsx is queued for decomposition" styleguide rule (file grew 645 → 784 lines on that PR). The spam-click tracking pattern is now duplicated 5× in `world.tsx` + 4× in `ExitZoneModal.tsx` + 1× in `VendorModal.tsx` (the original reference). A small `useInFlight(resetDep)` hook in `src/hooks/` would collapse all three sites and shave ~70 lines off world.tsx. Acceptance: world.tsx back under 720 lines, no behaviour change.
 - **Single active session per character** — closes Threat #5 in the threat model (multi-tab races). Same architectural shape as phase derivation (schema add + `sessionToken` arg threaded through every state-mutating mutation + a helper that bundles ownership + session check). **Hard-blocker before any leaderboard / rank ships** — a rank built on multi-tab kills is fraud-by-construction even without intent. Also see the "Convex cost envelope" section below — multi-tab abuse multiplies a single user's function-call cost by tab count.
-- **In-flight tracking for spam-click action handlers** — ready on `feat/spam-click-tracking`. Extends the vendor pattern (PR #45) to potion / teleport stone / exit-zone buttons / map travel / incense.
-- **Thorns-reflect bug fix** — ready on `fix/thorns-reflect`. Small combat-math fix in `useCombatTick.ts`, surfaced by Gemini on PR #47.
-- **Drop the `phase` arg from `exitZone` / `pickFromBag` / `discardFromBag`** — once camp/phase merges and the other two branches rebase + merge, the `phase` arg kept as `combatPhaseValidator` (with `TODO(merge)` comments at three validator sites in `convex/items.ts` and five client call sites in `src/routes/world.tsx`) becomes dead weight. Single-PR cleanup: drop the arg, remove the comments, remove the `combatPhaseValidator` import if it has no other users.
 
 ---
 
@@ -289,88 +288,6 @@ The "Convex cost envelope" section above assumes one player = one active loop. M
 - A determined exploiter who patches out the client-side check (the whole point of moving validation to the server).
 
 A client-side coordinator is a UX nicety on top of the server lock, never a replacement. Defer it until the server lock proves the modal-based UX is too disruptive — at which point a `BroadcastChannel` "Another tab on this browser is active — Switch to this tab" inline handoff is a polish item, not a fix.
-
----
-
-## In-flight tracking for spam-click action handlers (queued)
-
-**Status**: Planned, not started. Triggered by the vendor spam-click fix that shipped in PR #45.
-
-**Why**: `VendorModal` now tracks per-product `pendingBuys: Set<VendorProductId>` and a single `isSelling: boolean`, and disables the corresponding buttons while the mutation is in flight. The same shape applies to every other action handler that today fires one round-trip per click with no guard. Without it, a fast-clicking user (or impatient one mid-lag) bounces N requests off Convex that the server then rejects, polluting the toast log and burning quota.
-
-### Handlers to cover
-
-Each one has the same fix shape: `useState<boolean>` (or `Set` if multiple instances of the same action coexist), early-return at the top of the handler, set/clear in `try` / `finally`, plus `disabled` on the button.
-
-- **`combat.usePotion`** (CombatScene HUD) — clicked rapidly when low HP. Optimistic decrements `potions` so the button greys out on count=0, but a double-tap before the local count updates can fire twice.
-- **`handleUseTeleportStone`** (world.tsx → CombatScene HUD button + map-click teleport-stone path) — same race against the local `teleportStones` count.
-- **`handleRetreat` / `handlePickAll` / `handleDiscardAll`** (ExitZoneModal) — close-on-success protects against most double-clicks, but a slow round-trip leaves the buttons live.
-- **`handleEnterNode`** (map click → `startTravel`) — `pendingArrival` guards subsequent clicks once it's set, but the set→await→pendingArrival flow has a small window where two clicks could both fire `startTravel`.
-- **`combat.triggerIncense`** — same shape as potion.
-
-### Scope
-
-- Track in-flight at the handler call site (not inside `useWorldMutations` — the hook stays mutation-only; UX guards belong to the consumer).
-- Reset on the natural close boundary (modal close, zone exit) so a slow request mid-close doesn't leave stale state.
-- Ready to start — the world.tsx (PR #45) and useCombatLoop (PR #47) splits both stabilised the handler call sites. Combat-tick handlers now live in `useCombatTick.ts`; world-route handlers in `useWorldMutations.ts` and `world.tsx`.
-
-### Validation
-
-- Manual: spam each action button, confirm only one toast/error per intended action.
-- No new tests — this is UX behavior on top of stable mutation contracts.
-
----
-
-## Thorns-reflect overwrites player-swing damage (queued)
-
-**Status**: Planned, not started. **Latent bug** confirmed in both the pre- and post-refactor combat tick (preserved through PR #47 deliberately to keep that refactor structural). Surfaced by Gemini's review on the same PR.
-
-**Why**: inside the 50ms `useCombatTick` callback, both a player swing AND an enemy swing can resolve in the same tick when their progress refs both pass `≥1`. Today's flow:
-
-1. Top of tick: `const currentEnemy = enemyRef.current` — snapshot of pre-swing enemy.
-2. Player swing connects: `const updated = { ...currentEnemy, currentHp: newEnemyHp }`. `enemyRef.current = updated; updateEnemy(updated)`. Enemy HP is now `newEnemyHp`.
-3. Enemy swing connects (same tick). Thorns reflects if `stats.thorns > 0`:
-   ```ts
-   const enemyAfter = Math.max(0, currentEnemy.currentHp - reflected);
-   const updated = { ...currentEnemy, currentHp: enemyAfter };
-   enemyRef.current = updated;
-   updateEnemy(updated);
-   ```
-   `currentEnemy.currentHp` is the **pre-swing** HP (captured at step 1). `enemyAfter` is `pre-swing - thorns`. The `{ ...currentEnemy, currentHp: enemyAfter }` then **overwrites** the post-player-swing HP with `pre-swing - thorns` — silently erasing the player-swing damage.
-
-Concrete consequences:
-- Player + thorns build vs a tanky mob: the player-swing damage component is being silently lost on any tick where both swings resolve. Effective DPS is lower than the stat sheet implies.
-- Thorns appears to "double-dip" against the original HP (its full reflect plus the player swing's damage is what the player thinks happened, but the recorded HP is just `pre-swing - thorns`).
-- More likely to fire when player attack speed is high (more ticks per second → higher prob of both progress refs hitting 1 in the same tick).
-
-### Scope
-
-The fix is local to `useCombatTick.ts`. Two options:
-
-- **(A) Compute thorns from the live ref**:
-  ```ts
-  const enemyAtNow = enemyRef.current ?? currentEnemy;
-  const enemyAfter = Math.max(0, enemyAtNow.currentHp - reflected);
-  const updated = { ...enemyAtNow, currentHp: enemyAfter };
-  ```
-  Reads the post-player-swing HP correctly. Minimal change.
-- **(B) Re-bind `currentEnemy` after each mutation**:
-  ```ts
-  // After player swing block (regardless of branch):
-  currentEnemy = enemyRef.current ?? currentEnemy;
-  ```
-  Same effect; preserves the "all reads in the tick go through `currentEnemy`" pattern.
-
-Either approach. (A) is more localised and clearer about intent.
-
-### Validation
-
-- Add a vitest case in a new `src/hooks/useCombatTick.test.ts` (or in a thin damage-routing test file in `src/game/combat/`) that simulates the same-tick collision: player swing connects + enemy swing connects with thorns. Assert final enemy HP = `initial - playerDamage - thorns`, not `initial - thorns`.
-- Manual: roll a thorns build (rings/amulets with `thornsFlat`), engage a mob with `attackSpeed > 1`, watch the enemy HP bar — confirm it drops at the expected rate vs the stat sheet.
-
-### Why not in PR #47
-
-PR #47 is purely structural (`useCombatLoop` split). Including a real combat-math change would muddy the diff and the "no behavioural change" claim that justifies the smoke-test scope. Surfaced by Gemini's review but deliberately scoped out — fix lands as a follow-up.
 
 ---
 
