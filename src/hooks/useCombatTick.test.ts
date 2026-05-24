@@ -9,10 +9,12 @@
 // future refactor that re-introduces the snapshot read fails loudly.
 
 import { act, renderHook } from "@testing-library/react";
+import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Enemy } from "#/game/combat/types";
 import type { MonsterDefinition } from "#/game/monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
+import { SessionTokenProvider } from "./useSessionToken";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 // `useCombatTick` calls `useMutation(api.combat.syncHp)` and `.usePotion`.
@@ -196,22 +198,27 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 		const onPlayerDeath = vi.fn();
 		const pushEvent = vi.fn();
 
-		renderHook(() =>
-			useCombatTick({
-				characterId: "test-char" as unknown as Parameters<
-					typeof useCombatTick
-				>[0]["characterId"],
-				active: true,
-				isEngaged: true,
-				enemy: latestEnemy,
-				stats: makeStats({ thorns: THORNS }),
-				initialHp: 100,
-				potions: 0,
-				onPlayerDeath,
-				resolveKill,
-				pushEvent,
-				updateEnemy,
-			}),
+		renderHook(
+			() =>
+				useCombatTick({
+					characterId: "test-char" as unknown as Parameters<
+						typeof useCombatTick
+					>[0]["characterId"],
+					active: true,
+					isEngaged: true,
+					enemy: latestEnemy,
+					stats: makeStats({ thorns: THORNS }),
+					initialHp: 100,
+					potions: 0,
+					onPlayerDeath,
+					resolveKill,
+					pushEvent,
+					updateEnemy,
+				}),
+			{
+				wrapper: ({ children }) =>
+					createElement(SessionTokenProvider, null, children),
+			},
 		);
 
 		// One 50ms tick → both progress refs reach exactly 1.0 → both swings

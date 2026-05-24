@@ -33,6 +33,7 @@ import {
 	narrowEquippedSlot,
 } from "#/game/stats/types";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
+import { useSessionToken } from "#/hooks/useSessionToken";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { m } from "#/paraglide/messages";
 import { api } from "../../../convex/_generated/api";
@@ -85,6 +86,7 @@ export default function InventoryModal({
 	equippedItems,
 	inventoryItems,
 }: Props) {
+	const { withSession } = useSessionToken();
 	const reorder = useMutation(api.items.reorderInventory).withOptimisticUpdate(
 		(localStore, args) => {
 			const inv = localStore.getQuery(api.items.inventory, {
@@ -320,11 +322,13 @@ export default function InventoryModal({
 		if (source.kind === "inventory" && target.kind === "inventory") {
 			const sourceDoc = inventory.find((it) => it._id === source.itemId);
 			if (!sourceDoc || sourceDoc.inventorySlot === target.slot) return;
-			void reorder({
-				characterId,
-				itemId: source.itemId,
-				targetSlot: target.slot,
-			});
+			void reorder(
+				withSession({
+					characterId,
+					itemId: source.itemId,
+					targetSlot: target.slot,
+				}),
+			);
 			return;
 		}
 
@@ -334,11 +338,13 @@ export default function InventoryModal({
 			if (!sourceDoc) return;
 			if (!validSlotsForItem(sourceDoc.data).includes(target.slot)) return;
 			try {
-				await equipItem({
-					characterId,
-					itemId: source.itemId,
-					targetSlot: target.slot,
-				});
+				await equipItem(
+					withSession({
+						characterId,
+						itemId: source.itemId,
+						targetSlot: target.slot,
+					}),
+				);
 			} catch (err) {
 				toast.error(convexErrorMessage(err, m.error_equip_failed()));
 			}
@@ -349,7 +355,7 @@ export default function InventoryModal({
 		// places it in the first free slot).
 		if (source.kind === "equipped" && target.kind === "inventory") {
 			try {
-				await unequipItem({ characterId, slot: source.slot });
+				await unequipItem(withSession({ characterId, slot: source.slot }));
 			} catch (err) {
 				toast.error(convexErrorMessage(err, m.error_equip_failed()));
 			}
@@ -365,7 +371,7 @@ export default function InventoryModal({
 		targetSlot: EquippedSlot,
 	) => {
 		try {
-			await equipItem({ characterId, itemId, targetSlot });
+			await equipItem(withSession({ characterId, itemId, targetSlot }));
 		} catch (err) {
 			toast.error(convexErrorMessage(err, m.error_equip_failed()));
 		}
@@ -373,7 +379,7 @@ export default function InventoryModal({
 
 	const triggerUnequip = async (slot: EquippedSlot) => {
 		try {
-			await unequipItem({ characterId, slot });
+			await unequipItem(withSession({ characterId, slot }));
 		} catch (err) {
 			toast.error(convexErrorMessage(err, m.error_unequip_failed()));
 		}
@@ -391,7 +397,7 @@ export default function InventoryModal({
 		});
 		if (!ok) return;
 		try {
-			await discardItem({ characterId, itemId });
+			await discardItem(withSession({ characterId, itemId }));
 		} catch (err) {
 			toast.error(convexErrorMessage(err, m.error_discard_failed()));
 		}

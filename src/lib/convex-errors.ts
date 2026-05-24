@@ -57,6 +57,8 @@ function tryTranslate(raw: string): string | null {
 			return m.name_cannot_be_empty();
 		case "You already have a character with this name":
 			return m.error_duplicate_name();
+		case "Session lost":
+			return m.error_session_lost();
 	}
 
 	// Substring / parametric matches

@@ -20,6 +20,26 @@ export async function loadOwnedCharacter(
 	return char
 }
 
+// Single-active-session guard — see Threat #5 in docs/security/threat-model.md.
+// Loads the character with the standard ownership check, then asserts that the
+// caller's session token still matches the character's authoritative token. A
+// second tab that called `claimCharacterSession` rotates the token; any
+// mutation from the first tab after that point fails here and the client's
+// global error handler routes it to the "Session lost" modal. Read-only
+// queries deliberately do NOT call this — a stale tab can still observe its
+// character coherently, it just can't write.
+export async function loadOwnedCharacterWithSession(
+	ctx: MutationCtx,
+	authUserId: string,
+	id: Id<"characters">,
+	sessionToken: string,
+): Promise<Doc<"characters">> {
+	const char = await loadOwnedCharacter(ctx, authUserId, id)
+	if (char.activeSessionToken !== sessionToken)
+		throw new ConvexError("Session lost")
+	return char
+}
+
 export async function loadEquippedSet(
 	ctx: MutationCtx,
 	characterId: Id<"characters">,

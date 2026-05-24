@@ -9,7 +9,9 @@ import { Button } from "#/components/ui/button";
 import { findClassDefinition } from "#/game/classes/data";
 import type { CharacterClassId } from "#/game/classes/types";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
+import { useInFlight } from "#/hooks/useInFlight";
 import { useModal } from "#/hooks/useModal";
+import { useSessionToken } from "#/hooks/useSessionToken";
 import { prefetchAdminTabs } from "#/lib/admin-prefetch";
 import { authClient } from "#/lib/auth-client";
 import { convexErrorMessage } from "#/lib/convex-errors";
@@ -49,6 +51,9 @@ function CharacterSelectPage() {
 		convexQuery(api.users.getUserRole, {}),
 	);
 	const removeCharacter = useMutation(api.characters.remove);
+	const claimSession = useMutation(api.characters.claimCharacterSession);
+	const { sessionToken } = useSessionToken();
+	const [isClaiming, runClaim] = useInFlight();
 
 	const isAdmin = userRole?.role === "admin";
 	const confirm = useConfirmationModal();
@@ -81,10 +86,24 @@ function CharacterSelectPage() {
 		}
 	};
 
-	const handlePlay = () => {
-		if (!selected) return;
-		navigate({ to: "/world", search: { characterId: selected._id } });
-	};
+	// Claim-then-navigate: the active-session token must be stamped on the
+	// character before /world mounts, so the combat loop's token-equality
+	// gate sees a fresh snapshot and any prior tab gets bumped to the
+	// "Session lost" modal on its next write. See docs/plans/in-progress.md
+	// "Single active session per character".
+	const handlePlay = () =>
+		runClaim(async () => {
+			if (!selected) return;
+			try {
+				await claimSession({
+					characterId: selected._id,
+					sessionToken,
+				});
+				navigate({ to: "/world", search: { characterId: selected._id } });
+			} catch (err) {
+				toast.error(convexErrorMessage(err, m.play_failed()));
+			}
+		});
 
 	const handleSignOut = () => {
 		void authClient.signOut({
@@ -164,7 +183,7 @@ function CharacterSelectPage() {
 							type="button"
 							variant="stark"
 							onClick={handlePlay}
-							disabled={!selected}
+							disabled={!selected || isClaiming}
 							className="px-3 py-2.5 uppercase tracking-wider"
 						>
 							{m.play_character_button()}

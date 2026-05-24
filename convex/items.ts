@@ -31,7 +31,7 @@ import {
 	clearPerVisitZoneState,
 	equippedSlotValidator,
 	fetchInventoryAllocator,
-	loadOwnedCharacter,
+	loadOwnedCharacterWithSession,
 } from "./_shared/character"
 import type { Doc } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
@@ -54,12 +54,13 @@ function derivePhaseFromCharacter(char: Doc<"characters">): CombatPhase {
 export const exitZone = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		keepIds: v.array(v.id("items")),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 		const derivedPhase = derivePhaseFromCharacter(char)
 
 		const zoneSession = char.currentZoneSession
@@ -127,12 +128,13 @@ export const exitZone = mutation({
 export const pickFromBag = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		itemIds: v.array(v.id("items")),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 		const derivedPhase = derivePhaseFromCharacter(char)
 
 		if (derivedPhase !== "camp") {
@@ -190,12 +192,13 @@ export const pickFromBag = mutation({
 export const discardFromBag = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		itemIds: v.array(v.id("items")),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 		const derivedPhase = derivePhaseFromCharacter(char)
 
 		if (derivedPhase !== "camp") {
@@ -228,12 +231,13 @@ export const discardFromBag = mutation({
 export const discardFromInventory = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		itemId: v.id("items"),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const item = await ctx.db.get(args.itemId)
 		if (!item) throw new ConvexError("Item not found")
@@ -257,13 +261,14 @@ export const discardFromInventory = mutation({
 export const equipItem = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		itemId: v.id("items"),
 		targetSlot: equippedSlotValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const item = await ctx.db.get(args.itemId)
 		if (!item) throw new ConvexError("Item not found")
@@ -363,12 +368,13 @@ export const equipItem = mutation({
 export const unequipItem = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		slot: equippedSlotValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const equipped = await ctx.db
 			.query("items")
@@ -437,13 +443,14 @@ export const unequipItem = mutation({
 export const reorderInventory = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		itemId: v.id("items"),
 		targetSlot: v.number(),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		if (args.targetSlot < 0 || args.targetSlot >= INVENTORY_MAX_SLOTS) {
 			throw new ConvexError(`Invalid slot: ${args.targetSlot}`)

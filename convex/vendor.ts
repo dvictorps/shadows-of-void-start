@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values"
 import { computeSellPrice } from "../src/game/items/sell-price"
 import { findVendorProduct } from "../src/game/vendor/products"
-import { assertInCity, loadOwnedCharacter } from "./_shared/character"
+import { assertInCity, loadOwnedCharacterWithSession } from "./_shared/character"
 import { mutation } from "./_generated/server"
 import { authComponent } from "./auth"
 
@@ -11,12 +11,13 @@ import { authComponent } from "./auth"
 export const vendorBuy = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		productId: v.string(),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 		assertInCity(char)
 
 		const product = findVendorProduct(args.productId)
@@ -50,12 +51,13 @@ export const vendorBuy = mutation({
 export const vendorSellMany = mutation({
 	args: {
 		characterId: v.id("characters"),
+		sessionToken: v.string(),
 		itemIds: v.array(v.id("items")),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 		assertInCity(char)
 
 		if (args.itemIds.length === 0) return { rubys: char.rubys ?? 0, priceGained: 0, sold: 0 }

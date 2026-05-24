@@ -1,5 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import CombatScene, {
 } from "#/components/world/CombatScene";
 import EquipmentPanel from "#/components/world/EquipmentPanel";
 import MapScene from "#/components/world/MapScene";
+import SessionLostModal from "#/components/world/SessionLostModal";
 import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
@@ -32,6 +33,7 @@ import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useModal } from "#/hooks/useModal";
+import { useSessionToken } from "#/hooks/useSessionToken";
 import { useViewMode } from "#/hooks/useViewMode";
 import { useWorldMutations } from "#/hooks/useWorldMutations";
 import { convexErrorMessage } from "#/lib/convex-errors";
@@ -95,6 +97,50 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const navigate = useNavigate();
 	const confirm = useConfirmationModal();
 	const classDef = findClassDefinition(character.classId);
+	const { sessionToken } = useSessionToken();
+	// Gate the combat loop on the active-session check — a stale tab whose
+	// claim was stolen by another tab/device shouldn't keep firing recordKill
+	// / syncHp into rejection. The combat HUD freezes silently here; the
+	// next user-initiated mutation surfaces the "Session lost" modal via the
+	// global error handler. See docs/security/threat-model.md → Threat #5.
+	const tokenMatches = character.activeSessionToken === sessionToken;
+
+	// Single-active-session reconciliation. A fresh tab arriving directly at
+	// /world (refresh, bookmark, restored tab) has no prior claim — auto-fire
+	// one. `hasMatched` flips true the first time the reactive query shows
+	// our token win; from that point on a divergence means another tab/device
+	// stole the session, and `sessionLost` (derived) surfaces the non-
+	// dismissible modal. We deliberately do NOT re-claim after a takeover —
+	// otherwise the two tabs ping-pong forever; the user must refresh to
+	// recover.
+	//
+	// `useInFlight` belt-and-suspenders: with Convex's stable mutation refs
+	// the effect's dep array already gates re-runs to tokenMatches/hasMatched
+	// flips, but the guard removes any reliance on that invariant — if a
+	// future Convex change makes the mutation ref change identity, the
+	// 50ms-tick combat re-render can't burst-fire claims.
+	const claimSession = useMutation(api.characters.claimCharacterSession);
+	const [hasMatched, setHasMatched] = useState(false);
+	const [isClaiming, runClaim] = useInFlight();
+	const sessionLost = hasMatched && !tokenMatches;
+	useEffect(() => {
+		if (tokenMatches) {
+			if (!hasMatched) setHasMatched(true);
+			return;
+		}
+		if (hasMatched || isClaiming) return;
+		void runClaim(() =>
+			claimSession({ characterId: character._id, sessionToken }),
+		);
+	}, [
+		tokenMatches,
+		hasMatched,
+		isClaiming,
+		runClaim,
+		claimSession,
+		character._id,
+		sessionToken,
+	]);
 
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const [deathLog, setDeathLog] = useState<string | null>(null);
@@ -242,8 +288,11 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		// derivation".
 		serverCampThresholdsMs: character.campThresholdsMs ?? EMPTY_THRESHOLDS,
 		// Pause combat while the loot picker is open so the player can't die
-		// mid-selection from a goblin they've already retreated from.
-		active: view === "combat" && !exitModal.isOpen,
+		// mid-selection from a goblin they've already retreated from. Also
+		// gated on the active-session token — the loop refuses to fire its
+		// per-tick mutations until the server confirms this tab owns the
+		// character.
+		active: view === "combat" && !exitModal.isOpen && tokenMatches,
 		onPlayerDeath: handlePlayerDeath,
 	});
 
@@ -735,6 +784,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					currentLife={combat.playerHp}
 				/>
 			)}
+			<SessionLostModal open={sessionLost} />
 		</main>
 	);
 }

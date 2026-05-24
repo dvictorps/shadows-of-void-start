@@ -92,7 +92,11 @@ There are no per-character per-mutation rate limits at the application level. Co
 
 A determined attacker can multiply Convex cost meaningfully with sustained spam against a single character.
 
-### 5. Concurrent multi-tab / multi-device sessions (HIGH severity once ranking ships)
+### 5. Concurrent multi-tab / multi-device sessions — **CLOSED** in `feat/single-active-session`
+
+**Resolution**: every state-mutating mutation now accepts a `sessionToken: v.string()` arg threaded through `loadOwnedCharacterWithSession`. The `claimCharacterSession` mutation stamps a UUID + timestamp onto the `characters` doc; the `/character-select` Play button claims before navigating, and `/world` auto-reclaims on a direct mount (refresh / bookmark / restored tab). The combat loop's `active` flag is gated on `character.activeSessionToken === ourToken` so a stale tab pauses silently; once we observed our token win, any subsequent divergence surfaces the non-dismissible `SessionLostModal` (Refresh → `window.location.reload()` → fresh UUID → reclaim). Read-only queries deliberately stay session-free so a stale tab can still observe its character coherently. The historical section below describes the pre-fix behaviour and is kept for context.
+
+---
 
 The auth model identifies the **user**, not the **client**. `loadOwnedCharacter(authUserId, characterId)` answers "does this user own this character" — yes, in every tab. There is no "is this the active client" check anywhere on the character doc. Two tabs of the same browser (or a tab plus a phone browser logged into the same account) can both open the same character and run independent `useCombatLoop` instances against it.
 
@@ -107,7 +111,7 @@ Severity changes with the leaderboard. **Today (pre-ranking)**: bounded to weird
 
 Cost amplifier: multi-tab abuse also multiplies the user's Convex function-call cost. A determined exploiter with 5 tabs makes their own character account for 5× quota. Layer 1 rate limits help, but per-tab limits don't fire against the same character — the spam is *distributed* across legitimate-looking sessions.
 
-**Why it works**: nothing on the character doc identifies the session that's currently driving it. Fix shape lives in `docs/plans/in-progress.md` → "Single active session per character" (active-session token, threaded through every state-mutating mutation).
+**Why it worked**: nothing on the character doc identified the session that was currently driving it.
 
 ### 6. Lesser issues that are NOT urgent
 
@@ -228,7 +232,7 @@ These close a specific exploit without depending on the broader rate-limit / ses
 | Fix | Closes | Status |
 |---|---|---|
 | Server-authoritative camp/phase derivation | Threat #3 (`phase` arg trust) | ✅ **Shipped** in PR #48 + PR #51 — `derivePhaseFromCharacter` reads server state; `phase` arg removed from all mutations. |
-| Single active session per character (see `docs/plans/in-progress.md`) | Threat #5 (multi-tab) | Queued. **Trigger: first competitive feature ships (leaderboard / rank / shared ladder).** Pre-leaderboard the bug is annoying; post-leaderboard it is fraud-by-construction. |
+| Single active session per character | Threat #5 (multi-tab) | ✅ **Shipped** in `feat/single-active-session` — `activeSessionToken` on `characters`, `claimCharacterSession` mutation, `loadOwnedCharacterWithSession` helper threaded through every state-mutating mutation, client-side `SessionTokenProvider` + `useSessionToken` + `SessionLostModal`. |
 
 ---
 
