@@ -11,7 +11,6 @@ import type { CampSource } from "#/game/world";
 import {
 	type AmbushSchedule,
 	rollAmbushSchedule,
-	rollCampThresholdsMs,
 	rollSpawnGapMs,
 	type ZoneEncounterPlan,
 } from "#/game/world/encounter-schedule";
@@ -25,17 +24,26 @@ const CALMARIA_TICK_MS = 100;
 type Params = {
 	active: boolean;
 	encounterPlan: ZoneEncounterPlan;
+	// Camp thresholds (cumulative calmaria ms). Rolled server-side by
+	// enterZone and persisted on the character — read off the character query.
+	// Empty array while the zone hasn't rolled yet (e.g. mid-load) so the
+	// ticker simply has no camps to fire. See docs/plans/in-progress.md
+	// "Server-authoritative camp/phase derivation".
+	serverCampThresholdsMs: readonly number[];
 	isSearching: boolean;
 	// Held by the state machine; set true between miniboss kill and the
 	// victory-delay transition. Read at render time so the ticker re-evaluates
 	// whenever state flips. A ref (not state) so flips don't trigger renders.
 	postMinibossPauseRef: React.MutableRefObject<boolean>;
-	onCampTriggered: () => void;
+	// Fires with the crossed threshold's index so the parent can call
+	// `enterCamp(thresholdIndex)` against the server.
+	onCampTriggered: (thresholdIndex: number) => void;
 };
 
 export function useEncounterSchedule({
 	active,
 	encounterPlan,
+	serverCampThresholdsMs,
 	isSearching,
 	postMinibossPauseRef,
 	onCampTriggered,
@@ -49,12 +57,15 @@ export function useEncounterSchedule({
 	const [calmariaElapsedMs, setCalmariaElapsedMs] = useState(0);
 	const calmariaElapsedMsRef = useRef(0);
 
-	// State mirror so the bar can render markers at each camp position; ref is
-	// what the ticker reads to avoid stale closures.
-	const [campThresholdsMs, setCampThresholdsMs] = useState<readonly number[]>(
-		[],
-	);
-	const campThresholdsMsRef = useRef<readonly number[]>([]);
+	// Camp thresholds are now server-rolled (enterZone persists them on the
+	// character). We mirror the latest value into a ref so the ticker — which
+	// reads via a ref to avoid stale closures — sees updates from Convex's
+	// reactive query without re-subscribing. The state copy drives the bar
+	// marker render.
+	const campThresholdsMsRef = useRef<readonly number[]>(serverCampThresholdsMs);
+	useEffect(() => {
+		campThresholdsMsRef.current = serverCampThresholdsMs;
+	}, [serverCampThresholdsMs]);
 	const nextCampIndexRef = useRef(0);
 
 	// `ambushPackRemainingRef` is the mobs remaining in the active pack —
@@ -86,14 +97,17 @@ export function useEncounterSchedule({
 	}, [isSearching, encounterPlan, ambushPlan]);
 
 	// Shared by the activation effect and resetForMiniboss — zero the time
-	// bar, re-roll camps + ambushes, drain any in-flight pack. Activation
-	// additionally resets campSource ("baked") above this call.
+	// bar, re-roll ambushes, drain any in-flight pack. Camp thresholds are
+	// owned by the server: enterZone rolls them on entry, and recordKill on a
+	// miniboss reroll them + resets zoneStartedAt per CONTEXT.md → Zone
+	// Miniboss ("the bar resets to 0 and the schedule is rerolled"). The
+	// reactive `serverCampThresholdsMs` prop carries the new values into the
+	// ref via the effect above, so this client-side reset only needs to clear
+	// the consumed-index counter. Activation additionally resets campSource
+	// ("baked") above this call.
 	const resetSchedule = useCallback(() => {
 		calmariaElapsedMsRef.current = 0;
 		setCalmariaElapsedMs(0);
-		const freshCamps = rollCampThresholdsMs(encounterPlan);
-		campThresholdsMsRef.current = freshCamps;
-		setCampThresholdsMs(freshCamps);
 		nextCampIndexRef.current = 0;
 		ambushScheduleRef.current = rollAmbushSchedule(encounterPlan);
 		nextAmbushIndexRef.current = 0;
@@ -123,16 +137,18 @@ export function useEncounterSchedule({
 
 			// Camp fires only if the budget hasn't filled yet — at the budget
 			// boundary the boss-spawn check wins on the next spawn instead.
-			const nextCampThreshold =
-				campThresholdsMsRef.current[nextCampIndexRef.current];
+			const currentCampIndex = nextCampIndexRef.current;
+			const nextCampThreshold = campThresholdsMsRef.current[currentCampIndex];
 			if (
 				nextCampThreshold !== undefined &&
 				next >= nextCampThreshold &&
 				next < calmariaBudgetMs
 			) {
-				nextCampIndexRef.current += 1;
+				nextCampIndexRef.current = currentCampIndex + 1;
 				setCampSource("baked");
-				onCampTriggered();
+				// Pass the index of the threshold the player just crossed so the
+				// parent can call enterCamp(thresholdIndex) against the server.
+				onCampTriggered(currentCampIndex);
 				return;
 			}
 
@@ -188,7 +204,7 @@ export function useEncounterSchedule({
 	return {
 		calmariaElapsedMs,
 		calmariaBudgetMs,
-		campThresholdsMs,
+		campThresholdsMs: serverCampThresholdsMs,
 		campSource,
 		ambushActive,
 		nextSpawnGapMs,

@@ -10,12 +10,12 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ## Next session — pick up here
 
-Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). The remaining queued items are queued in priority order:
+Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation closing Threat #3 is now in review on `feat/camp-phase-server`. Remaining queue in priority order:
 
-- **Server-authoritative camp/phase derivation** — closes Threat #3 in the threat model. Next architectural piece for the time-based-zone scope.
 - **Single active session per character** — closes Threat #5 in the threat model (multi-tab races). Same architectural shape as phase derivation (schema add + `sessionToken` arg threaded through every state-mutating mutation + a helper that bundles ownership + session check). **Hard-blocker before any leaderboard / rank ships** — a rank built on multi-tab kills is fraud-by-construction even without intent. Also see the "Convex cost envelope" section below — multi-tab abuse multiplies a single user's function-call cost by tab count.
-- **In-flight tracking for spam-click action handlers** — unblocked now that both splits shipped. Extends the vendor pattern (PR #45) to potion / teleport stone / exit-zone buttons / map travel / incense.
-- **Thorns-reflect bug fix** — small combat-math fix in `useCombatTick.ts`, surfaced by Gemini on PR #47. Standalone PR.
+- **In-flight tracking for spam-click action handlers** — ready on `feat/spam-click-tracking`. Extends the vendor pattern (PR #45) to potion / teleport stone / exit-zone buttons / map travel / incense.
+- **Thorns-reflect bug fix** — ready on `fix/thorns-reflect`. Small combat-math fix in `useCombatTick.ts`, surfaced by Gemini on PR #47.
+- **Drop the `phase` arg from `exitZone` / `pickFromBag` / `discardFromBag`** — once camp/phase merges and the other two branches rebase + merge, the `phase` arg kept as `combatPhaseValidator` (with `TODO(merge)` comments at three validator sites in `convex/items.ts` and five client call sites in `src/routes/world.tsx`) becomes dead weight. Single-PR cleanup: drop the arg, remove the comments, remove the `combatPhaseValidator` import if it has no other users.
 
 ---
 
@@ -58,7 +58,7 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 If you're picking up where we left off:
 
 1. Read this snapshot first — know where the project sits and what's at stake.
-2. The world.tsx split (PR #45), useCombatLoop split (PR #47), and agent-ergonomics hardening are **done**. The next high-leverage debt is server-authoritative camp/phase derivation (queued entry below).
+2. The world.tsx split (PR #45), useCombatLoop split (PR #47), and agent-ergonomics hardening are **done**. Camp/phase derivation (closing Threat #3) is shipping next. The next high-leverage debt after it merges is the single-active-session lock (queued entry below) — hard-blocker before any leaderboard.
 3. When a major refactor lands, **update the relevant playbook + sentinel in the same PR** (this is the single most important habit for keeping the grade trajectory positive).
 
 ---
@@ -221,42 +221,6 @@ experience. The remaining 40% is in (a) biome-themed background art and
 ### 4. Convex validator can't enforce literal unions
 
 **Constraint, not a bug**. `nameBase` / `nameModifier` are stored as `v.optional(v.string())` because Convex validators don't have ergonomic literal-union support. The in-process `GeneratedItem` type widens to `string` at the persistence boundary — the lexicon files themselves keep the union enforcement. If Convex ever ships a `v.unionLiteral([...])` helper, swap in.
-
----
-
-## Server-authoritative camp/phase derivation (queued)
-
-**Status**: Planned, not started.
-**Why**: PR #40 added server-side enforcement of the 30% bag retention cap by accepting a `phase` arg on `exitZone` / `pickFromBag` / `discardFromBag`. The cap math itself is server-enforced, but the **`phase` arg is still client-trusted**. A tampered client (or someone hitting the Convex endpoint directly via the SDK) can pass `phase: "camp"` while actually in combat and bypass the cap entirely. Auth + ownership are protected; phase is not.
-
-### Why we deferred
-
-This is the next "right" step for the time-based-zone scope, but it requires schema + enterZone + useCombatLoop rewiring. Doing both in the same PR as the world.tsx split (now shipped in PR #45) would have been too much surface for one review.
-
-### Scope
-
-- **Schema** (`convex/schema.ts`): add to `characters`:
-  - `zoneStartedAt?: number` (ms) — set by `enterZone`, cleared by `exitZone`/death.
-  - `campThresholdsMs?: number[]` — rolled by `enterZone`, consumed on `enterCamp`.
-  - `inCamp?: boolean` — set by `enterCamp`, cleared by `exitCamp` / `exitZone`.
-- **`enterZone`**: roll the camp thresholds server-side (move `rollCampThresholdsMs` call from client to server) and persist `zoneStartedAt` + `campThresholdsMs`. Return both to the client so the time bar can render markers.
-- **New `enterCamp` mutation**: takes `thresholdIndex`. Validates `Date.now() - zoneStartedAt >= campThresholdsMs[thresholdIndex]` (with a small grace window for clock drift). Sets `inCamp = true`. Idempotent on the same index.
-- **New `exitCamp` mutation**: clears `inCamp`. Called when the player picks "Seguir em frente" in the camp panel.
-- **`exitZone` / `pickFromBag` / `discardFromBag`**: drop the `phase` arg. Derive phase server-side as `inCamp ? "camp" : "combat"` (combat vs exploration distinction is only cosmetic for the cap — both gate at 30%).
-- **Client (`useCombatLoop` + `world.tsx`)**:
-  - Read `campThresholdsMs` from the character query instead of rolling locally.
-  - Call `enterCamp(thresholdIndex)` when the camp cinematic triggers.
-  - Call `exitCamp` on the "Seguir em frente" handler.
-  - Stop passing `phase` to the three mutations; UI still uses local `combat.phase` to decide which buttons to show (matches the server's derivation, but UI math doesn't gate security).
-
-### Validation
-
-- `npx tsc --noEmit`, `npx vitest run`, `npx convex dev --once`, `npx biome check`.
-- Manual: enter zone, reach camp, observe panel (no client-trusted phase). Then try in DevTools: call `pickFromBag` with no `enterCamp` first — should reject. Verify `enterCamp` rejects if called before the time threshold.
-
-### Why this matters
-
-Without this, the cap is a **client-cooperation** boundary, not a security one. The user's framing in PR #40 — *"backend tem que proteger isso"* — only fully holds once phase derives from server state.
 
 ---
 

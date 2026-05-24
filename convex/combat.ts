@@ -33,6 +33,10 @@ import { rollDrop, rollMinibossDrops } from "../src/game/loot/drops"
 import { findMonster } from "../src/game/monsters/data"
 import { scaleMonsterStats } from "../src/game/monsters/scaling"
 import {
+	DEFAULT_ENCOUNTER_PLAN,
+	rollCampThresholdsMs,
+} from "../src/game/world/encounter-schedule"
+import {
 	applyDeathXpPenalty,
 	applyOverlevelPenalty,
 	applyXpGain,
@@ -42,6 +46,7 @@ import { ACT_1, findNode, isNodeAccessible } from "../src/game/world"
 import { computeTravelTime } from "../src/game/world/travel"
 import {
 	appendUnique,
+	clearPerVisitZoneState,
 	deleteZoneBag,
 	loadEquippedSet,
 	loadOwnedCharacter,
@@ -112,8 +117,34 @@ export const recordKill = mutation({
 			if (!completed.includes(currentLocation)) {
 				updates.completedZones = [...completed, currentLocation]
 			}
+			// Miniboss-victory is a 100% bag-retention tier (see
+			// derivePhase in src/game/combat/types.ts). Flip the server-side
+			// inCamp flag so exitZone/pickFromBag derive the camp phase
+			// during the post-miniboss modal pause.
+			updates.inCamp = true
+			// Per CONTEXT.md → Zone Miniboss: continuing past the panel resets
+			// the bar to 0 and rerolls the schedule. The client's calmaria
+			// ticker resets locally; the server must mirror that by rerolling
+			// thresholds and resetting `zoneStartedAt` so the next loop's
+			// enterCamp time-gate isn't trivially satisfied by stale wall-clock
+			// elapsed from the previous loop. lastCampIndex resets so the new
+			// loop can claim camp[0] again.
+			const zone = findNode(ACT_1, currentLocation)
+			if (zone && zone.kind === "combat") {
+				const plan = zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN
+				updates.campThresholdsMs = rollCampThresholdsMs(plan)
+				updates.zoneStartedAt = Date.now()
+				updates.lastCampIndex = undefined
+			}
 		} else {
 			updates.currentZoneKills = currentZoneKills + 1
+			// Defense-in-depth: a miniboss kill flips `inCamp = true` and
+			// expects the client to call `exitCamp` via dismissMinibossModal
+			// before resuming normal combat. If a client skips the dismiss and
+			// keeps farming, leaving `inCamp` set would grant 100% retention
+			// to subsequent bag commits. Clearing it on every non-miniboss
+			// kill closes that gap without changing the legitimate flow.
+			updates.inCamp = false
 		}
 
 		// Potion drop — independent of the equipment roll. At the 10-potion cap
@@ -220,10 +251,36 @@ export const useEtherealIncense = mutation({
 		const count = char.etherealIncense ?? 0
 		if (count <= 0) throw new ConvexError("No incense to use")
 
+		// `inCamp` is NOT flipped here. Incense may be queued during "engaged"
+		// (the cinematic only fires after the current fight finishes), so the
+		// client calls `enterCampViaIncense` separately when the cinematic
+		// actually begins. The counter still decrements on use so a kill
+		// landing between use+enter can't race the consume.
 		await ctx.db.patch(args.characterId, {
 			etherealIncense: count - 1,
 		})
 		return { etherealIncense: count - 1 }
+	},
+})
+
+// Camp entry triggered by Incenso Etéreo. Bypasses the time-threshold gate
+// since incense is a player-driven "summon a camp" affordance — the gate
+// is the consumed counter (charged in useEtherealIncense). Sets inCamp =
+// true. Idempotent. Distinct from `enterCamp` so the time-gated path can't
+// be widened by accident. See docs/plans/in-progress.md
+// "Server-authoritative camp/phase derivation".
+export const enterCampViaIncense = mutation({
+	args: { characterId: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		if (char.zoneStartedAt === undefined)
+			throw new ConvexError("Not in a zone")
+
+		await ctx.db.patch(args.characterId, { inCamp: true })
+		return { inCamp: true }
 	},
 })
 
@@ -318,7 +375,7 @@ export const respawnDead = mutation({
 			hpCurrent: maxHp,
 			xp,
 			potions: refilledPotions,
-			currentZoneSession: undefined,
+			...clearPerVisitZoneState(),
 			currentZoneKills: 0,
 			// Respawn resets you to the city and clears any in-flight travel.
 			currentLocation: "city",
@@ -364,11 +421,100 @@ export const enterZone = mutation({
 		// Threshold counter resets on every entry — per CONTEXT.md: "fill resets
 		// to 0 every time the player leaves the zone with the miniboss unsummoned".
 		// Boss Deferral isn't implemented yet, so the counter resets unconditionally.
+		//
+		// Server-authoritative camp scheduling: roll the camp thresholds here so
+		// a tampered client can't fabricate an early `enterCamp` claim. Falls back
+		// to DEFAULT_ENCOUNTER_PLAN for safety, though every combat node in act-1
+		// declares its own plan today. See docs/plans/in-progress.md
+		// "Server-authoritative camp/phase derivation".
+		const encounterPlan = zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN
+		const campThresholdsMs = rollCampThresholdsMs(encounterPlan)
+		const zoneStartedAt = Date.now()
+		// Spread the helper first so every per-visit field (including future
+		// additions like `lastCampIndex`) gets a clean slate; the explicit
+		// writes below then set this visit's session/timestamp/thresholds.
 		await ctx.db.patch(args.characterId, {
+			...clearPerVisitZoneState(),
 			currentZoneSession: zoneSession,
 			currentZoneKills: 0,
+			zoneStartedAt,
+			campThresholdsMs,
 		})
-		return { zoneSession }
+		return { zoneSession, zoneStartedAt, campThresholdsMs }
+	},
+})
+
+// Camp entry — gated server-side by the elapsed-time threshold rolled at
+// enterZone. Closes Threat #3 (client-trusted phase). The 500ms grace window
+// absorbs clock drift between the client's calmaria ticker and the server's
+// wall clock so a legitimate camp trigger isn't rejected for being a frame
+// too early. See docs/plans/in-progress.md "Server-authoritative camp/phase
+// derivation".
+const ENTER_CAMP_GRACE_MS = 500
+
+export const enterCamp = mutation({
+	args: {
+		characterId: v.id("characters"),
+		thresholdIndex: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		const zoneStartedAt = char.zoneStartedAt
+		if (zoneStartedAt === undefined) throw new ConvexError("Not in a zone")
+
+		const thresholds = char.campThresholdsMs ?? []
+		if (
+			args.thresholdIndex < 0 ||
+			args.thresholdIndex >= thresholds.length
+		)
+			throw new ConvexError("Invalid camp threshold")
+
+		// Idempotent on the same index: if a network retry or double-fire from the
+		// client lands a second enterCamp while we're already in camp, swallow it
+		// instead of throwing — the player is already where they want to be.
+		if (char.inCamp) return { inCamp: true }
+
+		// Strictly-increasing index: each camp threshold is single-use per visit.
+		// Without this, a player could enter camp[0], exit, then re-call
+		// enterCamp(0) any time later — the elapsed-time gate still passes
+		// because time only moves forward, so inCamp would flip back to true
+		// and grant another 100% retention exit.
+		if (
+			char.lastCampIndex !== undefined &&
+			args.thresholdIndex <= char.lastCampIndex
+		) {
+			throw new ConvexError("Camp threshold already consumed")
+		}
+
+		const threshold = thresholds[args.thresholdIndex]
+		const elapsed = Date.now() - zoneStartedAt
+		if (elapsed < threshold - ENTER_CAMP_GRACE_MS) {
+			throw new ConvexError("Camp threshold not reached")
+		}
+
+		await ctx.db.patch(args.characterId, {
+			inCamp: true,
+			lastCampIndex: args.thresholdIndex,
+		})
+		return { inCamp: true }
+	},
+})
+
+// Camp exit — clears the inCamp flag. Called when the player picks "Seguir
+// em frente" on the camp panel. No time gate; the cinematic is purely a
+// player-driven dismiss.
+export const exitCamp = mutation({
+	args: { characterId: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+
+		await ctx.db.patch(args.characterId, { inCamp: false })
+		return { inCamp: false }
 	},
 })
 
@@ -552,7 +698,7 @@ export const useTeleportStone = mutation({
 				teleportStones: stones - 1,
 				hpCurrent: stats.maxLife,
 				potions: refilledPotions,
-				currentZoneSession: undefined,
+				...clearPerVisitZoneState(),
 				travelDestination: "city",
 				travelStartedAt: startedAt,
 				travelArrivesAt: arrivesAt,
@@ -562,7 +708,7 @@ export const useTeleportStone = mutation({
 
 		await ctx.db.patch(args.characterId, {
 			teleportStones: stones - 1,
-			currentZoneSession: undefined,
+			...clearPerVisitZoneState(),
 			travelDestination: destinationNodeId,
 			travelStartedAt: startedAt,
 			travelArrivesAt: arrivesAt,

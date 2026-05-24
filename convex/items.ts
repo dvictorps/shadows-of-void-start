@@ -19,33 +19,49 @@
 
 import { ConvexError, v } from "convex/values"
 import { findClassDefinition } from "../src/game/classes/data"
-import { computeBagKeepCap } from "../src/game/combat/constants"
+import {
+	type CombatPhase,
+	computeBagKeepCap,
+} from "../src/game/combat/constants"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
 import { isBow, isQuiver, isWeapon, planEquip } from "../src/game/items/equipment"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, narrowEquippedSlot } from "../src/game/stats/types"
 import {
+	clearPerVisitZoneState,
 	combatPhaseValidator,
 	equippedSlotValidator,
 	fetchInventoryAllocator,
 	loadOwnedCharacter,
 } from "./_shared/character"
+import type { Doc } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
+
+// Server-authoritative phase derivation — the `phase` arg the three bag
+// mutations accept is ignored in favor of `char.inCamp`. The arg stays only
+// for backwards-compat with branches running in parallel against the same
+// dev deployment. See docs/plans/in-progress.md "Server-authoritative
+// camp/phase derivation".
+function derivePhaseFromCharacter(char: Doc<"characters">): CombatPhase {
+	return char.inCamp ? "camp" : "combat"
+}
 
 export const exitZone = mutation({
 	args: {
 		characterId: v.id("characters"),
 		keepIds: v.array(v.id("items")),
-		// Exit phase — drives the bag-retention cap. Camp keeps everything;
-		// combat/exploration cap at 30% of the bag at commit time. See
-		// CONTEXT.md → Bag retention tiers.
+		// TODO(merge): drop phase arg — superseded by inCamp derivation. See
+		// docs/plans/in-progress.md "Server-authoritative camp/phase derivation".
+		// Kept on the validator so branches running in parallel against the
+		// same dev deployment don't break; ignored in the handler below.
 		phase: combatPhaseValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const derivedPhase = derivePhaseFromCharacter(char)
 
 		const zoneSession = char.currentZoneSession
 		if (!zoneSession) return { kept: 0, discarded: 0 }
@@ -63,11 +79,12 @@ export const exitZone = mutation({
 
 		// Non-camp exit: 30% cap on items kept (see RETENTION_CAP_FRACTION).
 		// Client mirrors this computation via the same helper, but the server
-		// is authoritative — a tampered client can't widen its share.
-		const cap = computeBagKeepCap(bagItems.length, args.phase)
-		if (args.phase !== "camp" && validKeeps.length > cap) {
+		// is authoritative — a tampered client can't widen its share. Phase
+		// derives from `char.inCamp` (server state), not the client arg.
+		const cap = computeBagKeepCap(bagItems.length, derivedPhase)
+		if (derivedPhase !== "camp" && validKeeps.length > cap) {
 			throw new ConvexError(
-				`Phase cap exceeded: kept ${validKeeps.length} > cap ${cap} for phase ${args.phase}`,
+				`Phase cap exceeded: kept ${validKeeps.length} > cap ${cap} for phase ${derivedPhase}`,
 			)
 		}
 
@@ -99,7 +116,7 @@ export const exitZone = mutation({
 			...toDelete.map((it) => ctx.db.delete(it._id)),
 		])
 
-		await ctx.db.patch(args.characterId, { currentZoneSession: undefined })
+		await ctx.db.patch(args.characterId, clearPerVisitZoneState())
 		return { kept: validKeeps.length, discarded: toDelete.length }
 	},
 })
@@ -113,16 +130,19 @@ export const pickFromBag = mutation({
 	args: {
 		characterId: v.id("characters"),
 		itemIds: v.array(v.id("items")),
+		// TODO(merge): drop phase arg — superseded by inCamp derivation. See
+		// docs/plans/in-progress.md "Server-authoritative camp/phase derivation".
 		phase: combatPhaseValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const derivedPhase = derivePhaseFromCharacter(char)
 
-		if (args.phase !== "camp") {
+		if (derivedPhase !== "camp") {
 			throw new ConvexError(
-				`pickFromBag is camp-only — phase ${args.phase} must commit via exitZone`,
+				`pickFromBag is camp-only — phase ${derivedPhase} must commit via exitZone`,
 			)
 		}
 
@@ -176,16 +196,19 @@ export const discardFromBag = mutation({
 	args: {
 		characterId: v.id("characters"),
 		itemIds: v.array(v.id("items")),
+		// TODO(merge): drop phase arg — superseded by inCamp derivation. See
+		// docs/plans/in-progress.md "Server-authoritative camp/phase derivation".
 		phase: combatPhaseValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacter(ctx, authUser._id, args.characterId)
+		const derivedPhase = derivePhaseFromCharacter(char)
 
-		if (args.phase !== "camp") {
+		if (derivedPhase !== "camp") {
 			throw new ConvexError(
-				`discardFromBag is camp-only — phase ${args.phase} must commit via exitZone`,
+				`discardFromBag is camp-only — phase ${derivedPhase} must commit via exitZone`,
 			)
 		}
 
