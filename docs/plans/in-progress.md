@@ -20,21 +20,21 @@ PR #52 landed world.tsx at 740 lines (down from 774, the original monolith was 9
 
 ---
 
-## Project health snapshot (as of 2026-05-23)
+## Project health snapshot (as of 2026-05-24)
 
 **Current grade: A** (composite across architecture / code quality / docs / scalability / agent ergonomics).
 
-This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n + slot-aware mods), #41 (decomposed item-name lexicon + 20 renderer tests), #42 (playbook + codebase-map refresh), the agent-ergonomics-hardening pass (sentinel CI gate against playbook drift, stub playbooks for queued Future domains, ADRs 0002 + 0003), and PR #45 (world.tsx split into `useWorldMutations` + `useViewMode` hooks and a `WorldModals` sibling, plus the shared `createInventorySlotAllocator` lift). The grade exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't.
+This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n + slot-aware mods), #41 (decomposed item-name lexicon + 20 renderer tests), #42 (playbook + codebase-map refresh), the agent-ergonomics-hardening pass (type-check sentinels for playbook drift via `tsc --noEmit` over `docs/playbooks/_examples/`, stub playbooks for queued Future domains, ADRs 0002 + 0003), and PR #45 (world.tsx split into `useWorldMutations` + `useViewMode` hooks and a `WorldModals` sibling, plus the shared `createInventorySlotAllocator` lift). The grade exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't.
 
 ### Why A (criteria that earned the current grade)
 
 - **Architecture: A-** — render-at-display-time naming + literal-union enforcement is the correct choice for a multi-locale ARPG (codified now in [ADR 0003](../adr/0003-render-at-display-names.md)). Lexicon pattern is battle-tested across two domains (monsters + items). Convex/TanStack split is coherent. Remaining hole: drift risk between lexicon and `mod-i18n.ts` (same modifier id in two independent tables) — flagged in the lexicon follow-ups below.
-- **Code quality: A** — `src/game/` is pure + tested. 334 vitest cases. Comments are WHY-focused. One remaining stain: residual `as TemplateBaseId` casts at the Convex boundary (Convex validators can't express literal unions — captured in [ADR 0003](../adr/0003-render-at-display-names.md)). The world.tsx orchestrator dropped from 900 → 645 lines via PR #45.
-- **Docs: A** — `CONTEXT.md` is best-in-class for a solo-dev project (879 lines of single-source-of-truth game rules). Three ADRs codify the load-bearing architectural decisions (optimistic mutations, three-system i18n, render-at-display naming). Playbooks accurate and link to type-checked sentinel examples; new system stubs let an agent picking up skills / passives / stash know which questions need answering before coding.
+- **Code quality: A** — `src/game/` is pure + tested. 288 vitest cases. Comments are WHY-focused. One remaining stain: residual `as TemplateBaseId` casts at the Convex boundary (Convex validators can't express literal unions — captured in [ADR 0003](../adr/0003-render-at-display-names.md)). The world.tsx orchestrator dropped from 900 → 740 lines via PR #45 + PR #52.
+- **Docs: A** — `CONTEXT.md` is best-in-class for a solo-dev project (976 lines of single-source-of-truth game rules). Three ADRs codify the load-bearing architectural decisions (optimistic mutations, three-system i18n, render-at-display naming). Playbooks accurate and link to type-checked sentinel examples; new system stubs let an agent picking up skills / passives / stash know which questions need answering before coding.
 - **Scalability: A** — adding a new locale = 1 new lexicon file per domain + matching paraglide JSON. Adding a new template = 1 entry + 0 lexicon changes if base/modifier already exist. Decomposition cut lexicon size by 88% (562 → 135). Literal-union enforcement makes "forgot a translation" a compile error.
 - **Translation quality: B-** — 130 PT lexicon entries were AI-bulk-translated. Four hand-revised (Espada Bastarda, Estrela da Manhã, Maculado pelo Vazio, Gume) caught real awkwardness, so the rest probably has 5–10 similar issues. Fine for indie pre-release, not for a paid Brazilian release.
 - **Agent ergonomics for ONBOARDING: A+** — `CONTEXT.md` + `CLAUDE.md` + `codebase-map.md` get an agent productive in ~30 minutes.
-- **Agent ergonomics for MODIFYING existing things: A+** — strong TS catches mistakes. Both monolith refactors have shipped: world.tsx from 900 → 645 lines (PR #45), `useCombatLoop.ts` from 916 → 378 lines split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule` (PR #47). No remaining single-file navigation tax above ~600 lines.
+- **Agent ergonomics for MODIFYING existing things: A+** — strong TS catches mistakes. Both monolith refactors have shipped: world.tsx from 900 → 740 lines (PR #45 + PR #52), `useCombatLoop.ts` from 916 → 411 lines split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule` (PR #47). No remaining single-file navigation tax above ~750 lines, and the styleguide now distinguishes "concerns re-mixing" (real debt) from "line growth" (not debt).
 - **Agent ergonomics for ADDING NEW systems (skills, passive tree, stash): B** — stub playbooks now exist for each queued Future domain, listing the decisions to resolve + the ADRs the agent will need to write. The systems themselves aren't built, but the orientation infrastructure is. The grade returns to A once the first new system ships against its stub without an emergency refactor.
 
 ### What raises the grade
@@ -48,7 +48,7 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 
 | Risk | Drop |
 |---|---|
-| Next major refactor ships without updating relevant playbooks (drift recurs) | A → B+. The sentinel CI gate covers the playbook code blocks — but a refactor that *also* changes the surrounding prose without updating it is still possible. |
+| Next major refactor ships without updating relevant playbooks (drift recurs) | A → B+. The type-check sentinels under `docs/playbooks/_examples/` cover the playbook code blocks via `tsc --noEmit` — but a refactor that *also* changes the surrounding prose without updating it is still possible, and there is no CI workflow that enforces `tsc` on push (no `.github/workflows/` yet — local discipline is the only guard). |
 | New domain shipped that ignores its stub playbook (and doesn't write the ADRs it flagged) | Scalability slips A → B+. The first system to do this sets a precedent that's hard to walk back. |
 | `world.tsx` grows further (or another orchestrator route hits the same shape) | Modifying existing → B+. Agent navigation tax compounds. |
 | Someone "optimizes" render-at-display by pre-rendering names | Locale switching silently breaks. Now explicitly forbidden by [ADR 0003](../adr/0003-render-at-display-names.md). |
@@ -59,8 +59,8 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 If you're picking up where we left off:
 
 1. Read this snapshot first — know where the project sits and what's at stake.
-2. The world.tsx split (PR #45), useCombatLoop split (PR #47), and agent-ergonomics hardening are **done**. Camp/phase derivation (closing Threat #3) is shipping next. The next high-leverage debt after it merges is the single-active-session lock (queued entry below) — hard-blocker before any leaderboard.
-3. When a major refactor lands, **update the relevant playbook + sentinel in the same PR** (this is the single most important habit for keeping the grade trajectory positive).
+2. world.tsx split (PR #45), useCombatLoop split (PR #47), camp/phase derivation (PR #48, closed Threat #3), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), phase-arg cleanup (PR #51), and `useInFlight` extraction (PR #52) are all **done**. The next high-leverage debt is the single-active-session lock (queued entry below) — hard-blocker before any leaderboard.
+3. When a major refactor lands, **update the relevant playbook + sentinel + codebase-map + CONTEXT.md + this file in the same PR** (this is the single most important habit for keeping the grade trajectory positive — see the "Doc-update discipline" section in `CLAUDE.md`).
 
 ---
 

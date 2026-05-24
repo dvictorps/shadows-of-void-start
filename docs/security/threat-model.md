@@ -62,7 +62,11 @@ setInterval(() => convex.mutation("combat:syncHp", { characterId, hpCurrent: 999
 
 **Why it works**: `syncHp` was designed as "send your local HP for persistence" with no validation that the local HP is a plausible result of the combat that happened since the last sync.
 
-### 3. `phase` arg trust → bag retention cap bypass (MEDIUM severity)
+### 3. `phase` arg trust → bag retention cap bypass (MEDIUM severity) — **CLOSED in PR #48 + #51**
+
+**Resolution**: server-authoritative camp/phase derivation shipped in PR #48; the `phase` argument was removed entirely from `exitZone` / `pickFromBag` / `discardFromBag` in PR #51 (`derivePhaseFromCharacter` reads the server's own combat/exploration/camp state). The historical record below is kept for reference — the rest of this section describes the pre-fix behaviour.
+
+---
 
 `exitZone`, `pickFromBag`, and `discardFromBag` accept a `phase` argument that drives the bag-retention cap (camp = 100%, exploração / combate = 30%). The server enforces the cap math correctly for non-camp phases (PR #40), but the `phase` arg itself is **client-supplied** and unvalidated against server state.
 
@@ -221,10 +225,10 @@ The architecture is currently fine for "MVP closed development". Don't preemptiv
 
 These close a specific exploit without depending on the broader rate-limit / session-combat infrastructure. Each is independent; ship in any order.
 
-| Fix | Closes | Trigger |
+| Fix | Closes | Status |
 |---|---|---|
-| Server-authoritative camp/phase derivation (see `docs/plans/in-progress.md`) | Threat #3 (`phase` arg trust) | Combat-hook surface stabilises after the useCombatLoop split |
-| Single active session per character (see `docs/plans/in-progress.md`) | Threat #5 (multi-tab) | **First competitive feature ships (leaderboard / rank / shared ladder)**. Pre-leaderboard the bug is annoying; post-leaderboard it is fraud-by-construction. |
+| Server-authoritative camp/phase derivation | Threat #3 (`phase` arg trust) | ✅ **Shipped** in PR #48 + PR #51 — `derivePhaseFromCharacter` reads server state; `phase` arg removed from all mutations. |
+| Single active session per character (see `docs/plans/in-progress.md`) | Threat #5 (multi-tab) | Queued. **Trigger: first competitive feature ships (leaderboard / rank / shared ladder).** Pre-leaderboard the bug is annoying; post-leaderboard it is fraud-by-construction. |
 
 ---
 

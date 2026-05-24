@@ -245,12 +245,14 @@ A hit is computed in this order:
 
 ### Defenses
 
-**Armor** (physical mitigation, Last Epoch-inspired):
+**Armor** (physical mitigation, PoE-style):
 ```
-physicalReduction = armor / (armor + 10 × enemyLevel)
+physicalReduction = armor / (armor + 10 × physicalHit)
 cap = 85%
 ```
-The denominator scales with the attacker's level, **not** with hit size. Armor stays effective against same-level enemies regardless of how big any single hit is — unlike PoE, where armor falls off against spikes. Armor reduces only physical damage; elemental and void pass through untouched.
+The denominator scales with the **size of the incoming hit**, not with the attacker's level. The same armor pool mitigates many small hits hard but barely dents one big hit — armor reads as a "tank against trash" stat, not a flat damage multiplier. Armor reduces only physical damage; elemental and void pass through untouched.
+
+Historical note: an earlier prototype used a Last-Epoch-style denominator (`armor + 10 × enemyLevel`), which made a single chestplate produce ~90% physical reduction in Act 1 and rendered the character effectively immortal against trash. The PoE-style pivot exists to force build diversification (armor + barrier + resistances + evasion) instead of one stat solving everything. The build pressure this assumes only fully materializes once a big-hit source exists on the monster side — monster crit is queued in `docs/plans/in-progress.md` and gates the next balance pass.
 
 **Evasion + Accuracy** (hit-or-miss gate, applied before damage):
 ```
