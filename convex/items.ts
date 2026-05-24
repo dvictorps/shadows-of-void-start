@@ -29,7 +29,6 @@ import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, narrowEquippedSlot } from "../src/game/stats/types"
 import {
 	clearPerVisitZoneState,
-	combatPhaseValidator,
 	equippedSlotValidator,
 	fetchInventoryAllocator,
 	loadOwnedCharacter,
@@ -38,11 +37,16 @@ import type { Doc } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
 
-// Server-authoritative phase derivation — the `phase` arg the three bag
-// mutations accept is ignored in favor of `char.inCamp`. The arg stays only
-// for backwards-compat with branches running in parallel against the same
-// dev deployment. See docs/plans/in-progress.md "Server-authoritative
-// camp/phase derivation".
+// Server-authoritative phase derivation — bag mutations consult
+// `char.inCamp` rather than trusting a client-supplied value, so a tampered
+// client can't widen its retention share.
+//
+// Intentional simplification: `CombatPhase` distinguishes "combat" vs
+// "exploration" (see src/game/combat/constants.ts), but the server doesn't
+// track which of the two the player is in — and both share the 30% retention
+// cap. Returning "combat" as the catch-all keeps the cap computation correct
+// today. If future logic ever needs the distinction (analytics, phase-gated
+// mechanics), the character doc has to gain a real phase field first.
 function derivePhaseFromCharacter(char: Doc<"characters">): CombatPhase {
 	return char.inCamp ? "camp" : "combat"
 }
@@ -51,11 +55,6 @@ export const exitZone = mutation({
 	args: {
 		characterId: v.id("characters"),
 		keepIds: v.array(v.id("items")),
-		// TODO(merge): drop phase arg — superseded by inCamp derivation. See
-		// docs/plans/in-progress.md "Server-authoritative camp/phase derivation".
-		// Kept on the validator so branches running in parallel against the
-		// same dev deployment don't break; ignored in the handler below.
-		phase: combatPhaseValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -79,8 +78,7 @@ export const exitZone = mutation({
 
 		// Non-camp exit: 30% cap on items kept (see RETENTION_CAP_FRACTION).
 		// Client mirrors this computation via the same helper, but the server
-		// is authoritative — a tampered client can't widen its share. Phase
-		// derives from `char.inCamp` (server state), not the client arg.
+		// is authoritative — a tampered client can't widen its share.
 		const cap = computeBagKeepCap(bagItems.length, derivedPhase)
 		if (derivedPhase !== "camp" && validKeeps.length > cap) {
 			throw new ConvexError(
@@ -130,9 +128,6 @@ export const pickFromBag = mutation({
 	args: {
 		characterId: v.id("characters"),
 		itemIds: v.array(v.id("items")),
-		// TODO(merge): drop phase arg — superseded by inCamp derivation. See
-		// docs/plans/in-progress.md "Server-authoritative camp/phase derivation".
-		phase: combatPhaseValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -196,9 +191,6 @@ export const discardFromBag = mutation({
 	args: {
 		characterId: v.id("characters"),
 		itemIds: v.array(v.id("items")),
-		// TODO(merge): drop phase arg — superseded by inCamp derivation. See
-		// docs/plans/in-progress.md "Server-authoritative camp/phase derivation".
-		phase: combatPhaseValidator,
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)

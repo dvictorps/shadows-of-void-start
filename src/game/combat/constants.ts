@@ -4,10 +4,9 @@
 export const POTION_HEAL_FRACTION = 0.2;
 
 // Combat phase exposed to consumers — drives bag-retention cap on exit
-// (camp = 100%, exploration/combat = 30%). ASCII keys so the Convex
-// validator can use plain literals. See CONTEXT.md → Bag retention tiers.
-// `combatPhaseValidator` in convex/_shared/character.ts is derived from
-// this tuple so the two sides can't drift.
+// (camp = 100%, exploration/combat = 30%). See CONTEXT.md → Bag
+// retention tiers. The server derives phase from `char.inCamp` rather
+// than trusting a client-supplied value (see convex/items.ts).
 export const COMBAT_PHASES = ["combat", "exploration", "camp"] as const;
 export type CombatPhase = (typeof COMBAT_PHASES)[number];
 
@@ -18,10 +17,7 @@ export type CombatPhase = (typeof COMBAT_PHASES)[number];
 // here can't desync them.
 export const RETENTION_CAP_FRACTION = 0.3;
 
-export function computeBagKeepCap(
-	bagSize: number,
-	phase: CombatPhase,
-): number {
+export function computeBagKeepCap(bagSize: number, phase: CombatPhase): number {
 	if (bagSize === 0) return 0;
 	if (phase === "camp") return bagSize;
 	return Math.max(1, Math.floor(bagSize * RETENTION_CAP_FRACTION));

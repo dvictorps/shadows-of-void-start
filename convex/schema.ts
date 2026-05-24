@@ -77,10 +77,9 @@ export default defineSchema({
 		// enterZone (from the zone's encounterPlan). Each entry corresponds to
 		// one camp the player can claim by calling enterCamp(thresholdIndex).
 		campThresholdsMs: v.optional(v.array(v.number())),
-		// `inCamp` is the authoritative phase flag. exitZone/pickFromBag/
-		// discardFromBag derive their `phase` from this server-side; the
-		// `phase` arg they still accept is ignored (kept for backwards-compat
-		// during the parallel-branch rollout).
+		// `inCamp` is the authoritative phase flag — exitZone / pickFromBag /
+		// discardFromBag derive their `phase` from this server-side so a
+		// tampered client can't widen its retention share.
 		inCamp: v.optional(v.boolean()),
 		// Highest camp threshold index consumed so far in the current visit.
 		// enterCamp rejects indices ≤ this so a player can't exit camp and

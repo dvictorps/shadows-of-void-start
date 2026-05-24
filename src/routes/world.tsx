@@ -426,11 +426,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				return;
 			}
 			handleBackToMap();
-			// TODO(merge): drop phase arg — server derives it from inCamp now.
 			await exitZone({
 				characterId: character._id,
 				keepIds: [],
-				phase: combat.phase,
 			});
 		} finally {
 			setIsRetreating(false);
@@ -443,18 +441,14 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		// Routing here matches the server gate (pickFromBag rejects non-camp).
 		try {
 			if (combat.phase === "camp") {
-				// TODO(merge): drop phase arg — server derives it from inCamp now.
 				await pickFromBag({
 					characterId: character._id,
 					itemIds: ids,
-					phase: combat.phase,
 				});
 			} else {
-				// TODO(merge): drop phase arg — server derives it from inCamp now.
 				await exitZone({
 					characterId: character._id,
 					keepIds: ids,
-					phase: combat.phase,
 				});
 				exitModal.close();
 			}
@@ -466,21 +460,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const handleDiscardSelected = async (ids: Id<"items">[]) => {
 		// Camp-only action — the modal hides the button outside camp.
 		if (combat.phase !== "camp") return;
-		// TODO(merge): drop phase arg — server derives it from inCamp now.
 		await discardFromBag({
 			characterId: character._id,
 			itemIds: ids,
-			phase: combat.phase,
 		});
 	};
 
 	const handlePickAll = async (ids: Id<"items">[]) => {
 		try {
-			// TODO(merge): drop phase arg — server derives it from inCamp now.
 			await exitZone({
 				characterId: character._id,
 				keepIds: ids,
-				phase: combat.phase,
 			});
 			exitModal.close();
 		} catch (err) {
@@ -489,11 +479,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	};
 
 	const handleDiscardAll = async () => {
-		// TODO(merge): drop phase arg — server derives it from inCamp now.
 		await exitZone({
 			characterId: character._id,
 			keepIds: [],
-			phase: combat.phase,
 		});
 		exitModal.close();
 	};
