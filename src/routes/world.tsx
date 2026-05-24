@@ -30,6 +30,7 @@ import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
+import { useInFlight } from "#/hooks/useInFlight";
 import { useModal } from "#/hooks/useModal";
 import { useViewMode } from "#/hooks/useViewMode";
 import { useWorldMutations } from "#/hooks/useWorldMutations";
@@ -253,30 +254,18 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// preview can't drift from the server's enforcement.
 	const [exitKeepCap, setExitKeepCap] = useState(0);
 
-	// In-flight tracking for spam-clickable action handlers. Mirrors the
-	// VendorModal pattern from PR #45: early-return + try/finally inside the
-	// handler, button disabled while the mutation is pending, state reset on
-	// the natural close boundary (view change). The mutation hooks stay
-	// mutation-only — UX guards live with the consumer.
-	const [isUsingPotion, setIsUsingPotion] = useState(false);
-	const [isUsingTeleportStone, setIsUsingTeleportStone] = useState(false);
+	// Spam-click guards. `useInFlight(view)` resets each flag on view change
+	// so a slow request finishing after navigating away doesn't leave the
+	// next visit's button stuck disabled. The enter-node and retreat flags
+	// are discarded (no JSX disabled wiring — the in-handler early-return
+	// inside `run…` is the full guard). Incense stays plain useState because
+	// its trigger is synchronous; the watcher effect below clears it on the
+	// optimistic count change instead.
+	const [isUsingPotion, runUsePotion] = useInFlight(view);
+	const [isUsingTeleportStone, runUseTeleportStone] = useInFlight(view);
+	const runEnterNode = useInFlight(view)[1];
+	const runRetreat = useInFlight(view)[1];
 	const [isUsingIncense, setIsUsingIncense] = useState(false);
-	const [isEnteringNode, setIsEnteringNode] = useState(false);
-	const [isRetreating, setIsRetreating] = useState(false);
-
-	// Reset the in-flight flags whenever the view transitions. A slow request
-	// finishing after the player has navigated away (e.g. retreat → map) must
-	// not leave the next visit's button stuck disabled. The handlers' own
-	// try/finally already clears on normal completion; this is the safety net
-	// for the "mid-flight close" window.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: setters are stable; we only want this to fire on view changes.
-	useEffect(() => {
-		setIsUsingPotion(false);
-		setIsUsingTeleportStone(false);
-		setIsUsingIncense(false);
-		setIsEnteringNode(false);
-		setIsRetreating(false);
-	}, [view]);
 
 	const unlockedNodeIds = useMemo(
 		() => new Set(character.unlockedNodes ?? ["city"]),
@@ -287,21 +276,20 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		[character.completedZones],
 	);
 
-	const handleEnterNode = async (nodeId: string) => {
-		// Spam-click guard: `pendingArrival` catches subsequent clicks once it's
-		// set, but the click → confirm → setPendingArrival flow leaves a small
-		// window where two clicks could both fire startTravel. Bail synchronously
-		// on re-entry.
-		if (isEnteringNode) return;
-		if (isTraveling) return;
-		// Re-entering the current node skips travel — the player is already there.
-		if (nodeId === currentLocation) {
-			enterDestination(nodeId);
-			return;
-		}
-		setIsEnteringNode(true);
-		try {
-			// Otherwise the click intent is "travel there and enter on arrival".
+	const handleEnterNode = (nodeId: string) =>
+		// `pendingArrival` catches subsequent clicks once set, but the click →
+		// confirm → setPendingArrival flow leaves a small window where two
+		// clicks could both fire startTravel. `runEnterNode` bails synchronously
+		// on re-entry; the inner stone branch additionally hops onto
+		// `runUseTeleportStone` so a map-click stone jump shares its flag with
+		// the HUD's panic stone.
+		runEnterNode(async () => {
+			if (isTraveling) return;
+			// Re-entering the current node skips travel — the player is already there.
+			if (nodeId === currentLocation) {
+				enterDestination(nodeId);
+				return;
+			}
 			const fromNode = findNode(ACT_1, currentLocation);
 			const conn = fromNode?.connections.find((c) => c.id === nodeId);
 			if (!conn) {
@@ -325,22 +313,18 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					cancelLabel: m.cancel(),
 				});
 				if (!ok) return;
-				// The stone branch shares the teleport-stone in-flight flag with
-				// the HUD path so spamming map + HUD can't fire two stones.
-				if (isUsingTeleportStone) return;
-				setIsUsingTeleportStone(true);
-				setPendingArrival(nodeId);
-				try {
-					await teleportStone({
-						characterId: character._id,
-						destinationNodeId: nodeId,
-					});
-				} catch (err) {
-					setPendingArrival(null);
-					toast.error(convexErrorMessage(err, m.wind_crystal_failed()));
-				} finally {
-					setIsUsingTeleportStone(false);
-				}
+				await runUseTeleportStone(async () => {
+					setPendingArrival(nodeId);
+					try {
+						await teleportStone({
+							characterId: character._id,
+							destinationNodeId: nodeId,
+						});
+					} catch (err) {
+						setPendingArrival(null);
+						toast.error(convexErrorMessage(err, m.wind_crystal_failed()));
+					}
+				});
 				return;
 			}
 			setPendingArrival(nodeId);
@@ -352,36 +336,31 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			} catch {
 				setPendingArrival(null);
 			}
-		} finally {
-			setIsEnteringNode(false);
-		}
-	};
+		});
 
 	// Set while the exit modal is acting as the bag-handling step for a stone
 	// jump. Cleared on cancel or after the stone fires.
 	const pendingStoneRef = useRef(false);
 
-	const fireStoneToCity = async () => {
-		setIsUsingTeleportStone(true);
-		setPendingArrival("city");
-		try {
-			await teleportStone({
-				characterId: character._id,
-				destinationNodeId: "city",
-			});
-		} catch (err) {
-			setPendingArrival(null);
-			toast.error(convexErrorMessage(err, m.teleport_stone_failed()));
-		} finally {
-			setIsUsingTeleportStone(false);
-		}
-	};
+	const fireStoneToCity = () =>
+		runUseTeleportStone(async () => {
+			setPendingArrival("city");
+			try {
+				await teleportStone({
+					characterId: character._id,
+					destinationNodeId: "city",
+				});
+			} catch (err) {
+				setPendingArrival(null);
+				toast.error(convexErrorMessage(err, m.teleport_stone_failed()));
+			}
+		});
 
 	const handleUseTeleportStone = async () => {
-		// Spam-click guard: fast double-taps could fire two stones before the
-		// optimistic count decrement reaches the UI. Single in-flight flag
-		// covers both this entry point and the map-click `handleEnterNode`
-		// stone branch so the two routes can't race each other.
+		// Spam-click guard: the modal-open path doesn't go through
+		// `runUseTeleportStone`, so an explicit `isUsingTeleportStone` check
+		// here prevents a second click from re-opening the modal while a
+		// fireStoneToCity from the previous click is still in flight.
 		if (isUsingTeleportStone) return;
 		if (exitModal.isOpen) return;
 		const stones = character.teleportStones ?? 0;
@@ -405,18 +384,14 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		setView("map");
 	};
 
-	const handleRetreat = async () => {
-		// Spam-click guard: the retreat button unmounts on view change, but a
-		// fast double-tap during the render-cycle window between click and
-		// unmount could fire `exitZone` twice — or open the modal + recompute
-		// the cap twice on the bag path. The flag covers both branches, so set
-		// it before the bag check rather than only on the exitZone path.
-		if (isRetreating) return;
+	const handleRetreat = () =>
 		// Wait for the bag query to resolve before deciding modal vs auto-exit —
 		// otherwise an undefined (still-loading) bag silently discards the loot.
-		if (zoneBag === undefined) return;
-		setIsRetreating(true);
-		try {
+		// The flag covers both branches (modal-open + exitZone) so a fast double-
+		// tap during the render-cycle window between click and unmount can't
+		// double-open the modal or double-fire exitZone.
+		runRetreat(async () => {
+			if (zoneBag === undefined) return;
 			if (zoneBag.length > 0) {
 				// Bag path is modal-driven; the modal's own buttons carry their own
 				// in-flight tracking. No async work here beyond opening the modal.
@@ -430,10 +405,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				characterId: character._id,
 				keepIds: [],
 			});
-		} finally {
-			setIsRetreating(false);
-		}
-	};
+		});
 
 	const handlePickSelected = async (ids: Id<"items">[]) => {
 		// Camp: incremental pick. Modal stays open until bag empties.
@@ -505,21 +477,15 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// Spam-click guard around `combat.usePotion`. The local `potions` count
 	// already optimistically decrements, but a fast double-tap before the
 	// optimistic update reaches React can fire `consumePotion` twice and the
-	// second call gets rejected. Early-return + try/finally + button disabled.
-	const handleUsePotion = async () => {
-		if (isUsingPotion) return;
-		setIsUsingPotion(true);
-		try {
-			// `combat.usePotion` is the consumer-facing potion action returned
-			// from `useCombatTick`. The `use` prefix is incidental — it's a
-			// regular async function, not a React hook. See the same alias
-			// rationale on `teleportStone` in useWorldMutations.ts.
-			// biome-ignore lint/correctness/useHookAtTopLevel: not a React hook.
-			await combat.usePotion();
-		} finally {
-			setIsUsingPotion(false);
-		}
-	};
+	// second call gets rejected. `useInFlight` handles the early-return +
+	// try/finally; the button-disabled state ANDs in `!isUsingPotion`.
+	const handleUsePotion = () =>
+		// `combat.usePotion` is the consumer-facing potion action returned
+		// from `useCombatTick`. The `use` prefix is incidental — it's a
+		// regular async function, not a React hook. See the same alias
+		// rationale on `teleportStone` in useWorldMutations.ts.
+		// biome-ignore lint/correctness/useHookAtTopLevel: not a React hook.
+		runUsePotion(() => combat.usePotion());
 
 	// Spam-click guard around `combat.triggerIncense`. Unlike potion/teleport,
 	// `triggerIncense` is synchronous (fires a mutation without awaiting),

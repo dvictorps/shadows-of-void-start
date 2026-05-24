@@ -10,10 +10,13 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ## Next session — pick up here
 
-Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation (PR #48), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), and the phase-arg dead-weight cleanup (PR #51) all merged. Remaining queue in priority order:
+Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation (PR #48), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), the phase-arg dead-weight cleanup (PR #51), and the `useInFlight` extraction (PR #52) all merged. Remaining queue in priority order:
 
-- **Extract `useInFlight` hook + retire per-handler `useState<boolean>` flags** — flagged by Gemini on PR #50 as a violation of the "world.tsx is queued for decomposition" styleguide rule (file grew 645 → 784 lines on that PR). The spam-click tracking pattern is now duplicated 5× in `world.tsx` + 4× in `ExitZoneModal.tsx` + 1× in `VendorModal.tsx` (the original reference). A small `useInFlight(resetDep)` hook in `src/hooks/` would collapse all three sites and shave ~70 lines off world.tsx. Acceptance: world.tsx back under 720 lines, no behaviour change.
 - **Single active session per character** — closes Threat #5 in the threat model (multi-tab races). Same architectural shape as phase derivation (schema add + `sessionToken` arg threaded through every state-mutating mutation + a helper that bundles ownership + session check). **Hard-blocker before any leaderboard / rank ships** — a rank built on multi-tab kills is fraud-by-construction even without intent. Also see the "Convex cost envelope" section below — multi-tab abuse multiplies a single user's function-call cost by tab count.
+
+### world.tsx size — closed decision
+
+PR #52 landed world.tsx at 740 lines (down from 774, the original monolith was 900). Further extraction (e.g. `useExitFlow`, `useTravelHandlers`) was considered and rejected — the file no longer mixes concerns (composition / handlers / derivations / JSX are contiguous sections), so further splitting would hide flow that today reads linearly. The trigger for revisiting is concerns getting *re-mixed* (business logic inside JSX, mutation hooks called outside the composition block, fetch in a handler) — NOT raw line growth. The styleguide rule in `.gemini/styleguide.md` was updated to reflect this distinction. Orchestrator routes at this app's scale have a natural floor around 700-750 lines.
 
 ---
 

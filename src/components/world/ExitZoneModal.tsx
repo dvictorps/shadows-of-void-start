@@ -3,6 +3,7 @@ import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
+import { useInFlight } from "#/hooks/useInFlight";
 import { m } from "#/paraglide/messages";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
@@ -44,25 +45,17 @@ export default function ExitZoneModal({
 	// In-flight tracking for the four action handlers. Modal-close on the
 	// success path already covers the most common spam-click case, but a
 	// slow round-trip would leave the buttons live until the close fires —
-	// hence the early-return + try/finally + disabled-button trio. Mirrors the
-	// VendorModal pattern from PR #45.
-	const [isPickingSelected, setIsPickingSelected] = useState(false);
-	const [isDiscardingSelected, setIsDiscardingSelected] = useState(false);
-	const [isPickingAll, setIsPickingAll] = useState(false);
-	const [isDiscardingAll, setIsDiscardingAll] = useState(false);
+	// `useInFlight(isOpen)` bundles the early-return + try/finally + reset-
+	// on-close path so each handler stays a one-liner. `disabled` on the
+	// button ANDs in the flag.
+	const [isPickingSelected, runPickSelected] = useInFlight(isOpen);
+	const [isDiscardingSelected, runDiscardSelected] = useInFlight(isOpen);
+	const [isPickingAll, runPickAll] = useInFlight(isOpen);
+	const [isDiscardingAll, runDiscardAll] = useInFlight(isOpen);
 	const confirm = useConfirmationModal();
 
 	useEffect(() => {
-		if (!isOpen) {
-			// Reset on natural close boundary so a slow request finishing
-			// mid-close doesn't leave the next open with stale disabled state.
-			setIsPickingSelected(false);
-			setIsDiscardingSelected(false);
-			setIsPickingAll(false);
-			setIsDiscardingAll(false);
-			return;
-		}
-		setSelected(new Set());
+		if (isOpen) setSelected(new Set());
 	}, [isOpen]);
 
 	// Auto-close after a partial pick/discard empties the bag. The modal only
@@ -97,19 +90,14 @@ export default function ExitZoneModal({
 			.filter((it) => selected.has(it._id.toString()))
 			.map((it) => it._id);
 
-	const handlePickSelected = async () => {
-		if (isPickingSelected) return;
+	const handlePickSelected = () => {
 		if (!hasSelection) return;
-		setIsPickingSelected(true);
-		try {
-			await onPickSelected(selectedIds());
-		} finally {
-			setIsPickingSelected(false);
-		}
+		return runPickSelected(() =>
+			Promise.resolve(onPickSelected(selectedIds())),
+		);
 	};
 
 	const handleDiscardSelected = async () => {
-		if (isDiscardingSelected) return;
 		if (!hasSelection) return;
 		const ids = selectedIds();
 		const ok = await confirm({
@@ -120,30 +108,20 @@ export default function ExitZoneModal({
 			variant: "destructive",
 		});
 		if (!ok) return;
-		setIsDiscardingSelected(true);
-		try {
-			await onDiscardSelected(ids);
-		} finally {
-			setIsDiscardingSelected(false);
-		}
+		await runDiscardSelected(() => Promise.resolve(onDiscardSelected(ids)));
 	};
 
-	const handlePickAll = async () => {
-		if (isPickingAll) return;
+	const handlePickAll = () => {
 		if (!hasItems) return;
 		// Belt-and-suspenders — the button is hidden when isCapped, but a
 		// future regression here can't bypass the 30% cap.
 		if (isCapped) return;
-		setIsPickingAll(true);
-		try {
-			await onPickAll(bagItems.map((it) => it._id));
-		} finally {
-			setIsPickingAll(false);
-		}
+		return runPickAll(() =>
+			Promise.resolve(onPickAll(bagItems.map((it) => it._id))),
+		);
 	};
 
 	const handleDiscardAll = async () => {
-		if (isDiscardingAll) return;
 		if (!hasItems) return;
 		const ok = await confirm({
 			title: m.loot_discard_all_title(),
@@ -153,12 +131,7 @@ export default function ExitZoneModal({
 			variant: "destructive",
 		});
 		if (!ok) return;
-		setIsDiscardingAll(true);
-		try {
-			await onDiscardAll();
-		} finally {
-			setIsDiscardingAll(false);
-		}
+		await runDiscardAll(() => Promise.resolve(onDiscardAll()));
 	};
 
 	// Any action in-flight disables sibling buttons too so the user can't
