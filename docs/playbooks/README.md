@@ -9,6 +9,7 @@ Use these when the task matches an existing pattern. For one-off architectural c
 - [Adding a modifier](./adding-a-modifier.md) — new mod to drop on items (most common)
 - [Adding an equipment template](./adding-an-equipment-template.md) — new weapon tier, new armor base
 - [Adding a monster](./adding-a-monster.md) — new mob template + zone hookup
+- [Adding a boss](./adding-a-boss.md) — new act-boss config + node + cinematic
 - [Adding a zone](./adding-a-zone.md) — new combat/city node in an act
 - [Adding a class](./adding-a-class.md) — new playable class
 - [Adding a vendor product](./adding-a-vendor-product.md) — new consumable in the vendor catalog

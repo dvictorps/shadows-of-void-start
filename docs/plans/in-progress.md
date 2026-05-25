@@ -14,8 +14,10 @@ Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #4
 
 **Monster crit + native monster barrier shipped together in PR #57** (`feat/monster-barrier-crit`), bundled with elemental-damage monster mods, rares bumped to 4 mods, and per-weapon hit FX. The PoE-style build-pressure loop is now live — both the highest-leverage gameplay debt and the mechanical follow-up are closed.
 
-Pure-refactor backlog is empty. Gameplay-debt backlog is empty. What remains splits into:
-- **Deferred, scoped**: Act-boss Model B refit for time-bars, camp cinematic biome ambience.
+**Boss system shipped on `feat/boss-system`** — first act-boss (Gralfor, O Persistente) plus the full configurable infrastructure: `src/game/bosses/` registry, `unique` rarity tier, `kind: "boss"` node with gauntlet (N rares → boss), 4-beat boss cinematic (sprite → impact sfx + screenshake → name → hp), per-boss nameplate color, declared stat sheets with negative resistances, gauntlet/boss drop routing, and the supersession of Model B. Adding a second boss is one file under `src/game/bosses/` + one paraglide key per locale + a boss node — see [playbook](../playbooks/adding-a-boss.md) and [ADR 0004](../adr/0004-boss-as-parallel-registry.md).
+
+Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastructure debt is empty. What remains splits into:
+- **Deferred, scoped**: camp cinematic biome ambience.
 - **Low-priority polish**: native PT review of `lexicon/pt.ts`, `TemplateBaseId` codegen, hash extraction to `src/lib/rng.ts`, rare-name bestiary, admin-dashboard cold-cache latency.
 - **Next big feature**: passive tree (per CONTEXT.md → Classes ordering: MVP combat ✅ → passive tree → active skills). Design work needed first — no stub plan yet.
 
@@ -126,23 +128,6 @@ Bandwidth. Convex bandwidth allowances are generous and SPA payloads are tiny (c
 
 ---
 
-## Act-boss node Model B refit for time-bar (deferred)
-
-**Status**: Planned, not started.
-**Triggered by**: time-based zone progression PR. The act-boss node still uses the older "Bar 1 fills → miniboss → Bar 2 fills → act boss" Model B (see CONTEXT.md → Act Boss). With regular zones moving to time-based bars, the act-boss node needs design alignment.
-
-### Open questions to resolve before coding
-
-- Does each Model B bar become a separate time-bar with its own schedule? Or stay as a kill counter (the act-boss node remains the only place with kill-counter pacing)?
-- Do camps appear in the act-boss node? Probably no — boss node = commitment.
-- Does the player get a checkpoint after killing the act-boss-miniboss (between Bar 1 and Bar 2)? With time-based, a brief pause + heal would feel natural — but it dilutes "Bar 2 starts immediately".
-- Does Incenso Etéreo work in the act-boss node? Probably no (mirroring the existing "no incenso during boss" rule applied to the whole boss node).
-
-### Why deferred
-
-Time-based zone progression is already large; mixing Model B redesign in would double the scope and complicate testing. Act-boss can ship on the old model until this lands.
-
----
 
 ## Camp cinematic biome ambience (deferred)
 

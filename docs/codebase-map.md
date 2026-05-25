@@ -40,12 +40,13 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 
 | Directory | What lives there | Key files |
 |---|---|---|
+| `bosses/` | Act-boss configs (handcrafted, `rarity: "unique"`) — parallel registry to `monsters/`. See ADR 0004 for the rationale. | `data.ts` (BOSSES, findBoss), `types.ts` (BossConfig, BossTemplate, BossCinematicConfig), `gralfor.ts` (act-1 boss config) |
 | `classes/` | Character class definitions (Warrior/Rogue/Mage) | `data.ts` (CLASS_DEFINITIONS), `types.ts`, `i18n.ts` (`getClassDisplayName`) |
-| `combat/` | Damage/defense math, constants, per-weapon FX map | `damage.ts`, `barrier.ts`, `leech.ts`, `constants.ts`, `weapon-fx.ts` |
+| `combat/` | Damage/defense math, constants, per-weapon FX map, intro-stage types | `damage.ts`, `barrier.ts`, `leech.ts`, `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
 | `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `pickGendered`) |
 | `inventory/` | Inventory constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, bySlotAsc) |
 | `items/` | Item generator, modifier data, equip helpers, lexicon | See below — the biggest subdir |
-| `loot/` | Drop tables | `drops.ts` (rollDrop, rollMonsterLevel) |
+| `loot/` | Drop tables | `drops.ts` (rollDrop, rollMonsterLevel, rollMinibossDrops, rollGauntletRareDrops, rollBossDrops) |
 | `monsters/` | Monster definitions, modifier pool, instance-level scaler | `data.ts`, `types.ts`, `modifiers.ts` (pool + roll), `scaling.ts` (geometric 1.06^L) |
 | `progression/` | XP curves, death penalty | `levels.ts` (xpToNextLevel, applyXpGain, applyDeathXpPenalty) |
 | `stats/` | The stat engine | `compute.ts` (computeCharacterStats), `types.ts` (EquippedSlot, narrowEquippedSlot, ComputedCharacterStats) |
