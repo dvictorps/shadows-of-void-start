@@ -82,6 +82,7 @@
   "zone_cripta_description": "Câmaras esquecidas dos que descansavam — até deixarem de descansar.",
   "zone_castelo_description": "Torres altas guardam senhores que trocaram o sangue pelo poder.",
   "zone_fenda_vazio_description": "Uma rasgadura na realidade. Do outro lado, algo observa de volta.",
+  "zone_covil_gralfor_description": "O ar arde. Algo persiste aqui há eras — e não pretende ceder.",
   "travel_in_progress": "Em viagem: {from} → {to}",
   "travel_seconds_remaining": "{seconds}s",
   "travel_no_route": "Não há rota até {destination}",
@@ -158,6 +159,7 @@
   "zone_cripta": "Cripta dos Caídos",
   "zone_castelo": "Castelo Sombrio",
   "zone_fenda_vazio": "Fenda do Vazio",
+  "zone_covil_gralfor": "Covil de Gralfor",
   "monster_goblin": "Goblin",
   "monster_slime": "Slime",
   "monster_macaco": "Macaco",
@@ -171,6 +173,8 @@
   "monster_lich": "Lich",
   "monster_olho_do_vazio": "Olho do Vazio",
   "monster_criatura_do_vazio": "Criatura do Vazio",
+
+  "boss_gralfor_name": "Gralfor, O Persistente",
 
   "settings_title": "Configurações",
   "settings_language": "Idioma",

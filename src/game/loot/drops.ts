@@ -54,6 +54,16 @@ const DROP_TABLE: Record<
 			{ rarity: "rare", weight: 15 },
 		],
 	},
+	unique: {
+		// Act-boss distribution per CONTEXT.md → Drop rates. The guarantee
+		// handling + multi-item rolling live on the caller (`rollBossDrops`).
+		// No Normal entries — boss loot floor is Magic.
+		dropChance: 1,
+		rarity: [
+			{ rarity: "magic", weight: 25 },
+			{ rarity: "rare", weight: 75 },
+		],
+	},
 };
 
 function pickRarity(distribution: { rarity: ItemRarity; weight: number }[]) {

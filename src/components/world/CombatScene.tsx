@@ -16,11 +16,14 @@ import HitFx from "./HitFx";
 import MonsterTooltip from "./MonsterTooltip";
 
 // Rarity-tinted nameplate colors mirror the item rarity palette so the
-// player reads "blue = magic, yellow = rare" consistently across UI.
+// player reads "blue = magic, yellow = rare" consistently across UI. The
+// `unique` entry is a fallback — bosses override per-instance via
+// BossConfig.nameplateColor.
 const RARITY_NAMEPLATE_COLOR: Record<MonsterRarity, string> = {
 	normal: "#ffffff",
 	magic: "#8888ff",
 	rare: "#ffff77",
+	unique: "#af6025",
 };
 
 // Glow reinforces rarity. Normal keeps only a readability shadow; magic/rare
@@ -30,6 +33,7 @@ const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
 	normal: "0 2px 4px rgba(0, 0, 0, 0.9)",
 	magic: "0 0 14px rgba(136, 136, 255, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
 	rare: "0 0 18px rgba(255, 255, 119, 0.7), 0 2px 4px rgba(0, 0, 0, 0.9)",
+	unique: "0 0 22px rgba(175, 96, 37, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
 };
 
 export type ConsumableKey = "potion" | "teleport" | "incense";

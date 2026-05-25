@@ -63,6 +63,7 @@ export function scaleMonsterStats(
 ): ScaledMonsterStats {
 	const factor = monsterScaleFactor(level);
 	const clampedLevel = Math.max(1, level);
+	const declared = def.baseStats.resistances;
 	return {
 		level: clampedLevel,
 		hp: Math.max(1, Math.round(def.baseStats.hp * factor)),
@@ -76,7 +77,12 @@ export function scaleMonsterStats(
 		armor: 0,
 		evasion: 0,
 		accuracy: clampedLevel * 10,
-		resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
+		resistances: {
+			cold: declared?.cold ?? 0,
+			fire: declared?.fire ?? 0,
+			lightning: declared?.lightning ?? 0,
+			void: declared?.void ?? 0,
+		},
 		barrier: 0,
 		criticalChance: CRIT_CHANCE_FLOOR,
 		criticalMultiplier: BASE_CRIT_MULTIPLIER,

@@ -69,6 +69,7 @@ export const recordKill = mutation({
 			v.literal("normal"),
 			v.literal("magic"),
 			v.literal("rare"),
+			v.literal("unique"),
 		),
 	},
 	handler: async (ctx, args) => {

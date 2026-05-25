@@ -17,6 +17,7 @@ export const RARITY_BORDER: Record<ItemRarity, string> = {
 	rare: "border-[#b39800]",
 	legendary: "border-[#dc143c]",
 	epic: "border-[#1eff00]",
+	unique: "border-[#af6025]",
 };
 
 export const RARITY_GLOW: Record<ItemRarity, string> = {
@@ -27,6 +28,8 @@ export const RARITY_GLOW: Record<ItemRarity, string> = {
 	legendary:
 		"shadow-[inset_0_0_16px_rgba(220,40,80,0.55),0_0_16px_rgba(220,40,80,0.55)] animate-[item-pulse_2s_ease-in-out_infinite]",
 	epic: "shadow-[inset_0_0_16px_rgba(60,255,40,0.55),0_0_16px_rgba(60,255,40,0.55)] animate-[item-pulse_1.6s_ease-in-out_infinite]",
+	unique:
+		"shadow-[inset_0_0_14px_rgba(175,96,37,0.55),0_0_10px_rgba(175,96,37,0.45)]",
 };
 
 export const BROKEN_BORDER = "border-red-500";
