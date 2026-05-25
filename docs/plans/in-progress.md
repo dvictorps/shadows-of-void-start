@@ -12,7 +12,14 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation (PR #48), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), the phase-arg dead-weight cleanup (PR #51), the `useInFlight` extraction (PR #52), and the single-active-session lock (`feat/single-active-session`) all shipped. The leaderboard hard-blocker is now cleared.
 
-Pick the next item by readiness: **monster crit** (queued below — finally activates the build-pressure that the PoE-style armor formula assumes) is the highest-leverage gameplay debt; **native monster barrier** is mechanical. The pure-refactor backlog is now empty — what remains is rebalance + features.
+**Monster crit + native monster barrier shipped together in PR #57** (`feat/monster-barrier-crit`), bundled with elemental-damage monster mods, rares bumped to 4 mods, and per-weapon hit FX. The PoE-style build-pressure loop is now live — both the highest-leverage gameplay debt and the mechanical follow-up are closed.
+
+Pure-refactor backlog is empty. Gameplay-debt backlog is empty. What remains splits into:
+- **Deferred, scoped**: Act-boss Model B refit for time-bars, camp cinematic biome ambience.
+- **Low-priority polish**: native PT review of `lexicon/pt.ts`, `TemplateBaseId` codegen, hash extraction to `src/lib/rng.ts`, rare-name bestiary, admin-dashboard cold-cache latency.
+- **Next big feature**: passive tree (per CONTEXT.md → Classes ordering: MVP combat ✅ → passive tree → active skills). Design work needed first — no stub plan yet.
+
+Pick by appetite: feature work = passive tree design pass; cleanup pass = lexicon/codegen/rng triple; content polish = camp cinematic art + audio.
 
 ### world.tsx size — closed decision
 
@@ -20,7 +27,7 @@ PR #52 landed world.tsx at 740 lines (down from 774, the original monolith was 9
 
 ---
 
-## Project health snapshot (as of 2026-05-24)
+## Project health snapshot (as of 2026-05-25)
 
 **Current grade: A** (composite across architecture / code quality / docs / scalability / agent ergonomics).
 
