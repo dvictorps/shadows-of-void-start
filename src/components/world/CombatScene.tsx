@@ -758,24 +758,37 @@ function EnemyHpBar({
 		maxBarrier > 0
 			? Math.max(0, Math.min(100, (currentBarrier / maxBarrier) * 100))
 			: 0;
+	const showBarrier = maxBarrier > 0;
 	return (
 		<div className="mb-4 flex w-full max-w-sm flex-col items-center gap-1">
-			{maxBarrier > 0 && (
-				<div className="h-1.5 w-full overflow-hidden rounded-full border border-white/40 bg-black">
-					<div
-						className="h-full bg-gradient-to-r from-sky-600 to-sky-300 transition-[width] duration-150"
-						style={{ width: `${barrierPct}%` }}
-					/>
-				</div>
-			)}
-			<div className="h-3 w-full overflow-hidden rounded-full border border-white/40 bg-black">
+			<div className="relative h-3 w-full overflow-hidden rounded-full border border-white/40 bg-black">
+				{/* Red HP fill — left-anchored, width = hpPct. */}
 				<div
-					className="h-full bg-gradient-to-r from-red-700 to-red-500 transition-[width] duration-150"
+					className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-700 to-red-500 transition-[width] duration-150"
 					style={{ width: `${pct}%` }}
+					aria-hidden
 				/>
+				{/* Blue barrier overlay drawn ON TOP of the red layer, same
+				 * left anchor. Mirrors the HealthGlobe: damage hits barrier
+				 * first, so the blue width shrinks before the red moves. */}
+				{showBarrier && (
+					<div
+						className="absolute inset-y-0 left-0 bg-sky-400/70 transition-[width] duration-150"
+						style={{
+							width: `${barrierPct}%`,
+							boxShadow: "inset 0 0 6px rgba(125, 211, 252, 0.55)",
+						}}
+						aria-hidden
+					/>
+				)}
 			</div>
 			<span className="text-xs uppercase tracking-wider text-white/60">
 				{Math.ceil(current)} / {max}
+				{showBarrier && (
+					<span className="ml-2 text-sky-200/80">
+						+ {Math.ceil(currentBarrier)} / {maxBarrier}
+					</span>
+				)}
 			</span>
 		</div>
 	);
