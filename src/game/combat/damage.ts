@@ -1,13 +1,33 @@
 import { randInt } from "#/lib/rng";
 import type { MonsterElementDamage } from "../monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "../stats/types";
+import {
+	BASE_CRIT_MULTIPLIER,
+	CRIT_CHANCE_CAP,
+	CRIT_CHANCE_FLOOR,
+} from "./constants";
 
-const CRIT_CHANCE_FLOOR = 5;
-const CRIT_CHANCE_CAP = 100;
 const HIT_CHANCE_MIN = 0.05;
 const HIT_CHANCE_MAX = 0.95;
 const ARMOR_REDUCTION_CAP = 0.85;
-const BASE_CRIT_MULTIPLIER = 50;
+
+// Per-element "gain X% of total damage as extra <element>" used by the enemy
+// gain-as-extra path (and `ScaledMonsterStats.gainAsExtraDamage`). The player's
+// `gainAsExtraSpell` follows the same shape — consolidating that side is a
+// follow-up (no behaviour difference today).
+export interface ElementalGainPct {
+	cold: number;
+	fire: number;
+	lightning: number;
+	void: number;
+}
+
+export const EMPTY_ELEMENTAL_GAIN: ElementalGainPct = {
+	cold: 0,
+	fire: 0,
+	lightning: 0,
+	void: 0,
+};
 
 export interface ElementContribution {
 	element: "Physical" | "Cold" | "Fire" | "Lightning" | "Void";
@@ -208,20 +228,33 @@ interface EnemyAttackArgs {
 	physicalDamage: { min: number; max: number };
 	elementalDamage: readonly MonsterElementDamage[];
 	defender: DefenderProfile;
+	// Crit chance % and multiplier % on the monster (post-mods). Default to
+	// the baseline 5% / 50% if omitted so callers that haven't migrated yet
+	// still get the floor behaviour (every monster carries a baseline crit).
+	enemyCriticalChance?: number;
+	enemyCriticalMultiplier?: number;
+	// Per-element "gain X% of total damage as extra <element>", applied
+	// after rolling but before crit + mitigation. Mirrors the player's
+	// gainAsExtraSpell tome family. Omitted/undefined = no conversion.
+	enemyGainAsExtra?: ElementalGainPct;
 	random?: () => number;
 }
 
 /**
  * Roll one enemy attack. Mirrors `rollPlayerSwing`'s damage pipeline:
  * roll a flat amount per type (physical + each element on the template),
- * mitigate physical via armor and each element via its resistance, sum.
- * Defender's evasion gates the hit. No crit on enemies in MVP.
+ * crit-roll against the monster's chance, mitigate physical via armor and
+ * each element via its resistance, sum. Defender's evasion gates the hit
+ * before any of the damage math runs.
  */
 export function rollEnemyAttack({
 	enemyAccuracy,
 	physicalDamage,
 	elementalDamage,
 	defender,
+	enemyCriticalChance = 5,
+	enemyCriticalMultiplier = 50,
+	enemyGainAsExtra,
 	random = Math.random,
 }: EnemyAttackArgs): RolledSwing {
 	const hit = random() <= hitChance(enemyAccuracy, defender.evasion);
@@ -250,12 +283,13 @@ export function rollEnemyAttack({
 		};
 	}
 
+	// Roll base damages BEFORE crit so gain-as-extra can read the unboosted
+	// total — crit then multiplies everything uniformly (mirror of the
+	// player spell-side order in rollPlayerSwing).
 	const physRaw = randInt(
 		Math.max(0, physicalDamage.min),
 		Math.max(physicalDamage.min, physicalDamage.max),
 	);
-	const physFinal = applyArmor(physRaw, defender.armor);
-
 	const elementRolls: Record<"Cold" | "Fire" | "Lightning" | "Void", number> = {
 		Cold: 0,
 		Fire: 0,
@@ -268,20 +302,52 @@ export function rollEnemyAttack({
 			Math.max(e.min, e.max),
 		);
 	}
+
+	// Gain-as-extra: each element grows by X% of the total damage rolled.
+	// Computed once against the pre-conversion total so two stacked mods
+	// (Cold + Fire) both reference the same base — no compounding loop.
+	if (
+		enemyGainAsExtra &&
+		(enemyGainAsExtra.cold > 0 ||
+			enemyGainAsExtra.fire > 0 ||
+			enemyGainAsExtra.lightning > 0 ||
+			enemyGainAsExtra.void > 0)
+	) {
+		const total =
+			physRaw +
+			elementRolls.Cold +
+			elementRolls.Fire +
+			elementRolls.Lightning +
+			elementRolls.Void;
+		elementRolls.Cold += total * (enemyGainAsExtra.cold / 100);
+		elementRolls.Fire += total * (enemyGainAsExtra.fire / 100);
+		elementRolls.Lightning += total * (enemyGainAsExtra.lightning / 100);
+		elementRolls.Void += total * (enemyGainAsExtra.void / 100);
+	}
+
+	// No floor on the enemy side — the 5% baseline lives in
+	// `scaleMonsterStats`, so a caller that explicitly passes 0 is opting
+	// out of crit (e.g. tests, future "anti-crit" mob). Capped at 100% so
+	// stacked crit-chance mods don't overflow.
+	const finalCritChance = clamp(enemyCriticalChance, 0, CRIT_CHANCE_CAP);
+	const isCrit = random() * 100 < finalCritChance;
+	const critMult = isCrit ? 1 + enemyCriticalMultiplier / 100 : 1;
+
+	const physFinal = applyArmor(physRaw * critMult, defender.armor);
 	const coldFinal = applyResistance(
-		elementRolls.Cold,
+		elementRolls.Cold * critMult,
 		defender.resistances.cold,
 	);
 	const fireFinal = applyResistance(
-		elementRolls.Fire,
+		elementRolls.Fire * critMult,
 		defender.resistances.fire,
 	);
 	const lightningFinal = applyResistance(
-		elementRolls.Lightning,
+		elementRolls.Lightning * critMult,
 		defender.resistances.lightning,
 	);
 	const voidFinal = applyResistance(
-		elementRolls.Void,
+		elementRolls.Void * critMult,
 		defender.resistances.void,
 	);
 
@@ -301,7 +367,7 @@ export function rollEnemyAttack({
 
 	return {
 		amount: Math.max(1, total),
-		isCrit: false,
+		isCrit,
 		isMiss: false,
 		isBlocked: false,
 		breakdown,

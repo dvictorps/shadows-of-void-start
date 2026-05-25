@@ -11,6 +11,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { EMPTY_ELEMENTAL_GAIN } from "#/game/combat/damage";
 import type { Enemy } from "#/game/combat/types";
 import type { MonsterDefinition } from "#/game/monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
@@ -31,7 +32,11 @@ vi.mock("convex/react", () => {
 });
 
 // Stub SFX — jsdom has no real audio backend and we don't need the side effect.
-vi.mock("#/lib/sfx", () => ({ playSfx: () => {} }));
+vi.mock("#/lib/sfx", () => ({
+	playSfx: () => {},
+	playPlayerSwingSfx: () => {},
+	playMonsterDeathSfx: () => {},
+}));
 
 // Stub the damage roll functions so we control exactly how much each side
 // deals — the bug under test is in HOW the hook composes those results, not
@@ -112,7 +117,11 @@ function makeStats(
 	};
 }
 
-function makeEnemy(currentHp: number): Enemy {
+type EnemyOverrides = Partial<Omit<Enemy, "scaled">> & {
+	scaled?: Partial<Enemy["scaled"]>;
+};
+
+function makeEnemy(currentHp: number, overrides: EnemyOverrides = {}): Enemy {
 	const def: MonsterDefinition = {
 		id: "test-mob",
 		name: "Test Mob",
@@ -126,9 +135,11 @@ function makeEnemy(currentHp: number): Enemy {
 		xpReward: 1,
 		allowedRarities: ["normal"],
 	};
+	const { scaled: scaledOverrides, ...enemyOverrides } = overrides;
 	return {
 		def,
 		currentHp,
+		currentBarrier: 0,
 		level: 1,
 		rarity: "normal",
 		mods: [],
@@ -144,8 +155,14 @@ function makeEnemy(currentHp: number): Enemy {
 			evasion: 0,
 			accuracy: 1000,
 			resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
+			barrier: 0,
+			criticalChance: 0,
+			criticalMultiplier: 0,
+			gainAsExtraDamage: { ...EMPTY_ELEMENTAL_GAIN },
+			...scaledOverrides,
 		},
 		nameSeed: { primary: 0, secondary: 0, epithet: 0 },
+		...enemyOverrides,
 	};
 }
 

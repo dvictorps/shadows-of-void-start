@@ -549,7 +549,12 @@ export default function CombatScene({
 							delay: showHpBar ? hpBarDelay : 0,
 						}}
 					>
-						<EnemyHpBar current={enemy.currentHp} max={enemy.scaled.hp} />
+						<EnemyHpBar
+							current={enemy.currentHp}
+							max={enemy.scaled.hp}
+							currentBarrier={enemy.currentBarrier}
+							maxBarrier={enemy.scaled.barrier}
+						/>
 					</motion.div>
 				)}
 			</div>
@@ -737,18 +742,52 @@ function FloatingXp({ amount }: { amount: number }) {
 	);
 }
 
-function EnemyHpBar({ current, max }: { current: number; max: number }) {
+function EnemyHpBar({
+	current,
+	max,
+	currentBarrier,
+	maxBarrier,
+}: {
+	current: number;
+	max: number;
+	currentBarrier: number;
+	maxBarrier: number;
+}) {
 	const pct = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
+	const barrierPct =
+		maxBarrier > 0
+			? Math.max(0, Math.min(100, (currentBarrier / maxBarrier) * 100))
+			: 0;
+	const showBarrier = maxBarrier > 0;
 	return (
 		<div className="mb-4 flex w-full max-w-sm flex-col items-center gap-1">
-			<div className="h-3 w-full overflow-hidden rounded-full border border-white/40 bg-black">
+			{/* Mirrors HealthGlobe: blue barrier overlay drawn on top of the red
+			 * HP fill in the same container so damage-hits-barrier-first reads
+			 * visually as "blue width shrinks before red moves". */}
+			<div className="relative h-3 w-full overflow-hidden rounded-full border border-white/40 bg-black">
 				<div
-					className="h-full bg-gradient-to-r from-red-700 to-red-500 transition-[width] duration-150"
+					className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-700 to-red-500 transition-[width] duration-150"
 					style={{ width: `${pct}%` }}
+					aria-hidden
 				/>
+				{showBarrier && (
+					<div
+						className="absolute inset-y-0 left-0 bg-sky-400/70 transition-[width] duration-150"
+						style={{
+							width: `${barrierPct}%`,
+							boxShadow: "inset 0 0 6px rgba(125, 211, 252, 0.55)",
+						}}
+						aria-hidden
+					/>
+				)}
 			</div>
 			<span className="text-xs uppercase tracking-wider text-white/60">
 				{Math.ceil(current)} / {max}
+				{showBarrier && (
+					<span className="ml-2 text-sky-200/80">
+						+ {Math.ceil(currentBarrier)} / {maxBarrier}
+					</span>
+				)}
 			</span>
 		</div>
 	);

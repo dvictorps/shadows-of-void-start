@@ -243,6 +243,8 @@ A hit is computed in this order:
 4. **Crit roll** — `random() × 100 < critChance`. On hit: damage × `(1 + critMultiplier/100)`. Crit chance is capped at 100% **and** clamped to 5% minimum (no zero-crit characters). Crit multiplier has no cap.
 5. **Defenses** — see below.
 
+**Enemy-side damage** follows the same shape (`rollEnemyAttack`). Every monster ships with a **5% baseline crit chance** and a **50% baseline crit multiplier** (= 1.5× damage on crit) — same numbers as the player's floor, applied at `scaleMonsterStats` time. The two monster mods `monsterCriticalChanceIncrease` (+150% increased, multiplicative on the baseline) and `monsterCriticalMultiplier` (+50% flat, additive on the baseline) stack on top. The enemy side has no 5% floor — a future "no-crit" mob can ship with `criticalChance: 0` and never crit. Monster crit is gated to **magic / rare** rolls; normal mobs use the baseline 5%.
+
 ### Defenses
 
 **Armor** (physical mitigation, PoE-style):
@@ -252,7 +254,7 @@ cap = 85%
 ```
 The denominator scales with the **size of the incoming hit**, not with the attacker's level. The same armor pool mitigates many small hits hard but barely dents one big hit — armor reads as a "tank against trash" stat, not a flat damage multiplier. Armor reduces only physical damage; elemental and void pass through untouched.
 
-Historical note: an earlier prototype used a Last-Epoch-style denominator (`armor + 10 × enemyLevel`), which made a single chestplate produce ~90% physical reduction in Act 1 and rendered the character effectively immortal against trash. The PoE-style pivot exists to force build diversification (armor + barrier + resistances + evasion) instead of one stat solving everything. The build pressure this assumes only fully materializes once a big-hit source exists on the monster side — monster crit is queued in `docs/plans/in-progress.md` and gates the next balance pass.
+Historical note: an earlier prototype used a Last-Epoch-style denominator (`armor + 10 × enemyLevel`), which made a single chestplate produce ~90% physical reduction in Act 1 and rendered the character effectively immortal against trash. The PoE-style pivot exists to force build diversification (armor + barrier + resistances + evasion) instead of one stat solving everything. The big-hit source the formula assumes is now live (monster crit — see the Damage formula's enemy-side note above and the monster modifier pool below), so armor stacks now have a real failure mode against crit-rolled magic / rare mobs.
 
 **Evasion + Accuracy** (hit-or-miss gate, applied before damage):
 ```
@@ -273,6 +275,8 @@ Each incoming hit rolls against `hitChance`. A miss deals **zero** damage and tr
 - **Gear swap preserves current.** Trading into gear with higher max barrier expands the ceiling but does not refill — current stays where it was, regen now ticks against the new max. Trading into lower max barrier clamps current down. Cooldown state is preserved across swaps.
 
 Historical note: a prior iteration used a binary 6-second timer that instantly refilled barrier to 100%. That model gave heavy-barrier mages a "double HP every 6s" loop trivialised by potions; the current model (gradual regen + hard cooldown on break) preserves the spike-absorption identity of barrier while making it a finite resource per combat. See [ADR 0005](docs/adr/0005-barrier-regen-mechanic.md).
+
+**Monster barrier mirrors the player.** Monsters that roll `monsterAdditionalBarrier` (see Monster Modifier Pool) get a barrier pool sized at **30% of their post-other-mods HP**, displayed as a thin blue strip above their HP bar. The same `tickBarrier` mechanic runs — 5%/s regen above zero, 10s cooldown on break, regen resumes from zero. The mod is applied **last** in the spawn-time mod chain so the barrier reads the HP after Increased Life has resolved (player reads "30% of the displayed HP"). The cooldown is reset only by a fresh spawn — no in-zone reset for monsters.
 
 **Block** — granted by **shields** (base + rolled mods) and by **attack dual-wielding** (flat +10% implicit). When a hit lands and is not evaded, roll once against `blockChance`. A blocked hit deals 0 damage to barrier/life but **does** trigger the attacker's on-hit (blocks are still "hits" for the attacker's purposes). Thorns still reflect to the attacker on block, regardless of whether the block came from a shield or from dual-wielding.
 
@@ -483,7 +487,7 @@ Example: Rare item, `ilvl 80`, three mods rolled at tiers T3 / T4 / T2:
 Magic and Rare monsters roll modifiers from a small, generic pool (separate from the item modifier pool — different domain). Counts:
 
 - **Magic mob: 1 modifier**
-- **Rare / Miniboss: 3 modifiers**
+- **Rare / Miniboss: 4 modifiers** (always lands the 2-prefix + 2-suffix affix cap)
 - **Normal mob: 0 modifiers**
 
 The pool is intentionally short and broad — granular per-monster tuning happens through base stats, not the modifier pool.
@@ -499,7 +503,10 @@ Starter pool (Act 1):
 - **Increased Fire Resistance** — mitigates fire damage.
 - **Increased Lightning Resistance** — mitigates lightning damage.
 - **Increased Void Resistance** — mitigates void damage.
-- **Additional Barrier** — flat barrier pool above HP. Until monster barrier is implemented natively (see `docs/plans/in-progress.md`), the mod is folded into HP as a placeholder.
+- **Additional Barrier** — grants a barrier pool sized at 30% of the monster's HP (after other HP-affecting mods resolve). Mirrors the player barrier mechanic: regen 5%/s, 10s cooldown on break. See Defenses → Barrier.
+- **Increased Critical Strike Chance** — multiplies the 5% baseline crit by 2.5× (12.5% effective).
+- **Critical Strike Multiplier** — adds 50 to the 50% baseline multiplier (crits do 2× damage instead of 1.5×).
+- **Cold / Fire / Lightning / Void Damage** (four mods) — each grants the monster `+30% of total damage as extra <element>`, computed once at hit time against the pre-conversion total. Stacking two damage mods (e.g., Cold + Fire) adds 30% per element independently — they don't compound. Mirrors the player's tome gain-as-extra family. Crit then multiplies everything uniformly; defender resistance for the matching element mitigates the extra layer.
 - **More Armor** — increased physical mitigation.
 
 The pool will grow with later acts (on-hit effects, summons, auras), but Act 1 stays minimal.
@@ -510,8 +517,8 @@ Mods are picked **distinct** within a single monster (no duplicates). Magnitudes
 
 Each mod is tagged **prefix** or **suffix**:
 
-- **Prefixes (adjectival)**: Increased Life, Increased Damage, Increased Evasion, Additional Barrier, More Armor.
-- **Suffixes (noun)**: Increased Attack Speed, Increased Accuracy, the four elemental resistances.
+- **Prefixes (adjectival)**: Increased Life, Increased Damage, Increased Evasion, Additional Barrier, More Armor, Increased Critical Strike Chance, the four elemental damage mods (Cold / Fire / Lightning / Void).
+- **Suffixes (noun)**: Increased Attack Speed, Increased Accuracy, the four elemental resistances, Critical Strike Multiplier.
 
 A spawn rolls **at most 2 prefixes and 2 suffixes**, so a 3-mod rare always mixes both affixes. With **two or more elemental resistances** on the same spawn, they collapse into a single compound adjective ("Elemental Resistant" / "Resistente a Elementos") instead of stacking individual suffixes.
 

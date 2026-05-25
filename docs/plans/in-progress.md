@@ -207,55 +207,6 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 ---
 
-## Native monster barrier
-
-**Status**: Planned, not started. Triggered by the "Additional Barrier" monster mod from the zone-progression PR.
-
-**Why**: today the `monsterAdditionalBarrier` mod folds into HP (`hp × 1.3`) as a placeholder because monsters have no barrier mechanism. The player has barrier (pool above HP, 5%/s regen + 10s cooldown on break — see CONTEXT.md → Defenses → Barrier and [ADR 0005](../adr/0005-barrier-regen-mechanic.md)). Monsters should have the same shape so the mod's flavour matches its identity ("barrier above HP", not "more HP").
-
-### Scope
-
-- Extend `ScaledMonsterStats` with a `barrier: number` field (currently absent).
-- Add `barrier` and `barrierCooldownRemaining` to the live enemy state on `Enemy` (mirror the player's `BarrierState`).
-- Reuse `damageBarrier()` / `tickBarrier()` from `src/game/combat/barrier.ts` on the enemy side of the combat tick.
-- Update `monsterAdditionalBarrier` mod to grant a real barrier pool (e.g., `barrier += hp × 0.3`) instead of inflating HP.
-- UI: render a thin blue strip above the enemy HP bar when barrier > 0 (mirror the player's HealthGlobe barrier ring).
-
-### Validation
-
-- `npx tsc --noEmit`, `npx vitest run`
-- Manual: roll a magic mob with Additional Barrier. Confirm barrier absorbs first, regenerates at 5%/s while above zero, enters 10s cooldown when it breaks, resumes regen from zero after cooldown expires.
-
----
-
-## PoE-style armor ecosystem — monster crit (queued)
-
-**Status**: Planned, not started.
-
-**Background**: armor used to compute as Last Epoch-style (`armor / (armor + 10 × enemyLevel)` — denominator scales with attacker level). That formula gave ~90% physical reduction from a single chestplate in act 1, making the character effectively immortal vs phys. The actual code in `src/game/combat/damage.ts:55-67` now uses PoE-style (`armor / (armor + 10 × physical)` — denominator scales with hit size), capped at 85%. The comment in the code explains the trade-off: "tank against trash, falls off against spikes."
-
-The pivot is correct for the genre — in auto-combat the player can't skill-check a spike, so the defense system has to force diversification (armor + barrier + resistances + evasion) instead of one stat solving everything. **But the spike side of the ecosystem isn't built yet**: `rollEnemyAttack` in `damage.ts:220-251` hardcodes `isCrit: false`. Enemies miss/hit/block but never crit. So PoE-style armor today reads as "always strong" because nothing tests its weakness — the build-diversification pressure the formula assumes doesn't materialize until a big-hit source exists.
-
-### Monster crit (the missing big-hit source)
-
-Add crit roll to `rollEnemyAttack` (the player's crit roll in `rollPlayerSwing` is the reference shape — same `random() × 100 < critChance`, same multiplier). Scope decisions to make first:
-
-- **Where does monster crit chance come from?** Options: (a) flat baseline per monster level (e.g., 5%, mirroring player floor), (b) only rare/miniboss roll crit, (c) a monster modifier in the rare/magic pool. Probably (a) + (c): every monster has a small baseline, plus a `monsterCritChance` modifier that magic/rares can roll for spike pressure.
-- **Crit multiplier?** Default 1.5× (player's effective crit-mult floor). Magic/rare mod can stack on top.
-- **Telegraph?** Auto-combat doesn't let the player react, but the damage event should be flagged `isCrit: true` so the UI can render the hit differently (number color, screen shake, sound) — same shape the player's crit feedback already uses.
-- **Balance pass after**: once monster crit lands, re-curve armor / barrier / resistance values together. The current numbers were tuned implicitly assuming no crits.
-
-### Validation
-
-- `npx tsc --noEmit`, `npx vitest run` — extend `damage.test.ts` with enemy-crit cases.
-- Manual: spawn a magic mob with the crit modifier, take a few hits, confirm crits visibly different in the HUD + observably bigger damage.
-
-### Why this matters strategically
-
-PoE-style armor + no big-hit source = armor is dominant for free. Once monster crit ships, armor becomes a real trade-off ("I'm tanky vs sustained dps but a crit can spike me — do I stack resist? barrier? evasion?"). That's the build-pressure the design assumes but doesn't currently have.
-
----
-
 ## Future: rare-name bestiary (low priority)
 
 **Status**: Idea parked. Not a priority — touches persistence, not combat feel.

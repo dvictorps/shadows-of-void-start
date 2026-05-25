@@ -256,12 +256,16 @@ describe("rollPlayerSwing", () => {
 });
 
 describe("rollEnemyAttack", () => {
+	// Most tests opt out of crit (enemyCriticalChance: 0) so the deterministic
+	// random: () => 0.0 doesn't accidentally roll a crit and bump the
+	// expected amount. Crit-specific tests below cover the crit path.
 	it("returns physical damage with no miss when defender has 0 evasion", () => {
 		const result = rollEnemyAttack({
 			enemyAccuracy: 10,
 			physicalDamage: { min: 10, max: 10 },
 			elementalDamage: [],
 			defender: { ...dummyDefender, evasion: 0 },
+			enemyCriticalChance: 0,
 			random: () => 0.0,
 		});
 		expect(result.amount).toBe(10);
@@ -275,6 +279,7 @@ describe("rollEnemyAttack", () => {
 			physicalDamage: { min: 100, max: 100 },
 			elementalDamage: [],
 			defender: { ...dummyDefender, armor: 1000 },
+			enemyCriticalChance: 0,
 			random: () => 0.0,
 		});
 		// 1000 armor vs 100-damage hit → 1000/(1000+1000) = 50% reduction
@@ -290,6 +295,7 @@ describe("rollEnemyAttack", () => {
 				...dummyDefender,
 				resistances: { cold: 0, fire: 50, lightning: 0, void: 0 },
 			},
+			enemyCriticalChance: 0,
 			random: () => 0.0,
 		});
 		// armor doesn't touch elements; 50% fire resist halves the hit
@@ -304,6 +310,7 @@ describe("rollEnemyAttack", () => {
 			physicalDamage: { min: 20, max: 20 },
 			elementalDamage: [{ element: "Cold", min: 30, max: 30 }],
 			defender: { ...dummyDefender },
+			enemyCriticalChance: 0,
 			random: () => 0.0,
 		});
 		expect(result.amount).toBe(50);
@@ -337,6 +344,7 @@ describe("rollEnemyAttack", () => {
 			physicalDamage: { min: 50, max: 50 },
 			elementalDamage: [],
 			defender: { ...dummyDefender, blockChance: 25 },
+			enemyCriticalChance: 0,
 			// Hit succeeds; block roll: 0.99 * 100 = 99 ≥ 25 → no block.
 			random: (() => {
 				let calls = 0;
@@ -348,6 +356,113 @@ describe("rollEnemyAttack", () => {
 		});
 		expect(result.isBlocked).toBe(false);
 		expect(result.amount).toBe(50);
+	});
+
+	it("crits multiply phys + elemental damage by (1 + multi/100)", () => {
+		const result = rollEnemyAttack({
+			enemyAccuracy: 10,
+			physicalDamage: { min: 100, max: 100 },
+			elementalDamage: [{ element: "Fire", min: 60, max: 60 }],
+			defender: { ...dummyDefender },
+			enemyCriticalChance: 100, // guaranteed crit
+			enemyCriticalMultiplier: 50, // +50% → 1.5×
+			random: () => 0.0,
+		});
+		expect(result.isCrit).toBe(true);
+		// 100 phys × 1.5 = 150, 60 fire × 1.5 = 90 → total 240.
+		expect(result.breakdown.physical).toBe(150);
+		expect(result.breakdown.fire).toBe(90);
+		expect(result.amount).toBe(240);
+	});
+
+	it("crit chance 0 never crits regardless of random roll", () => {
+		const result = rollEnemyAttack({
+			enemyAccuracy: 10,
+			physicalDamage: { min: 50, max: 50 },
+			elementalDamage: [],
+			defender: { ...dummyDefender },
+			enemyCriticalChance: 0,
+			enemyCriticalMultiplier: 200,
+			random: () => 0.0, // would crit with any non-zero chance
+		});
+		expect(result.isCrit).toBe(false);
+		expect(result.amount).toBe(50);
+	});
+
+	it("gain-as-extra adds a % of total damage to the matching element", () => {
+		// 100 phys × 30% = 30 extra void. Resistance 0%, no crit → total 130.
+		const result = rollEnemyAttack({
+			enemyAccuracy: 100,
+			physicalDamage: { min: 100, max: 100 },
+			elementalDamage: [],
+			defender: { ...dummyDefender },
+			enemyCriticalChance: 0,
+			enemyGainAsExtra: { cold: 0, fire: 0, lightning: 0, void: 30 },
+			random: () => 0.0,
+		});
+		expect(result.breakdown.physical).toBe(100);
+		expect(result.breakdown.void).toBe(30);
+		expect(result.amount).toBe(130);
+	});
+
+	it("gain-as-extra is resisted by the matching element resistance", () => {
+		// 100 phys + 30 void as extra. 75% void res → void reduces to 7.5 (floor 7).
+		const result = rollEnemyAttack({
+			enemyAccuracy: 100,
+			physicalDamage: { min: 100, max: 100 },
+			elementalDamage: [],
+			defender: {
+				...dummyDefender,
+				resistances: { cold: 0, fire: 0, lightning: 0, void: 75 },
+			},
+			enemyCriticalChance: 0,
+			enemyGainAsExtra: { cold: 0, fire: 0, lightning: 0, void: 30 },
+			random: () => 0.0,
+		});
+		expect(result.breakdown.physical).toBe(100);
+		expect(result.breakdown.void).toBe(7);
+		expect(result.amount).toBe(107);
+	});
+
+	it("gain-as-extra references pre-conversion total — two stacks don't compound", () => {
+		// 100 phys, 30% cold + 30% fire = 30 cold + 30 fire (both off the same
+		// 100 base, NOT 30% of the 130 after the first add).
+		const result = rollEnemyAttack({
+			enemyAccuracy: 100,
+			physicalDamage: { min: 100, max: 100 },
+			elementalDamage: [],
+			defender: { ...dummyDefender },
+			enemyCriticalChance: 0,
+			enemyGainAsExtra: { cold: 30, fire: 30, lightning: 0, void: 0 },
+			random: () => 0.0,
+		});
+		expect(result.breakdown.cold).toBe(30);
+		expect(result.breakdown.fire).toBe(30);
+		expect(result.amount).toBe(160);
+	});
+
+	it("baseline crit chance fires when defaults are used (5% floor)", () => {
+		// random() * 100 < 5 → 0.04 fires crit, 0.06 does not.
+		const r1 = rollEnemyAttack({
+			enemyAccuracy: 100,
+			physicalDamage: { min: 50, max: 50 },
+			elementalDamage: [],
+			defender: { ...dummyDefender },
+			random: () => 0.04,
+		});
+		expect(r1.isCrit).toBe(true);
+		// 50 × 1.5 (default 50% multiplier) = 75.
+		expect(r1.amount).toBe(75);
+
+		const r2 = rollEnemyAttack({
+			enemyAccuracy: 100,
+			physicalDamage: { min: 50, max: 50 },
+			elementalDamage: [],
+			defender: { ...dummyDefender },
+			random: () => 0.06,
+		});
+		expect(r2.isCrit).toBe(false);
+		expect(r2.amount).toBe(50);
 	});
 });
 

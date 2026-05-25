@@ -13,6 +13,11 @@ const prefixAdj: Record<PrefixMonsterModId, string> = {
 	monsterIncreasedEvasion: "Elusive",
 	monsterAdditionalBarrier: "Warded",
 	monsterMoreArmor: "Armored",
+	monsterCriticalChanceIncrease: "Deadly",
+	monsterColdDamage: "Frostbitten",
+	monsterFireDamage: "Burning",
+	monsterLightningDamage: "Sparking",
+	monsterVoidDamage: "Voidtouched",
 };
 
 const suffixNoun: Record<SuffixMonsterModId, string> = {
@@ -22,6 +27,7 @@ const suffixNoun: Record<SuffixMonsterModId, string> = {
 	monsterFireResistance: "Flame",
 	monsterLightningResistance: "Storm",
 	monsterVoidResistance: "Void",
+	monsterCriticalMultiplier: "Slaughter",
 };
 
 // Rare proper-name pools. First word stays capitalized, second word stays
@@ -82,6 +88,36 @@ const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
 	],
 	monsterAdditionalBarrier: ["the Warded", "the Guarded", "the Shrouded"],
 	monsterMoreArmor: ["the Armored", "the Ironclad", "the Plated"],
+	monsterCriticalChanceIncrease: [
+		"the Deadly",
+		"the Lethal",
+		"the Razor-Sharp",
+		"the Precise",
+	],
+	monsterColdDamage: [
+		"the Frostbitten",
+		"the Glacial",
+		"the Frozen-Hearted",
+		"the Winterborn",
+	],
+	monsterFireDamage: [
+		"the Burning",
+		"the Searing",
+		"the Ember-Cloaked",
+		"the Hellfire",
+	],
+	monsterLightningDamage: [
+		"the Sparking",
+		"the Storm-Forged",
+		"the Thunderstruck",
+		"the Galvanic",
+	],
+	monsterVoidDamage: [
+		"the Voidtouched",
+		"the Tainted",
+		"the Hollow-Eyed",
+		"the Cursed",
+	],
 };
 
 const rareCompoundEpithets: readonly string[] = [

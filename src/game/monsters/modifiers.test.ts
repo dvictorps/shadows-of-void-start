@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
 	applyMonsterMods,
 	MONSTER_MODIFIERS,
-	type MonsterModId,
 	modCountForRarity,
 	rollMonsterMods,
 	rollMonsterRarity,
@@ -38,10 +37,12 @@ describe("rollMonsterRarity", () => {
 });
 
 describe("modCountForRarity", () => {
-	it("matches CONTEXT.md: normal=0, magic=1, rare=3", () => {
+	it("matches CONTEXT.md: normal=0, magic=1, rare=4", () => {
 		expect(modCountForRarity("normal")).toBe(0);
 		expect(modCountForRarity("magic")).toBe(1);
-		expect(modCountForRarity("rare")).toBe(3);
+		// Rare spawns at the 2+2 affix cap — the eligibility filter inside
+		// rollMonsterMods always lands one of every prefix/suffix combination.
+		expect(modCountForRarity("rare")).toBe(4);
 	});
 });
 
@@ -120,10 +121,48 @@ describe("applyMonsterMods", () => {
 		});
 	});
 
-	it("Additional Barrier (placeholder) folds into HP × 1.3", () => {
+	it("Additional Barrier grants a barrier pool = round(hp × 0.3)", () => {
 		const scaled = scaleMonsterStats(baseDef, 1);
 		const after = applyMonsterMods(scaled, ["monsterAdditionalBarrier"]);
-		expect(after.hp).toBe(130);
+		// HP untouched; barrier = 100 × 0.3 = 30.
+		expect(after.hp).toBe(100);
+		expect(after.barrier).toBe(30);
+	});
+
+	it("Critical Chance mod multiplies the 5% baseline by 2.5 (→ 12.5%)", () => {
+		const scaled = scaleMonsterStats(baseDef, 1);
+		const after = applyMonsterMods(scaled, ["monsterCriticalChanceIncrease"]);
+		expect(after.criticalChance).toBeCloseTo(12.5);
+		// Other crit stat unchanged.
+		expect(after.criticalMultiplier).toBe(50);
+	});
+
+	it("Critical Multiplier mod adds 50 to baseline (50 → 100, so crits do 2×)", () => {
+		const scaled = scaleMonsterStats(baseDef, 1);
+		const after = applyMonsterMods(scaled, ["monsterCriticalMultiplier"]);
+		expect(after.criticalMultiplier).toBe(100);
+		expect(after.criticalChance).toBe(5);
+	});
+
+	it("elemental damage mods add 30% to gainAsExtraDamage[element]", () => {
+		const scaled = scaleMonsterStats(baseDef, 1);
+		const cold = applyMonsterMods(scaled, ["monsterColdDamage"]);
+		expect(cold.gainAsExtraDamage).toEqual({
+			cold: 30,
+			fire: 0,
+			lightning: 0,
+			void: 0,
+		});
+		const dual = applyMonsterMods(scaled, [
+			"monsterColdDamage",
+			"monsterFireDamage",
+		]);
+		expect(dual.gainAsExtraDamage).toEqual({
+			cold: 30,
+			fire: 30,
+			lightning: 0,
+			void: 0,
+		});
 	});
 
 	it("resistance mods add 50% to the matching element", () => {
@@ -168,14 +207,23 @@ describe("applyMonsterMods", () => {
 		expect(lvl17Mods.armor).toBe(255);
 	});
 
-	it("composes multiple mods in order (deterministic)", () => {
+	it("barrier mod is applied LAST so it reads the post-Increased-Life HP", () => {
+		// Whatever order the roller picks, applyMonsterMods reorders so
+		// Additional Barrier sees the final HP — the player reads barrier as
+		// "30% of the displayed HP", not "30% of the base HP".
 		const scaled = scaleMonsterStats(baseDef, 1);
-		const mods: MonsterModId[] = [
+		const orderA = applyMonsterMods(scaled, [
 			"monsterIncreasedLife",
 			"monsterAdditionalBarrier",
-		];
-		const after = applyMonsterMods(scaled, mods);
-		// HP 100 × 1.5 = 150 → × 1.3 = 195
-		expect(after.hp).toBe(195);
+		]);
+		const orderB = applyMonsterMods(scaled, [
+			"monsterAdditionalBarrier",
+			"monsterIncreasedLife",
+		]);
+		// Both orders produce: HP 100 × 1.5 = 150, barrier = round(150 × 0.3) = 45.
+		expect(orderA.hp).toBe(150);
+		expect(orderA.barrier).toBe(45);
+		expect(orderB.hp).toBe(150);
+		expect(orderB.barrier).toBe(45);
 	});
 });

@@ -17,11 +17,37 @@ export const MONSTER_EVASION_PER_LEVEL = 30;
 export const MONSTER_ACCURACY_PER_LEVEL = 30;
 export const MONSTER_ARMOR_PER_LEVEL = 15;
 
+// Crit mods. Magnitudes mirror the design discussion captured in CONTEXT.md
+// → Monster Modifier Pool (and the grilling that produced them): +150%
+// increased chance puts a 5% baseline at 12.5%; +50% multiplier turns a
+// baseline 50% (= 1.5× crit damage) into 100% (= 2× crit damage).
+export const MONSTER_CRIT_CHANCE_INCREASE_PCT = 150;
+export const MONSTER_CRIT_MULTIPLIER_PCT = 50;
+
+// Elemental damage mods (gain-as-extra). Each adds X% of the monster's
+// total hit damage as a new layer of the matching element. Calibrated
+// slightly below monsterIncreasedDamage's +40% so a Damage + Element stack
+// stays under "2× spike" territory: 1.4 × 1.3 = 1.82× total. Mirrors the
+// player's tomeGainAsExtra family.
+export const MONSTER_ELEMENTAL_DAMAGE_PCT = 30;
+
+// Barrier mod magnitude (fraction of post-other-mods HP that becomes a
+// barrier pool). The mod is applied last in `applyMonsterMods` so the HP
+// reference is post-`monsterIncreasedLife` — see CONTEXT.md → Defenses →
+// Barrier (monster mirror note).
+export const MONSTER_BARRIER_HP_FRACTION = 0.3;
+
 export type MonsterModAffixType = "prefix" | "suffix";
 
 export interface MonsterModifier {
 	id: string;
 	affixType: MonsterModAffixType;
+	/**
+	 * "trailing" means the mod runs AFTER every "normal" mod, used when the
+	 * mod's value depends on a derived stat (e.g. barrier reads HP after
+	 * Increased Life resolves). Defaults to "normal" when omitted.
+	 */
+	order?: "normal" | "trailing";
 	apply(stats: ScaledMonsterStats): ScaledMonsterStats;
 }
 
@@ -110,11 +136,18 @@ export const MONSTER_MODIFIERS = {
 		}),
 	},
 	monsterAdditionalBarrier: {
-		// Placeholder: HP × 1.3. Real barrier pool comes in the next PR — see
-		// docs/plans/in-progress.md → Native monster barrier.
+		// Grants a barrier pool equal to MONSTER_BARRIER_HP_FRACTION of the
+		// monster's HP at the time the mod is applied. The `order: "trailing"`
+		// tag tells `applyMonsterMods` to run this mod after every other mod,
+		// so the HP reference is post-Increased Life — the player reads the
+		// barrier number as "30% of the displayed HP".
 		id: "monsterAdditionalBarrier",
 		affixType: "prefix",
-		apply: (s) => ({ ...s, hp: Math.round(s.hp * 1.3) }),
+		order: "trailing",
+		apply: (s) => ({
+			...s,
+			barrier: Math.max(1, Math.round(s.hp * MONSTER_BARRIER_HP_FRACTION)),
+		}),
 	},
 	monsterMoreArmor: {
 		id: "monsterMoreArmor",
@@ -122,6 +155,67 @@ export const MONSTER_MODIFIERS = {
 		apply: (s) => ({
 			...s,
 			armor: s.armor + MONSTER_ARMOR_PER_LEVEL * s.level,
+		}),
+	},
+	monsterCriticalChanceIncrease: {
+		id: "monsterCriticalChanceIncrease",
+		affixType: "prefix",
+		apply: (s) => ({
+			...s,
+			criticalChance: s.criticalChance * (1 + MONSTER_CRIT_CHANCE_INCREASE_PCT / 100),
+		}),
+	},
+	monsterCriticalMultiplier: {
+		id: "monsterCriticalMultiplier",
+		affixType: "suffix",
+		apply: (s) => ({
+			...s,
+			criticalMultiplier: s.criticalMultiplier + MONSTER_CRIT_MULTIPLIER_PCT,
+		}),
+	},
+	monsterColdDamage: {
+		id: "monsterColdDamage",
+		affixType: "prefix",
+		apply: (s) => ({
+			...s,
+			gainAsExtraDamage: {
+				...s.gainAsExtraDamage,
+				cold: s.gainAsExtraDamage.cold + MONSTER_ELEMENTAL_DAMAGE_PCT,
+			},
+		}),
+	},
+	monsterFireDamage: {
+		id: "monsterFireDamage",
+		affixType: "prefix",
+		apply: (s) => ({
+			...s,
+			gainAsExtraDamage: {
+				...s.gainAsExtraDamage,
+				fire: s.gainAsExtraDamage.fire + MONSTER_ELEMENTAL_DAMAGE_PCT,
+			},
+		}),
+	},
+	monsterLightningDamage: {
+		id: "monsterLightningDamage",
+		affixType: "prefix",
+		apply: (s) => ({
+			...s,
+			gainAsExtraDamage: {
+				...s.gainAsExtraDamage,
+				lightning:
+					s.gainAsExtraDamage.lightning + MONSTER_ELEMENTAL_DAMAGE_PCT,
+			},
+		}),
+	},
+	monsterVoidDamage: {
+		id: "monsterVoidDamage",
+		affixType: "prefix",
+		apply: (s) => ({
+			...s,
+			gainAsExtraDamage: {
+				...s.gainAsExtraDamage,
+				void: s.gainAsExtraDamage.void + MONSTER_ELEMENTAL_DAMAGE_PCT,
+			},
 		}),
 	},
 } as const satisfies Record<string, MonsterModifier>;
@@ -149,7 +243,9 @@ export function modCountForRarity(rarity: MonsterRarity): number {
 		case "magic":
 			return 1;
 		case "rare":
-			return 3;
+			// 4 mods = exactly the 2+2 affix cap; rare always spawns with the
+			// max prefix-suffix mix the pool allows.
+			return 4;
 	}
 }
 
@@ -187,9 +283,17 @@ export function applyMonsterMods(
 	scaled: ScaledMonsterStats,
 	modIds: readonly MonsterModId[],
 ): ScaledMonsterStats {
+	// Cast through MonsterModifier widens the literal narrow `satisfies` keeps
+	// — the `order` field is optional on the interface but not on the entries
+	// that omit it.
+	const isTrailing = (id: MonsterModId): boolean =>
+		(MONSTER_MODIFIERS[id] as MonsterModifier).order === "trailing";
 	let out = scaled;
 	for (const id of modIds) {
-		out = MONSTER_MODIFIERS[id].apply(out);
+		if (!isTrailing(id)) out = MONSTER_MODIFIERS[id].apply(out);
+	}
+	for (const id of modIds) {
+		if (isTrailing(id)) out = MONSTER_MODIFIERS[id].apply(out);
 	}
 	return out;
 }

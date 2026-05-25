@@ -33,7 +33,7 @@ import { createLeechInstance, tickLeechInstances } from "#/game/combat/leech";
 import type { Enemy } from "#/game/combat/types";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import { applyCharacterDelta, findCharacter } from "#/lib/optimistic-character";
-import { playSfx } from "#/lib/sfx";
+import { playPlayerSwingSfx, playSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { DamageEvent } from "./useDamageEvents";
@@ -96,6 +96,11 @@ export function useCombatTick({
 	const lastSyncedHpRef = useRef(initialHp);
 	const barrierRef = useRef(barrier);
 	barrierRef.current = barrier;
+	// Live barrier state for the engaged monster. Max comes from
+	// `enemy.scaled.barrier` (0 unless `monsterAdditionalBarrier` rolled).
+	// Reset on every fresh enemy spawn so the previous fight's cooldown
+	// doesn't carry over.
+	const enemyBarrierRef = useRef<BarrierState>(makeBarrierState(0));
 	const leechRef = useRef<LeechInstance[]>([]);
 	const deadRef = useRef(false);
 
@@ -148,6 +153,7 @@ export function useCombatTick({
 			playerProgressRef.current = 0;
 			enemyProgressRef.current = 0;
 			nextSwingIndexRef.current = 0;
+			enemyBarrierRef.current = makeBarrierState(enemyScaled.barrier);
 		}
 	}, [enemyScaled]);
 
@@ -208,6 +214,56 @@ export function useCombatTick({
 			setBarrier(nextBarrier);
 		}
 
+		// Same mechanic on the enemy side when the monster has a barrier pool
+		// (monsterAdditionalBarrier rolled). The live `current` floats every
+		// frame; the React render only fires when the displayed integer
+		// changes — otherwise a regenerating barrier would push 20 no-op
+		// updateEnemy calls per second.
+		if (enemyBarrierRef.current.max > 0) {
+			const nextEnemyBarrier = tickBarrier(enemyBarrierRef.current, dt);
+			if (nextEnemyBarrier !== enemyBarrierRef.current) {
+				enemyBarrierRef.current = nextEnemyBarrier;
+				const displayed = Math.floor(currentEnemy.currentBarrier);
+				const displayedNext = Math.floor(nextEnemyBarrier.current);
+				if (displayedNext !== displayed) {
+					const synced: Enemy = {
+						...currentEnemy,
+						currentBarrier: nextEnemyBarrier.current,
+					};
+					enemyRef.current = synced;
+					updateEnemy(synced);
+				}
+			}
+		}
+
+		// Apply damage to the engaged monster: route through barrier first,
+		// life takes the overflow, mirror onto Enemy for the UI bar. Used by
+		// the player-swing branch and the thorns-reflect branch — both share
+		// the same "barrier-first then HP" rule.
+		const applyDamageToEnemy = (
+			amount: number,
+			snapshot: Enemy,
+		): { updated: Enemy; hpDamage: number } => {
+			let hpDamage = amount;
+			if (enemyBarrierRef.current.current > 0) {
+				const { state: nextEnemyBarrier, lifeOverflow } = damageBarrier(
+					enemyBarrierRef.current,
+					amount,
+				);
+				enemyBarrierRef.current = nextEnemyBarrier;
+				hpDamage = lifeOverflow;
+			}
+			const newHp = Math.max(0, snapshot.currentHp - hpDamage);
+			const updated: Enemy = {
+				...snapshot,
+				currentHp: newHp,
+				currentBarrier: enemyBarrierRef.current.current,
+			};
+			enemyRef.current = updated;
+			updateEnemy(updated);
+			return { updated, hpDamage };
+		};
+
 		playerProgressRef.current += dt * tickRate;
 		enemyProgressRef.current += dt * enemyAttackSpeed;
 
@@ -235,21 +291,22 @@ export function useCombatTick({
 			});
 
 			if (!result.isMiss && result.amount > 0) {
-				const newEnemyHp = Math.max(0, currentEnemy.currentHp - result.amount);
-				const updated: Enemy = { ...currentEnemy, currentHp: newEnemyHp };
-				enemyRef.current = updated;
-				updateEnemy(updated);
+				// Leech / life-on-hit downstream feed off the raw hit amount —
+				// player power doesn't drop because the target has a shield;
+				// the barrier just delays HP loss. Read from the live ref to
+				// match the thorns branch — earlier in-tick writes (barrier
+				// regen, future per-tick fields) wouldn't get spread-clobbered.
+				const { updated } = applyDamageToEnemy(
+					result.amount,
+					enemyRef.current ?? currentEnemy,
+				);
 				pushEvent({
 					amount: result.amount,
 					target: "enemy",
 					isCrit: result.isCrit,
 					weaponType: swing.weaponType,
 				});
-				playSfx("hit.wav", {
-					volume: 0.3,
-					pitchVariance: 0.1,
-					exclusive: true,
-				});
+				playPlayerSwingSfx(swing.weaponType);
 
 				// MVP: leech on physical only; elemental leech is a future mod.
 				// Apply globally regardless of which weapon swung.
@@ -270,7 +327,7 @@ export function useCombatTick({
 					}
 				}
 
-				if (newEnemyHp <= 0) {
+				if (updated.currentHp <= 0) {
 					resolveKill(updated);
 					return;
 				}
@@ -294,6 +351,9 @@ export function useCombatTick({
 				enemyAccuracy: currentEnemy.scaled.accuracy,
 				physicalDamage: currentEnemy.scaled.physicalDamage,
 				elementalDamage: currentEnemy.scaled.elementalDamage,
+				enemyCriticalChance: currentEnemy.scaled.criticalChance,
+				enemyCriticalMultiplier: currentEnemy.scaled.criticalMultiplier,
+				enemyGainAsExtra: currentEnemy.scaled.gainAsExtraDamage,
 				defender: {
 					armor: stats.armor,
 					evasion: stats.evasion,
@@ -334,8 +394,12 @@ export function useCombatTick({
 				);
 				playerHpRef.current = result.newLife;
 				setPlayerHp(result.newLife);
-				pushEvent({ amount: attack.amount, target: "player" });
-				playSfx("tomandoHit.wav", {
+				pushEvent({
+					amount: attack.amount,
+					target: "player",
+					isCrit: attack.isCrit,
+				});
+				playSfx(attack.isCrit ? "critico.wav" : "tomandoHit.wav", {
 					volume: 0.3,
 					pitchVariance: 0.1,
 					exclusive: true,
@@ -353,21 +417,20 @@ export function useCombatTick({
 			// branch the player-swing uses.
 			if (!attack.isMiss && stats.thorns > 0 && !deadRef.current) {
 				const reflected = Math.max(1, Math.floor(stats.thorns));
-				// Read from the live ref, not the top-of-tick snapshot — when a
-				// player swing landed earlier in this same tick the snapshot's
-				// `currentHp` is the pre-swing value, and writing it back here
-				// would silently erase the player-swing damage.
+				// Live ref, not top-of-tick snapshot — a player swing earlier
+				// in this tick may have already updated currentHp, and writing
+				// the stale snapshot back would silently erase that damage.
 				const enemyAtNow = enemyRef.current ?? currentEnemy;
-				const enemyAfter = Math.max(0, enemyAtNow.currentHp - reflected);
-				const updated: Enemy = { ...enemyAtNow, currentHp: enemyAfter };
-				enemyRef.current = updated;
-				updateEnemy(updated);
+				const { updated, hpDamage } = applyDamageToEnemy(
+					reflected,
+					enemyAtNow,
+				);
 				pushEvent({
-					amount: reflected,
+					amount: hpDamage,
 					target: "enemy",
 					isThorns: true,
 				});
-				if (enemyAfter <= 0) {
+				if (updated.currentHp <= 0) {
 					resolveKill(updated);
 				}
 			}

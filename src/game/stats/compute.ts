@@ -31,6 +31,9 @@
 import type { CharacterClassDefinition } from "../classes/types";
 import {
 	BASE_CAST_SPEED,
+	BASE_CRIT_MULTIPLIER,
+	CRIT_CHANCE_CAP,
+	CRIT_CHANCE_FLOOR,
 	DUAL_WIELD_AS_MORE_MULT,
 	DUAL_WIELD_BLOCK_CHANCE_BONUS,
 } from "../combat/constants";
@@ -48,12 +51,9 @@ import type {
 
 const RESISTANCE_CAP = 75;
 const BLOCK_CHANCE_CAP = 75;
-const CRIT_CHANCE_CAP = 100;
-const CRIT_CHANCE_FLOOR = 5;
 const ARMOR_REDUCTION_CAP = 85;
 const HIT_CHANCE_MIN = 0.05;
 const HIT_CHANCE_MAX = 0.95;
-const BASE_CRIT_MULTIPLIER = 50;
 
 // Attribute → derived stat conversions. Exported so the ShowStatsModal
 // tooltip can render the rule without duplicating the magnitude. Keep

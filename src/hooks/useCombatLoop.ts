@@ -314,6 +314,7 @@ export function useCombatLoop({
 		const newEnemy: Enemy = {
 			def,
 			currentHp: scaled.hp,
+			currentBarrier: scaled.barrier,
 			level,
 			rarity,
 			mods,

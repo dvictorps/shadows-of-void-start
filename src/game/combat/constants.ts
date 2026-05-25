@@ -27,6 +27,16 @@ export function computeBagKeepCap(bagSize: number, phase: CombatPhase): number {
 // this baseline and global cast-speed mods scale it.
 export const BASE_CAST_SPEED = 1.0;
 
+// Crit floor + multiplier shared by player and monsters. The player applies
+// the floor as a hard minimum (no zero-crit characters) and the multiplier
+// as the base 50% on top of which gear adds. Monsters use the same numbers
+// as their per-spawn baseline (`scaleMonsterStats` writes them onto
+// ScaledMonsterStats so per-monster overrides are possible). Keeping them
+// here makes "monster mirrors player" structural, not a comment.
+export const CRIT_CHANCE_FLOOR = 5;
+export const CRIT_CHANCE_CAP = 100;
+export const BASE_CRIT_MULTIPLIER = 50;
+
 // Barrier regen: while barrier is above zero, it ticks back at this fraction
 // of max barrier per second (5% → 20s to fully refill from empty). The rate
 // is fixed; no per-second cap on the absolute regen because heavy barrier
