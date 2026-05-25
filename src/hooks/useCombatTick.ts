@@ -293,8 +293,13 @@ export function useCombatTick({
 			if (!result.isMiss && result.amount > 0) {
 				// Leech / life-on-hit downstream feed off the raw hit amount —
 				// player power doesn't drop because the target has a shield;
-				// the barrier just delays HP loss.
-				const { updated } = applyDamageToEnemy(result.amount, currentEnemy);
+				// the barrier just delays HP loss. Read from the live ref to
+				// match the thorns branch — earlier in-tick writes (barrier
+				// regen, future per-tick fields) wouldn't get spread-clobbered.
+				const { updated } = applyDamageToEnemy(
+					result.amount,
+					enemyRef.current ?? currentEnemy,
+				);
 				pushEvent({
 					amount: result.amount,
 					target: "enemy",
