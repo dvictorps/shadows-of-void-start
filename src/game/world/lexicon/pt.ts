@@ -34,6 +34,7 @@ const prefixAdj: Record<PrefixMonsterModId, GenderedForm> = {
 	monsterIncreasedEvasion: { m: "Esquivo", f: "Esquiva" },
 	monsterAdditionalBarrier: { m: "Protegido", f: "Protegida" },
 	monsterMoreArmor: { m: "Blindado", f: "Blindada" },
+	monsterCriticalChanceIncrease: { m: "Mortífero", f: "Mortífera" },
 };
 
 // Suffix nouns carry their own gender so the renderer can pick "do" (m) vs
@@ -45,6 +46,7 @@ const suffixNoun: Record<SuffixMonsterModId, GenderedNoun> = {
 	monsterFireResistance: { noun: "Fogo", gender: "m" },
 	monsterLightningResistance: { noun: "Raio", gender: "m" },
 	monsterVoidResistance: { noun: "Vazio", gender: "m" },
+	monsterCriticalMultiplier: { noun: "Massacre", gender: "m" },
 };
 
 // Rare proper-name pools. Format: "<FirstNoun> <SecondPhrase>" with the
@@ -106,6 +108,12 @@ const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
 	],
 	monsterAdditionalBarrier: ["o Protegido", "o Velado", "o Resguardado"],
 	monsterMoreArmor: ["o Blindado", "o Couraçado", "o Reforçado"],
+	monsterCriticalChanceIncrease: [
+		"o Mortífero",
+		"o Letal",
+		"o Preciso",
+		"o Sangrento",
+	],
 };
 
 const rareCompoundEpithets: readonly string[] = [

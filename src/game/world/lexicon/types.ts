@@ -14,7 +14,9 @@ export type { GenderedForm, GrammaticalGender };
 
 // Adjectival mods (PoE-style "Tough <Base>" / "<Base> Furioso"). The cap on
 // what counts as a prefix is set in game data (MONSTER_MODIFIERS[id].affixType
-// === "prefix"); the lexicon only has to translate the five known prefixes.
+// === "prefix"); the lexicon must translate every prefix that exists so
+// `Record<PrefixMonsterModId, …>` compile-checks every locale to a complete
+// table. Adding a new prefix mod = add it here, fix the resulting type errors.
 export type PrefixMonsterModId = Extract<
 	MonsterModId,
 	| "monsterIncreasedLife"
@@ -22,6 +24,7 @@ export type PrefixMonsterModId = Extract<
 	| "monsterIncreasedEvasion"
 	| "monsterAdditionalBarrier"
 	| "monsterMoreArmor"
+	| "monsterCriticalChanceIncrease"
 >;
 
 // Noun mods rendered as suffix ("of <noun>" / "de <noun>"). Resistances are
@@ -36,6 +39,7 @@ export type SuffixMonsterModId = Extract<
 	| "monsterFireResistance"
 	| "monsterLightningResistance"
 	| "monsterVoidResistance"
+	| "monsterCriticalMultiplier"
 >;
 
 // What each locale must provide. Gender is optional because most languages

@@ -13,6 +13,7 @@ const prefixAdj: Record<PrefixMonsterModId, string> = {
 	monsterIncreasedEvasion: "Elusive",
 	monsterAdditionalBarrier: "Warded",
 	monsterMoreArmor: "Armored",
+	monsterCriticalChanceIncrease: "Deadly",
 };
 
 const suffixNoun: Record<SuffixMonsterModId, string> = {
@@ -22,6 +23,7 @@ const suffixNoun: Record<SuffixMonsterModId, string> = {
 	monsterFireResistance: "Flame",
 	monsterLightningResistance: "Storm",
 	monsterVoidResistance: "Void",
+	monsterCriticalMultiplier: "Slaughter",
 };
 
 // Rare proper-name pools. First word stays capitalized, second word stays
@@ -82,6 +84,12 @@ const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
 	],
 	monsterAdditionalBarrier: ["the Warded", "the Guarded", "the Shrouded"],
 	monsterMoreArmor: ["the Armored", "the Ironclad", "the Plated"],
+	monsterCriticalChanceIncrease: [
+		"the Deadly",
+		"the Lethal",
+		"the Razor-Sharp",
+		"the Precise",
+	],
 };
 
 const rareCompoundEpithets: readonly string[] = [
