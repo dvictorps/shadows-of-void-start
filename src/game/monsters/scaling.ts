@@ -32,6 +32,16 @@ export interface ScaledMonsterStats {
 	// CONTEXT.md → Combat Resolution → Damage formula.
 	criticalChance: number;
 	criticalMultiplier: number;
+	// Per-element "gain X% of total damage as extra <element>", applied at
+	// hit time before crit + mitigation. Mirrors the player's
+	// `gainAsExtraSpell` (tome mod family). Defaults to all zeros — the
+	// monsterXxxDamage mods stack additively here.
+	gainAsExtraDamage: {
+		cold: number;
+		fire: number;
+		lightning: number;
+		void: number;
+	};
 }
 
 export function monsterScaleFactor(level: number): number {
@@ -71,5 +81,6 @@ export function scaleMonsterStats(
 		barrier: 0,
 		criticalChance: CRIT_CHANCE_FLOOR,
 		criticalMultiplier: BASE_CRIT_MULTIPLIER,
+		gainAsExtraDamage: { cold: 0, fire: 0, lightning: 0, void: 0 },
 	};
 }

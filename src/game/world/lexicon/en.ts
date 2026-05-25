@@ -14,6 +14,10 @@ const prefixAdj: Record<PrefixMonsterModId, string> = {
 	monsterAdditionalBarrier: "Warded",
 	monsterMoreArmor: "Armored",
 	monsterCriticalChanceIncrease: "Deadly",
+	monsterColdDamage: "Frostbitten",
+	monsterFireDamage: "Burning",
+	monsterLightningDamage: "Sparking",
+	monsterVoidDamage: "Voidtouched",
 };
 
 const suffixNoun: Record<SuffixMonsterModId, string> = {
@@ -89,6 +93,30 @@ const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
 		"the Lethal",
 		"the Razor-Sharp",
 		"the Precise",
+	],
+	monsterColdDamage: [
+		"the Frostbitten",
+		"the Glacial",
+		"the Frozen-Hearted",
+		"the Winterborn",
+	],
+	monsterFireDamage: [
+		"the Burning",
+		"the Searing",
+		"the Ember-Cloaked",
+		"the Hellfire",
+	],
+	monsterLightningDamage: [
+		"the Sparking",
+		"the Storm-Forged",
+		"the Thunderstruck",
+		"the Galvanic",
+	],
+	monsterVoidDamage: [
+		"the Voidtouched",
+		"the Tainted",
+		"the Hollow-Eyed",
+		"the Cursed",
 	],
 };
 

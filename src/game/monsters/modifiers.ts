@@ -24,6 +24,13 @@ export const MONSTER_ARMOR_PER_LEVEL = 15;
 export const MONSTER_CRIT_CHANCE_INCREASE_PCT = 150;
 export const MONSTER_CRIT_MULTIPLIER_PCT = 50;
 
+// Elemental damage mods (gain-as-extra). Each adds X% of the monster's
+// total hit damage as a new layer of the matching element. Calibrated
+// slightly below monsterIncreasedDamage's +40% so a Damage + Element stack
+// stays under "2× spike" territory: 1.4 × 1.3 = 1.82× total. Mirrors the
+// player's tomeGainAsExtra family.
+export const MONSTER_ELEMENTAL_DAMAGE_PCT = 30;
+
 // Barrier mod magnitude (fraction of post-other-mods HP that becomes a
 // barrier pool). The mod is applied last in `applyMonsterMods` so the HP
 // reference is post-`monsterIncreasedLife` — see CONTEXT.md → Defenses →
@@ -166,6 +173,51 @@ export const MONSTER_MODIFIERS = {
 			criticalMultiplier: s.criticalMultiplier + MONSTER_CRIT_MULTIPLIER_PCT,
 		}),
 	},
+	monsterColdDamage: {
+		id: "monsterColdDamage",
+		affixType: "prefix",
+		apply: (s) => ({
+			...s,
+			gainAsExtraDamage: {
+				...s.gainAsExtraDamage,
+				cold: s.gainAsExtraDamage.cold + MONSTER_ELEMENTAL_DAMAGE_PCT,
+			},
+		}),
+	},
+	monsterFireDamage: {
+		id: "monsterFireDamage",
+		affixType: "prefix",
+		apply: (s) => ({
+			...s,
+			gainAsExtraDamage: {
+				...s.gainAsExtraDamage,
+				fire: s.gainAsExtraDamage.fire + MONSTER_ELEMENTAL_DAMAGE_PCT,
+			},
+		}),
+	},
+	monsterLightningDamage: {
+		id: "monsterLightningDamage",
+		affixType: "prefix",
+		apply: (s) => ({
+			...s,
+			gainAsExtraDamage: {
+				...s.gainAsExtraDamage,
+				lightning:
+					s.gainAsExtraDamage.lightning + MONSTER_ELEMENTAL_DAMAGE_PCT,
+			},
+		}),
+	},
+	monsterVoidDamage: {
+		id: "monsterVoidDamage",
+		affixType: "prefix",
+		apply: (s) => ({
+			...s,
+			gainAsExtraDamage: {
+				...s.gainAsExtraDamage,
+				void: s.gainAsExtraDamage.void + MONSTER_ELEMENTAL_DAMAGE_PCT,
+			},
+		}),
+	},
 } as const satisfies Record<string, MonsterModifier>;
 
 export type MonsterModId = keyof typeof MONSTER_MODIFIERS;
@@ -191,7 +243,9 @@ export function modCountForRarity(rarity: MonsterRarity): number {
 		case "magic":
 			return 1;
 		case "rare":
-			return 3;
+			// 4 mods = exactly the 2+2 affix cap; rare always spawns with the
+			// max prefix-suffix mix the pool allows.
+			return 4;
 	}
 }
 

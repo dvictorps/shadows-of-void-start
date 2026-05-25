@@ -389,6 +389,58 @@ describe("rollEnemyAttack", () => {
 		expect(result.amount).toBe(50);
 	});
 
+	it("gain-as-extra adds a % of total damage to the matching element", () => {
+		// 100 phys × 30% = 30 extra void. Resistance 0%, no crit → total 130.
+		const result = rollEnemyAttack({
+			enemyAccuracy: 100,
+			physicalDamage: { min: 100, max: 100 },
+			elementalDamage: [],
+			defender: { ...dummyDefender },
+			enemyCriticalChance: 0,
+			enemyGainAsExtra: { cold: 0, fire: 0, lightning: 0, void: 30 },
+			random: () => 0.0,
+		});
+		expect(result.breakdown.physical).toBe(100);
+		expect(result.breakdown.void).toBe(30);
+		expect(result.amount).toBe(130);
+	});
+
+	it("gain-as-extra is resisted by the matching element resistance", () => {
+		// 100 phys + 30 void as extra. 75% void res → void reduces to 7.5 (floor 7).
+		const result = rollEnemyAttack({
+			enemyAccuracy: 100,
+			physicalDamage: { min: 100, max: 100 },
+			elementalDamage: [],
+			defender: {
+				...dummyDefender,
+				resistances: { cold: 0, fire: 0, lightning: 0, void: 75 },
+			},
+			enemyCriticalChance: 0,
+			enemyGainAsExtra: { cold: 0, fire: 0, lightning: 0, void: 30 },
+			random: () => 0.0,
+		});
+		expect(result.breakdown.physical).toBe(100);
+		expect(result.breakdown.void).toBe(7);
+		expect(result.amount).toBe(107);
+	});
+
+	it("gain-as-extra references pre-conversion total — two stacks don't compound", () => {
+		// 100 phys, 30% cold + 30% fire = 30 cold + 30 fire (both off the same
+		// 100 base, NOT 30% of the 130 after the first add).
+		const result = rollEnemyAttack({
+			enemyAccuracy: 100,
+			physicalDamage: { min: 100, max: 100 },
+			elementalDamage: [],
+			defender: { ...dummyDefender },
+			enemyCriticalChance: 0,
+			enemyGainAsExtra: { cold: 30, fire: 30, lightning: 0, void: 0 },
+			random: () => 0.0,
+		});
+		expect(result.breakdown.cold).toBe(30);
+		expect(result.breakdown.fire).toBe(30);
+		expect(result.amount).toBe(160);
+	});
+
 	it("baseline crit chance fires when defaults are used (5% floor)", () => {
 		// random() * 100 < 5 → 0.04 fires crit, 0.06 does not.
 		const r1 = rollEnemyAttack({

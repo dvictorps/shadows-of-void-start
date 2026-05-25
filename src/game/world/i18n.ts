@@ -3,6 +3,7 @@ import {
 	MONSTER_ARMOR_PER_LEVEL,
 	MONSTER_CRIT_CHANCE_INCREASE_PCT,
 	MONSTER_CRIT_MULTIPLIER_PCT,
+	MONSTER_ELEMENTAL_DAMAGE_PCT,
 	MONSTER_EVASION_PER_LEVEL,
 	MONSTER_MODIFIERS,
 	type MonsterDefinition,
@@ -407,6 +408,22 @@ export function translateMonsterModDescription(
 		case "monsterCriticalMultiplier":
 			return m.monster_mod_critical_multiplier_desc({
 				pct: MONSTER_CRIT_MULTIPLIER_PCT,
+			});
+		case "monsterColdDamage":
+			return m.monster_mod_cold_damage_desc({
+				pct: MONSTER_ELEMENTAL_DAMAGE_PCT,
+			});
+		case "monsterFireDamage":
+			return m.monster_mod_fire_damage_desc({
+				pct: MONSTER_ELEMENTAL_DAMAGE_PCT,
+			});
+		case "monsterLightningDamage":
+			return m.monster_mod_lightning_damage_desc({
+				pct: MONSTER_ELEMENTAL_DAMAGE_PCT,
+			});
+		case "monsterVoidDamage":
+			return m.monster_mod_void_damage_desc({
+				pct: MONSTER_ELEMENTAL_DAMAGE_PCT,
 			});
 	}
 }

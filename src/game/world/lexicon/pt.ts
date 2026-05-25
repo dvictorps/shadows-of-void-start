@@ -35,6 +35,10 @@ const prefixAdj: Record<PrefixMonsterModId, GenderedForm> = {
 	monsterAdditionalBarrier: { m: "Protegido", f: "Protegida" },
 	monsterMoreArmor: { m: "Blindado", f: "Blindada" },
 	monsterCriticalChanceIncrease: { m: "Mortífero", f: "Mortífera" },
+	monsterColdDamage: { m: "Gélido", f: "Gélida" },
+	monsterFireDamage: { m: "Flamejante", f: "Flamejante" },
+	monsterLightningDamage: { m: "Crepitante", f: "Crepitante" },
+	monsterVoidDamage: { m: "Sombrio", f: "Sombria" },
 };
 
 // Suffix nouns carry their own gender so the renderer can pick "do" (m) vs
@@ -113,6 +117,30 @@ const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
 		"o Letal",
 		"o Preciso",
 		"o Sangrento",
+	],
+	monsterColdDamage: [
+		"o Gélido",
+		"o Glacial",
+		"o Congelante",
+		"o Invernal",
+	],
+	monsterFireDamage: [
+		"o Flamejante",
+		"o Ardente",
+		"o Incandescente",
+		"o Inferno",
+	],
+	monsterLightningDamage: [
+		"o Crepitante",
+		"o Tempestuoso",
+		"o Fulgurante",
+		"o Eletrizante",
+	],
+	monsterVoidDamage: [
+		"o Sombrio",
+		"o Profano",
+		"o Maculado",
+		"o Aberrante",
 	],
 };
 

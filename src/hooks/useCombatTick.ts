@@ -348,6 +348,7 @@ export function useCombatTick({
 				elementalDamage: currentEnemy.scaled.elementalDamage,
 				enemyCriticalChance: currentEnemy.scaled.criticalChance,
 				enemyCriticalMultiplier: currentEnemy.scaled.criticalMultiplier,
+				enemyGainAsExtra: currentEnemy.scaled.gainAsExtraDamage,
 				defender: {
 					armor: stats.armor,
 					evasion: stats.evasion,

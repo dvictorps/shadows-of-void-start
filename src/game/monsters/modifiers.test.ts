@@ -37,10 +37,12 @@ describe("rollMonsterRarity", () => {
 });
 
 describe("modCountForRarity", () => {
-	it("matches CONTEXT.md: normal=0, magic=1, rare=3", () => {
+	it("matches CONTEXT.md: normal=0, magic=1, rare=4", () => {
 		expect(modCountForRarity("normal")).toBe(0);
 		expect(modCountForRarity("magic")).toBe(1);
-		expect(modCountForRarity("rare")).toBe(3);
+		// Rare spawns at the 2+2 affix cap — the eligibility filter inside
+		// rollMonsterMods always lands one of every prefix/suffix combination.
+		expect(modCountForRarity("rare")).toBe(4);
 	});
 });
 
@@ -140,6 +142,27 @@ describe("applyMonsterMods", () => {
 		const after = applyMonsterMods(scaled, ["monsterCriticalMultiplier"]);
 		expect(after.criticalMultiplier).toBe(100);
 		expect(after.criticalChance).toBe(5);
+	});
+
+	it("elemental damage mods add 30% to gainAsExtraDamage[element]", () => {
+		const scaled = scaleMonsterStats(baseDef, 1);
+		const cold = applyMonsterMods(scaled, ["monsterColdDamage"]);
+		expect(cold.gainAsExtraDamage).toEqual({
+			cold: 30,
+			fire: 0,
+			lightning: 0,
+			void: 0,
+		});
+		const dual = applyMonsterMods(scaled, [
+			"monsterColdDamage",
+			"monsterFireDamage",
+		]);
+		expect(dual.gainAsExtraDamage).toEqual({
+			cold: 30,
+			fire: 30,
+			lightning: 0,
+			void: 0,
+		});
 	});
 
 	it("resistance mods add 50% to the matching element", () => {

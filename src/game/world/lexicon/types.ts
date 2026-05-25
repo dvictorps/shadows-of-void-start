@@ -25,6 +25,10 @@ export type PrefixMonsterModId = Extract<
 	| "monsterAdditionalBarrier"
 	| "monsterMoreArmor"
 	| "monsterCriticalChanceIncrease"
+	| "monsterColdDamage"
+	| "monsterFireDamage"
+	| "monsterLightningDamage"
+	| "monsterVoidDamage"
 >;
 
 // Noun mods rendered as suffix ("of <noun>" / "de <noun>"). Resistances are

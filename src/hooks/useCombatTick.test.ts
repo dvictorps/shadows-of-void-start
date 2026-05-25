@@ -157,6 +157,7 @@ function makeEnemy(currentHp: number, overrides: EnemyOverrides = {}): Enemy {
 			barrier: 0,
 			criticalChance: 0,
 			criticalMultiplier: 0,
+			gainAsExtraDamage: { cold: 0, fire: 0, lightning: 0, void: 0 },
 			...scaledOverrides,
 		},
 		nameSeed: { primary: 0, secondary: 0, epithet: 0 },

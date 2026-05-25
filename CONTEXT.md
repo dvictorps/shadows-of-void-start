@@ -487,7 +487,7 @@ Example: Rare item, `ilvl 80`, three mods rolled at tiers T3 / T4 / T2:
 Magic and Rare monsters roll modifiers from a small, generic pool (separate from the item modifier pool — different domain). Counts:
 
 - **Magic mob: 1 modifier**
-- **Rare / Miniboss: 3 modifiers**
+- **Rare / Miniboss: 4 modifiers** (always lands the 2-prefix + 2-suffix affix cap)
 - **Normal mob: 0 modifiers**
 
 The pool is intentionally short and broad — granular per-monster tuning happens through base stats, not the modifier pool.
@@ -506,6 +506,7 @@ Starter pool (Act 1):
 - **Additional Barrier** — grants a barrier pool sized at 30% of the monster's HP (after other HP-affecting mods resolve). Mirrors the player barrier mechanic: regen 5%/s, 10s cooldown on break. See Defenses → Barrier.
 - **Increased Critical Strike Chance** — multiplies the 5% baseline crit by 2.5× (12.5% effective).
 - **Critical Strike Multiplier** — adds 50 to the 50% baseline multiplier (crits do 2× damage instead of 1.5×).
+- **Cold / Fire / Lightning / Void Damage** (four mods) — each grants the monster `+30% of total damage as extra <element>`, computed once at hit time against the pre-conversion total. Stacking two damage mods (e.g., Cold + Fire) adds 30% per element independently — they don't compound. Mirrors the player's tome gain-as-extra family. Crit then multiplies everything uniformly; defender resistance for the matching element mitigates the extra layer.
 - **More Armor** — increased physical mitigation.
 
 The pool will grow with later acts (on-hit effects, summons, auras), but Act 1 stays minimal.
@@ -516,7 +517,7 @@ Mods are picked **distinct** within a single monster (no duplicates). Magnitudes
 
 Each mod is tagged **prefix** or **suffix**:
 
-- **Prefixes (adjectival)**: Increased Life, Increased Damage, Increased Evasion, Additional Barrier, More Armor, Increased Critical Strike Chance.
+- **Prefixes (adjectival)**: Increased Life, Increased Damage, Increased Evasion, Additional Barrier, More Armor, Increased Critical Strike Chance, the four elemental damage mods (Cold / Fire / Lightning / Void).
 - **Suffixes (noun)**: Increased Attack Speed, Increased Accuracy, the four elemental resistances, Critical Strike Multiplier.
 
 A spawn rolls **at most 2 prefixes and 2 suffixes**, so a 3-mod rare always mixes both affixes. With **two or more elemental resistances** on the same spawn, they collapse into a single compound adjective ("Elemental Resistant" / "Resistente a Elementos") instead of stacking individual suffixes.
