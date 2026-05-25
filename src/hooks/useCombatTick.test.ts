@@ -116,7 +116,11 @@ function makeStats(
 	};
 }
 
-function makeEnemy(currentHp: number): Enemy {
+type EnemyOverrides = Partial<Omit<Enemy, "scaled">> & {
+	scaled?: Partial<Enemy["scaled"]>;
+};
+
+function makeEnemy(currentHp: number, overrides: EnemyOverrides = {}): Enemy {
 	const def: MonsterDefinition = {
 		id: "test-mob",
 		name: "Test Mob",
@@ -130,6 +134,7 @@ function makeEnemy(currentHp: number): Enemy {
 		xpReward: 1,
 		allowedRarities: ["normal"],
 	};
+	const { scaled: scaledOverrides, ...enemyOverrides } = overrides;
 	return {
 		def,
 		currentHp,
@@ -152,8 +157,10 @@ function makeEnemy(currentHp: number): Enemy {
 			barrier: 0,
 			criticalChance: 0,
 			criticalMultiplier: 0,
+			...scaledOverrides,
 		},
 		nameSeed: { primary: 0, secondary: 0, epithet: 0 },
+		...enemyOverrides,
 	};
 }
 

@@ -35,6 +35,12 @@ export type MonsterModAffixType = "prefix" | "suffix";
 export interface MonsterModifier {
 	id: string;
 	affixType: MonsterModAffixType;
+	/**
+	 * "trailing" means the mod runs AFTER every "normal" mod, used when the
+	 * mod's value depends on a derived stat (e.g. barrier reads HP after
+	 * Increased Life resolves). Defaults to "normal" when omitted.
+	 */
+	order?: "normal" | "trailing";
 	apply(stats: ScaledMonsterStats): ScaledMonsterStats;
 }
 
@@ -124,12 +130,13 @@ export const MONSTER_MODIFIERS = {
 	},
 	monsterAdditionalBarrier: {
 		// Grants a barrier pool equal to MONSTER_BARRIER_HP_FRACTION of the
-		// monster's HP at the time the mod is applied. `applyMonsterMods`
-		// always processes this mod last so the HP reference is post-Increased
-		// Life — the player reads the barrier number as "30% of the displayed
-		// HP".
+		// monster's HP at the time the mod is applied. The `order: "trailing"`
+		// tag tells `applyMonsterMods` to run this mod after every other mod,
+		// so the HP reference is post-Increased Life — the player reads the
+		// barrier number as "30% of the displayed HP".
 		id: "monsterAdditionalBarrier",
 		affixType: "prefix",
+		order: "trailing",
 		apply: (s) => ({
 			...s,
 			barrier: Math.max(1, Math.round(s.hp * MONSTER_BARRIER_HP_FRACTION)),
@@ -218,21 +225,21 @@ export function rollMonsterMods(
 	return picked;
 }
 
-// Mods that must run AFTER everything else because they read a derived stat
-// (e.g. barrier reads the post-increased-life HP). Reordering happens here so
-// `rollMonsterMods` can pick in any sequence.
-const TRAILING_MOD_IDS: ReadonlySet<MonsterModId> = new Set([
-	"monsterAdditionalBarrier",
-]);
-
 export function applyMonsterMods(
 	scaled: ScaledMonsterStats,
 	modIds: readonly MonsterModId[],
 ): ScaledMonsterStats {
-	const leading = modIds.filter((id) => !TRAILING_MOD_IDS.has(id));
-	const trailing = modIds.filter((id) => TRAILING_MOD_IDS.has(id));
+	// Cast through MonsterModifier widens the literal narrow `satisfies` keeps
+	// — the `order` field is optional on the interface but not on the entries
+	// that omit it.
+	const isTrailing = (id: MonsterModId): boolean =>
+		(MONSTER_MODIFIERS[id] as MonsterModifier).order === "trailing";
 	let out = scaled;
-	for (const id of leading) out = MONSTER_MODIFIERS[id].apply(out);
-	for (const id of trailing) out = MONSTER_MODIFIERS[id].apply(out);
+	for (const id of modIds) {
+		if (!isTrailing(id)) out = MONSTER_MODIFIERS[id].apply(out);
+	}
+	for (const id of modIds) {
+		if (isTrailing(id)) out = MONSTER_MODIFIERS[id].apply(out);
+	}
 	return out;
 }

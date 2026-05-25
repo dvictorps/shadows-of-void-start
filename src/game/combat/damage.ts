@@ -1,13 +1,15 @@
 import { randInt } from "#/lib/rng";
 import type { MonsterElementDamage } from "../monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "../stats/types";
+import {
+	BASE_CRIT_MULTIPLIER,
+	CRIT_CHANCE_CAP,
+	CRIT_CHANCE_FLOOR,
+} from "./constants";
 
-const CRIT_CHANCE_FLOOR = 5;
-const CRIT_CHANCE_CAP = 100;
 const HIT_CHANCE_MIN = 0.05;
 const HIT_CHANCE_MAX = 0.95;
 const ARMOR_REDUCTION_CAP = 0.85;
-const BASE_CRIT_MULTIPLIER = 50;
 
 export interface ElementContribution {
 	element: "Physical" | "Cold" | "Fire" | "Lightning" | "Void";

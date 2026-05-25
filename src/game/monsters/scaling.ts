@@ -1,14 +1,10 @@
+import { BASE_CRIT_MULTIPLIER, CRIT_CHANCE_FLOOR } from "../combat/constants";
 import type { MonsterDefinition, MonsterElementDamage } from "./types";
 
 // Geometric scaling factor matches PoE/Last Epoch's approach: player power
 // grows multiplicatively via gear, so monsters must too. See CONTEXT.md →
 // "Monster stat scaling" for the rationale and the rejected linear alternative.
 export const MONSTER_SCALING_BASE = 1.06;
-
-// Baseline crit applied to every monster, mirroring the player's
-// CRIT_CHANCE_FLOOR and BASE_CRIT_MULTIPLIER. Magic / rare mods stack on top.
-export const BASELINE_CRIT_CHANCE = 5;
-export const BASELINE_CRIT_MULTIPLIER = 50;
 
 export interface ScaledMonsterStats {
 	// Resolved monster level. Carried through so modifiers can scale their
@@ -73,7 +69,7 @@ export function scaleMonsterStats(
 		accuracy: clampedLevel * 10,
 		resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
 		barrier: 0,
-		criticalChance: BASELINE_CRIT_CHANCE,
-		criticalMultiplier: BASELINE_CRIT_MULTIPLIER,
+		criticalChance: CRIT_CHANCE_FLOOR,
+		criticalMultiplier: BASE_CRIT_MULTIPLIER,
 	};
 }

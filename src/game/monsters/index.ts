@@ -16,8 +16,6 @@ export {
 } from "./modifiers";
 export type { ScaledMonsterStats } from "./scaling";
 export {
-	BASELINE_CRIT_CHANCE,
-	BASELINE_CRIT_MULTIPLIER,
 	MONSTER_SCALING_BASE,
 	monsterScaleFactor,
 	scaleMonsterStats,
