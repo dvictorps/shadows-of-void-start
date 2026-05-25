@@ -29,5 +29,11 @@ export function isNodeAccessible(
 	return node.gatedBy.every((id) => completed.has(id));
 }
 
-export type { Act, CampSource, NodeKind, WorldNode } from "./types";
+export type {
+	Act,
+	BossNodeConfig,
+	CampSource,
+	NodeKind,
+	WorldNode,
+} from "./types";
 export { ACT_1 };

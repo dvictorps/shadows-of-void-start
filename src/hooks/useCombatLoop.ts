@@ -8,12 +8,15 @@ import { useMutation } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CombatPhase } from "#/game/combat/constants";
 import {
-	BOSS_INTRO_STAGE_MS,
+	BOSS_INTRO_STAGE_MS_DEFAULT,
 	type BossIntroStage,
 	type CombatState,
 	derivePhase,
 	type Enemy,
+	RARE_INTRO_STAGE_MS,
+	type RareIntroStage,
 } from "#/game/combat/types";
+import { findBoss } from "#/game/bosses";
 import { rollMonsterLevel } from "#/game/loot/drops";
 import {
 	applyMonsterMods,
@@ -25,12 +28,12 @@ import {
 } from "#/game/monsters";
 import { applyOverlevelPenalty } from "#/game/progression/levels";
 import type { ComputedCharacterStats } from "#/game/stats/types";
-import type { CampSource } from "#/game/world";
+import type { BossNodeConfig, CampSource } from "#/game/world";
 import type { ZoneEncounterPlan } from "#/game/world/encounter-schedule";
 import type { RareNameSeed } from "#/game/world/i18n";
 import { applyCharacterDelta, findCharacter } from "#/lib/optimistic-character";
 import { pickRandom } from "#/lib/rng";
-import { playMonsterDeathSfx } from "#/lib/sfx";
+import { playKillSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useCombatTick } from "./useCombatTick";
@@ -42,7 +45,14 @@ import { useSessionToken } from "./useSessionToken";
 // CampSource / DamageEvent are passed through unchanged to CombatScene; the
 // other re-exports give external consumers a single import surface for the
 // hook's domain types.
-export type { BossIntroStage, CampSource, CombatPhase, DamageEvent, Enemy };
+export type {
+	BossIntroStage,
+	CampSource,
+	CombatPhase,
+	DamageEvent,
+	Enemy,
+	RareIntroStage,
+};
 
 type Params = {
 	characterId: Id<"characters">;
@@ -65,6 +75,12 @@ type Params = {
 	monsterPool: readonly MonsterId[];
 	zoneLevel: number;
 	encounterPlan: ZoneEncounterPlan;
+	// When set, the node is a boss-node gauntlet. Bypasses the time-bar
+	// scheduler — spawns N back-to-back rares from `gauntlet.monsterPool`,
+	// then the boss looked up via findBoss(bossId). Re-entering the node
+	// restarts the gauntlet from fight 1 (no mid-gauntlet checkpoint).
+	// See CONTEXT.md → Act Boss / Boss Cinematic.
+	bossNode?: BossNodeConfig | null;
 	// Camp thresholds (cumulative calmaria ms) rolled server-side by enterZone
 	// and persisted on the character. Empty until enterZone resolves — the
 	// ticker simply has no camps to fire during that gap. See
@@ -86,13 +102,22 @@ export function useCombatLoop({
 	monsterPool,
 	zoneLevel,
 	encounterPlan,
+	bossNode,
 	serverCampThresholdsMs,
 	active,
 	onPlayerDeath,
 }: Params) {
 	const [state, setState] = useState<CombatState>("searching");
+	const [rareIntroStage, setRareIntroStage] =
+		useState<RareIntroStage>(null);
 	const [bossIntroStage, setBossIntroStage] = useState<BossIntroStage>(null);
 	const [enemy, setEnemy] = useState<Enemy | null>(null);
+	// Boss-node gauntlet progress. 1..N = next gauntlet rare to spawn;
+	// `null` while not in a boss node or once the gauntlet is exhausted
+	// (boss next). Reset to 1 on every activation when bossNode is set.
+	const [gauntletFightIndex, setGauntletFightIndex] = useState<number | null>(
+		null,
+	);
 	// Set true when the player triggers incenso during "engaged" — the
 	// post-victory transition reads this and routes to camp instead of
 	// the next spawn. Cleared on activation reset and on consumption.
@@ -123,9 +148,13 @@ export function useCombatLoop({
 		active,
 		encounterPlan,
 		serverCampThresholdsMs,
-		isSearching: state === "searching",
+		// Boss nodes have no time bar and no camps — keep the schedule hook
+		// running (it's structural) but suppress its searching signal so the
+		// calmaria ticker stays at zero and camp thresholds can never fire.
+		isSearching: state === "searching" && !bossNode,
 		postMinibossPauseRef: lastKillWasMinibossRef,
 		onCampTriggered: (thresholdIndex) => {
+			if (bossNode) return;
 			stateRef.current = "acampamento";
 			setState("acampamento");
 			// Persist the camp claim server-side so phase-derived bag mutations
@@ -170,9 +199,17 @@ export function useCombatLoop({
 			stateRef.current = "victory";
 			setLastKill({ xp: xpGained, potion: false });
 			setState("victory");
-			playMonsterDeathSfx(killed.def.id);
-			lastKillWasMinibossRef.current = killed.rarity === "rare";
-			if (killed.rarity === "rare") {
+			playKillSfx(killed);
+			// Three flows produce a 100%-retention "miniboss modal" victory:
+			// (1) zone miniboss kill (rare in a regular combat zone),
+			// (2) act-boss kill (rarity "unique" in a boss node).
+			// Gauntlet rares (rare inside a boss node) are NOT a victory beat —
+			// the next gauntlet fight or the boss spawn follows immediately.
+			const inBossNode = bossNode != null;
+			const isMinibossKill = killed.rarity === "rare" && !inBossNode;
+			const isBossKill = killed.rarity === "unique";
+			lastKillWasMinibossRef.current = isMinibossKill || isBossKill;
+			if (isMinibossKill) {
 				schedule.resetForMiniboss();
 			}
 			recordKill(
@@ -227,12 +264,16 @@ export function useCombatLoop({
 			enemyRef.current = null;
 			setEnemy(null);
 			setLastKill(null);
+			setRareIntroStage(null);
 			setBossIntroStage(null);
+			// Boss-node entry: start the gauntlet at fight 1. Regular zones
+			// clear the field so the gauntlet useDelay no-ops.
+			setGauntletFightIndex(bossNode ? 1 : null);
 			stateRef.current = "searching";
 			setState("searching");
 		}
 		activeRef.current = active;
-	}, [active]);
+	}, [active, bossNode]);
 
 	// Player chose "Seguir em frente" on the camp modal. Resume the loop.
 	// Server-side `inCamp` flips back to false via exitCamp so the bag-cap
@@ -255,9 +296,15 @@ export function useCombatLoop({
 	const triggerIncense = useCallback(() => {
 		if (incense <= 0) return;
 		const s = stateRef.current;
-		if (s === "boss_intro" || s === "acampamento" || s === "miniboss_victory")
+		if (
+			s === "rare_intro" ||
+			s === "boss_intro" ||
+			s === "acampamento" ||
+			s === "miniboss_victory"
+		)
 			return;
 		if (s === "engaged" && enemyRef.current?.rarity === "rare") return;
+		if (s === "engaged" && enemyRef.current?.rarity === "unique") return;
 		// Ambush packs commit you to the burst — incense must wait until the
 		// last mob falls.
 		if (schedule.isAmbushPackActive()) return;
@@ -294,63 +341,169 @@ export function useCombatLoop({
 	]);
 
 	// ── Search delay → spawn enemy ──
-	useDelay(active && state === "searching", schedule.nextSpawnGapMs, () => {
-		const pick = pickRandom(monsterPool);
-		if (!pick) return;
-		const def = findMonster(pick);
-		if (!def) return;
-		const level = rollMonsterLevel(zoneLevel);
-		const baseScaled = scaleMonsterStats(def, level);
-		// Slot consumption is a separate call (after commit below) so the
-		// spawn-failure early returns above can't accidentally drain the pack.
-		const rarity = schedule.rollSpawnRarity();
-		const mods = rollMonsterMods(modCountForRarity(rarity));
-		const scaled = applyMonsterMods(baseScaled, mods);
+	// Regular zones: roll a monster from `monsterPool` with the scheduled
+	// rarity. Boss nodes bypass this entirely (gated below on !bossNode) and
+	// drive their own spawn through the gauntlet useDelay.
+	useDelay(
+		active && state === "searching" && !bossNode,
+		schedule.nextSpawnGapMs,
+		() => {
+			const pick = pickRandom(monsterPool);
+			if (!pick) return;
+			const def = findMonster(pick);
+			if (!def) return;
+			const level = rollMonsterLevel(zoneLevel);
+			const baseScaled = scaleMonsterStats(def, level);
+			// Slot consumption is a separate call (after commit below) so the
+			// spawn-failure early returns above can't accidentally drain the pack.
+			const rarity = schedule.rollSpawnRarity();
+			const mods = rollMonsterMods(modCountForRarity(rarity));
+			const scaled = applyMonsterMods(baseScaled, mods);
+			const nameSeed: RareNameSeed = {
+				primary: Math.random(),
+				secondary: Math.random(),
+				epithet: Math.random(),
+			};
+			const newEnemy: Enemy = {
+				def,
+				currentHp: scaled.hp,
+				currentBarrier: scaled.barrier,
+				level,
+				rarity,
+				mods,
+				scaled,
+				nameSeed,
+			};
+			enemyRef.current = newEnemy;
+			setEnemy(newEnemy);
+			schedule.consumeAmbushSlot();
+			// Rare minibosses get a staged reveal (sprite → name → HP bar) before
+			// combat starts. Regular spawns engage immediately. Bosses (rarity
+			// "unique") never spawn through the schedule path — they come from
+			// the boss-node gauntlet orchestrator instead.
+			if (rarity === "rare") {
+				setRareIntroStage("sprite");
+				stateRef.current = "rare_intro";
+				setState("rare_intro");
+			} else {
+				setRareIntroStage(null);
+				stateRef.current = "engaged";
+				setState("engaged");
+			}
+		},
+	);
+
+	// ── Boss-node gauntlet spawner ──
+	// Fires when the player is searching inside a boss node. Spawns the next
+	// gauntlet rare (fight 1..N) or the boss (after N gauntlet kills).
+	// `gauntletFightIndex` is the 1-based index of the NEXT fight; `null`
+	// means the gauntlet is done and the boss is up.
+	useDelay(active && state === "searching" && !!bossNode, 600, () => {
+		if (!bossNode) return;
+		if (gauntletFightIndex !== null) {
+			// Spawn a gauntlet rare from the boss-node pool. Stats follow the
+			// node level + standard rare mod count.
+			const pick = pickRandom(bossNode.gauntlet.monsterPool);
+			if (!pick) return;
+			const def = findMonster(pick);
+			if (!def) return;
+			const level = rollMonsterLevel(zoneLevel);
+			const baseScaled = scaleMonsterStats(def, level);
+			const mods = rollMonsterMods(modCountForRarity("rare"));
+			const scaled = applyMonsterMods(baseScaled, mods);
+			const nameSeed: RareNameSeed = {
+				primary: Math.random(),
+				secondary: Math.random(),
+				epithet: Math.random(),
+			};
+			const newEnemy: Enemy = {
+				def,
+				currentHp: scaled.hp,
+				currentBarrier: scaled.barrier,
+				level,
+				rarity: "rare",
+				mods,
+				scaled,
+				nameSeed,
+			};
+			enemyRef.current = newEnemy;
+			setEnemy(newEnemy);
+			setRareIntroStage("sprite");
+			stateRef.current = "rare_intro";
+			setState("rare_intro");
+			return;
+		}
+		// Gauntlet finished — spawn the boss with its declared template at the
+		// boss's own level (not zoneLevel ±1). No mods rolled for uniques.
+		const boss = findBoss(bossNode.bossId);
+		if (!boss) return;
+		const scaled = scaleMonsterStats(boss.template, boss.level);
 		const nameSeed: RareNameSeed = {
-			primary: Math.random(),
-			secondary: Math.random(),
-			epithet: Math.random(),
+			primary: 0,
+			secondary: 0,
+			epithet: 0,
 		};
 		const newEnemy: Enemy = {
-			def,
+			def: boss.template,
 			currentHp: scaled.hp,
 			currentBarrier: scaled.barrier,
-			level,
-			rarity,
-			mods,
+			level: boss.level,
+			rarity: "unique",
+			mods: [],
 			scaled,
 			nameSeed,
 		};
 		enemyRef.current = newEnemy;
 		setEnemy(newEnemy);
-		schedule.consumeAmbushSlot();
-		// Rare minibosses get a staged reveal (sprite → name → HP bar) before
-		// combat starts. Regular spawns engage immediately.
-		if (rarity === "rare") {
-			setBossIntroStage("sprite");
-			stateRef.current = "boss_intro";
-			setState("boss_intro");
-		} else {
-			setBossIntroStage(null);
-			stateRef.current = "engaged";
-			setState("engaged");
-		}
+		setBossIntroStage("sprite");
+		stateRef.current = "boss_intro";
+		setState("boss_intro");
 	});
 
+	// ── Rare intro stages → cascade into engaged ──
+	useDelay(
+		active && state === "rare_intro" && rareIntroStage === "sprite",
+		RARE_INTRO_STAGE_MS.sprite,
+		() => setRareIntroStage("name"),
+	);
+	useDelay(
+		active && state === "rare_intro" && rareIntroStage === "name",
+		RARE_INTRO_STAGE_MS.name,
+		() => setRareIntroStage("hp"),
+	);
+	useDelay(
+		active && state === "rare_intro" && rareIntroStage === "hp",
+		RARE_INTRO_STAGE_MS.hp,
+		() => {
+			setRareIntroStage(null);
+			stateRef.current = "engaged";
+			setState("engaged");
+		},
+	);
+
 	// ── Boss intro stages → cascade into engaged ──
+	// The boss orchestrator (task #6) sets state === "boss_intro" + bossIntroStage
+	// = "sprite" when spawning a boss. Per-boss `BossConfig.cinematic` overrides
+	// the sprite + impact-beat timings; name + hp use the default constants so
+	// every boss feels consistent at the end of the cascade.
 	useDelay(
 		active && state === "boss_intro" && bossIntroStage === "sprite",
-		BOSS_INTRO_STAGE_MS.sprite,
+		BOSS_INTRO_STAGE_MS_DEFAULT.sprite,
+		() => setBossIntroStage("impact"),
+	);
+	useDelay(
+		active && state === "boss_intro" && bossIntroStage === "impact",
+		BOSS_INTRO_STAGE_MS_DEFAULT.impact,
 		() => setBossIntroStage("name"),
 	);
 	useDelay(
 		active && state === "boss_intro" && bossIntroStage === "name",
-		BOSS_INTRO_STAGE_MS.name,
+		BOSS_INTRO_STAGE_MS_DEFAULT.name,
 		() => setBossIntroStage("hp"),
 	);
 	useDelay(
 		active && state === "boss_intro" && bossIntroStage === "hp",
-		BOSS_INTRO_STAGE_MS.hp,
+		BOSS_INTRO_STAGE_MS_DEFAULT.hp,
 		() => {
 			setBossIntroStage(null);
 			stateRef.current = "engaged";
@@ -360,9 +513,25 @@ export function useCombatLoop({
 
 	// ── Victory pause → back to searching (or pause for miniboss modal) ──
 	useDelay(active && state === "victory", VICTORY_DELAY_MS, () => {
+		const killedEnemy = enemyRef.current;
 		enemyRef.current = null;
 		setEnemy(null);
 		setLastKill(null);
+		// Gauntlet rare kill — advance the gauntlet index so the next spawn
+		// is the next rare (or the boss, once N rares fall). No miniboss
+		// modal, no camp; the gauntlet rolls straight through.
+		if (
+			bossNode &&
+			gauntletFightIndex !== null &&
+			killedEnemy?.rarity === "rare"
+		) {
+			const nextIndex = gauntletFightIndex + 1;
+			setGauntletFightIndex(
+				nextIndex > bossNode.gauntlet.fights ? null : nextIndex,
+			);
+			setState("searching");
+			return;
+		}
 		if (lastKillWasMinibossRef.current) {
 			lastKillWasMinibossRef.current = false;
 			stateRef.current = "miniboss_victory";
@@ -391,13 +560,21 @@ export function useCombatLoop({
 	// `exitCamp` clears the server flag so subsequent bag commits cap at 30%.
 	const dismissMinibossModal = useCallback(() => {
 		if (stateRef.current !== "miniboss_victory") return;
+		// In a boss node, "continue farming" after the boss kill restarts the
+		// full gauntlet — boss is only re-engaged after clearing the N rares
+		// again. Per CONTEXT.md → Act Boss: farmable, but the gauntlet must
+		// be re-run every attempt.
+		if (bossNode) {
+			setGauntletFightIndex(1);
+		}
 		stateRef.current = "searching";
 		setState("searching");
 		exitCampMutation(withSession({ characterId })).catch(() => {});
-	}, [characterId, exitCampMutation, withSession]);
+	}, [bossNode, characterId, exitCampMutation, withSession]);
 
 	return {
 		state,
+		rareIntroStage,
 		bossIntroStage,
 		enemy,
 		playerHp,

@@ -1,3 +1,4 @@
+import { type BossId, findBoss } from "#/game/bosses";
 import {
 	MONSTER_ACCURACY_PER_LEVEL,
 	MONSTER_ARMOR_PER_LEVEL,
@@ -311,9 +312,29 @@ function suffixPhrasePt(noun: string | GenderedNoun): string {
  * Localized display name for any combat enemy. Normal / magic monsters fall
  * through to the mod-based renderer (translateMonsterName); rares get a
  * proper compound name + epithet drawn from the active locale's pool, keyed
- * by the spawn's nameSeed so re-renders stay stable.
+ * by the spawn's nameSeed so re-renders stay stable. Uniques (act bosses)
+ * resolve their handcrafted name via the BossConfig.nameKey paraglide key —
+ * the proper-noun part is locale-invariant by convention; the epithet
+ * localizes ("Gralfor, O Persistente" / "Gralfor, the Persistent"). See
+ * CONTEXT.md → Boss.
  */
 export function translateEnemyName(enemy: NameableEnemy): string {
+	if (enemy.rarity === "unique") {
+		const boss = findBoss(enemy.def.id as BossId);
+		if (boss) {
+			// Boss names are zero-arg paraglide keys (no inputs), so we can call
+			// them positionally. Cast through `unknown` because paraglide's
+			// generated `m` has a heterogeneous signature surface with required
+			// inputs on other keys.
+			const messageFn = (m as unknown as Record<string, () => string>)[
+				boss.nameKey
+			];
+			if (typeof messageFn === "function") return messageFn();
+		}
+		// Fallback — if the BossConfig or paraglide key is missing for any
+		// reason, fall through to the def.name so we always render something.
+		return enemy.def.name;
+	}
 	if (enemy.rarity === "rare") {
 		const locale = getLocale();
 		const lex = locale === "pt" ? lexiconPt : lexiconEn;

@@ -152,6 +152,46 @@ export function rollMinibossDrops(params: {
 }
 
 /**
+ * Gauntlet-rare drop set per CONTEXT.md → Drop rates. One item, 70% Magic /
+ * 30% Rare — reduced from a zone miniboss so the boss node doesn't out-farm
+ * a regular zone. The boss kill is the payout pump.
+ */
+export function rollGauntletRareDrops(params: {
+	monsterLevel: number;
+}): GeneratedItem[] {
+	const distribution: Array<{ rarity: ItemRarity; weight: number }> = [
+		{ rarity: "magic", weight: 70 },
+		{ rarity: "rare", weight: 30 },
+	];
+	const rarity = pickRarity(distribution);
+	const item = rollItemAtRarity(rarity, params.monsterLevel);
+	return item ? [item] : [];
+}
+
+/**
+ * Act-boss drop set per CONTEXT.md → Drop rates: 2-3 items with one
+ * guaranteed Rare; remaining slots use the unique table (75% Rare / 25%
+ * Magic, no Normals). Legendary upgrade chance is applied per-slot.
+ */
+export function rollBossDrops(params: {
+	monsterLevel: number;
+}): GeneratedItem[] {
+	const drops: GeneratedItem[] = [];
+	const guaranteed = rollItemAtRarity("rare", params.monsterLevel);
+	if (guaranteed) drops.push(guaranteed);
+	// 2-3 items: always emit a second from the table, 50/50 on a third.
+	const extras = Math.random() < 0.5 ? 1 : 2;
+	for (let i = 0; i < extras; i++) {
+		const rolled = rollDrop({
+			monsterRarity: "unique",
+			monsterLevel: params.monsterLevel,
+		});
+		if (rolled) drops.push(rolled);
+	}
+	return drops;
+}
+
+/**
  * Resolves a monster's instance level from the zone level — uniformly rolls
  * one of zoneLevel-1, zoneLevel, zoneLevel+1, floored at 1.
  */

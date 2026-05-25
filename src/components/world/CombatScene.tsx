@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type BossId, findBoss } from "#/game/bosses";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateEnemyName } from "#/game/world/i18n";
 import type {
@@ -8,7 +9,9 @@ import type {
 	CampSource,
 	DamageEvent,
 	Enemy,
+	RareIntroStage,
 } from "#/hooks/useCombatLoop";
+import { playSfx } from "#/lib/sfx";
 import { m } from "#/paraglide/messages";
 import CampCinematic from "./CampCinematic";
 import HealthGlobe from "./HealthGlobe";
@@ -43,11 +46,13 @@ type Props = {
 	zoneLevel: number;
 	state:
 		| "searching"
+		| "rare_intro"
 		| "boss_intro"
 		| "engaged"
 		| "victory"
 		| "miniboss_victory"
 		| "acampamento";
+	rareIntroStage: RareIntroStage;
 	bossIntroStage: BossIntroStage;
 	enemy: Enemy | null;
 	events: DamageEvent[];
@@ -102,6 +107,7 @@ export default function CombatScene({
 	zoneName,
 	zoneLevel,
 	state,
+	rareIntroStage,
 	bossIntroStage,
 	enemy,
 	events,
@@ -174,32 +180,51 @@ export default function CombatScene({
 		}
 		return null;
 	}, [playerEvents]);
-	const nameColor = enemy ? RARITY_NAMEPLATE_COLOR[enemy.rarity] : "#ffffff";
-	const nameShadow = enemy
-		? RARITY_NAMEPLATE_SHADOW[enemy.rarity]
-		: RARITY_NAMEPLATE_SHADOW.normal;
-	// Micro-stagger for non-rare reveals: sprite → name → hp in ~160ms total.
-	// Rares are paced by the boss intro cascade (sprite/name/hp stages), so
-	// any extra delay here would compound and feel sluggish.
-	const isRareEnemy = enemy?.rarity === "rare";
-	const nameplateDelay = isRareEnemy ? 0 : 0.08;
-	const hpBarDelay = isRareEnemy ? 0 : 0.16;
+	// Bosses get a per-instance nameplate color from BossConfig (rare yellow
+	// shouldn't double-duty as the boss color, and each boss can pick a hue
+	// that matches its theme — Gralfor: ember orange).
+	const bossConfig = useMemo(
+		() =>
+			enemy?.rarity === "unique"
+				? findBoss(enemy.def.id as BossId)
+				: null,
+		[enemy],
+	);
+	const nameColor = bossConfig
+		? bossConfig.nameplateColor
+		: enemy
+			? RARITY_NAMEPLATE_COLOR[enemy.rarity]
+			: "#ffffff";
+	const nameShadow = bossConfig
+		? bossConfig.nameplateShadow
+		: enemy
+			? RARITY_NAMEPLATE_SHADOW[enemy.rarity]
+			: RARITY_NAMEPLATE_SHADOW.normal;
+	// Micro-stagger for non-staged reveals: sprite → name → hp in ~160ms total.
+	// Rares and bosses are paced by their own intro cascades, so any extra
+	// delay here would compound and feel sluggish.
+	const isStagedEnemy =
+		enemy?.rarity === "rare" || enemy?.rarity === "unique";
+	const nameplateDelay = isStagedEnemy ? 0 : 0.08;
+	const hpBarDelay = isStagedEnemy ? 0 : 0.16;
 
-	// Staged reveal for rare minibosses. The nameplate appears at stage "name",
-	// the HP bar at stage "hp". The sprite is always shown once the spawn
-	// transitions out of "searching". For non-boss spawns (bossIntroStage is
-	// null), everything appears together as before.
+	// Staged reveal for rare minibosses (3 beats) and bosses (4 beats — adds
+	// an "impact" beat between sprite and name for sfx + screenshake). The
+	// sprite is always shown once the spawn transitions out of "searching".
 	// On victory, both fade out alongside the sprite so the exit mirrors the
 	// entrance instead of the nameplate/bar popping out when the enemy unmounts.
 	const showNameplate =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
 		state !== "victory" &&
-		(state !== "boss_intro" || bossIntroStage !== "sprite");
+		(state !== "rare_intro" || rareIntroStage !== "sprite") &&
+		(state !== "boss_intro" ||
+			(bossIntroStage !== "sprite" && bossIntroStage !== "impact"));
 	const showHpBar =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
 		state !== "victory" &&
+		(state !== "rare_intro" || rareIntroStage === "hp") &&
 		(state !== "boss_intro" || bossIntroStage === "hp");
 	// Read once per render — both the nameplate text and the img alt need it.
 	const enemyDisplayName = enemy ? translateEnemyName(enemy) : "";
@@ -222,16 +247,16 @@ export default function CombatScene({
 		prevEnemyRef.current = enemy;
 		if (!enemy) return;
 		if (!wasNull) return;
-		const isRare = enemy.rarity === "rare";
-		// Non-rare entrance uses a "fading from the dark" feel — slight y
-		// offset + blur — instead of the rare's bold scale-down. Keeps the
-		// rare's cinematic entrance distinctive.
+		const isStaged = enemy.rarity === "rare" || enemy.rarity === "unique";
+		// Non-staged entrance uses a "fading from the dark" feel — slight y
+		// offset + blur — instead of the staged bold scale-down. Keeps the
+		// rare/boss cinematic entrance distinctive.
 		enemyControls.set({
 			opacity: 0,
-			scale: isRare ? 1.2 : 1,
+			scale: isStaged ? 1.2 : 1,
 			x: 0,
-			y: isRare ? 0 : 8,
-			filter: isRare
+			y: isStaged ? 0 : 8,
+			filter: isStaged
 				? "brightness(1) saturate(1) hue-rotate(0deg)"
 				: "brightness(1) saturate(1) blur(4px)",
 		});
@@ -240,7 +265,7 @@ export default function CombatScene({
 			scale: 1,
 			y: 0,
 			filter: "brightness(1) saturate(1) hue-rotate(0deg)",
-			transition: { duration: isRare ? 0.7 : 0.4, ease: "easeOut" },
+			transition: { duration: isStaged ? 0.7 : 0.4, ease: "easeOut" },
 		});
 	}, [enemy, enemyControls]);
 
@@ -261,19 +286,44 @@ export default function CombatScene({
 
 	useEffect(() => {
 		if (state !== "victory" || !enemy) return;
-		// Mirror the entrance: non-rare "falls back into the dark" (y down +
-		// blur), rare keeps a clean fade so we don't add unrelated motion to
-		// the boss exit. easeIn pairs with the entrance's easeOut.
-		const isRare = enemy.rarity === "rare";
+		// Mirror the entrance: non-staged "falls back into the dark" (y down +
+		// blur), rare/boss keeps a clean fade so we don't add unrelated motion
+		// to the staged exit. easeIn pairs with the entrance's easeOut.
+		const isStaged = enemy.rarity === "rare" || enemy.rarity === "unique";
 		enemyControls.start({
 			opacity: 0,
-			y: isRare ? 0 : 8,
-			filter: isRare
+			y: isStaged ? 0 : 8,
+			filter: isStaged
 				? "brightness(1) saturate(1) hue-rotate(0deg)"
 				: "brightness(1) saturate(1) blur(4px)",
 			transition: { duration: 0.5, ease: "easeIn" },
 		});
 	}, [state, enemy, enemyControls]);
+
+	// Boss intro impact beat — fires the entry sfx + a screenshake on the
+	// sprite as soon as the stage flips to "impact". The shake is scoped to
+	// the enemyControls (sprite only) per CONTEXT.md → Boss Cinematic so the
+	// HUD stays readable; whole-viewport shake is nauseating and obscures
+	// HP / consumables the player needs to react.
+	useEffect(() => {
+		if (state !== "boss_intro" || bossIntroStage !== "impact") return;
+		if (!bossConfig) return;
+		playSfx(bossConfig.cinematic.entrySfx, { volume: 0.8 });
+		const amp = bossConfig.cinematic.screenshake.amplitudePx;
+		const dur = bossConfig.cinematic.screenshake.durationMs / 1000;
+		enemyControls.start({
+			x: [
+				0,
+				-amp,
+				amp,
+				-Math.round(amp * 0.7),
+				Math.round(amp * 0.5),
+				-Math.round(amp * 0.3),
+				0,
+			],
+			transition: { duration: dur, times: [0, 0.15, 0.3, 0.5, 0.7, 0.85, 1] },
+		});
+	}, [state, bossIntroStage, bossConfig, enemyControls]);
 
 	const inCamp = state === "acampamento";
 	// Camp arrival is immediate: hitting the threshold triggers the HUD

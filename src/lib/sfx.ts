@@ -4,8 +4,10 @@
 // promise rejection is silently swallowed so first-touch quirks don't crash
 // the combat loop.
 
-import type { WeaponType } from "#/game/items/types/base";
+import { type BossId, findBoss } from "#/game/bosses";
 import { WEAPON_FX } from "#/game/combat/weapon-fx";
+import type { WeaponType } from "#/game/items/types/base";
+import type { MonsterRarity } from "#/game/monsters/types";
 import { randSymmetric } from "./rng";
 
 type SfxOptions = {
@@ -143,6 +145,26 @@ export function playMonsterDeathSfx(monsterId: string): void {
 	const file = MONSTER_DEATH_SOUNDS[monsterId];
 	if (!file) return;
 	playSfx(`creatures/${file}`, { volume: 0.5 });
+}
+
+/**
+ * Routes a kill's death sfx by rarity. Bosses (`rarity: "unique"`) pull
+ * `cinematic.deathSfx` from their BossConfig (e.g. `bosses/gralfordead.wav`);
+ * all other rarities go through the regular creature-death lookup.
+ * Silent on lookup miss — see playMonsterDeathSfx.
+ */
+export function playKillSfx(enemy: {
+	def: { id: string };
+	rarity: MonsterRarity;
+}): void {
+	if (enemy.rarity === "unique") {
+		const boss = findBoss(enemy.def.id as BossId);
+		if (boss) {
+			playSfx(boss.cinematic.deathSfx, { volume: 0.8 });
+			return;
+		}
+	}
+	playMonsterDeathSfx(enemy.def.id);
 }
 
 // Player swing hit-sound, derived from the weapon's WEAPON_FX entry. Volume

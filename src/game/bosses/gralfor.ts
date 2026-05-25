@@ -24,6 +24,7 @@ export const GRALFOR: BossConfig = {
 			resistances: { fire: 50, cold: -25, lightning: 0, void: 0 },
 		},
 		xpReward: 45,
+		allowedRarities: ["unique"],
 	},
 	cinematic: {
 		spriteFadeInMs: 900,

@@ -281,6 +281,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		monsterPool,
 		zoneLevel,
 		encounterPlan,
+		bossNode: currentNode?.bossNode ?? null,
 		// Camp thresholds are server-rolled by enterZone; the time bar reads
 		// them off the character query so the markers and the ticker stay
 		// in lockstep with what enterCamp will accept. See
@@ -669,6 +670,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						zoneName={translateNodeName(currentNode)}
 						zoneLevel={zoneLevel}
 						state={combat.state}
+						rareIntroStage={combat.rareIntroStage}
 						bossIntroStage={combat.bossIntroStage}
 						enemy={combat.enemy}
 						events={combat.events}
@@ -692,11 +694,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						incense={combat.incense}
 						canUseIncense={
 							combat.incense > 0 &&
+							combat.state !== "rare_intro" &&
 							combat.state !== "boss_intro" &&
 							combat.state !== "acampamento" &&
 							combat.state !== "miniboss_victory" &&
+							currentNode.kind !== "boss" &&
 							!(
 								combat.state === "engaged" && combat.enemy?.rarity === "rare"
+							) &&
+							!(
+								combat.state === "engaged" &&
+								combat.enemy?.rarity === "unique"
 							) &&
 							!combat.ambushActive &&
 							!isUsingIncense

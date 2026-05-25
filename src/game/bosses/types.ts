@@ -10,13 +10,11 @@ import type { MonsterDefinition } from "../monsters/types";
 
 export type BossId = "gralfor";
 
-// Mirrors MonsterDefinition.baseStats so a boss template can flow through
-// scaleMonsterStats unchanged. Resistance overrides are first-class here
-// (every boss declares them), unlike the optional field on MonsterDefinition.
-export interface BossTemplate
-	extends Pick<MonsterDefinition, "id" | "name" | "sprite" | "xpReward"> {
-	baseStats: MonsterDefinition["baseStats"];
-}
+// A boss's stat sheet is a MonsterDefinition — same shape, same
+// scaleMonsterStats pipeline. The only convention difference is
+// `allowedRarities` always being `["unique"]`. Keeping these compatible lets
+// Enemy.def hold either a mob def or a boss def transparently.
+export type BossTemplate = MonsterDefinition;
 
 export interface BossCinematicConfig {
 	/** Duration the sprite fade-in holds before the impact beat fires. */

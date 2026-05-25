@@ -14,6 +14,7 @@ import type { CombatPhase } from "./constants";
 
 export type CombatState =
 	| "searching"
+	| "rare_intro"
 	| "boss_intro"
 	| "engaged"
 	| "victory"
@@ -33,11 +34,11 @@ export function derivePhase(state: CombatState): CombatPhase {
 
 // Three-stage dramatic spawn for rare minibosses. The ticker stays paused
 // (gated on state === "engaged") for the full intro, so the player can't
-// pre-empt the build-up and the boss can't swing before its HP bar shows.
-export type BossIntroStage = "sprite" | "name" | "hp" | null;
+// pre-empt the build-up and the rare can't swing before its HP bar shows.
+export type RareIntroStage = "sprite" | "name" | "hp" | null;
 
-export const BOSS_INTRO_STAGE_MS: Record<
-	Exclude<BossIntroStage, null>,
+export const RARE_INTRO_STAGE_MS: Record<
+	Exclude<RareIntroStage, null>,
 	number
 > = {
 	// Each value is how long the stage holds BEFORE advancing — so it must be
@@ -47,6 +48,25 @@ export const BOSS_INTRO_STAGE_MS: Record<
 	sprite: 750,
 	name: 500,
 	hp: 500,
+};
+
+// Four-stage dramatic spawn for act bosses (`rarity: "unique"`). Adds an
+// `impact` beat between sprite and name where the entry sfx + screenshake
+// fire — that's the "boss has arrived" punctuation that distinguishes a
+// boss from a rare miniboss. See CONTEXT.md → Boss Cinematic.
+export type BossIntroStage = "sprite" | "impact" | "name" | "hp" | null;
+
+// Default timings for the boss intro. Per-boss overrides come from
+// BossConfig.cinematic.spriteFadeInMs and .sfxBeatMs — the name and hp
+// beats use these defaults across every boss for consistency.
+export const BOSS_INTRO_STAGE_MS_DEFAULT: Record<
+	Exclude<BossIntroStage, null>,
+	number
+> = {
+	sprite: 900,
+	impact: 600,
+	name: 500,
+	hp: 400,
 };
 
 export type Enemy = {

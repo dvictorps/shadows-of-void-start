@@ -36,6 +36,7 @@ vi.mock("#/lib/sfx", () => ({
 	playSfx: () => {},
 	playPlayerSwingSfx: () => {},
 	playMonsterDeathSfx: () => {},
+	playKillSfx: () => {},
 }));
 
 // Stub the damage roll functions so we control exactly how much each side

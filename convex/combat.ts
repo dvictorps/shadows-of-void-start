@@ -29,7 +29,12 @@ import {
 	POTION_HEAL_FRACTION,
 	teleportStoneTravelSeconds,
 } from "../src/game/combat/constants"
-import { rollDrop, rollMinibossDrops } from "../src/game/loot/drops"
+import {
+	rollBossDrops,
+	rollDrop,
+	rollGauntletRareDrops,
+	rollMinibossDrops,
+} from "../src/game/loot/drops"
 import { findMonster } from "../src/game/monsters/data"
 import { scaleMonsterStats } from "../src/game/monsters/scaling"
 import {
@@ -109,29 +114,31 @@ export const recordKill = mutation({
 			updates.hpCurrent = stats.maxLife
 		}
 
-		// See CONTEXT.md → Threshold Bar and Zone states.
-		const isMinibossKill = args.monsterRarity === "rare"
+		// See CONTEXT.md → Threshold Bar and Zone states. Three kill flows:
+		//   - zone miniboss (rare in `kind: "combat"`): completes zone, inCamp
+		//   - act boss (unique): completes node like a miniboss, inCamp
+		//   - gauntlet rare (rare in `kind: "boss"`): just a combat kill
 		const currentZoneKills = char.currentZoneKills ?? 0
 		const currentLocation = char.currentLocation ?? "city"
-		if (isMinibossKill) {
+		const zone = findNode(ACT_1, currentLocation)
+		const isBossNodeRareKill =
+			args.monsterRarity === "rare" && zone?.kind === "boss"
+		const isMinibossKill =
+			args.monsterRarity === "rare" && !isBossNodeRareKill
+		const isBossKill = args.monsterRarity === "unique"
+		const grantsCampTier = isMinibossKill || isBossKill
+		if (grantsCampTier) {
 			updates.currentZoneKills = 0
 			const completed = char.completedZones ?? []
 			if (!completed.includes(currentLocation)) {
 				updates.completedZones = [...completed, currentLocation]
 			}
-			// Miniboss-victory is a 100% bag-retention tier (see
-			// derivePhase in src/game/combat/types.ts). Flip the server-side
-			// inCamp flag so exitZone/pickFromBag derive the camp phase
-			// during the post-miniboss modal pause.
+			// Both miniboss-victory and act-boss-kill are 100% bag-retention
+			// tiers (see derivePhase + CONTEXT.md → Bag retention tiers).
 			updates.inCamp = true
 			// Per CONTEXT.md → Zone Miniboss: continuing past the panel resets
-			// the bar to 0 and rerolls the schedule. The client's calmaria
-			// ticker resets locally; the server must mirror that by rerolling
-			// thresholds and resetting `zoneStartedAt` so the next loop's
-			// enterCamp time-gate isn't trivially satisfied by stale wall-clock
-			// elapsed from the previous loop. lastCampIndex resets so the new
-			// loop can claim camp[0] again.
-			const zone = findNode(ACT_1, currentLocation)
+			// the bar to 0 and rerolls the schedule. Only meaningful for
+			// regular combat zones — boss nodes have no time bar.
 			if (zone && zone.kind === "combat") {
 				const plan = zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN
 				updates.campThresholdsMs = rollCampThresholdsMs(plan)
@@ -140,11 +147,11 @@ export const recordKill = mutation({
 			}
 		} else {
 			updates.currentZoneKills = currentZoneKills + 1
-			// Defense-in-depth: a miniboss kill flips `inCamp = true` and
+			// Defense-in-depth: a camp-tier kill flips `inCamp = true` and
 			// expects the client to call `exitCamp` via dismissMinibossModal
 			// before resuming normal combat. If a client skips the dismiss and
 			// keeps farming, leaving `inCamp` set would grant 100% retention
-			// to subsequent bag commits. Clearing it on every non-miniboss
+			// to subsequent bag commits. Clearing it on every non-camp-tier
 			// kill closes that gap without changing the legitimate flow.
 			// Gated on `char.inCamp` so the patch + reactive-query invalidation
 			// only fire on the rare flip transition, not every kill.
@@ -169,19 +176,26 @@ export const recordKill = mutation({
 
 		await ctx.db.patch(args.characterId, updates)
 
-		// Rare minibosses: 2 items with 1 guaranteed Rare per CONTEXT.md →
-		// Loot Pipeline → Drop rates. Other rarities use the standard table.
+		// Drop routing per CONTEXT.md → Drop rates. Four flows:
+		//   - act boss (unique): 2-3 items, guaranteed Rare, 75/25 Rare/Magic
+		//   - zone miniboss (rare in combat zone): 2 items, 1 guaranteed Rare
+		//   - gauntlet rare (rare in boss node): 1 item, 70/30 Magic/Rare
+		//   - normal / magic mob: standard rolldrop
 		const zoneSession = char.currentZoneSession
 		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []
 		if (zoneSession) {
-			const rolledDrops = isMinibossKill
-				? rollMinibossDrops({ monsterLevel })
-				: [
-						rollDrop({
-							monsterRarity: args.monsterRarity,
-							monsterLevel,
-						}),
-					].filter((d): d is NonNullable<typeof d> => d !== null)
+			const rolledDrops = isBossKill
+				? rollBossDrops({ monsterLevel })
+				: isMinibossKill
+					? rollMinibossDrops({ monsterLevel })
+					: isBossNodeRareKill
+						? rollGauntletRareDrops({ monsterLevel })
+						: [
+								rollDrop({
+									monsterRarity: args.monsterRarity,
+									monsterLevel,
+								}),
+							].filter((d): d is NonNullable<typeof d> => d !== null)
 			for (const drop of rolledDrops) {
 				const insertedId = await ctx.db.insert("items", {
 					authUserId: authUser._id,
@@ -254,6 +268,16 @@ export const useEtherealIncense = mutation({
 
 		const count = char.etherealIncense ?? 0
 		if (count <= 0) throw new ConvexError("No incense to use")
+
+		// Boss nodes are commitment — incense is banned inside them per
+		// CONTEXT.md → Incenso Etéreo / Act Boss. Server-side gate so a
+		// keyboard shortcut or tampered client can't bypass the HUD's
+		// greyed-out button.
+		const currentLocation = char.currentLocation ?? "city"
+		const zone = findNode(ACT_1, currentLocation)
+		if (zone?.kind === "boss") {
+			throw new ConvexError("Cannot use incense inside a boss node")
+		}
 
 		// `inCamp` is NOT flipped here. Incense may be queued during "engaged"
 		// (the cinematic only fires after the current fight finishes), so the
