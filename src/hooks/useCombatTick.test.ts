@@ -11,6 +11,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { EMPTY_ELEMENTAL_GAIN } from "#/game/combat/damage";
 import type { Enemy } from "#/game/combat/types";
 import type { MonsterDefinition } from "#/game/monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
@@ -157,7 +158,7 @@ function makeEnemy(currentHp: number, overrides: EnemyOverrides = {}): Enemy {
 			barrier: 0,
 			criticalChance: 0,
 			criticalMultiplier: 0,
-			gainAsExtraDamage: { cold: 0, fire: 0, lightning: 0, void: 0 },
+			gainAsExtraDamage: { ...EMPTY_ELEMENTAL_GAIN },
 			...scaledOverrides,
 		},
 		nameSeed: { primary: 0, secondary: 0, epithet: 0 },

@@ -1,4 +1,8 @@
 import { BASE_CRIT_MULTIPLIER, CRIT_CHANCE_FLOOR } from "../combat/constants";
+import {
+	type ElementalGainPct,
+	EMPTY_ELEMENTAL_GAIN,
+} from "../combat/damage";
 import type { MonsterDefinition, MonsterElementDamage } from "./types";
 
 // Geometric scaling factor matches PoE/Last Epoch's approach: player power
@@ -36,12 +40,7 @@ export interface ScaledMonsterStats {
 	// hit time before crit + mitigation. Mirrors the player's
 	// `gainAsExtraSpell` (tome mod family). Defaults to all zeros — the
 	// monsterXxxDamage mods stack additively here.
-	gainAsExtraDamage: {
-		cold: number;
-		fire: number;
-		lightning: number;
-		void: number;
-	};
+	gainAsExtraDamage: ElementalGainPct;
 }
 
 export function monsterScaleFactor(level: number): number {
@@ -81,6 +80,8 @@ export function scaleMonsterStats(
 		barrier: 0,
 		criticalChance: CRIT_CHANCE_FLOOR,
 		criticalMultiplier: BASE_CRIT_MULTIPLIER,
-		gainAsExtraDamage: { cold: 0, fire: 0, lightning: 0, void: 0 },
+		// Fresh copy of the empty literal — mods apply via spread, so callers
+		// would otherwise share the same constant across all spawns.
+		gainAsExtraDamage: { ...EMPTY_ELEMENTAL_GAIN },
 	};
 }

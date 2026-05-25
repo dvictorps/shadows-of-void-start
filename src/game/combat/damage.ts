@@ -11,6 +11,24 @@ const HIT_CHANCE_MIN = 0.05;
 const HIT_CHANCE_MAX = 0.95;
 const ARMOR_REDUCTION_CAP = 0.85;
 
+// Per-element "gain X% of total damage as extra <element>" used by the enemy
+// gain-as-extra path (and `ScaledMonsterStats.gainAsExtraDamage`). The player's
+// `gainAsExtraSpell` follows the same shape — consolidating that side is a
+// follow-up (no behaviour difference today).
+export interface ElementalGainPct {
+	cold: number;
+	fire: number;
+	lightning: number;
+	void: number;
+}
+
+export const EMPTY_ELEMENTAL_GAIN: ElementalGainPct = {
+	cold: 0,
+	fire: 0,
+	lightning: 0,
+	void: 0,
+};
+
 export interface ElementContribution {
 	element: "Physical" | "Cold" | "Fire" | "Lightning" | "Void";
 	min: number;
@@ -218,12 +236,7 @@ interface EnemyAttackArgs {
 	// Per-element "gain X% of total damage as extra <element>", applied
 	// after rolling but before crit + mitigation. Mirrors the player's
 	// gainAsExtraSpell tome family. Omitted/undefined = no conversion.
-	enemyGainAsExtra?: {
-		cold: number;
-		fire: number;
-		lightning: number;
-		void: number;
-	};
+	enemyGainAsExtra?: ElementalGainPct;
 	random?: () => number;
 }
 
