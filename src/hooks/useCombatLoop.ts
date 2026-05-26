@@ -112,6 +112,11 @@ export function useCombatLoop({
 		useState<RareIntroStage>(null);
 	const [bossIntroStage, setBossIntroStage] = useState<BossIntroStage>(null);
 	const [enemy, setEnemy] = useState<Enemy | null>(null);
+	// Boss-node warmup: regular mob spawns for N seconds (exploration time)
+	// before the gauntlet starts. `false` during warmup, `true` once the
+	// warmup timer fills. Always `true` when there's no warmup.
+	const [warmupDone, setWarmupDone] = useState(!bossNode?.warmupSeconds);
+	const warmupElapsedRef = useRef(0);
 	// Boss-node gauntlet progress. 1..N = next gauntlet rare to spawn;
 	// `null` while not in a boss node or once the gauntlet is exhausted
 	// (boss next). Reset to 1 on every activation when bossNode is set.
@@ -170,6 +175,24 @@ export function useCombatLoop({
 	const recordKill = useMutation(api.combat.recordKill);
 	// Optimistic localStore patch keeps the incense counter in lockstep with
 	// the mutation, so concurrent recordKill drops can't race the consume.
+	// ── Boss-node warmup timer ──
+	// Accumulates exploration time (state === "searching") and flips
+	// `warmupDone` when the configured warmup seconds elapse. During warmup
+	// the regular spawn path fires normal/magic mobs from the node's pool;
+	// once done, the gauntlet spawner takes over.
+	const warmupBudgetMs = (bossNode?.warmupSeconds ?? 0) * 1000;
+	useEffect(() => {
+		if (!active || !bossNode || warmupDone || warmupBudgetMs <= 0) return;
+		if (state !== "searching") return;
+		const interval = setInterval(() => {
+			warmupElapsedRef.current += 100;
+			if (warmupElapsedRef.current >= warmupBudgetMs) {
+				setWarmupDone(true);
+			}
+		}, 100);
+		return () => clearInterval(interval);
+	}, [active, bossNode, warmupDone, warmupBudgetMs, state]);
+
 	const consumeIncense = useMutation(
 		api.combat.useEtherealIncense,
 	).withOptimisticUpdate((localStore, args) => {
@@ -266,8 +289,9 @@ export function useCombatLoop({
 			setLastKill(null);
 			setRareIntroStage(null);
 			setBossIntroStage(null);
-			// Boss-node entry: start the gauntlet at fight 1. Regular zones
-			// clear the field so the gauntlet useDelay no-ops.
+			// Boss-node entry: reset warmup timer + gauntlet to fight 1.
+			warmupElapsedRef.current = 0;
+			setWarmupDone(!bossNode?.warmupSeconds);
 			setGauntletFightIndex(bossNode ? 1 : null);
 			stateRef.current = "searching";
 			setState("searching");
@@ -342,11 +366,13 @@ export function useCombatLoop({
 
 	// ── Search delay → spawn enemy ──
 	// Regular zones: roll a monster from `monsterPool` with the scheduled
-	// rarity. Boss nodes bypass this entirely (gated below on !bossNode) and
-	// drive their own spawn through the gauntlet useDelay.
+	// rarity. Boss-node warmup phase also fires through this path — during
+	// warmup the gate opens so normal/magic mobs spawn before the gauntlet.
+	// Once warmupDone, the gauntlet spawner below takes over.
+	const warmupActive = !!bossNode && !warmupDone;
 	useDelay(
-		active && state === "searching" && !bossNode,
-		schedule.nextSpawnGapMs,
+		active && state === "searching" && (!bossNode || warmupActive),
+		warmupActive ? 2000 : schedule.nextSpawnGapMs,
 		() => {
 			const pick = pickRandom(monsterPool);
 			if (!pick) return;
@@ -398,7 +424,10 @@ export function useCombatLoop({
 	// gauntlet rare (fight 1..N) or the boss (after N gauntlet kills).
 	// `gauntletFightIndex` is the 1-based index of the NEXT fight; `null`
 	// means the gauntlet is done and the boss is up.
-	useDelay(active && state === "searching" && !!bossNode, 600, () => {
+	useDelay(
+		active && state === "searching" && !!bossNode && warmupDone,
+		600,
+		() => {
 		if (!bossNode) return;
 		if (gauntletFightIndex !== null) {
 			// Spawn a gauntlet rare from the boss-node pool. Stats follow the
@@ -565,6 +594,8 @@ export function useCombatLoop({
 		// again. Per CONTEXT.md → Act Boss: farmable, but the gauntlet must
 		// be re-run every attempt.
 		if (bossNode) {
+			warmupElapsedRef.current = 0;
+			setWarmupDone(!bossNode.warmupSeconds);
 			setGauntletFightIndex(1);
 		}
 		stateRef.current = "searching";

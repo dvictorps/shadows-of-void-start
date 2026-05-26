@@ -164,8 +164,10 @@ export const ACT_1: Act = {
 			connections: [{ id: "fenda_vazio", distance: 5 }],
 			level: 15,
 			gatedBy: ["fenda_vazio"],
+			monsterPool: ["olho_do_vazio", "criatura_do_vazio"],
 			bossNode: {
 				bossId: "gralfor",
+				warmupSeconds: 30,
 				gauntlet: {
 					fights: 3,
 					monsterPool: ["olho_do_vazio", "criatura_do_vazio"],

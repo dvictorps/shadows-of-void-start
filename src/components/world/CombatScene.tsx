@@ -522,7 +522,7 @@ export default function CombatScene({
 						state !== "acampamento" && (
 						<div className="group relative">
 							<motion.div
-								className="relative h-64 w-64"
+								className={`relative ${enemy.rarity === "unique" ? "h-80 w-80" : "h-64 w-64"}`}
 								animate={enemyControls}
 							>
 								<img
@@ -562,7 +562,7 @@ export default function CombatScene({
 								)}
 							</AnimatePresence>
 							{enemy.rarity !== "normal" && (
-								<div className="-translate-x-1/2 pointer-events-none absolute top-full left-1/2 z-20 mt-2 hidden group-hover:block">
+								<div className="-translate-x-1/2 pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden group-hover:block">
 									<MonsterTooltip enemy={enemy} />
 								</div>
 							)}

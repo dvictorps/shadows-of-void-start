@@ -2,11 +2,15 @@ import type { BossId } from "../bosses";
 import type { MonsterId } from "../monsters";
 import type { ZoneEncounterPlan } from "./encounter-schedule";
 
-// Boss-node config — only set when `kind === "boss"`. Drives the gauntlet
-// (N back-to-back rare fights) and points at the boss config that spawns
-// after the gauntlet completes. See CONTEXT.md → Act Boss + ADR 0004.
+// Boss-node config — only set when `kind === "boss"`. Drives the warmup →
+// gauntlet → boss sequence that replaces the time-bar flow in regular zones.
+// See CONTEXT.md → Act Boss + ADR 0004.
 export interface BossNodeConfig {
 	bossId: BossId;
+	// Optional warmup phase — regular mob spawns for N seconds before the
+	// gauntlet starts. No camps fire during the warmup. Omit or set to 0 to
+	// skip straight to the gauntlet.
+	warmupSeconds?: number;
 	gauntlet: {
 		/** How many rare fights precede the boss. Act 1 / Gralfor: 3. */
 		fights: number;

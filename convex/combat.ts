@@ -428,7 +428,7 @@ export const enterZone = mutation({
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const zone = findNode(ACT_1, args.zoneId)
-		if (!zone || zone.kind !== "combat")
+		if (!zone || (zone.kind !== "combat" && zone.kind !== "boss"))
 			throw new ConvexError(`Unknown combat zone: ${args.zoneId}`)
 
 		// Travel guard — the character must be at this zone (already arrived) and
