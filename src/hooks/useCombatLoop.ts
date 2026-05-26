@@ -288,7 +288,9 @@ export function useCombatLoop({
 			setBossIntroStage(null);
 			// Boss-node entry: reset warmup + gauntlet to fight 1.
 			setWarmupDone(!bossNode?.warmupSeconds);
-			setGauntletFightIndex(bossNode ? 1 : null);
+			setGauntletFightIndex(
+				bossNode && bossNode.gauntlet.fights > 0 ? 1 : null,
+			);
 			stateRef.current = "searching";
 			setState("searching");
 		}
@@ -556,18 +558,10 @@ export function useCombatLoop({
 	// `exitCamp` clears the server flag so subsequent bag commits cap at 30%.
 	const dismissMinibossModal = useCallback(() => {
 		if (stateRef.current !== "miniboss_victory") return;
-		// In a boss node, "continue farming" after the boss kill restarts the
-		// full gauntlet — boss is only re-engaged after clearing the N rares
-		// again. Per CONTEXT.md → Act Boss: farmable, but the gauntlet must
-		// be re-run every attempt.
-		if (bossNode) {
-			setWarmupDone(!bossNode.warmupSeconds);
-			setGauntletFightIndex(1);
-		}
 		stateRef.current = "searching";
 		setState("searching");
 		exitCampMutation(withSession({ characterId })).catch(() => {});
-	}, [bossNode, characterId, exitCampMutation, withSession]);
+	}, [characterId, exitCampMutation, withSession]);
 
 	return {
 		state,

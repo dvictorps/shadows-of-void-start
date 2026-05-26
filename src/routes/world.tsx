@@ -684,7 +684,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						zoneName={translateNodeName(currentNode)}
 						zoneLevel={zoneLevel}
 						state={combat.state}
-						isBossNode={currentNode.kind === "boss"}
+						isBossNode={currentNode?.kind === "boss"}
 						rareIntroStage={combat.rareIntroStage}
 						bossIntroStage={combat.bossIntroStage}
 						enemy={combat.enemy}
@@ -713,7 +713,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 							combat.state !== "boss_intro" &&
 							combat.state !== "acampamento" &&
 							combat.state !== "miniboss_victory" &&
-							currentNode.kind !== "boss" &&
+							currentNode?.kind !== "boss" &&
 							!(
 								combat.state === "engaged" &&
 								(combat.enemy?.rarity === "rare" ||
