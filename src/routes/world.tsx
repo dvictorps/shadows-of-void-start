@@ -15,6 +15,7 @@ import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
+import LeaderboardModal from "#/components/world/LeaderboardModal";
 import { WorldModals } from "#/components/world/WorldModals";
 import { findClassDefinition } from "#/game/classes/data";
 import { computeBagKeepCap } from "#/game/combat/constants";
@@ -153,6 +154,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const settingsModal = useModal();
 	const statsModal = useModal();
 	const vendorModal = useModal();
+	const leaderboardModal = useModal();
 	const currentLocation = character.currentLocation ?? "city";
 	const currentNode = findNode(ACT_1, currentLocation);
 	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
@@ -681,6 +683,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 							completedZoneIds={completedZoneIds}
 							hasTeleportStone={(character.teleportStones ?? 0) > 0}
 							onOpenSettings={settingsModal.open}
+							onOpenLeaderboard={leaderboardModal.open}
 						/>
 						{travelOverlay}
 					</div>
@@ -806,6 +809,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				onVendorSellMany={async (itemIds) => {
 					await vendorSellMany({ characterId: character._id, itemIds });
 				}}
+			/>
+			<LeaderboardModal
+				isOpen={leaderboardModal.isOpen}
+				onClose={leaderboardModal.close}
 			/>
 			{/* Gated mount (unique among the modals): currentBarrier/currentLife
 				change every 50ms combat tick, so unmounting when closed avoids

@@ -426,5 +426,19 @@
   "admin_revoke_message": "Remover permissão de admin de {email}?",
   "admin_revoke_action": "Revogar",
   "admin_revoke_success": "{email} removido dos admins",
-  "admin_revoke_failed": "Falha ao revogar"
+  "admin_revoke_failed": "Falha ao revogar",
+
+  "leaderboard_title": "Ranking",
+  "leaderboard_level_tab": "Maior Nível",
+  "leaderboard_kills_tab": "Boss Kills",
+  "leaderboard_softcore": "Softcore",
+  "leaderboard_hardcore": "Hardcore",
+  "leaderboard_show_fallen": "Exibir Heróis Caídos",
+  "leaderboard_rank": "#",
+  "leaderboard_name": "Nome",
+  "leaderboard_class": "Classe",
+  "leaderboard_level": "Nível",
+  "leaderboard_kills": "Kills",
+  "leaderboard_empty": "Nenhuma entrada ainda",
+  "leaderboard_all_classes": "Todas as Classes"
 }
