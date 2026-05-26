@@ -32,7 +32,6 @@ import {
 import {
 	rollBossDrops,
 	rollDrop,
-	rollGauntletRareDrops,
 	rollMinibossDrops,
 } from "../src/game/loot/drops"
 import { findMonster } from "../src/game/monsters/data"
@@ -184,18 +183,17 @@ export const recordKill = mutation({
 		const zoneSession = char.currentZoneSession
 		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []
 		if (zoneSession) {
+			const isAnyRareKill = isMinibossKill || isBossNodeRareKill
 			const rolledDrops = isBossKill
 				? rollBossDrops({ monsterLevel })
-				: isMinibossKill
+				: isAnyRareKill
 					? rollMinibossDrops({ monsterLevel })
-					: isBossNodeRareKill
-						? rollGauntletRareDrops({ monsterLevel })
-						: [
-								rollDrop({
-									monsterRarity: args.monsterRarity,
-									monsterLevel,
-								}),
-							].filter((d): d is NonNullable<typeof d> => d !== null)
+					: [
+							rollDrop({
+								monsterRarity: args.monsterRarity,
+								monsterLevel,
+							}),
+						].filter((d): d is NonNullable<typeof d> => d !== null)
 			for (const drop of rolledDrops) {
 				const insertedId = await ctx.db.insert("items", {
 					authUserId: authUser._id,

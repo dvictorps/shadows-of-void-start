@@ -136,7 +136,6 @@ export function useCombatLoop({
 	// Read by the victory-delay handler — state and lastKill have already been
 	// reset by then, so we can't recover the rarity from them.
 	const lastKillWasMinibossRef = useRef(false);
-	const lastKillWasBossRef = useRef(false);
 
 	// Refs the interval callbacks read directly for mid-tick state visibility.
 	const stateRef = useRef(state);
@@ -229,8 +228,7 @@ export function useCombatLoop({
 			const inBossNode = bossNode != null;
 			const isMinibossKill = killed.rarity === "rare" && !inBossNode;
 			const isBossKill = killed.rarity === "unique";
-			lastKillWasMinibossRef.current = isMinibossKill;
-			lastKillWasBossRef.current = isBossKill;
+			lastKillWasMinibossRef.current = isMinibossKill || isBossKill;
 			if (isMinibossKill) {
 				schedule.resetForMiniboss();
 			}
@@ -563,11 +561,7 @@ export function useCombatLoop({
 			setState("searching");
 			return;
 		}
-		if (lastKillWasBossRef.current) {
-			lastKillWasBossRef.current = false;
-			stateRef.current = "boss_victory";
-			setState("boss_victory");
-		} else if (lastKillWasMinibossRef.current) {
+		if (lastKillWasMinibossRef.current) {
 			lastKillWasMinibossRef.current = false;
 			stateRef.current = "miniboss_victory";
 			setState("miniboss_victory");

@@ -51,8 +51,8 @@ type Props = {
 		| "engaged"
 		| "victory"
 		| "miniboss_victory"
-		| "boss_victory"
 		| "acampamento";
+	isBossNode: boolean;
 	rareIntroStage: RareIntroStage;
 	bossIntroStage: BossIntroStage;
 	enemy: Enemy | null;
@@ -108,6 +108,7 @@ export default function CombatScene({
 	zoneName,
 	zoneLevel,
 	state,
+	isBossNode,
 	rareIntroStage,
 	bossIntroStage,
 	enemy,
@@ -217,16 +218,14 @@ export default function CombatScene({
 	const showNameplate =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
-		state !== "boss_victory" &&
-		state !== "victory" &&
+				state !== "victory" &&
 		(state !== "rare_intro" || rareIntroStage !== "sprite") &&
 		(state !== "boss_intro" ||
 			(bossIntroStage !== "sprite" && bossIntroStage !== "impact"));
 	const showHpBar =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
-		state !== "boss_victory" &&
-		state !== "victory" &&
+				state !== "victory" &&
 		(state !== "rare_intro" || rareIntroStage === "hp") &&
 		(state !== "boss_intro" || bossIntroStage === "hp");
 	// Read once per render — both the nameplate text and the img alt need it.
@@ -509,60 +508,8 @@ export default function CombatScene({
 						<ZoneCompletePanel
 							onContinue={onDismissMinibossModal}
 							onRetreat={onRetreat}
+							showContinue={!isBossNode}
 						/>
-					)}
-					{state === "boss_victory" && bossConfig && (
-						<motion.div
-							className="flex flex-col items-center gap-6"
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							transition={{ duration: 1.2, ease: "easeOut" }}
-						>
-							<div className="text-center">
-								<motion.p
-									className="display-title text-3xl uppercase tracking-[0.2em]"
-									style={{
-										color: bossConfig.nameplateColor,
-										textShadow: bossConfig.nameplateShadow,
-									}}
-									initial={{ opacity: 0, y: 12 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{
-										duration: 0.8,
-										delay: 0.5,
-										ease: "easeOut",
-									}}
-								>
-									{translateEnemyName(enemy!)}
-								</motion.p>
-								<motion.p
-									className="display-title mt-2 text-lg uppercase tracking-[0.3em] text-white/60"
-									initial={{ opacity: 0 }}
-									animate={{ opacity: 1 }}
-									transition={{
-										duration: 0.6,
-										delay: 1.0,
-										ease: "easeOut",
-									}}
-								>
-									{m.boss_defeated()}
-								</motion.p>
-							</div>
-							<motion.button
-								type="button"
-								onClick={onRetreat}
-								className="display-title mt-4 cursor-pointer rounded border border-white/30 bg-white/10 px-6 py-2 text-sm uppercase tracking-[0.15em] text-white/80 transition-colors hover:border-white/50 hover:bg-white/20 hover:text-white"
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								transition={{
-									duration: 0.5,
-									delay: 1.8,
-									ease: "easeOut",
-								}}
-							>
-								{m.boss_retreat_with_loot()}
-							</motion.button>
-						</motion.div>
 					)}
 					{inCamp && cinematicEnabled && (
 						<CampCinematic
@@ -577,8 +524,7 @@ export default function CombatScene({
 					{enemy &&
 						state !== "searching" &&
 						state !== "miniboss_victory" &&
-						state !== "boss_victory" &&
-						state !== "acampamento" && (
+												state !== "acampamento" && (
 						<div className="group relative">
 							<motion.div
 								className={`relative ${enemy.rarity === "unique" ? "h-96 w-96" : "h-64 w-64"}`}
@@ -621,7 +567,7 @@ export default function CombatScene({
 								)}
 							</AnimatePresence>
 							{enemy.rarity !== "normal" && (
-								<div className="-translate-x-1/2 pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 hidden group-hover:block">
+								<div className="-translate-x-1/2 pointer-events-none absolute top-full left-1/2 z-50 mt-2 hidden group-hover:block">
 									<MonsterTooltip enemy={enemy} />
 								</div>
 							)}
@@ -651,7 +597,7 @@ export default function CombatScene({
 				{/* HP bar slot. Always reserved when an enemy is present so the
 				 * sprite above doesn't shift when the bar fades in during
 				 * boss_intro stage 3. */}
-				{enemy && state !== "miniboss_victory" && state !== "boss_victory" && (
+				{enemy && state !== "miniboss_victory" && (
 					<motion.div
 						className="flex w-full justify-center"
 						initial={{ opacity: 0, y: -6 }}
@@ -797,9 +743,11 @@ export default function CombatScene({
 function ZoneCompletePanel({
 	onContinue,
 	onRetreat,
+	showContinue = true,
 }: {
 	onContinue: () => void;
 	onRetreat: () => void;
+	showContinue?: boolean;
 }) {
 	return (
 		<motion.div
@@ -821,13 +769,15 @@ function ZoneCompletePanel({
 				{m.miniboss_modal_body()}
 			</p>
 			<div className="flex gap-3">
-				<button
-					type="button"
-					onClick={onContinue}
-					className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
-				>
-					{m.miniboss_modal_continue()}
-				</button>
+				{showContinue && (
+					<button
+						type="button"
+						onClick={onContinue}
+						className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+					>
+						{m.miniboss_modal_continue()}
+					</button>
+				)}
 				<button
 					type="button"
 					onClick={onRetreat}
