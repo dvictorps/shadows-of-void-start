@@ -20,6 +20,7 @@ export function computeTravelTime(
 ): number {
 	const ms = Math.max(0, movementSpeedPct);
 	const baseSeconds = Math.max(0, distance);
-	const scaled = baseSeconds / (1 + (MS_TRAVEL_COEFFICIENT * ms) / 100);
-	return Math.max(MIN_TRAVEL_SECONDS, scaled);
+	const denominator = 1 + (MS_TRAVEL_COEFFICIENT * ms) / 100;
+	const scaled = baseSeconds / Math.max(0.01, denominator);
+	return Math.max(MIN_TRAVEL_SECONDS, Math.min(scaled, 30));
 }
