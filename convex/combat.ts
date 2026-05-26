@@ -118,6 +118,7 @@ export const recordKill = mutation({
 				selectedElement: char.selectedElement,
 			})
 			updates.hpCurrent = stats.maxLife
+			updates.barrierCurrent = stats.maxBarrier
 		}
 
 		// See CONTEXT.md → Threshold Bar and Zone states. Three kill flows:
