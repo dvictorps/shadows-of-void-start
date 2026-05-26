@@ -48,7 +48,7 @@ const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
 	unique: "0 0 22px rgba(175, 96, 37, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
 };
 
-export type ConsumableKey = "potion" | "teleport" | "incense";
+export type ConsumableKey = "potion" | "teleport" | "incense" | "element_fire" | "element_cold" | "element_lightning";
 
 type Props = {
 	zoneName: string;
@@ -659,6 +659,7 @@ export default function CombatScene({
 					<ElementSelector
 						selected={selectedElement}
 						onSwitch={onSwitchElement}
+						onHover={(key) => onConsumableHover?.(key)}
 					/>
 				)}
 

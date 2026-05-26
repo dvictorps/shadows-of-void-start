@@ -837,7 +837,7 @@ Grouped under `allAttackWeapons` for `applicableTo` purposes.
 ### Caster weapons
 `staff`, `wand`.
 
-The tooltip header shows **Spell Damage** (the weapon's base min–max range), **Critical Strike Chance**, and **Cast Speed**. "Spell Damage" is a **path label**, not a damage type — the underlying damage is physical, converted to elemental by class mechanics (see Elemental Attunement) or dealt as physical if no conversion applies. The label distinguishes caster weapons from attack weapons visually and conceptually: `+% Spell Damage` mods scale this header. Cast Speed uses a fixed base of `1.00` for all caster weapons (the per-template `attackSpeed` field is ignored on the spell path); `+% Cast Speed` mods from gear multiply this base.
+The tooltip header shows **Spell Damage** (the weapon's base min–max range) and **Critical Strike Chance**. "Spell Damage" is a **path label**, not a damage type — the underlying damage is physical, converted to elemental by class mechanics (see Elemental Attunement) or dealt as physical if no conversion applies. The label distinguishes caster weapons from attack weapons visually and conceptually: `+% Spell Damage` mods scale this header. Cast Speed is **not shown** on the tooltip — it uses a fixed base of `1.00` for all caster weapons with no local mods to modify it (the per-template `attackSpeed` field is ignored on the spell path). Global `+% Cast Speed` mods from gear multiply this hidden base.
 
 Caster weapons never roll local attack mods (no physical flat, no attack-flat elemental, no attack speed, no melee-only).
 

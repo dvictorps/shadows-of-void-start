@@ -245,12 +245,6 @@ export default function ItemTooltip({
 								</span>
 							</div>
 						)}
-						<div className="flex justify-between">
-							<span style={{ color: LABEL_COLOR }}>
-								{m.tooltip_casts_per_second()}
-							</span>
-							<span className="text-white">1.00</span>
-						</div>
 					</div>
 					<TooltipSeparator />
 				</>

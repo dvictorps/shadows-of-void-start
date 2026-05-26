@@ -50,6 +50,9 @@ const CONSUMABLE_DESCRIPTIONS: Record<ConsumableKey, () => string> = {
 	potion: m.consumable_desc_potion,
 	teleport: m.consumable_desc_teleport,
 	incense: m.incense_hint,
+	element_fire: m.element_desc_fire,
+	element_cold: m.element_desc_cold,
+	element_lightning: m.element_desc_lightning,
 };
 
 export const Route = createFileRoute("/world")({

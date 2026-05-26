@@ -27,13 +27,17 @@ const ELEMENT_CONFIG: Record<
 const COOLDOWN_MS = 5_000;
 const ELEMENTS: Element[] = ["fire", "cold", "lightning"];
 
+type HoverKey = `element_${Element}`;
+
 export default function ElementSelector({
 	selected,
 	onSwitch,
+	onHover,
 	disabled,
 }: {
 	selected: Element;
 	onSwitch: (element: Element) => void;
+	onHover?: (key: HoverKey | null) => void;
 	disabled?: boolean;
 }) {
 	const [cooldownEnd, setCooldownEnd] = useState(0);
@@ -65,6 +69,10 @@ export default function ElementSelector({
 						key={el}
 						type="button"
 						onClick={() => handleClick(el)}
+						onMouseEnter={() => onHover?.(`element_${el}`)}
+						onMouseLeave={() => onHover?.(null)}
+						onFocus={() => onHover?.(`element_${el}`)}
+						onBlur={() => onHover?.(null)}
 						disabled={disabled || (onCooldown && !isActive)}
 						className="relative flex h-10 w-10 items-center justify-center border transition disabled:cursor-not-allowed disabled:opacity-40"
 						style={{
