@@ -33,7 +33,7 @@ function ItemGeneratorPage() {
 	return (
 		<div className="flex h-full flex-col gap-5">
 			<h1 className="display-title text-2xl uppercase tracking-[0.15em] text-white">
-				Item Generator
+				Item Generator / Generator de Itens
 			</h1>
 
 			<div className="flex flex-wrap items-end gap-5 border-b border-white/15 pb-5">
