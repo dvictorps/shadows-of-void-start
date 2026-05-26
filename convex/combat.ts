@@ -486,6 +486,14 @@ export const enterZone = mutation({
 			await deleteZoneBag(ctx, char.currentZoneSession)
 		}
 
+		const classDef = findClassDefinition(char.classId)
+		const equippedItems = await loadEquippedSet(ctx, args.characterId)
+		const stats = computeCharacterStats({
+			classDef,
+			level: char.level,
+			equippedItems,
+		})
+
 		const zoneSession = newZoneSession()
 		// Threshold counter resets on every entry — per CONTEXT.md: "fill resets
 		// to 0 every time the player leaves the zone with the miniboss unsummoned".
@@ -507,6 +515,8 @@ export const enterZone = mutation({
 		// writes below then set this visit's session/timestamp/thresholds.
 		await ctx.db.patch(args.characterId, {
 			...clearPerVisitZoneState(),
+			hpCurrent: stats.maxLife,
+			barrierCurrent: stats.maxBarrier,
 			currentZoneSession: zoneSession,
 			currentZoneKills: 0,
 			zoneStartedAt,
