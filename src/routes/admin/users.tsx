@@ -11,7 +11,7 @@ import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { formatDate } from "#/lib/format";
 import { m } from "#/paraglide/messages";
-import { AdminPageHeader, EmptyTableRow } from "#/routes/admin";
+import { AdminPageHeader, EmptyTableRow } from "#/components/admin/AdminShared";
 import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/admin/users")({

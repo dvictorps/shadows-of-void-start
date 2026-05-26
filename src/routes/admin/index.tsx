@@ -2,7 +2,7 @@ import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { m } from "#/paraglide/messages";
-import { AdminPageHeader } from "#/routes/admin";
+import { AdminPageHeader } from "#/components/admin/AdminShared";
 import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/admin/")({
