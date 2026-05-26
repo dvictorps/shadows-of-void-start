@@ -1,5 +1,5 @@
 import { Flame, Snowflake, Zap } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Element = "fire" | "cold" | "lightning";
 
@@ -38,19 +38,14 @@ export default function ElementSelector({
 }) {
 	const [cooldownEnd, setCooldownEnd] = useState(0);
 	const [now, setNow] = useState(Date.now());
-	const rafRef = useRef(0);
 
 	const remaining = Math.max(0, cooldownEnd - now);
 	const onCooldown = remaining > 0;
 
 	useEffect(() => {
 		if (!onCooldown) return;
-		const tick = () => {
-			setNow(Date.now());
-			rafRef.current = requestAnimationFrame(tick);
-		};
-		rafRef.current = requestAnimationFrame(tick);
-		return () => cancelAnimationFrame(rafRef.current);
+		const id = setInterval(() => setNow(Date.now()), 100);
+		return () => clearInterval(id);
 	}, [onCooldown]);
 
 	function handleClick(element: Element) {
