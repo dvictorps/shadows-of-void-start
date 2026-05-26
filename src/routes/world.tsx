@@ -194,8 +194,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				classDef,
 				level: character.level,
 				equippedItems: equippedSnapshot,
+				selectedElement: character.selectedElement,
 			}),
-		[classDef, character.level, equippedSnapshot],
+		[classDef, character.level, equippedSnapshot, character.selectedElement],
 	);
 
 	const maxHp = stats.maxLife;

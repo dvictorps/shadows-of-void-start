@@ -474,30 +474,54 @@ function buildSwing(
 	source: "mainHand" | "offHand",
 	gearFlat: GearFlatDamage,
 	path: "attack" | "spell",
+	selectedElement?: "fire" | "cold" | "lightning",
+	level?: number,
 ): SwingProfile {
 	const cs = item.computedStats;
 	const physBase = cs?.physicalDamage ?? { min: 1, max: 1 };
 	// Layer gear flat damage on top of the weapon's own (attack path only —
 	// spells never receive flat-to-attacks).
-	const phys =
+	let phys =
 		path === "attack"
 			? {
 					min: physBase.min + gearFlat.physical,
 					max: physBase.max + gearFlat.physical,
 				}
-			: physBase;
+			: { ...physBase };
 	const weaponElem = cs?.elementalDamage ?? [];
-	const elem =
+	const elem: SwingProfile["elementalDamage"] =
 		path === "attack"
 			? addGearFlatToElements(weaponElem, gearFlat)
-			: weaponElem;
+			: weaponElem.map((e) => ({ ...e }));
 	const baseAS = path === "attack" ? (cs?.attackSpeed ?? 1.0) : BASE_CAST_SPEED;
+
+	// Mage elemental attunement: convert 100% of physical to the selected
+	// element and add a per-level flat bonus (+1 min / +2 max per level).
+	if (path === "spell" && selectedElement) {
+		const elementName =
+			selectedElement === "fire"
+				? "Fire"
+				: selectedElement === "cold"
+					? "Cold"
+					: "Lightning";
+
+		const lvl = level ?? 1;
+		const convertedMin = phys.min + lvl;
+		const convertedMax = phys.max + lvl * 2;
+
+		const existing = elem.find((e) => e.element === elementName);
+		if (existing) {
+			existing.min += convertedMin;
+			existing.max += convertedMax;
+		} else {
+			elem.push({ element: elementName, min: convertedMin, max: convertedMax });
+		}
+		phys = { min: 0, max: 0 };
+	}
+
 	return {
 		source,
 		itemId: item.id,
-		// Path determination already ensured this item is a weapon; the fallback
-		// keeps the type non-optional on the SwingProfile side without forcing
-		// callers to handle "weaponless swing" cases that the engine prevents.
 		weaponType: item.weaponType ?? "sword",
 		physicalDamage: phys,
 		elementalDamage: elem,
@@ -629,11 +653,11 @@ function computeOnce(
 			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "attack"));
 		}
 	} else if (stats.path === "spell" && mainHand) {
-		stats.swings.push(buildSwing(mainHand, "mainHand", gearFlat, "spell"));
+		stats.swings.push(buildSwing(mainHand, "mainHand", gearFlat, "spell", input.selectedElement, input.level));
 		// Staves are 2H and can't sit in the off-hand slot — only wand+wand.
 		// Caster dual-wield gets no implicits.
 		if (offHand && offHandType === "wand") {
-			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "spell"));
+			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "spell", input.selectedElement, input.level));
 		}
 	}
 

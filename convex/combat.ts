@@ -115,6 +115,7 @@ export const recordKill = mutation({
 				classDef,
 				level,
 				equippedItems,
+				selectedElement: char.selectedElement,
 			})
 			updates.hpCurrent = stats.maxLife
 		}

@@ -44,6 +44,7 @@ export interface StatEngineInput {
 	classDef: CharacterClassDefinition | null;
 	level: number;
 	equippedItems: EquippedItem[];
+	selectedElement?: "fire" | "cold" | "lightning";
 }
 
 // ── Resistance + element keys ──
