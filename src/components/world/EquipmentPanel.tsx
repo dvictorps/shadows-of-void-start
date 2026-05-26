@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import ItemCard, {
 	BROKEN_BORDER,
 	BROKEN_GLOW,
@@ -6,6 +7,7 @@ import ItemCard, {
 } from "#/components/game/ItemCard";
 import { describeBrokenReasons } from "#/game/stats/compute";
 import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
+import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { m } from "#/paraglide/messages";
 import InventoryButton from "./InventoryButton";
 import RubyCounter from "./RubyCounter";
@@ -91,16 +93,15 @@ const SLOT_CONFIG: SlotConfig[] = [
 	},
 ];
 
-const SLOT_GRID_STYLE = {
-	gridTemplateColumns: "120px 120px 120px",
-	gridTemplateRows: "120px 170px 104px 120px",
-	gridTemplateAreas: `
-		".      helmet amulet"
-		"weapon body   offhand"
-		"ring1  belt   ring2"
-		"gloves .      boots"
-	`,
-} as const;
+const GRID_AREAS = `
+	".      helmet amulet"
+	"weapon body   offhand"
+	"ring1  belt   ring2"
+	"gloves .      boots"
+`;
+
+const COL_BASE = 120;
+const ROW_HEIGHTS = [120, 170, 104, 120];
 
 export default function EquipmentPanel({
 	equippedBySlot,
@@ -109,12 +110,37 @@ export default function EquipmentPanel({
 	rubys,
 	onOpenInventory,
 }: Props) {
+	const compact = useCompactViewport();
+	const s = compact ? 0.65 : 1;
+
+	const scaled = useMemo(
+		() => ({
+			grid: {
+				gridTemplateColumns: `repeat(3, ${Math.round(COL_BASE * s)}px)`,
+				gridTemplateRows: ROW_HEIGHTS.map(
+					(h) => `${Math.round(h * s)}px`,
+				).join(" "),
+				gridTemplateAreas: GRID_AREAS,
+			},
+			slots: SLOT_CONFIG.map((cfg) => ({
+				w: Math.round(cfg.size.w * s),
+				h: Math.round(cfg.size.h * s),
+			})),
+		}),
+		[s],
+	);
+
 	const mainHandWeaponType = equippedBySlot.get("weapon")?.data.weaponType;
 	return (
-		<section className="relative rounded-md border border-white/40 p-3">
+		<section
+			className={`relative rounded-md border border-white/40 ${compact ? "p-1.5" : "p-3"}`}
+		>
 			<div className="flex h-full items-center justify-center">
-				<div className="grid gap-2" style={SLOT_GRID_STYLE}>
-					{SLOT_CONFIG.map((cfg) => {
+				<div
+					className={`grid ${compact ? "gap-1" : "gap-2"}`}
+					style={scaled.grid}
+				>
+					{SLOT_CONFIG.map((cfg, i) => {
 						const entry = equippedBySlot.get(cfg.slot);
 						const broken = entry ? stats.brokenItemIds.has(entry.id) : false;
 						const reasons =
@@ -130,6 +156,7 @@ export default function EquipmentPanel({
 							<EquipmentSlot
 								key={cfg.slot}
 								cfg={cfg}
+								scaledSize={scaled.slots[i]}
 								item={entry?.data ?? null}
 								broken={broken}
 								brokenReasons={reasons}
@@ -146,23 +173,18 @@ export default function EquipmentPanel({
 
 function EquipmentSlot({
 	cfg,
+	scaledSize,
 	item,
 	broken,
 	brokenReasons,
 }: {
 	cfg: SlotConfig;
+	scaledSize: { w: number; h: number };
 	item: import("#/game/items/types").GeneratedItem | null;
 	broken: boolean;
 	brokenReasons: string[] | undefined;
 }) {
-	// Inner card occupies the full slot minus 8px of frame breathing on each
-	// axis. Passing rectangular dimensions (not Math.min) keeps the sprite
-	// aspect ratio aligned with the slot's — sprites are 220×340 for
-	// weapon/chest/offhand and 220×80 for belt, matching the slot shapes.
-	const innerSize = { w: cfg.size.w - 8, h: cfg.size.h - 8 };
-	// Paper-doll convention: the SLOT carries the rarity color + inset glow when
-	// filled. The ItemCard inside renders frameless so we don't get a doubled
-	// border. Empty slots stay neutral (border-white/30 + bg-black/40).
+	const innerSize = { w: scaledSize.w - 8, h: scaledSize.h - 8 };
 	const frameClass = item
 		? `border-2 bg-black ${broken ? BROKEN_BORDER : RARITY_BORDER[item.rarity]} ${broken ? BROKEN_GLOW : RARITY_GLOW[item.rarity]}`
 		: "border border-white/30 bg-black/40";
@@ -172,8 +194,8 @@ function EquipmentSlot({
 			data-slot-area={cfg.area}
 			style={{
 				gridArea: cfg.area,
-				width: cfg.size.w,
-				height: cfg.size.h,
+				width: scaledSize.w,
+				height: scaledSize.h,
 				placeSelf: "center",
 			}}
 			className={`relative flex items-center justify-center rounded-md ${frameClass}`}

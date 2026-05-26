@@ -159,6 +159,8 @@ export default defineSchema({
 		// Inventory grid position (0..59) when locationKind === "inventory".
 		// Player can drag-reorder. Empty slots are just absence of an item.
 		inventorySlot: v.optional(v.number()),
+		// Stash grid position (0..59) when locationKind === "stash".
+		stashSlot: v.optional(v.number()),
 	})
 		.index("by_character_kind", ["characterId", "locationKind"])
 		.index("by_zoneSession", ["zoneSession"])

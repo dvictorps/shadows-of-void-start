@@ -28,7 +28,10 @@
 //    • Add a UI-only derived stat     →  Derived helpers section at the bottom
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { CharacterClassDefinition } from "../classes/types";
+import type {
+	CharacterClassDefinition,
+	CharacterClassId,
+} from "../classes/types";
 import {
 	BASE_CAST_SPEED,
 	BASE_CRIT_MULTIPLIER,
@@ -458,13 +461,13 @@ function foldGlobalDefenseIncreases(
 
 function determinePath(
 	mainHand: GeneratedItem | null,
+	classId: CharacterClassId | undefined,
 ): "attack" | "spell" | "unarmed" {
 	if (!mainHand) return "unarmed";
 	const wt = mainHand.weaponType;
 	if (!wt) return "unarmed";
-	if (ATTACK_WEAPONS.has(wt)) return "attack";
-	if (CASTER_WEAPONS.has(wt)) return "spell";
-	return "unarmed";
+	if (CASTER_WEAPONS.has(wt) && classId === "mage") return "spell";
+	return "attack";
 }
 
 // ── Build a swing profile from a weapon ──
@@ -488,7 +491,10 @@ function buildSwing(
 	options?: BuildSwingOptions,
 ): SwingProfile {
 	const cs = item.computedStats;
-	const physBase = cs?.physicalDamage ?? { min: 1, max: 1 };
+	const physBase = cs?.physicalDamage ?? {
+		min: item.baseStats.minDamage ?? 1,
+		max: item.baseStats.maxDamage ?? 1,
+	};
 	let phys =
 		path === "attack"
 			? {
@@ -501,7 +507,9 @@ function buildSwing(
 		path === "attack"
 			? addGearFlatToElements(weaponElem, gearFlat)
 			: weaponElem.map((e) => ({ ...e }));
-	const baseAS = path === "attack" ? (cs?.attackSpeed ?? 1.0) : BASE_CAST_SPEED;
+	const baseAS = path === "attack"
+		? (cs?.attackSpeed ?? (item.baseStats.attackSpeed ?? 1.0))
+		: BASE_CAST_SPEED;
 
 	if (path === "spell" && options?.selectedElement) {
 		const elementName = ELEMENT_DISPLAY_NAME[options.selectedElement];
@@ -525,7 +533,7 @@ function buildSwing(
 		weaponType: item.weaponType ?? "sword",
 		physicalDamage: phys,
 		elementalDamage: elem,
-		baseCritChance: cs?.criticalChance ?? 5,
+		baseCritChance: cs?.criticalChance ?? (item.baseStats.criticalChance ?? 5),
 		baseAttackSpeed: baseAS,
 	};
 }
@@ -620,7 +628,7 @@ function computeOnce(
 
 	const mainHand = live.find((eq) => eq.slot === "weapon")?.item ?? null;
 	const offHand = live.find((eq) => eq.slot === "offhand")?.item ?? null;
-	stats.path = determinePath(mainHand);
+	stats.path = determinePath(mainHand, input.classDef?.id as CharacterClassId | undefined);
 	const offHandType = offHand?.weaponType;
 	// Source of truth for "is this attack dual-wielding?". The public
 	// `isAttackDualWielding(stats)` helper below re-derives the same answer from

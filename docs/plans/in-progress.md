@@ -235,15 +235,11 @@ When a session starts working on this, expect to add a third combat path (alongs
 
 ---
 
-## Future: stash + vendor (not started)
+## Stash — shipped, vendor — existing
 
-Per CONTEXT.md → Stash and Vendor, the design is locked but no code exists:
+**Stash shipped** on `feat/shared-stash`. Account-scoped, mode-isolated (softcore/hardcore), 60 slots, accessible from city. Drag-and-drop, shift-click, bulk select/deposit/withdraw. Backend: `convex/stash.ts`. Frontend: `StashModal.tsx`. Purchasable tabs are deferred.
 
-- Stash: account-scoped, mode-isolated (softcore / hardcore), 60 slots + purchasable tabs.
-- Vendor: per-act, sells consumables (potions today), buys gear for Rubys.
-- Ruby: currency. Monsters never drop Rubys directly.
-
-This is **scoped after** the passive tree because economy + progression need to balance against built characters.
+**Vendor** already exists (`convex/vendor.ts`, `VendorModal.tsx`) — sells potions for Rubys, buys gear.
 
 ---
 

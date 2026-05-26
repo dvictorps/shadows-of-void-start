@@ -44,7 +44,7 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 | `classes/` | Character class definitions (Warrior/Rogue/Mage) | `data.ts` (CLASS_DEFINITIONS), `types.ts`, `i18n.ts` (`getClassDisplayName`) |
 | `combat/` | Damage/defense math, constants, per-weapon FX map, intro-stage types | `damage.ts`, `barrier.ts`, `leech.ts`, `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
 | `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `pickGendered`) |
-| `inventory/` | Inventory constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, bySlotAsc) |
+| `inventory/` | Inventory + stash constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, STASH_MAX_SLOTS, slot-finding helpers) |
 | `items/` | Item generator, modifier data, equip helpers, lexicon | See below — the biggest subdir |
 | `loot/` | Drop tables | `drops.ts` (rollDrop, rollMonsterLevel, rollMinibossDrops, rollBossDrops) |
 | `monsters/` | Monster definitions, modifier pool, instance-level scaler | `data.ts`, `types.ts`, `modifiers.ts` (pool + roll), `scaling.ts` (geometric 1.06^L) |
@@ -126,6 +126,7 @@ The spine of every gameplay calculation. Read this if you're touching anything t
 | `characters.ts` | Character CRUD only — `list`, `create`, `remove`, `byId`, `claimCharacterSession` (stamps the active-session UUID; called by `/character-select` Play and by `/world`'s reconciliation effect). Normalizes legacy docs with defaults on read |
 | `combat.ts` | Combat + travel mutations: `recordKill`, `usePotion`, `useEtherealIncense`, `syncHp`, `respawnDead`, `enterZone`, `enterCity`, `startTravel`, `arriveAtTravel`, `useTeleportStone`, `switchElement`. Every state-mutating mutation accepts a `sessionToken` arg threaded through `loadOwnedCharacterWithSession`. Largest convex file (~800 lines) |
 | `items.ts` | Item lifecycle mutations: `exitZone`, `pickFromBag` / `discardFromBag` / `discardFromInventory`, `equipItem` / `unequipItem`, `reorderInventory`, and the `zoneBag` / `inventory` / `equipped` queries. Mutations carry `sessionToken`; the read-only queries deliberately do not — a stale tab can still observe its character coherently |
+| `stash.ts` | Shared stash mutations: `depositToStash`, `withdrawFromStash`, `reorderStash`. Account-scoped, mode-isolated (softcore/hardcore). Carries `sessionToken` |
 | `vendor.ts` | Vendor mutations: `vendorBuy` (potions for Rubys), `vendorSellMany` (gear for Rubys). Both carry `sessionToken` |
 | `admin.ts` | Admin-only queries (`pulse`, `listUsers`, `listAdmins`, `listRecentItems`) powering `/admin`. Each handler starts with `assertAdmin(ctx)` — route guards are UX, not security |
 | `itemValidator.ts` | Convex validator for the `GeneratedItem` shape in `items.data` |
@@ -179,7 +180,8 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | `LeaderboardModal.tsx` | Leaderboard modal — level/boss-kills tabs, softcore/hardcore toggle, class filter, fallen heroes |
 | `SettingsModal.tsx` | Language dropdown + SFX volume slider |
 | `SessionLostModal.tsx` | Non-dismissible takeover modal — fires when another tab/device rotates the active-session token. Refresh button reloads the page to re-claim |
-| `WorldModals.tsx` | Sibling that owns the modal mount-points (BagPreview / ExitZone / Inventory / Vendor / Settings) — keeps `world.tsx` lean |
+| `StashModal.tsx` | Shared stash modal — side-by-side inventory + stash grids with drag-and-drop (dnd-kit), shift-click transfer, bulk select/deposit/withdraw |
+| `WorldModals.tsx` | Sibling that owns the modal mount-points (BagPreview / ExitZone / Inventory / Vendor / Stash / Settings) — keeps `world.tsx` lean |
 | `InventoryButton.tsx` | Backpack icon button on EquipmentPanel |
 
 ---
@@ -206,6 +208,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | `useCombatTick.ts` | Engaged-state combat tick (50ms): leech heal → barrier regen/cooldown → player swing → enemy swing → thorns. Owns player vitals (HP, barrier, leech, dead) + the 10s `syncHp` + the potion mutation. 420 lines |
 | `useEncounterSchedule.ts` | Per-activation encounter pacing — calmaria time bar, camp threshold rolls, ambush packs, gap rolls, next-spawn rarity decision. 218 lines |
 | `useWorldMutations.ts` | Optimistic mutation bundle for the `/world` route (enterZone, exitZone, pickFromBag, equipItem, etc). See [ADR 0001](./adr/0001-optimistic-mutations.md) |
+| `useCompactViewport.ts` | `matchMedia("(max-height: 800px)")` hook — returns `true` on short viewports (1366×768). Used by world layout, EquipmentPanel, StatusCard, StashModal |
 | `useViewMode.ts` | View-mode state machine (`"map" | "city" | "combat"`) + the pendingArrival token + the auto-arrival / refresh-resilience effects |
 | `useInFlight.ts` | Spam-click protection: `run(fn)` is a no-op while an earlier call is in flight. Used by every modal action button and world mutation site |
 | `useSessionToken.tsx` | Per-tab single-active-session token + `withSession(args)` helper. `SessionTokenProvider` mounted in `__root.tsx`; mutations thread the token to close Threat #5. Refresh = fresh UUID = re-claim |

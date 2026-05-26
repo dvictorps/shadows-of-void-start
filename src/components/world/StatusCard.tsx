@@ -1,6 +1,8 @@
+import { useMemo } from "react";
 import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
 import { getClassDisplayName } from "#/game/classes/i18n";
+import { BASE_CRIT_MULTIPLIER } from "#/game/combat/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
 import {
 	DEX_ACCURACY_PER_POINT,
@@ -10,6 +12,7 @@ import {
 	STR_MELEE_PCT_PER_POINT,
 } from "#/game/stats/compute";
 import type { ComputedCharacterStats } from "#/game/stats/types";
+import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { m } from "#/paraglide/messages";
 import type { Doc } from "../../../convex/_generated/dataModel";
 import HealthGlobe from "./HealthGlobe";
@@ -59,16 +62,71 @@ function attributeReadouts(stats: ComputedCharacterStats) {
 
 function estimateDps(stats: ComputedCharacterStats): number {
 	if (stats.swings.length === 0) return 0;
+	const inc = stats.increased;
+	const isSpell = stats.path === "spell";
+	const pathBonus = isSpell ? inc.spell : inc.melee;
+
+	const elemInc = (key: string) => {
+		const per =
+			key === "cold"
+				? inc.cold
+				: key === "fire"
+					? inc.fire
+					: key === "lightning"
+						? inc.lightning
+						: key === "void"
+							? inc.void
+							: 0;
+		return (
+			per +
+			inc.elementalGlobal +
+			(isSpell ? 0 : inc.elementalWithAttacks) +
+			pathBonus
+		);
+	};
+
 	const avgPerSwing =
 		stats.swings.reduce((sum, s) => {
-			const phys = (s.physicalDamage.min + s.physicalDamage.max) / 2;
-			const elem = s.elementalDamage.reduce(
-				(t, e) => t + (e.min + e.max) / 2,
-				0,
-			);
-			return sum + phys + elem;
+			const phys =
+				((s.physicalDamage.min + s.physicalDamage.max) / 2) *
+				(1 + (inc.physical + pathBonus) / 100);
+			let cold = 0;
+			let fire = 0;
+			let lightning = 0;
+			let voidDmg = 0;
+
+			for (const e of s.elementalDamage) {
+				const avg = (e.min + e.max) / 2;
+				const scaled = avg * (1 + elemInc(e.element.toLowerCase()) / 100);
+				const key = e.element.toLowerCase();
+				if (key === "cold") cold += scaled;
+				else if (key === "fire") fire += scaled;
+				else if (key === "lightning") lightning += scaled;
+				else if (key === "void") voidDmg += scaled;
+			}
+
+			if (isSpell) {
+				const gain = stats.gainAsExtraSpell;
+				const total = phys + cold + fire + lightning + voidDmg;
+				cold += total * (gain.cold / 100);
+				fire += total * (gain.fire / 100);
+				lightning += total * (gain.lightning / 100);
+				voidDmg += total * (gain.void / 100);
+			}
+
+			return sum + phys + cold + fire + lightning + voidDmg;
 		}, 0) / stats.swings.length;
-	return Math.round(avgPerSwing * stats.tickRate);
+
+	const avgCrit =
+		stats.swings.reduce(
+			(sum, s) =>
+				sum + Math.min(100, s.baseCritChance * (1 + inc.criticalChance / 100)),
+			0,
+		) / stats.swings.length;
+	const critMult = (BASE_CRIT_MULTIPLIER + stats.bonusCritMultiplier) / 100;
+	const critFactor = 1 + (avgCrit / 100) * critMult;
+
+	return Math.round(avgPerSwing * stats.tickRate * critFactor);
 }
 
 export default function StatusCard({
@@ -82,6 +140,7 @@ export default function StatusCard({
 	onUsePotion,
 	onUseTeleportStone,
 }: Props) {
+	const compact = useCompactViewport();
 	const classResolved = getClassDisplayName(character.classId);
 	const maxHp = stats.maxLife;
 	const hpServer = character.hpCurrent ?? maxHp;
@@ -91,43 +150,50 @@ export default function StatusCard({
 	const xpNeeded = xpToNextLevel(character.level);
 	const xpPct = Math.min(100, (xp / xpNeeded) * 100);
 	const maxBarrier = stats.maxBarrier;
-	// Outside combat the barrier always shows full; mid-combat the live value
-	// from the combat hook overrides it.
 	const barrier = barrierOverride ?? maxBarrier;
 	const canUsePotion = !!onUsePotion && potions > 0 && hp < maxHp;
-	// Clicking from the city would consume a stone for a no-op, so disable.
 	const canUseTeleportStone =
 		!!onUseTeleportStone &&
 		teleportStones > 0 &&
 		character.currentLocation !== "city";
-	const dps = estimateDps(stats);
+	const dps = useMemo(() => estimateDps(stats), [stats]);
 
 	return (
-		<section className="rounded-md border border-white/40 p-4">
-			<div className="flex flex-col gap-3">
-				<div className="grid grid-cols-2 gap-4">
+		<section
+			className={`rounded-md border border-white/40 ${compact ? "p-2" : "p-4"}`}
+		>
+			<div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
+				<div className={`grid grid-cols-2 ${compact ? "gap-2" : "gap-4"}`}>
 					<div className="min-w-0">
-						<h3 className="display-title truncate text-2xl uppercase tracking-wider text-white">
+						<h3
+							className={`display-title truncate uppercase tracking-wider text-white ${compact ? "text-lg" : "text-2xl"}`}
+						>
 							{character.name}
 						</h3>
-						<p className="mt-1 text-lg text-white/80">
+						<p
+							className={`mt-1 text-white/80 ${compact ? "text-sm" : "text-lg"}`}
+						>
 							<span className="text-white/50">{m.status_class_label()}</span>{" "}
 							{classResolved}
 						</p>
-						<p className="text-lg text-white/80">
+						<p className={`text-white/80 ${compact ? "text-sm" : "text-lg"}`}>
 							<span className="text-white/50">{m.status_level_label()}</span>{" "}
 							{character.level}
 						</p>
-						<p className="text-lg text-white/80">
+						<p className={`text-white/80 ${compact ? "text-sm" : "text-lg"}`}>
 							<span className="text-white/50">{m.status_dps_label()}</span>{" "}
 							{dps > 0 ? dps : "—"}
 						</p>
 					</div>
-					<div className="display-title space-y-1.5 text-right text-xl tracking-wider">
+					<div
+						className={`display-title space-y-1.5 text-right tracking-wider ${compact ? "text-base" : "text-xl"}`}
+					>
 						{attributeReadouts(stats).map((row) => (
 							<Tooltip
 								key={row.label}
-								content={<span className="whitespace-pre-line">{row.tooltip}</span>}
+								content={
+									<span className="whitespace-pre-line">{row.tooltip}</span>
+								}
 							>
 								<p className={row.glow}>
 									{row.label} {row.value}
@@ -137,9 +203,11 @@ export default function StatusCard({
 					</div>
 				</div>
 
-				<div className="flex items-center gap-3">
+				<div className={`flex items-center ${compact ? "gap-2" : "gap-3"}`}>
 					<div className="flex-1 space-y-1">
-						<div className="text-sm uppercase tracking-wider text-yellow-300/80">
+						<div
+							className={`uppercase tracking-wider text-yellow-300/80 ${compact ? "text-xs" : "text-sm"}`}
+						>
 							{m.status_xp_label({ current: xp, needed: xpNeeded })}
 						</div>
 						<div
@@ -162,13 +230,13 @@ export default function StatusCard({
 							onClick={onUsePotion}
 							disabled={!canUsePotion}
 							aria-label="Use potion"
-							className="relative flex h-16 w-16 shrink-0 items-center justify-center border border-white/40 bg-black transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black"
+							className={`relative flex shrink-0 items-center justify-center border border-white/40 bg-black transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black ${compact ? "h-11 w-11" : "h-16 w-16"}`}
 						>
 							<img
 								src="/assets/sprites/ui/pocaoCura.png"
 								alt=""
 								draggable={false}
-								className="pointer-events-none h-12 w-12 select-none object-contain"
+								className={`pointer-events-none select-none object-contain ${compact ? "h-8 w-8" : "h-12 w-12"}`}
 							/>
 							<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
 								{potions}
@@ -179,7 +247,9 @@ export default function StatusCard({
 
 				<hr className="border-white/15" />
 
-				<div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+				<div
+					className={`grid grid-cols-[auto_1fr_auto] items-center ${compact ? "gap-2" : "gap-4"}`}
+				>
 					<div className="flex flex-col items-center gap-1">
 						<span className="text-[10px] uppercase tracking-wider text-white/50">
 							{m.status_header()}
@@ -202,13 +272,13 @@ export default function StatusCard({
 								onClick={onUseTeleportStone}
 								disabled={!canUseTeleportStone}
 								aria-label="Use teleport stone"
-								className="relative flex h-16 w-16 items-center justify-center border border-white/30 bg-black/60 transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-white/30 disabled:hover:bg-black/60"
+								className={`relative flex items-center justify-center border border-white/30 bg-black/60 transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-white/30 disabled:hover:bg-black/60 ${compact ? "h-11 w-11" : "h-16 w-16"}`}
 							>
 								<img
 									src="/assets/sprites/ui/pedraTeleporte.png"
 									alt=""
 									draggable={false}
-									className="pointer-events-none h-12 w-12 select-none object-contain"
+									className={`pointer-events-none select-none object-contain ${compact ? "h-8 w-8" : "h-12 w-12"}`}
 								/>
 								<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
 									{teleportStones}

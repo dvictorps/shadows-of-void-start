@@ -292,16 +292,16 @@ Each incoming hit rolls against `hitChance`. A miss deals **zero** damage and tr
 
 **Barrier** (sits over life, blue ring around HP globe):
 - Functions as overflow life — incoming damage hits barrier first; what remains carries to HP.
-- **Barrier regen** ticks **always**: while barrier is above zero, it recovers at **5% of max barrier per second**, **including while taking damage** (regen and damage absorb run independently — incoming hits subtract from current, regen adds to current on its own timer). Caps at max barrier; no floor on how slowly it can tick (the rate is fixed).
+- **Barrier regen** ticks **always**: while barrier is above zero, it recovers at **2% of max barrier per second**, **including while taking damage** (regen and damage absorb run independently — incoming hits subtract from current, regen adds to current on its own timer). Caps at max barrier; no floor on how slowly it can tick (the rate is fixed).
 - **Barrier break** = barrier hits zero from damage. Triggers a **10-second cooldown**, during which regen is **paused** and incoming damage hits life directly. The cooldown is not reset by further damage and is not consumed faster by anything.
-- After the cooldown elapses, regen resumes **from zero** at the standard 5%/s rate (so the full recovery from break is 10s pause + 20s of regen ≈ 30s back to full). The barrier never instantly refills.
+- After the cooldown elapses, regen resumes **from zero** at the standard 2%/s rate (so the full recovery from break is 10s pause + 50s of regen ≈ 60s back to full). The barrier never instantly refills.
 - **No cap on regen rate.** A larger max barrier gives proportionally more raw regen per second — investing heavily in barrier is rewarded with sustain, paralleling how leech rewards attack investment but without the 20%-max-life cap (the design accepts this asymmetry — monster damage scaling is the lever if endgame mages become invincible to trash).
 - **Out-of-combat behaviour is the same.** Regen and cooldown both tick in real time during exploração, on the map, and while travelling between zones. The single exception is **city entry**: arriving at the city restores barrier to full and clears any active cooldown (mirroring how city entry restores HP and refills potions).
 - **Gear swap preserves current.** Trading into gear with higher max barrier expands the ceiling but does not refill — current stays where it was, regen now ticks against the new max. Trading into lower max barrier clamps current down. Cooldown state is preserved across swaps.
 
 Historical note: a prior iteration used a binary 6-second timer that instantly refilled barrier to 100%. That model gave heavy-barrier mages a "double HP every 6s" loop trivialised by potions; the current model (gradual regen + hard cooldown on break) preserves the spike-absorption identity of barrier while making it a finite resource per combat. See [ADR 0005](docs/adr/0005-barrier-regen-mechanic.md).
 
-**Monster barrier mirrors the player.** Monsters that roll `monsterAdditionalBarrier` (see Monster Modifier Pool) get a barrier pool sized at **30% of their post-other-mods HP**, displayed as a thin blue strip above their HP bar. The same `tickBarrier` mechanic runs — 5%/s regen above zero, 10s cooldown on break, regen resumes from zero. The mod is applied **last** in the spawn-time mod chain so the barrier reads the HP after Increased Life has resolved (player reads "30% of the displayed HP"). The cooldown is reset only by a fresh spawn — no in-zone reset for monsters.
+**Monster barrier mirrors the player.** Monsters that roll `monsterAdditionalBarrier` (see Monster Modifier Pool) get a barrier pool sized at **30% of their post-other-mods HP**, displayed as a thin blue strip above their HP bar. The same `tickBarrier` mechanic runs — 2%/s regen above zero, 10s cooldown on break, regen resumes from zero. The mod is applied **last** in the spawn-time mod chain so the barrier reads the HP after Increased Life has resolved (player reads "30% of the displayed HP"). The cooldown is reset only by a fresh spawn — no in-zone reset for monsters.
 
 **Block** — granted by **shields** (base + rolled mods) and by **attack dual-wielding** (flat +10% implicit). When a hit lands and is not evaded, roll once against `blockChance`. A blocked hit deals 0 damage to barrier/life but **does** trigger the attacker's on-hit (blocks are still "hits" for the attacker's purposes). Thorns still reflect to the attacker on block, regardless of whether the block came from a shield or from dual-wielding.
 
@@ -471,7 +471,7 @@ The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all
 ## Item Identification and Loot Tiers per Act
 
 - **All items drop pre-identified.** No identification scrolls, no fog of war on stats.
-- **Act 1 drop pool:** Normal, Magic, Rare. Legendary has a **low chance** to drop only from the **act boss**. Epic items do not exist in Act 1.
+- **Act 1 drop pool:** Normal, Magic, Rare. Legendary can drop from any source via the rarity promotion system. Epic items do not exist in Act 1.
 - **Act 2 onward (planned):** introduces Epic drops and continues to ramp Legendary frequency.
 
 ### Drop rates (Act 1 baseline)
@@ -484,11 +484,19 @@ The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all
 | Gauntlet rare (inside a boss node) | 100% | Same as Miniboss — **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare |
 | Act boss | 100% | **2-3 items** · 1 **guaranteed Rare** · remaining slots: 75% Rare · 25% Magic (no Normals from boss) |
 
-**Magic Find** (item rarity %) shifts every drop's distribution toward higher rarity, including the **guaranteed Rare slots** from minibosses and the act boss. Every drop — including the guaranteed slots — can be promoted upward by enough MF:
+### Rarity promotion (Magic Find)
 
-- Normal → Magic → Rare → **Legendary**
+After each item's base rarity is rolled (including guaranteed slots), the game attempts to promote it one tier at a time. Each step is an independent roll:
 
-Legendaries are reachable in Act 1 from any source, but the baseline chance is **very low**. The act boss has the highest baseline Legendary chance (a few %); regular mobs need significant MF stacking to see one. Epic drops are not available in Act 1.
+| Promotion | Base chance | With 100% MF | With 200% MF |
+|---|---|---|---|
+| Normal → Magic | 10% | 20% | 30% |
+| Magic → Rare | 5% | 10% | 15% |
+| Rare → Legendary | 1% | 2% | 3% |
+
+**Formula:** `chance = basePct × (1 + magicFind / 100)`
+
+Promotions chain: a Normal can promote to Magic, then that result can promote to Rare, then to Legendary — each step is a separate roll. The act boss's guaranteed Rare has a baseline 1% chance to become Legendary (≈1% per item with 0 MF). Regular mobs need MF stacking to see Legendaries. Epic drops are not available in Act 1.
 
 ### Vendor catalog (MVP)
 

@@ -9,6 +9,7 @@ export type DamageEvent = {
 	isMiss?: boolean;
 	isBlocked?: boolean;
 	isThorns?: boolean;
+	isHealing?: boolean;
 	// Set for player→enemy hits. Drives the HitFx category (slash/impact/magic).
 	weaponType?: WeaponType;
 };

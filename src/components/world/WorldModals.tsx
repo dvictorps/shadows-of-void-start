@@ -2,6 +2,7 @@ import BagPreviewModal from "#/components/world/BagPreviewModal";
 import ExitZoneModal from "#/components/world/ExitZoneModal";
 import InventoryModal from "#/components/world/InventoryModal";
 import SettingsModal from "#/components/world/SettingsModal";
+import StashModal from "#/components/world/StashModal";
 import VendorModal from "#/components/world/VendorModal";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import type { VendorProductId } from "#/game/vendor/products";
@@ -13,6 +14,7 @@ export function WorldModals({
 	exitModal,
 	inventoryModal,
 	vendorModal,
+	stashModal,
 	settingsModal,
 	zoneBag,
 	exitKeepCap,
@@ -26,16 +28,22 @@ export function WorldModals({
 	characterLevel,
 	equippedItems,
 	inventoryItems,
+	stashItems,
 	rubys,
 	potions,
 	teleportStones,
 	onVendorBuy,
 	onVendorSellMany,
+	onStashDeposit,
+	onStashWithdraw,
+	onReorderInventory,
+	onReorderStash,
 }: {
 	bagModal: ModalHandle;
 	exitModal: ModalHandle;
 	inventoryModal: ModalHandle;
 	vendorModal: ModalHandle;
+	stashModal: ModalHandle;
 	settingsModal: ModalHandle;
 	zoneBag: Doc<"items">[];
 	exitKeepCap: number;
@@ -49,11 +57,16 @@ export function WorldModals({
 	characterLevel: number;
 	equippedItems: Doc<"items">[];
 	inventoryItems: Doc<"items">[];
+	stashItems: Doc<"items">[];
 	rubys: number;
 	potions: number;
 	teleportStones: number;
 	onVendorBuy: (productId: VendorProductId) => Promise<void>;
 	onVendorSellMany: (itemIds: Id<"items">[]) => Promise<void>;
+	onStashDeposit: (itemIds: Id<"items">[]) => Promise<{ deposited: number; failed: number }>;
+	onStashWithdraw: (itemIds: Id<"items">[]) => Promise<{ withdrawn: number; failed: number }>;
+	onReorderInventory: (args: { itemId: Id<"items">; targetSlot: number }) => void;
+	onReorderStash: (args: { itemId: Id<"items">; targetSlot: number }) => void;
 }) {
 	return (
 		<>
@@ -90,6 +103,16 @@ export function WorldModals({
 				inventoryItems={inventoryItems}
 				onBuy={onVendorBuy}
 				onSellMany={onVendorSellMany}
+			/>
+			<StashModal
+				isOpen={stashModal.isOpen}
+				onClose={stashModal.close}
+				inventoryItems={inventoryItems}
+				stashItems={stashItems}
+				onDeposit={onStashDeposit}
+				onWithdraw={onStashWithdraw}
+				onReorderInventory={onReorderInventory}
+				onReorderStash={onReorderStash}
 			/>
 			<SettingsModal
 				isOpen={settingsModal.isOpen}

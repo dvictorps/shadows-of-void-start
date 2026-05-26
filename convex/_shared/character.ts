@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values"
 import { POTION_REFILL_FLOOR } from "../../src/game/combat/constants"
-import { INVENTORY_MAX_SLOTS } from "../../src/game/inventory/constants"
+import { INVENTORY_MAX_SLOTS, STASH_MAX_SLOTS } from "../../src/game/inventory/constants"
 import {
 	EQUIPPED_SLOTS,
 	type EquippedItem,
@@ -95,6 +95,34 @@ export async function fetchInventoryAllocator(
 		return -1
 	}
 	return { used: inventory.length, nextFreeSlot }
+}
+
+export async function fetchStashAllocator(
+	ctx: MutationCtx,
+	authUserId: string,
+	stashMode: "softcore" | "hardcore",
+): Promise<{ used: number; nextFreeSlot: () => number }> {
+	const stashItems = await ctx.db
+		.query("items")
+		.withIndex("by_stash", (q) =>
+			q.eq("authUserId", authUserId).eq("stashMode", stashMode),
+		)
+		.collect()
+	const occupied = new Set(
+		stashItems
+			.map((it) => it.stashSlot)
+			.filter((s): s is number => typeof s === "number"),
+	)
+	function nextFreeSlot(): number {
+		for (let i = 0; i < STASH_MAX_SLOTS; i++) {
+			if (!occupied.has(i)) {
+				occupied.add(i)
+				return i
+			}
+		}
+		return -1
+	}
+	return { used: stashItems.length, nextFreeSlot }
 }
 
 export function newZoneSession(): string {
