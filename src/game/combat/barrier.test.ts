@@ -49,15 +49,15 @@ describe("barrier state", () => {
 		expect(s.current).toBe(0); // still empty, no regen during cooldown
 	});
 
-	it("after cooldown elapses regen resumes at 5% of max per second from zero", () => {
+	it("after cooldown elapses regen resumes at 2% of max per second from zero", () => {
 		let s = makeBarrierState(100);
 		s = damageBarrier(s, 100).state; // empties → cooldown 10
 		s = tickBarrier(s, 10); // cooldown reaches 0
 		expect(s.cooldownRemaining).toBe(0);
 		expect(s.current).toBe(0);
-		s = tickBarrier(s, 1); // one second of regen at 5%/s
-		expect(s.current).toBeCloseTo(5);
-		s = tickBarrier(s, 19); // 19 more seconds → 5 + 95 = 100, clamped
+		s = tickBarrier(s, 1); // one second of regen at 2%/s
+		expect(s.current).toBeCloseTo(2);
+		s = tickBarrier(s, 49); // 49 more seconds → 2 + 98 = 100, clamped
 		expect(s.current).toBe(100);
 	});
 
@@ -65,15 +65,15 @@ describe("barrier state", () => {
 		let s = makeBarrierState(100);
 		s = damageBarrier(s, 30).state; // current 70, no cooldown
 		expect(s.cooldownRemaining).toBe(0);
-		s = tickBarrier(s, 1); // +5
-		expect(s.current).toBeCloseTo(75);
+		s = tickBarrier(s, 1); // +2
+		expect(s.current).toBeCloseTo(72);
 		// More damage during regen — current drops, no cooldown change.
 		s = damageBarrier(s, 20).state;
-		expect(s.current).toBeCloseTo(55);
+		expect(s.current).toBeCloseTo(52);
 		expect(s.cooldownRemaining).toBe(0);
 		// Regen keeps ticking.
 		s = tickBarrier(s, 2);
-		expect(s.current).toBeCloseTo(65);
+		expect(s.current).toBeCloseTo(56);
 	});
 
 	it("tickBarrier is a no-op when barrier is already full and cooldown is zero", () => {
@@ -124,6 +124,6 @@ describe("barrier state", () => {
 		s = rescaleBarrier(s, 100);
 		expect(s.cooldownRemaining).toBe(0);
 		s = tickBarrier(s, 1);
-		expect(s.current).toBeCloseTo(5);
+		expect(s.current).toBeCloseTo(2);
 	});
 });
