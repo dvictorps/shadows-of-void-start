@@ -1,4 +1,4 @@
-import { randInt } from "#/lib/rng";
+import { randInt } from "../../lib/rng";
 import type { MonsterElementDamage } from "../monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "../stats/types";
 import {
