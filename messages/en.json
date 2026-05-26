@@ -185,9 +185,9 @@
   "element_cold": "Ice",
   "element_lightning": "Lightning",
   "element_void": "Void",
-  "element_desc_fire": "Fire Attunement — Converts spell damage to fire. Bonus: +1 min / +2 max fire damage per level.",
-  "element_desc_cold": "Cold Attunement — Converts spell damage to cold. Bonus: +1 min / +2 max cold damage per level.",
-  "element_desc_lightning": "Lightning Attunement — Converts spell damage to lightning. Bonus: +1 min / +2 max lightning damage per level.",
+  "element_desc_fire": "Fire Attunement — 100% of base spell damage becomes fire damage. Bonus: +1 min / +2 max fire damage per level.",
+  "element_desc_cold": "Cold Attunement — 100% of base spell damage becomes cold damage. Bonus: +1 min / +2 max cold damage per level.",
+  "element_desc_lightning": "Lightning Attunement — 100% of base spell damage becomes lightning damage. Bonus: +1 min / +2 max lightning damage per level.",
   "stat_element_damage": "{element} Damage",
 
   "settings_title": "Settings",

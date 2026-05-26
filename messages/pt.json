@@ -185,9 +185,9 @@
   "element_cold": "Gelo",
   "element_lightning": "Raio",
   "element_void": "Vazio",
-  "element_desc_fire": "Sintonia de Fogo — Converte dano de conjuração em fogo. Bônus: +1 min / +2 max de dano de fogo por nível.",
-  "element_desc_cold": "Sintonia de Gelo — Converte dano de conjuração em gelo. Bônus: +1 min / +2 max de dano de gelo por nível.",
-  "element_desc_lightning": "Sintonia de Raio — Converte dano de conjuração em raio. Bônus: +1 min / +2 max de dano de raio por nível.",
+  "element_desc_fire": "Sintonia de Fogo — 100% do dano base de conjuração vira dano de fogo. Bônus: +1 min / +2 max de dano de fogo por nível.",
+  "element_desc_cold": "Sintonia de Gelo — 100% do dano base de conjuração vira dano de gelo. Bônus: +1 min / +2 max de dano de gelo por nível.",
+  "element_desc_lightning": "Sintonia de Raio — 100% do dano base de conjuração vira dano de raio. Bônus: +1 min / +2 max de dano de raio por nível.",
   "stat_element_damage": "Dano de {element}",
 
   "settings_title": "Configurações",
