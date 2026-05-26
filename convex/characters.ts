@@ -112,6 +112,7 @@ export const create = mutation({
 			level: 1,
 			xp: 0,
 			hpCurrent: maxHp,
+			barrierCurrent: baseStats.maxBarrier,
 			potions: STARTING_POTIONS,
 			hardcore: args.hardcore ?? false,
 			createdAt: Date.now(),

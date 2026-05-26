@@ -18,6 +18,7 @@ import TravelProgressBar from "#/components/world/TravelProgressBar";
 import LeaderboardModal from "#/components/world/LeaderboardModal";
 import { WorldModals } from "#/components/world/WorldModals";
 import { findClassDefinition } from "#/game/classes/data";
+import { makeBarrierState, tickBarrier } from "#/game/combat/barrier";
 import { computeBagKeepCap } from "#/game/combat/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
 import { computeCharacterStats } from "#/game/stats/compute";
@@ -618,10 +619,39 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	}
 
 	const hpOverride = view === "combat" ? combat.playerHp : undefined;
+
+	// Barrier regen outside combat — ticks in real time on map/city per CONTEXT.md.
+	const [outOfCombatBarrier, setOutOfCombatBarrier] = useState<number | null>(null);
+	const outOfCombatBarrierRef = useRef(makeBarrierState(stats.maxBarrier));
+
+	useEffect(() => {
+		if (view === "combat") {
+			setOutOfCombatBarrier(null);
+			return;
+		}
+		const initial = character.barrierCurrent ?? stats.maxBarrier;
+		const state = makeBarrierState(stats.maxBarrier);
+		state.current = Math.min(initial, stats.maxBarrier);
+		outOfCombatBarrierRef.current = state;
+		setOutOfCombatBarrier(state.current);
+
+		if (state.current >= stats.maxBarrier) return;
+
+		const id = setInterval(() => {
+			const next = tickBarrier(outOfCombatBarrierRef.current, 0.1);
+			if (next !== outOfCombatBarrierRef.current) {
+				outOfCombatBarrierRef.current = next;
+				setOutOfCombatBarrier(next.current);
+			}
+			if (next.current >= next.max) clearInterval(id);
+		}, 100);
+		return () => clearInterval(id);
+	}, [view, character.barrierCurrent, stats.maxBarrier]);
+
 	const barrierOverride =
 		view === "combat"
 			? combat.barrier.current
-			: (character.barrierCurrent ?? stats.maxBarrier);
+			: (outOfCombatBarrier ?? character.barrierCurrent ?? stats.maxBarrier);
 	const potionsOverride = view === "combat" ? combat.potions : undefined;
 	// Pass the wrapped handler when allowed; when an in-flight call is
 	// pending, clear it so StatusCard's internal `canUsePotion` check disables
