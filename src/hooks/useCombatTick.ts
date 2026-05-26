@@ -196,6 +196,15 @@ export function useCombatTick({
 	const tickRate = stats.tickRate || 1;
 	const hasSwings = stats.swings.length > 0;
 
+	// Barrier ticks independently of combat — regen runs during calmaria too.
+	useTicker(active && !isEngaged, 100, () => {
+		const next = tickBarrier(barrierRef.current, 0.1);
+		if (next !== barrierRef.current) {
+			barrierRef.current = next;
+			setBarrier(next);
+		}
+	});
+
 	useTicker(active && isEngaged && enemy !== null, TICK_INTERVAL_MS, () => {
 		if (deadRef.current) return;
 		const currentEnemy = enemyRef.current;
