@@ -343,9 +343,11 @@
   "stats_magic_find": "Magic Find",
 
   "tooltip_physical_damage": "Physical Damage",
+  "tooltip_spell_damage": "Spell Damage",
   "tooltip_damage_line": "{element} Damage",
   "tooltip_critical_strike_chance": "Critical Strike Chance",
   "tooltip_attacks_per_second": "Attacks per Second",
+  "tooltip_casts_per_second": "Casts per Second",
   "tooltip_armour": "Armour",
   "tooltip_evasion_rating": "Evasion Rating",
   "tooltip_block_chance": "Block Chance",

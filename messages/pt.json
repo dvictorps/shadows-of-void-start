@@ -343,9 +343,11 @@
   "stats_magic_find": "Raridade de Item",
 
   "tooltip_physical_damage": "Dano Físico",
+  "tooltip_spell_damage": "Dano de Conjuração",
   "tooltip_damage_line": "Dano de {element}",
   "tooltip_critical_strike_chance": "Chance Crítica",
   "tooltip_attacks_per_second": "Ataques por Segundo",
+  "tooltip_casts_per_second": "Conjurações por Segundo",
   "tooltip_armour": "Armadura",
   "tooltip_evasion_rating": "Evasão",
   "tooltip_block_chance": "Chance de Bloqueio",
