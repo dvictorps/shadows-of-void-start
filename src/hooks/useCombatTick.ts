@@ -100,6 +100,10 @@ export function useCombatTick({
 	playerHpRef.current = playerHp;
 	const initialHpRef = useRef(initialHp);
 	initialHpRef.current = initialHp;
+	const initialBarrierRef = useRef(initialBarrier);
+	initialBarrierRef.current = initialBarrier;
+	const maxBarrierRef = useRef(stats.maxBarrier);
+	maxBarrierRef.current = stats.maxBarrier;
 	const lastSyncedHpRef = useRef(initialHp);
 	const lastSyncedBarrierRef = useRef(initialBarrier ?? stats.maxBarrier);
 	const barrierRef = useRef(barrier);
@@ -178,7 +182,12 @@ export function useCombatTick({
 			playerHpRef.current = initialHpRef.current;
 			setPlayerHp(initialHpRef.current);
 			lastSyncedHpRef.current = initialHpRef.current;
-			lastSyncedBarrierRef.current = barrierRef.current.current;
+			const ib = initialBarrierRef.current ?? maxBarrierRef.current;
+			const freshBarrier = makeBarrierState(maxBarrierRef.current);
+			freshBarrier.current = Math.min(ib, maxBarrierRef.current);
+			barrierRef.current = freshBarrier;
+			setBarrier(freshBarrier);
+			lastSyncedBarrierRef.current = freshBarrier.current;
 			deadRef.current = false;
 			leechRef.current = [];
 			leechHealAccRef.current = 0;

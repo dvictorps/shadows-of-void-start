@@ -318,7 +318,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		characterLevel: character.level,
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
-		initialBarrier: stats.maxBarrier,
+		initialBarrier: character.barrierCurrent ?? stats.maxBarrier,
 		potions: character.potions ?? 0,
 		incense: character.etherealIncense ?? 0,
 		monsterPool,

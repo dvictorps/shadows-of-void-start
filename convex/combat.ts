@@ -783,6 +783,7 @@ export const useTeleportStone = mutation({
 			await ctx.db.patch(args.characterId, {
 				teleportStones: stones - 1,
 				hpCurrent: stats.maxLife,
+				barrierCurrent: stats.maxBarrier,
 				potions: refilledPotions,
 				...clearPerVisitZoneState(),
 				travelDestination: "city",
