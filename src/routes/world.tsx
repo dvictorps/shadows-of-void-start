@@ -159,6 +159,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const settingsModal = useModal();
 	const statsModal = useModal();
 	const vendorModal = useModal();
+	const stashModal = useModal();
 	const leaderboardModal = useModal();
 	const currentLocation = character.currentLocation ?? "city";
 	const currentNode = findNode(ACT_1, currentLocation);
@@ -176,6 +177,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const liveInventory = useQuery(api.items.inventory, {
 		characterId: character._id,
 	});
+	const liveStash = useQuery(api.items.stash, {
+		characterId: character._id,
+	});
 	const equippedItems = useCachedQuery(
 		`equipped:${character._id}`,
 		liveEquipped,
@@ -183,6 +187,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const inventoryItems = useCachedQuery(
 		`inventory:${character._id}`,
 		liveInventory,
+	);
+	const stashItems = useCachedQuery(
+		`stash:${character._id}`,
+		liveStash,
 	);
 
 	const equippedSnapshot: EquippedItem[] = useMemo(() => {
@@ -221,6 +229,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		teleportStone,
 		vendorSellMany,
 		switchElement,
+		reorderInventory,
+		depositToStash,
+		withdrawFromStash,
+		reorderStash,
 	} = useWorldMutations({ movementSpeed: stats.movementSpeed });
 
 	const { view, setView, setPendingArrival, isTraveling, enterDestination } =
@@ -747,6 +759,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						cityName={translateNodeName(currentNode)}
 						onLeave={handleBackToMap}
 						onOpenVendor={vendorModal.open}
+						onOpenStash={stashModal.open}
 					/>
 				)}
 				{view === "combat" && currentNode && (
@@ -842,6 +855,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				exitModal={exitModal}
 				inventoryModal={inventoryModal}
 				vendorModal={vendorModal}
+				stashModal={stashModal}
 				settingsModal={settingsModal}
 				zoneBag={zoneBag ?? []}
 				exitKeepCap={exitKeepCap}
@@ -855,6 +869,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				characterLevel={character.level}
 				equippedItems={equippedItems ?? []}
 				inventoryItems={inventoryItems ?? []}
+				stashItems={stashItems ?? []}
 				rubys={character.rubys ?? 0}
 				potions={character.potions ?? 0}
 				teleportStones={character.teleportStones ?? 0}
@@ -863,6 +878,18 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				}}
 				onVendorSellMany={async (itemIds) => {
 					await vendorSellMany({ characterId: character._id, itemIds });
+				}}
+				onStashDeposit={async (itemIds) => {
+					return await depositToStash({ characterId: character._id, itemIds });
+				}}
+				onStashWithdraw={async (itemIds) => {
+					return await withdrawFromStash({ characterId: character._id, itemIds });
+				}}
+				onReorderInventory={({ itemId, targetSlot }) => {
+					void reorderInventory({ characterId: character._id, itemId, targetSlot });
+				}}
+				onReorderStash={({ itemId, targetSlot }) => {
+					void reorderStash({ characterId: character._id, itemId, targetSlot });
 				}}
 			/>
 			<LeaderboardModal

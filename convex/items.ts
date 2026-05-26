@@ -537,3 +537,28 @@ export const equipped = query({
 			.collect()
 	},
 })
+
+// Query: stash items for the current user's active mode.
+// Account-scoped (shared across characters in the same mode).
+export const stash = query({
+	args: { characterId: v.id("characters") },
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) return []
+		const char = await ctx.db.get(args.characterId)
+		if (!char || char.authUserId !== authUser._id) return []
+		const mode = char.hardcore ? "hardcore" : "softcore"
+		const items = await ctx.db
+			.query("items")
+			.withIndex("by_stash", (q) =>
+				q.eq("authUserId", authUser._id).eq("stashMode", mode),
+			)
+			.collect()
+		return items.sort((a, b) => {
+			const sa = a.stashSlot ?? Number.MAX_SAFE_INTEGER
+			const sb = b.stashSlot ?? Number.MAX_SAFE_INTEGER
+			if (sa !== sb) return sa - sb
+			return b.droppedAt - a.droppedAt
+		})
+	},
+})

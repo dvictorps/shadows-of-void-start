@@ -14,7 +14,9 @@ import { useRef } from "react";
 import { teleportStoneTravelSeconds } from "#/game/combat/constants";
 import {
 	bySlotAsc,
+	byStashSlotAsc,
 	createInventorySlotAllocator,
+	createStashSlotAllocator,
 } from "#/game/inventory/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
@@ -245,6 +247,151 @@ export function useWorldMutations({
 		),
 	);
 
+	const reorderInventory = useSessionedMutation(
+		useMutation(api.items.reorderInventory).withOptimisticUpdate(
+			(localStore, args) => {
+				const inv = localStore.getQuery(api.items.inventory, {
+					characterId: args.characterId,
+				});
+				if (!inv) return;
+				const source = inv.find((it) => it._id === args.itemId);
+				if (!source) return;
+				const occupant = inv.find(
+					(it) => it.inventorySlot === args.targetSlot,
+				);
+				const sourceSlot = source.inventorySlot;
+				const next = inv
+					.map((it) => {
+						if (it._id === source._id)
+							return { ...it, inventorySlot: args.targetSlot };
+						if (occupant && it._id === occupant._id)
+							return { ...it, inventorySlot: sourceSlot ?? -1 };
+						return it;
+					})
+					.sort(bySlotAsc);
+				localStore.setQuery(
+					api.items.inventory,
+					{ characterId: args.characterId },
+					next,
+				);
+			},
+		),
+	);
+
+	const depositToStash = useSessionedMutation(
+		useMutation(api.stash.depositToStash).withOptimisticUpdate(
+			(localStore, args) => {
+				const inv = localStore.getQuery(api.items.inventory, {
+					characterId: args.characterId,
+				});
+				const stash = localStore.getQuery(api.items.stash, {
+					characterId: args.characterId,
+				});
+				if (!inv || !stash) return;
+				const idSet = new Set(args.itemIds.map((id) => id.toString()));
+				const toMove = inv.filter((it) => idSet.has(it._id.toString()));
+				if (toMove.length === 0) return;
+				const nextStashSlot = createStashSlotAllocator(stash);
+				const moved: Doc<"items">[] = [];
+				for (const item of toMove) {
+					const slot = nextStashSlot();
+					if (slot === -1) break;
+					moved.push({
+						...item,
+						locationKind: "stash" as const,
+						characterId: undefined,
+						inventorySlot: undefined,
+						stashSlot: slot,
+					});
+				}
+				const movedIds = new Set(moved.map((it) => it._id));
+				localStore.setQuery(
+					api.items.inventory,
+					{ characterId: args.characterId },
+					inv.filter((it) => !movedIds.has(it._id)).sort(bySlotAsc),
+				);
+				localStore.setQuery(
+					api.items.stash,
+					{ characterId: args.characterId },
+					[...stash, ...moved].sort(byStashSlotAsc),
+				);
+			},
+		),
+	);
+
+	const withdrawFromStash = useSessionedMutation(
+		useMutation(api.stash.withdrawFromStash).withOptimisticUpdate(
+			(localStore, args) => {
+				const inv = localStore.getQuery(api.items.inventory, {
+					characterId: args.characterId,
+				});
+				const stash = localStore.getQuery(api.items.stash, {
+					characterId: args.characterId,
+				});
+				if (!inv || !stash) return;
+				const idSet = new Set(args.itemIds.map((id) => id.toString()));
+				const toMove = stash.filter((it) => idSet.has(it._id.toString()));
+				if (toMove.length === 0) return;
+				const nextInvSlot = createInventorySlotAllocator(inv);
+				const moved: Doc<"items">[] = [];
+				for (const item of toMove) {
+					const slot = nextInvSlot();
+					if (slot === -1) break;
+					moved.push({
+						...item,
+						locationKind: "inventory" as const,
+						characterId: args.characterId,
+						stashSlot: undefined,
+						stashMode: undefined,
+						inventorySlot: slot,
+					});
+				}
+				const movedIds = new Set(moved.map((it) => it._id));
+				localStore.setQuery(
+					api.items.stash,
+					{ characterId: args.characterId },
+					stash.filter((it) => !movedIds.has(it._id)).sort(byStashSlotAsc),
+				);
+				localStore.setQuery(
+					api.items.inventory,
+					{ characterId: args.characterId },
+					[...inv, ...moved].sort(bySlotAsc),
+				);
+			},
+		),
+	);
+
+	const reorderStash = useSessionedMutation(
+		useMutation(api.stash.reorderStash).withOptimisticUpdate(
+			(localStore, args) => {
+				const stash = localStore.getQuery(api.items.stash, {
+					characterId: args.characterId,
+				});
+				if (!stash) return;
+				const source = stash.find((it) => it._id === args.itemId);
+				if (!source) return;
+				const occupant = stash.find(
+					(it) => it.stashSlot === args.targetSlot,
+				);
+				const sourceSlot = source.stashSlot;
+				const next = stash
+					.map((it) => {
+						if (it._id === source._id)
+							return { ...it, stashSlot: args.targetSlot };
+						if (occupant && it._id === occupant._id)
+							return { ...it, stashSlot: sourceSlot ?? -1 };
+						return it;
+					})
+					.sort(byStashSlotAsc);
+				localStore.setQuery(
+					api.items.stash,
+					{ characterId: args.characterId },
+					next,
+				);
+			},
+		),
+	);
+
 	return {
 		enterCity,
 		enterZone,
@@ -258,5 +405,9 @@ export function useWorldMutations({
 		teleportStone,
 		vendorSellMany,
 		switchElement,
+		reorderInventory,
+		depositToStash,
+		withdrawFromStash,
+		reorderStash,
 	};
 }

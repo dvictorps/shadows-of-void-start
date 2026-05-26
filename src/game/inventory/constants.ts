@@ -1,4 +1,5 @@
 export const INVENTORY_MAX_SLOTS = 60;
+export const STASH_MAX_SLOTS = 60;
 
 /**
  * Comparator for arrays of inventory items / docs, ordering by ascending
@@ -32,6 +33,32 @@ export function createInventorySlotAllocator(
 	return () => {
 		while (cursor < INVENTORY_MAX_SLOTS && occupied.has(cursor)) cursor++;
 		if (cursor >= INVENTORY_MAX_SLOTS) return -1;
+		const slot = cursor++;
+		occupied.add(slot);
+		return slot;
+	};
+}
+
+export function byStashSlotAsc<T extends { stashSlot?: number }>(
+	a: T,
+	b: T,
+): number {
+	const sa = a.stashSlot ?? Number.MAX_SAFE_INTEGER;
+	const sb = b.stashSlot ?? Number.MAX_SAFE_INTEGER;
+	return sa - sb;
+}
+
+export function createStashSlotAllocator(
+	existing: ReadonlyArray<{ stashSlot?: number }>,
+): () => number {
+	const occupied = new Set<number>();
+	for (const it of existing) {
+		if (typeof it.stashSlot === "number") occupied.add(it.stashSlot);
+	}
+	let cursor = 0;
+	return () => {
+		while (cursor < STASH_MAX_SLOTS && occupied.has(cursor)) cursor++;
+		if (cursor >= STASH_MAX_SLOTS) return -1;
 		const slot = cursor++;
 		occupied.add(slot);
 		return slot;

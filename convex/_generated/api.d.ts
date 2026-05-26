@@ -18,6 +18,7 @@ import type * as http from "../http.js";
 import type * as itemValidator from "../itemValidator.js";
 import type * as items from "../items.js";
 import type * as leaderboard from "../leaderboard.js";
+import type * as stash from "../stash.js";
 import type * as users from "../users.js";
 import type * as vendor from "../vendor.js";
 
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   itemValidator: typeof itemValidator;
   items: typeof items;
   leaderboard: typeof leaderboard;
+  stash: typeof stash;
   users: typeof users;
   vendor: typeof vendor;
 }>;
