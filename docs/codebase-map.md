@@ -122,14 +122,16 @@ The spine of every gameplay calculation. Read this if you're touching anything t
 
 | File | Concern |
 |---|---|
-| `schema.ts` | Database tables: `characters`, `items`, `userRoles`. Indexes by `authUserId`, `characterId+locationKind`, `zoneSession`, `stash`. `characters` carries `activeSessionToken` / `activeSessionAt` — see `_shared/character.ts → loadOwnedCharacterWithSession` |
+| `schema.ts` | Database tables: `characters`, `items`, `userRoles`, `leaderboardSnapshot`. Indexes by `authUserId`, `characterId+locationKind`, `zoneSession`, `stash`, `category+mode`. `characters` carries `activeSessionToken` / `activeSessionAt` — see `_shared/character.ts → loadOwnedCharacterWithSession` |
 | `characters.ts` | Character CRUD only — `list`, `create`, `remove`, `byId`, `claimCharacterSession` (stamps the active-session UUID; called by `/character-select` Play and by `/world`'s reconciliation effect). Normalizes legacy docs with defaults on read |
-| `combat.ts` | Combat + travel mutations: `recordKill`, `usePotion`, `useEtherealIncense`, `syncHp`, `respawnDead`, `enterZone`, `enterCity`, `startTravel`, `arriveAtTravel`, `useTeleportStone`. Every state-mutating mutation accepts a `sessionToken` arg threaded through `loadOwnedCharacterWithSession`. Largest convex file (~570 lines) |
+| `combat.ts` | Combat + travel mutations: `recordKill`, `usePotion`, `useEtherealIncense`, `syncHp`, `respawnDead`, `enterZone`, `enterCity`, `startTravel`, `arriveAtTravel`, `useTeleportStone`, `switchElement`. Every state-mutating mutation accepts a `sessionToken` arg threaded through `loadOwnedCharacterWithSession`. Largest convex file (~800 lines) |
 | `items.ts` | Item lifecycle mutations: `exitZone`, `pickFromBag` / `discardFromBag` / `discardFromInventory`, `equipItem` / `unequipItem`, `reorderInventory`, and the `zoneBag` / `inventory` / `equipped` queries. Mutations carry `sessionToken`; the read-only queries deliberately do not — a stale tab can still observe its character coherently |
 | `vendor.ts` | Vendor mutations: `vendorBuy` (potions for Rubys), `vendorSellMany` (gear for Rubys). Both carry `sessionToken` |
 | `admin.ts` | Admin-only queries (`pulse`, `listUsers`, `listAdmins`, `listRecentItems`) powering `/admin`. Each handler starts with `assertAdmin(ctx)` — route guards are UX, not security |
 | `itemValidator.ts` | Convex validator for the `GeneratedItem` shape in `items.data` |
 | `_shared/character.ts` | Cross-mutation helpers: `loadOwnedCharacter`, `loadOwnedCharacterWithSession` (single-active-session guard — see [threat-model.md → Threat #5](./security/threat-model.md)), `loadEquippedSet`, etc. The ownership check used by every state-mutating mutation |
+| `leaderboard.ts` | Leaderboard snapshot compute (internal mutation) + `getSnapshot` query. Called by the 5-minute cron |
+| `crons.ts` | Convex cron jobs — leaderboard snapshot every 5 minutes |
 | `auth.ts`, `auth.config.ts`, `users.ts` | better-auth integration + user role queries (`assertAdmin`, role grant/revoke) |
 | `http.ts` | Auth callback routes |
 
@@ -173,6 +175,8 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | `ExitZoneModal.tsx` | Post-retreat loot picker (5 buttons, selection grid) |
 | `VendorModal.tsx` | Per-act vendor — buy consumables / sell inventory gear for Rubys |
 | `ShowStatsModal.tsx` | Full character sheet (4 sections, PoE-style) |
+| `ElementSelector.tsx` | Mage elemental attunement selector — fire/cold/lightning buttons with glow + 5s cooldown overlay |
+| `LeaderboardModal.tsx` | Leaderboard modal — level/boss-kills tabs, softcore/hardcore toggle, class filter, fallen heroes |
 | `SettingsModal.tsx` | Language dropdown + SFX volume slider |
 | `SessionLostModal.tsx` | Non-dismissible takeover modal — fires when another tab/device rotates the active-session token. Refresh button reloads the page to re-claim |
 | `WorldModals.tsx` | Sibling that owns the modal mount-points (BagPreview / ExitZone / Inventory / Vendor / Settings) — keeps `world.tsx` lean |
