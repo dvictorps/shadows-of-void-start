@@ -48,7 +48,13 @@ const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
 	unique: "0 0 22px rgba(175, 96, 37, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
 };
 
-export type ConsumableKey = "potion" | "teleport" | "incense" | "element_fire" | "element_cold" | "element_lightning";
+export type ConsumableKey =
+	| "potion"
+	| "teleport"
+	| "incense"
+	| "element_fire"
+	| "element_cold"
+	| "element_lightning";
 
 type Props = {
 	zoneName: string;
@@ -216,8 +222,7 @@ export default function CombatScene({
 		: enemy
 			? RARITY_NAMEPLATE_SHADOW[enemy.rarity]
 			: RARITY_NAMEPLATE_SHADOW.normal;
-	const isStagedEnemy =
-		enemy?.rarity === "rare" || enemy?.rarity === "unique";
+	const isStagedEnemy = enemy?.rarity === "rare" || enemy?.rarity === "unique";
 	const nameplateDelay = isStagedEnemy ? 0 : 0.08;
 	const hpBarDelay = isStagedEnemy ? 0 : 0.16;
 
@@ -229,14 +234,14 @@ export default function CombatScene({
 	const showNameplate =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
-				state !== "victory" &&
+		state !== "victory" &&
 		(state !== "rare_intro" || rareIntroStage !== "sprite") &&
 		(state !== "boss_intro" ||
 			(bossIntroStage !== "sprite" && bossIntroStage !== "impact"));
 	const showHpBar =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
-				state !== "victory" &&
+		state !== "victory" &&
 		(state !== "rare_intro" || rareIntroStage === "hp") &&
 		(state !== "boss_intro" || bossIntroStage === "hp");
 	// Read once per render — both the nameplate text and the img alt need it.
@@ -386,9 +391,7 @@ export default function CombatScene({
 				/>
 				{campThresholdsMs.map((thresholdMs) => {
 					const left =
-						calmariaBudgetMs > 0
-							? (thresholdMs / calmariaBudgetMs) * 100
-							: 0;
+						calmariaBudgetMs > 0 ? (thresholdMs / calmariaBudgetMs) * 100 : 0;
 					return (
 						<span
 							key={thresholdMs}
@@ -531,62 +534,62 @@ export default function CombatScene({
 					{enemy &&
 						state !== "searching" &&
 						state !== "miniboss_victory" &&
-												state !== "acampamento" && (
-						<div
-							ref={spriteGroupRef}
-							className="group relative"
-							onMouseEnter={onSpriteEnter}
-							onMouseLeave={onSpriteLeave}
-						>
-							<motion.div
-								className={`relative h-64 w-64 ${enemy.rarity === "unique" ? "scale-150" : ""}`}
-								animate={enemyControls}
+						state !== "acampamento" && (
+							<div
+								ref={spriteGroupRef}
+								className="group relative"
+								onMouseEnter={onSpriteEnter}
+								onMouseLeave={onSpriteLeave}
 							>
-								<img
-									src={enemy.def.sprite}
-									alt={enemyDisplayName}
-									draggable={false}
-									className="pointer-events-none h-full w-full select-none object-contain"
-								/>
-								{/* Solid-red hit-flash silhouette: the sprite acts as the
-								 * mask so only the opaque pixels get repainted, and the
-								 * underlying image stays put. */}
 								<motion.div
-									aria-hidden
-									initial={{ opacity: 0 }}
-									animate={redFlashControls}
-									className="pointer-events-none absolute inset-0"
-									style={{
-										backgroundColor: "#ff2a2a",
-										WebkitMaskImage: `url(${enemy.def.sprite})`,
-										maskImage: `url(${enemy.def.sprite})`,
-										WebkitMaskRepeat: "no-repeat",
-										maskRepeat: "no-repeat",
-										WebkitMaskPosition: "center",
-										maskPosition: "center",
-										WebkitMaskSize: "contain",
-										maskSize: "contain",
-									}}
-								/>
-							</motion.div>
-							<AnimatePresence>
-								{lastSwingHit && (
-									<HitFx
-										key={lastSwingHit.id}
-										weaponType={lastSwingHit.weaponType ?? "sword"}
-										isCrit={lastSwingHit.isCrit}
+									className={`relative h-64 w-64 ${enemy.rarity === "unique" ? "scale-150" : ""}`}
+									animate={enemyControls}
+								>
+									<img
+										src={enemy.def.sprite}
+										alt={enemyDisplayName}
+										draggable={false}
+										className="pointer-events-none h-full w-full select-none object-contain"
+									/>
+									{/* Solid-red hit-flash silhouette: the sprite acts as the
+									 * mask so only the opaque pixels get repainted, and the
+									 * underlying image stays put. */}
+									<motion.div
+										aria-hidden
+										initial={{ opacity: 0 }}
+										animate={redFlashControls}
+										className="pointer-events-none absolute inset-0"
+										style={{
+											backgroundColor: "#ff2a2a",
+											WebkitMaskImage: `url(${enemy.def.sprite})`,
+											maskImage: `url(${enemy.def.sprite})`,
+											WebkitMaskRepeat: "no-repeat",
+											maskRepeat: "no-repeat",
+											WebkitMaskPosition: "center",
+											maskPosition: "center",
+											WebkitMaskSize: "contain",
+											maskSize: "contain",
+										}}
+									/>
+								</motion.div>
+								<AnimatePresence>
+									{lastSwingHit && (
+										<HitFx
+											key={lastSwingHit.id}
+											weaponType={lastSwingHit.weaponType ?? "sword"}
+											isCrit={lastSwingHit.isCrit}
+										/>
+									)}
+								</AnimatePresence>
+								{enemy.rarity !== "normal" && isHoveringSprite && (
+									<SpriteTooltipPortal
+										spriteRef={spriteGroupRef}
+										enemy={enemy}
+										bossConfig={bossConfig}
 									/>
 								)}
-							</AnimatePresence>
-							{enemy.rarity !== "normal" && isHoveringSprite && (
-								<SpriteTooltipPortal
-									spriteRef={spriteGroupRef}
-									enemy={enemy}
-									bossConfig={bossConfig}
-								/>
-							)}
-						</div>
-					)}
+							</div>
+						)}
 
 					{/* Damage popups stacked over enemy */}
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -941,29 +944,27 @@ function FloatingDamage({
 
 	const isHeal = event.isHealing;
 
-	const color = isHeal
-		? "text-green-400"
-		: event.isMiss
-			? "text-white/60"
-			: isBlocked
-				? "text-blue-300"
-				: isThorns
-					? "text-purple-300"
-					: isCrit
-						? "text-red-500"
-						: variant === "player"
-							? "text-red-400"
-							: "text-white";
-
-	const display = isHeal
-		? `+${event.amount}`
-		: event.isMiss
-			? "MISS"
-			: isBlocked
-				? "BLOCK"
-				: isCrit
-					? `${event.amount}!!!`
-					: `${event.amount}`;
+	let color: string;
+	let display: string;
+	if (isHeal) {
+		color = "text-green-400";
+		display = `+${event.amount}`;
+	} else if (event.isMiss) {
+		color = "text-white/60";
+		display = "MISS";
+	} else if (isBlocked) {
+		color = "text-blue-300";
+		display = "BLOCK";
+	} else if (isThorns) {
+		color = "text-purple-300";
+		display = `${event.amount}`;
+	} else if (isCrit) {
+		color = "text-red-500";
+		display = `${event.amount}!!!`;
+	} else {
+		color = variant === "player" ? "text-red-400" : "text-white";
+		display = `${event.amount}`;
+	}
 
 	return (
 		<motion.div

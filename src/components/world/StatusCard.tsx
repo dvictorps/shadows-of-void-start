@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
 import { getClassDisplayName } from "#/game/classes/i18n";
@@ -65,32 +66,63 @@ function estimateDps(stats: ComputedCharacterStats): number {
 	const isSpell = stats.path === "spell";
 	const pathBonus = isSpell ? inc.spell : inc.melee;
 
+	const elemInc = (key: string) => {
+		const per =
+			key === "cold"
+				? inc.cold
+				: key === "fire"
+					? inc.fire
+					: key === "lightning"
+						? inc.lightning
+						: key === "void"
+							? inc.void
+							: 0;
+		return (
+			per +
+			inc.elementalGlobal +
+			(isSpell ? 0 : inc.elementalWithAttacks) +
+			pathBonus
+		);
+	};
+
 	const avgPerSwing =
 		stats.swings.reduce((sum, s) => {
-			const physAvg = (s.physicalDamage.min + s.physicalDamage.max) / 2;
-			const phys = physAvg * (1 + (inc.physical + pathBonus) / 100);
+			const phys =
+				((s.physicalDamage.min + s.physicalDamage.max) / 2) *
+				(1 + (inc.physical + pathBonus) / 100);
+			let cold = 0;
+			let fire = 0;
+			let lightning = 0;
+			let voidDmg = 0;
 
-			const elem = s.elementalDamage.reduce((t, e) => {
+			for (const e of s.elementalDamage) {
 				const avg = (e.min + e.max) / 2;
+				const scaled = avg * (1 + elemInc(e.element.toLowerCase()) / 100);
 				const key = e.element.toLowerCase();
-				const perElem =
-					key === "cold" ? inc.cold
-					: key === "fire" ? inc.fire
-					: key === "lightning" ? inc.lightning
-					: key === "void" ? inc.void
-					: 0;
-				const bonus = perElem + inc.elementalGlobal
-					+ (isSpell ? 0 : inc.elementalWithAttacks) + pathBonus;
-				return t + avg * (1 + bonus / 100);
-			}, 0);
+				if (key === "cold") cold += scaled;
+				else if (key === "fire") fire += scaled;
+				else if (key === "lightning") lightning += scaled;
+				else if (key === "void") voidDmg += scaled;
+			}
 
-			return sum + phys + elem;
+			if (isSpell) {
+				const gain = stats.gainAsExtraSpell;
+				const total = phys + cold + fire + lightning + voidDmg;
+				cold += total * (gain.cold / 100);
+				fire += total * (gain.fire / 100);
+				lightning += total * (gain.lightning / 100);
+				voidDmg += total * (gain.void / 100);
+			}
+
+			return sum + phys + cold + fire + lightning + voidDmg;
 		}, 0) / stats.swings.length;
 
-	const avgCrit = stats.swings.reduce(
-		(sum, s) => sum + Math.min(100, s.baseCritChance * (1 + inc.criticalChance / 100)),
-		0,
-	) / stats.swings.length;
+	const avgCrit =
+		stats.swings.reduce(
+			(sum, s) =>
+				sum + Math.min(100, s.baseCritChance * (1 + inc.criticalChance / 100)),
+			0,
+		) / stats.swings.length;
 	const critMult = (BASE_CRIT_MULTIPLIER + stats.bonusCritMultiplier) / 100;
 	const critFactor = 1 + (avgCrit / 100) * critMult;
 
@@ -124,7 +156,7 @@ export default function StatusCard({
 		!!onUseTeleportStone &&
 		teleportStones > 0 &&
 		character.currentLocation !== "city";
-	const dps = estimateDps(stats);
+	const dps = useMemo(() => estimateDps(stats), [stats]);
 
 	return (
 		<section

@@ -164,6 +164,8 @@ export function useCombatTick({
 			enemyProgressRef.current = 0;
 			nextSwingIndexRef.current = 0;
 			enemyBarrierRef.current = makeBarrierState(enemyScaled.barrier);
+			leechHealAccRef.current = 0;
+			lastLeechEventRef.current = 0;
 		}
 	}, [enemyScaled]);
 
@@ -179,6 +181,8 @@ export function useCombatTick({
 			lastSyncedBarrierRef.current = barrierRef.current.current;
 			deadRef.current = false;
 			leechRef.current = [];
+			leechHealAccRef.current = 0;
+			lastLeechEventRef.current = 0;
 			nextSwingIndexRef.current = 0;
 		} else if (!active && wasActive && !deadRef.current) {
 			syncHp(
@@ -197,6 +201,17 @@ export function useCombatTick({
 	const enemyAttackSpeed = enemy?.scaled.attackSpeed ?? 1;
 	const tickRate = stats.tickRate || 1;
 	const hasSwings = stats.swings.length > 0;
+
+	const applyHeal = (amount: number) => {
+		if (amount <= 0 || deadRef.current) return;
+		const next = Math.min(maxHp, playerHpRef.current + amount);
+		const actualHeal = next - playerHpRef.current;
+		if (actualHeal > 0) {
+			playerHpRef.current = next;
+			setPlayerHp(next);
+			pushEvent({ amount: actualHeal, target: "player", isHealing: true });
+		}
+	};
 
 	// Barrier ticks independently of combat — regen runs during calmaria too.
 	useTicker(active && !isEngaged, 100, () => {
@@ -231,8 +246,15 @@ export function useCombatTick({
 					leechHealAccRef.current += actualHeal;
 				}
 				const now = Date.now();
-				if (now - lastLeechEventRef.current >= 500 && leechHealAccRef.current > 0) {
-					pushEvent({ amount: Math.round(leechHealAccRef.current), target: "player", isHealing: true });
+				if (
+					now - lastLeechEventRef.current >= 500 &&
+					leechHealAccRef.current > 0
+				) {
+					pushEvent({
+						amount: Math.round(leechHealAccRef.current),
+						target: "player",
+						isHealing: true,
+					});
 					leechHealAccRef.current = 0;
 					lastLeechEventRef.current = now;
 				}
@@ -349,32 +371,10 @@ export function useCombatTick({
 					if (inst) leechRef.current.push(inst);
 				}
 
-				if (stats.lifeGainOnHit > 0 && !deadRef.current) {
-					const next = Math.min(
-						maxHp,
-						playerHpRef.current + stats.lifeGainOnHit,
-					);
-					const healAmt = next - playerHpRef.current;
-					if (healAmt > 0) {
-						playerHpRef.current = next;
-						setPlayerHp(next);
-						pushEvent({ amount: healAmt, target: "player", isHealing: true });
-					}
-				}
+				applyHeal(stats.lifeGainOnHit);
 
 				if (updated.currentHp <= 0) {
-					if (stats.lifeOnKill > 0 && !deadRef.current) {
-						const next = Math.min(
-							maxHp,
-							playerHpRef.current + stats.lifeOnKill,
-						);
-						const healAmt = next - playerHpRef.current;
-						if (healAmt > 0) {
-							playerHpRef.current = next;
-							setPlayerHp(next);
-							pushEvent({ amount: healAmt, target: "player", isHealing: true });
-						}
-					}
+					applyHeal(stats.lifeOnKill);
 					resolveKill(updated);
 					return;
 				}
@@ -446,11 +446,14 @@ export function useCombatTick({
 					target: "player",
 					isCrit: attack.isCrit,
 				});
-				playSfx(attack.isCrit ? "combat/critico.wav" : "combat/tomandoHit.wav", {
-					volume: 0.3,
-					pitchVariance: 0.1,
-					exclusive: true,
-				});
+				playSfx(
+					attack.isCrit ? "combat/critico.wav" : "combat/tomandoHit.wav",
+					{
+						volume: 0.3,
+						pitchVariance: 0.1,
+						exclusive: true,
+					},
+				);
 
 				if (result.newLife <= 0 && !deadRef.current) {
 					deadRef.current = true;
@@ -468,28 +471,14 @@ export function useCombatTick({
 				// in this tick may have already updated currentHp, and writing
 				// the stale snapshot back would silently erase that damage.
 				const enemyAtNow = enemyRef.current ?? currentEnemy;
-				const { updated, hpDamage } = applyDamageToEnemy(
-					reflected,
-					enemyAtNow,
-				);
+				const { updated, hpDamage } = applyDamageToEnemy(reflected, enemyAtNow);
 				pushEvent({
 					amount: hpDamage,
 					target: "enemy",
 					isThorns: true,
 				});
 				if (updated.currentHp <= 0) {
-					if (stats.lifeOnKill > 0 && !deadRef.current) {
-						const next = Math.min(
-							maxHp,
-							playerHpRef.current + stats.lifeOnKill,
-						);
-						const healAmt = next - playerHpRef.current;
-						if (healAmt > 0) {
-							playerHpRef.current = next;
-							setPlayerHp(next);
-							pushEvent({ amount: healAmt, target: "player", isHealing: true });
-						}
-					}
+					applyHeal(stats.lifeOnKill);
 					resolveKill(updated);
 				}
 			}
@@ -506,7 +495,9 @@ export function useCombatTick({
 		if (!hpChanged && !brChanged) return;
 		lastSyncedHpRef.current = hp;
 		lastSyncedBarrierRef.current = br;
-		syncHp(withSession({ characterId, hpCurrent: hp, barrierCurrent: br })).catch(() => {
+		syncHp(
+			withSession({ characterId, hpCurrent: hp, barrierCurrent: br }),
+		).catch(() => {
 			lastSyncedHpRef.current = -1;
 			lastSyncedBarrierRef.current = -1;
 		});
