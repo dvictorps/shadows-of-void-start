@@ -1,6 +1,7 @@
 import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
 import { getClassDisplayName } from "#/game/classes/i18n";
+import { BASE_CRIT_MULTIPLIER } from "#/game/combat/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
 import {
 	DEX_ACCURACY_PER_POINT,
@@ -60,16 +61,40 @@ function attributeReadouts(stats: ComputedCharacterStats) {
 
 function estimateDps(stats: ComputedCharacterStats): number {
 	if (stats.swings.length === 0) return 0;
+	const inc = stats.increased;
+	const isSpell = stats.path === "spell";
+	const pathBonus = isSpell ? inc.spell : inc.melee;
+
 	const avgPerSwing =
 		stats.swings.reduce((sum, s) => {
-			const phys = (s.physicalDamage.min + s.physicalDamage.max) / 2;
-			const elem = s.elementalDamage.reduce(
-				(t, e) => t + (e.min + e.max) / 2,
-				0,
-			);
+			const physAvg = (s.physicalDamage.min + s.physicalDamage.max) / 2;
+			const phys = physAvg * (1 + (inc.physical + pathBonus) / 100);
+
+			const elem = s.elementalDamage.reduce((t, e) => {
+				const avg = (e.min + e.max) / 2;
+				const key = e.element.toLowerCase();
+				const perElem =
+					key === "cold" ? inc.cold
+					: key === "fire" ? inc.fire
+					: key === "lightning" ? inc.lightning
+					: key === "void" ? inc.void
+					: 0;
+				const bonus = perElem + inc.elementalGlobal
+					+ (isSpell ? 0 : inc.elementalWithAttacks) + pathBonus;
+				return t + avg * (1 + bonus / 100);
+			}, 0);
+
 			return sum + phys + elem;
 		}, 0) / stats.swings.length;
-	return Math.round(avgPerSwing * stats.tickRate);
+
+	const avgCrit = stats.swings.reduce(
+		(sum, s) => sum + Math.min(100, s.baseCritChance * (1 + inc.criticalChance / 100)),
+		0,
+	) / stats.swings.length;
+	const critMult = (BASE_CRIT_MULTIPLIER + stats.bonusCritMultiplier) / 100;
+	const critFactor = 1 + (avgCrit / 100) * critMult;
+
+	return Math.round(avgPerSwing * stats.tickRate * critFactor);
 }
 
 export default function StatusCard({

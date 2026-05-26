@@ -939,25 +939,31 @@ function FloatingDamage({
 	const startX = Math.cos(angle) * startOffset;
 	const startY = Math.sin(angle) * startOffset;
 
-	const color = event.isMiss
-		? "text-white/60"
-		: isBlocked
-			? "text-blue-300"
-			: isThorns
-				? "text-purple-300"
-				: isCrit
-					? "text-red-500"
-					: variant === "player"
-						? "text-red-400"
-						: "text-white";
+	const isHeal = event.isHealing;
 
-	const display = event.isMiss
-		? "MISS"
-		: isBlocked
-			? "BLOCK"
-			: isCrit
-				? `${event.amount}!!!`
-				: `${event.amount}`;
+	const color = isHeal
+		? "text-green-400"
+		: event.isMiss
+			? "text-white/60"
+			: isBlocked
+				? "text-blue-300"
+				: isThorns
+					? "text-purple-300"
+					: isCrit
+						? "text-red-500"
+						: variant === "player"
+							? "text-red-400"
+							: "text-white";
+
+	const display = isHeal
+		? `+${event.amount}`
+		: event.isMiss
+			? "MISS"
+			: isBlocked
+				? "BLOCK"
+				: isCrit
+					? `${event.amount}!!!`
+					: `${event.amount}`;
 
 	return (
 		<motion.div

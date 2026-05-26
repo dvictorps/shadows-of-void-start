@@ -110,6 +110,8 @@ export function useCombatTick({
 	// doesn't carry over.
 	const enemyBarrierRef = useRef<BarrierState>(makeBarrierState(0));
 	const leechRef = useRef<LeechInstance[]>([]);
+	const leechHealAccRef = useRef(0);
+	const lastLeechEventRef = useRef(0);
 	const deadRef = useRef(false);
 
 	// Mirror the `enemy` prop into a ref so the tick reads the live value
@@ -222,9 +224,17 @@ export function useCombatTick({
 			leechRef.current = instances;
 			if (healed > 0 && !deadRef.current) {
 				const next = Math.min(maxHp, playerHpRef.current + healed);
-				if (next !== playerHpRef.current) {
+				const actualHeal = next - playerHpRef.current;
+				if (actualHeal > 0) {
 					playerHpRef.current = next;
 					setPlayerHp(next);
+					leechHealAccRef.current += actualHeal;
+				}
+				const now = Date.now();
+				if (now - lastLeechEventRef.current >= 500 && leechHealAccRef.current > 0) {
+					pushEvent({ amount: Math.round(leechHealAccRef.current), target: "player", isHealing: true });
+					leechHealAccRef.current = 0;
+					lastLeechEventRef.current = now;
 				}
 			}
 		}
@@ -344,9 +354,11 @@ export function useCombatTick({
 						maxHp,
 						playerHpRef.current + stats.lifeGainOnHit,
 					);
-					if (next !== playerHpRef.current) {
+					const healAmt = next - playerHpRef.current;
+					if (healAmt > 0) {
 						playerHpRef.current = next;
 						setPlayerHp(next);
+						pushEvent({ amount: healAmt, target: "player", isHealing: true });
 					}
 				}
 
@@ -356,9 +368,11 @@ export function useCombatTick({
 							maxHp,
 							playerHpRef.current + stats.lifeOnKill,
 						);
-						if (next !== playerHpRef.current) {
+						const healAmt = next - playerHpRef.current;
+						if (healAmt > 0) {
 							playerHpRef.current = next;
 							setPlayerHp(next);
+							pushEvent({ amount: healAmt, target: "player", isHealing: true });
 						}
 					}
 					resolveKill(updated);
@@ -469,9 +483,11 @@ export function useCombatTick({
 							maxHp,
 							playerHpRef.current + stats.lifeOnKill,
 						);
-						if (next !== playerHpRef.current) {
+						const healAmt = next - playerHpRef.current;
+						if (healAmt > 0) {
 							playerHpRef.current = next;
 							setPlayerHp(next);
+							pushEvent({ amount: healAmt, target: "player", isHealing: true });
 						}
 					}
 					resolveKill(updated);
