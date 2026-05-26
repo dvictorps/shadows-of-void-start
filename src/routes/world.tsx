@@ -712,7 +712,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		) : null;
 
 	return (
-		<main className="relative grid h-screen grid-cols-[1fr_640px] gap-3 overflow-hidden bg-black p-3 text-white">
+		<main className="viewport-scale relative grid h-screen grid-cols-[1fr_640px] gap-3 overflow-hidden bg-black p-3 text-white">
 			{view === "map" && (
 				<button
 					type="button"
