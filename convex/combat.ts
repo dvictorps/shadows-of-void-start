@@ -235,7 +235,11 @@ export const recordKill = mutation({
 })
 
 export const usePotion = mutation({
-	args: { characterId: v.id("characters"), sessionToken: v.string() },
+	args: {
+		characterId: v.id("characters"),
+		sessionToken: v.string(),
+		clientHp: v.optional(v.number()),
+	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
@@ -252,7 +256,11 @@ export const usePotion = mutation({
 			equippedItems,
 		})
 		const maxHp = stats.maxLife
-		const currentHp = char.hpCurrent ?? maxHp
+		// Use client-reported HP when available (same trust model as syncHp).
+		// Falls back to DB value for backward compat.
+		const currentHp = args.clientHp !== undefined
+			? Math.max(0, Math.min(maxHp, Math.floor(args.clientHp)))
+			: (char.hpCurrent ?? maxHp)
 		if (currentHp >= maxHp) throw new ConvexError("Already at full HP")
 
 		const healed = Math.min(
@@ -330,6 +338,7 @@ export const syncHp = mutation({
 		characterId: v.id("characters"),
 		sessionToken: v.string(),
 		hpCurrent: v.number(),
+		barrierCurrent: v.optional(v.number()),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -346,7 +355,12 @@ export const syncHp = mutation({
 		const maxHp = stats.maxLife
 		const clamped = Math.max(0, Math.min(maxHp, Math.floor(args.hpCurrent)))
 
-		await ctx.db.patch(args.characterId, { hpCurrent: clamped })
+		const patch: Record<string, unknown> = { hpCurrent: clamped }
+		if (args.barrierCurrent !== undefined) {
+			patch.barrierCurrent = Math.max(0, Math.min(stats.maxBarrier, Math.floor(args.barrierCurrent)))
+		}
+
+		await ctx.db.patch(args.characterId, patch)
 		return { hpCurrent: clamped }
 	},
 })
@@ -371,6 +385,7 @@ export const enterCity = mutation({
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxHp,
 			potions: refilledPotions,
+			barrierCurrent: stats.maxBarrier,
 		})
 		return { hpCurrent: maxHp, potions: refilledPotions }
 	},
@@ -424,6 +439,7 @@ export const respawnDead = mutation({
 
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxHp,
+			barrierCurrent: stats.maxBarrier,
 			xp,
 			potions: refilledPotions,
 			...clearPerVisitZoneState(),

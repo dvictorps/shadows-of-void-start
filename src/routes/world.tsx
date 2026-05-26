@@ -297,6 +297,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		characterLevel: character.level,
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
+		initialBarrier: character.barrierCurrent,
 		potions: character.potions ?? 0,
 		incense: character.etherealIncense ?? 0,
 		monsterPool,
@@ -618,7 +619,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const hpOverride = view === "combat" ? combat.playerHp : undefined;
 	const barrierOverride =
-		view === "combat" ? combat.barrier.current : undefined;
+		view === "combat"
+			? combat.barrier.current
+			: (character.barrierCurrent ?? stats.maxBarrier);
 	const potionsOverride = view === "combat" ? combat.potions : undefined;
 	// Pass the wrapped handler when allowed; when an in-flight call is
 	// pending, clear it so StatusCard's internal `canUsePotion` check disables

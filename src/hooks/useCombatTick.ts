@@ -58,6 +58,7 @@ type Params = {
 	enemy: Enemy | null;
 	stats: ComputedCharacterStats;
 	initialHp: number;
+	initialBarrier?: number;
 	potions: number;
 	onPlayerDeath: () => void;
 	// Reset to "victory" by resolveKill before this returns — used by the
@@ -76,6 +77,7 @@ export function useCombatTick({
 	enemy,
 	stats,
 	initialHp,
+	initialBarrier,
 	potions,
 	onPlayerDeath,
 	resolveKill,
@@ -85,15 +87,21 @@ export function useCombatTick({
 	const maxHp = stats.maxLife;
 
 	const [playerHp, setPlayerHp] = useState(initialHp);
-	const [barrier, setBarrier] = useState(() =>
-		makeBarrierState(stats.maxBarrier),
-	);
+	const [barrier, setBarrier] = useState(() => {
+		if (initialBarrier !== undefined && initialBarrier < stats.maxBarrier) {
+			const s = makeBarrierState(stats.maxBarrier);
+			s.current = initialBarrier;
+			return s;
+		}
+		return makeBarrierState(stats.maxBarrier);
+	});
 
 	const playerHpRef = useRef(playerHp);
 	playerHpRef.current = playerHp;
 	const initialHpRef = useRef(initialHp);
 	initialHpRef.current = initialHp;
 	const lastSyncedHpRef = useRef(initialHp);
+	const lastSyncedBarrierRef = useRef(initialBarrier ?? stats.maxBarrier);
 	const barrierRef = useRef(barrier);
 	barrierRef.current = barrier;
 	// Live barrier state for the engaged monster. Max comes from
@@ -166,14 +174,20 @@ export function useCombatTick({
 			playerHpRef.current = initialHpRef.current;
 			setPlayerHp(initialHpRef.current);
 			lastSyncedHpRef.current = initialHpRef.current;
+			lastSyncedBarrierRef.current = barrierRef.current.current;
 			deadRef.current = false;
 			leechRef.current = [];
 			nextSwingIndexRef.current = 0;
 		} else if (!active && wasActive && !deadRef.current) {
 			syncHp(
-				withSession({ characterId, hpCurrent: playerHpRef.current }),
+				withSession({
+					characterId,
+					hpCurrent: playerHpRef.current,
+					barrierCurrent: barrierRef.current.current,
+				}),
 			).catch(() => {});
 			lastSyncedHpRef.current = playerHpRef.current;
+			lastSyncedBarrierRef.current = barrierRef.current.current;
 		}
 		activeRef.current = active;
 	}, [active, characterId, syncHp, withSession]);
@@ -437,14 +451,19 @@ export function useCombatTick({
 		}
 	});
 
-	// Periodic HP sync — skips when hp hasn't changed since last write.
+	// Periodic HP + barrier sync — skips when neither has changed.
 	useTicker(active, HP_SYNC_INTERVAL_MS, () => {
 		if (deadRef.current) return;
 		const hp = playerHpRef.current;
-		if (hp === lastSyncedHpRef.current) return;
+		const br = barrierRef.current.current;
+		const hpChanged = hp !== lastSyncedHpRef.current;
+		const brChanged = br !== lastSyncedBarrierRef.current;
+		if (!hpChanged && !brChanged) return;
 		lastSyncedHpRef.current = hp;
-		syncHp(withSession({ characterId, hpCurrent: hp })).catch(() => {
+		lastSyncedBarrierRef.current = br;
+		syncHp(withSession({ characterId, hpCurrent: hp, barrierCurrent: br })).catch(() => {
 			lastSyncedHpRef.current = -1;
+			lastSyncedBarrierRef.current = -1;
 		});
 	});
 
@@ -465,7 +484,7 @@ export function useCombatTick({
 		// character query; `consumePotion` wraps the localStore decrement so
 		// no race against concurrent `recordKill` drops.
 		try {
-			await consumePotion(withSession({ characterId }));
+			await consumePotion(withSession({ characterId, clientHp: prevHp }));
 		} catch {
 			const reverted = Math.max(0, playerHpRef.current - appliedHeal);
 			playerHpRef.current = reverted;

@@ -99,6 +99,10 @@ export default defineSchema({
 		// the current modal trigger uses simple first-rejection.
 		activeSessionToken: v.optional(v.string()),
 		activeSessionAt: v.optional(v.number()),
+		// Barrier current value — persisted so it survives zone exits and map
+		// transitions. Synced alongside hpCurrent by the combat loop's periodic
+		// write-back. City entry resets to maxBarrier.
+		barrierCurrent: v.optional(v.number()),
 		// Mage elemental attunement — see CONTEXT.md → Elemental Attunement.
 		selectedElement: v.optional(
 			v.union(v.literal("fire"), v.literal("cold"), v.literal("lightning")),
