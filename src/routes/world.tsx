@@ -249,7 +249,21 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		[currentNode],
 	);
 	const zoneLevel = currentNode?.level ?? character.level;
-	const encounterPlan = currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
+	// Boss nodes use the warmup seconds as the calmaria budget so the time
+	// bar fills during the warmup phase. No camps, no ambushes — the bar
+	// just marks progress toward the gauntlet. Regular zones use their own
+	// declared plan or the default.
+	const encounterPlan = useMemo(() => {
+		const warmup = currentNode?.bossNode?.warmupSeconds;
+		if (warmup) {
+			return {
+				calmariaBudgetSeconds: warmup,
+				gapBetweenSpawns: { min: 1.5, max: 3 },
+				campFractions: [] as number[],
+			};
+		}
+		return currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
+	}, [currentNode]);
 
 	const handlePlayerDeath = useCallback(async () => {
 		try {

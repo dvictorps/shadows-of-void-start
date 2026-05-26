@@ -24,6 +24,7 @@ import {
 	type MonsterId,
 	modCountForRarity,
 	rollMonsterMods,
+	rollMonsterRarity,
 	scaleMonsterStats,
 } from "#/game/monsters";
 import { applyOverlevelPenalty } from "#/game/progression/levels";
@@ -112,11 +113,10 @@ export function useCombatLoop({
 		useState<RareIntroStage>(null);
 	const [bossIntroStage, setBossIntroStage] = useState<BossIntroStage>(null);
 	const [enemy, setEnemy] = useState<Enemy | null>(null);
-	// Boss-node warmup: regular mob spawns for N seconds (exploration time)
-	// before the gauntlet starts. `false` during warmup, `true` once the
-	// warmup timer fills. Always `true` when there's no warmup.
+	// Boss-node warmup: regular mob spawns until the calmaria budget fills
+	// (budget = warmupSeconds). `false` during warmup, `true` once the
+	// schedule's calmaria fills. Always `true` when there's no warmup.
 	const [warmupDone, setWarmupDone] = useState(!bossNode?.warmupSeconds);
-	const warmupElapsedRef = useRef(0);
 	// Boss-node gauntlet progress. 1..N = next gauntlet rare to spawn;
 	// `null` while not in a boss node or once the gauntlet is exhausted
 	// (boss next). Reset to 1 on every activation when bossNode is set.
@@ -149,14 +149,16 @@ export function useCombatLoop({
 	const exitCampMutation = useMutation(api.combat.exitCamp);
 	const enterCampViaIncense = useMutation(api.combat.enterCampViaIncense);
 
+	const warmupActive = !!bossNode && !warmupDone;
+
 	const schedule = useEncounterSchedule({
 		active,
 		encounterPlan,
 		serverCampThresholdsMs,
-		// Boss nodes have no time bar and no camps — keep the schedule hook
-		// running (it's structural) but suppress its searching signal so the
-		// calmaria ticker stays at zero and camp thresholds can never fire.
-		isSearching: state === "searching" && !bossNode,
+		// During warmup the calmaria ticker runs so the time bar fills to show
+		// progress. Once warmup is done (gauntlet phase), isSearching goes
+		// false so the ticker stops — the gauntlet drives its own spawns.
+		isSearching: state === "searching" && (!bossNode || warmupActive),
 		postMinibossPauseRef: lastKillWasMinibossRef,
 		onCampTriggered: (thresholdIndex) => {
 			if (bossNode) return;
@@ -175,23 +177,19 @@ export function useCombatLoop({
 	const recordKill = useMutation(api.combat.recordKill);
 	// Optimistic localStore patch keeps the incense counter in lockstep with
 	// the mutation, so concurrent recordKill drops can't race the consume.
-	// ── Boss-node warmup timer ──
-	// Accumulates exploration time (state === "searching") and flips
-	// `warmupDone` when the configured warmup seconds elapse. During warmup
-	// the regular spawn path fires normal/magic mobs from the node's pool;
-	// once done, the gauntlet spawner takes over.
+	// ── Boss-node warmup → gauntlet transition ──
+	// When the calmaria budget fills during warmup, the encounter schedule's
+	// `rollSpawnRarity()` returns "rare" (bar-fill = miniboss in regular
+	// zones). For boss nodes we intercept that: instead of spawning a rare
+	// from the schedule, we flip to gauntlet mode and let the gauntlet
+	// spawner handle it.
 	const warmupBudgetMs = (bossNode?.warmupSeconds ?? 0) * 1000;
 	useEffect(() => {
-		if (!active || !bossNode || warmupDone || warmupBudgetMs <= 0) return;
-		if (state !== "searching") return;
-		const interval = setInterval(() => {
-			warmupElapsedRef.current += 100;
-			if (warmupElapsedRef.current >= warmupBudgetMs) {
-				setWarmupDone(true);
-			}
-		}, 100);
-		return () => clearInterval(interval);
-	}, [active, bossNode, warmupDone, warmupBudgetMs, state]);
+		if (!bossNode || warmupDone || warmupBudgetMs <= 0) return;
+		if (schedule.calmariaElapsedMs >= warmupBudgetMs) {
+			setWarmupDone(true);
+		}
+	}, [bossNode, warmupDone, warmupBudgetMs, schedule.calmariaElapsedMs]);
 
 	const consumeIncense = useMutation(
 		api.combat.useEtherealIncense,
@@ -289,8 +287,7 @@ export function useCombatLoop({
 			setLastKill(null);
 			setRareIntroStage(null);
 			setBossIntroStage(null);
-			// Boss-node entry: reset warmup timer + gauntlet to fight 1.
-			warmupElapsedRef.current = 0;
+			// Boss-node entry: reset warmup + gauntlet to fight 1.
 			setWarmupDone(!bossNode?.warmupSeconds);
 			setGauntletFightIndex(bossNode ? 1 : null);
 			stateRef.current = "searching";
@@ -369,10 +366,9 @@ export function useCombatLoop({
 	// rarity. Boss-node warmup phase also fires through this path — during
 	// warmup the gate opens so normal/magic mobs spawn before the gauntlet.
 	// Once warmupDone, the gauntlet spawner below takes over.
-	const warmupActive = !!bossNode && !warmupDone;
 	useDelay(
 		active && state === "searching" && (!bossNode || warmupActive),
-		warmupActive ? 2000 : schedule.nextSpawnGapMs,
+		schedule.nextSpawnGapMs,
 		() => {
 			const pick = pickRandom(monsterPool);
 			if (!pick) return;
@@ -382,7 +378,12 @@ export function useCombatLoop({
 			const baseScaled = scaleMonsterStats(def, level);
 			// Slot consumption is a separate call (after commit below) so the
 			// spawn-failure early returns above can't accidentally drain the pack.
-			const rarity = schedule.rollSpawnRarity();
+			// During warmup the schedule might return "rare" when the calmaria
+			// budget fills — suppress that and force normal/magic since the
+			// gauntlet handles the rare spawns after warmup.
+			const rarity = warmupActive
+				? rollMonsterRarity()
+				: schedule.rollSpawnRarity();
 			const mods = rollMonsterMods(modCountForRarity(rarity));
 			const scaled = applyMonsterMods(baseScaled, mods);
 			const nameSeed: RareNameSeed = {
@@ -594,7 +595,6 @@ export function useCombatLoop({
 		// again. Per CONTEXT.md → Act Boss: farmable, but the gauntlet must
 		// be re-run every attempt.
 		if (bossNode) {
-			warmupElapsedRef.current = 0;
 			setWarmupDone(!bossNode.warmupSeconds);
 			setGauntletFightIndex(1);
 		}
