@@ -3,7 +3,17 @@ import type { AffixType } from "./mods";
 
 // ── Rarity ──
 
-export type ItemRarity = "normal" | "magic" | "rare" | "legendary" | "epic";
+// `unique` is the PoE-style tier for handcrafted single-identity entities:
+// act bosses today, planned unique items in Act 2+. Uniques bypass the affix
+// roll system entirely — their stats/mods are declared, not rolled — so the
+// MOD_LIMITS entry is all-zero. See CONTEXT.md → Boss.
+export type ItemRarity =
+	| "normal"
+	| "magic"
+	| "rare"
+	| "legendary"
+	| "epic"
+	| "unique";
 
 export interface ModLimits {
 	totalMin: number;
@@ -18,6 +28,7 @@ export const MOD_LIMITS: Record<ItemRarity, ModLimits> = {
 	rare: { totalMin: 3, totalMax: 4, maxPrefix: 2, maxSuffix: 2 },
 	legendary: { totalMin: 5, totalMax: 5, maxPrefix: 3, maxSuffix: 3 },
 	epic: { totalMin: 6, totalMax: 6, maxPrefix: 3, maxSuffix: 3 },
+	unique: { totalMin: 0, totalMax: 0, maxPrefix: 0, maxSuffix: 0 },
 };
 
 // ── Rolled results ──

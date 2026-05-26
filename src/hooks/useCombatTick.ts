@@ -338,7 +338,7 @@ export function useCombatTick({
 					isCrit: false,
 					isMiss: true,
 				});
-				playSfx("errarHit.wav", {
+				playSfx("combat/errarHit.wav", {
 					volume: 0.25,
 					pitchVariance: 0.1,
 					exclusive: true,
@@ -365,7 +365,7 @@ export function useCombatTick({
 			});
 			if (attack.isMiss) {
 				pushEvent({ amount: 0, target: "player", isMiss: true });
-				playSfx("esquiva.wav", {
+				playSfx("combat/esquiva.wav", {
 					volume: 0.5,
 					pitchVariance: 0.1,
 					exclusive: true,
@@ -373,7 +373,7 @@ export function useCombatTick({
 			} else if (attack.isBlocked) {
 				// No damage to barrier/life, but the hit still "lands" for thorns.
 				pushEvent({ amount: 0, target: "player", isBlocked: true });
-				playSfx("block.wav", {
+				playSfx("combat/block.wav", {
 					volume: 0.5,
 					pitchVariance: 0.1,
 					exclusive: true,
@@ -399,7 +399,7 @@ export function useCombatTick({
 					target: "player",
 					isCrit: attack.isCrit,
 				});
-				playSfx(attack.isCrit ? "critico.wav" : "tomandoHit.wav", {
+				playSfx(attack.isCrit ? "combat/critico.wav" : "combat/tomandoHit.wav", {
 					volume: 0.3,
 					pitchVariance: 0.1,
 					exclusive: true,

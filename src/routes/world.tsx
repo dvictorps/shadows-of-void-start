@@ -249,7 +249,21 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		[currentNode],
 	);
 	const zoneLevel = currentNode?.level ?? character.level;
-	const encounterPlan = currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
+	// Boss nodes use the warmup seconds as the calmaria budget so the time
+	// bar fills during the warmup phase. No camps, no ambushes — the bar
+	// just marks progress toward the gauntlet. Regular zones use their own
+	// declared plan or the default.
+	const encounterPlan = useMemo(() => {
+		const warmup = currentNode?.bossNode?.warmupSeconds;
+		if (warmup) {
+			return {
+				calmariaBudgetSeconds: warmup,
+				gapBetweenSpawns: { min: 1.5, max: 3 },
+				campFractions: [] as number[],
+			};
+		}
+		return currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
+	}, [currentNode?.bossNode?.warmupSeconds, currentNode?.encounterPlan]);
 
 	const handlePlayerDeath = useCallback(async () => {
 		try {
@@ -281,6 +295,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		monsterPool,
 		zoneLevel,
 		encounterPlan,
+		bossNode: currentNode?.bossNode ?? null,
 		// Camp thresholds are server-rolled by enterZone; the time bar reads
 		// them off the character query so the markers and the ticker stay
 		// in lockstep with what enterCamp will accept. See
@@ -669,6 +684,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						zoneName={translateNodeName(currentNode)}
 						zoneLevel={zoneLevel}
 						state={combat.state}
+						isBossNode={currentNode?.kind === "boss"}
+						rareIntroStage={combat.rareIntroStage}
 						bossIntroStage={combat.bossIntroStage}
 						enemy={combat.enemy}
 						events={combat.events}
@@ -692,11 +709,15 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						incense={combat.incense}
 						canUseIncense={
 							combat.incense > 0 &&
+							combat.state !== "rare_intro" &&
 							combat.state !== "boss_intro" &&
 							combat.state !== "acampamento" &&
 							combat.state !== "miniboss_victory" &&
+							currentNode?.kind !== "boss" &&
 							!(
-								combat.state === "engaged" && combat.enemy?.rarity === "rare"
+								combat.state === "engaged" &&
+								(combat.enemy?.rarity === "rare" ||
+									combat.enemy?.rarity === "unique")
 							) &&
 							!combat.ambushActive &&
 							!isUsingIncense

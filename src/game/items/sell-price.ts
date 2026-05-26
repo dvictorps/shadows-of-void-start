@@ -14,6 +14,11 @@ const BASE_RARITY_PRICE: Record<ItemRarity, number> = {
 	rare: 80,
 	legendary: 400,
 	epic: 2000,
+	// Uniques are not droppable in Act 1 (CONTEXT.md → Boss). Price is set
+	// between rare and legendary as a placeholder — when unique items ship
+	// (Act 2+) the vendor pricing will likely use a per-unique override
+	// rather than this tier baseline.
+	unique: 200,
 };
 
 export function computeSellPrice(item: GeneratedItem): number {

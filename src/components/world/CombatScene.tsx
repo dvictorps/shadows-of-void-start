@@ -1,6 +1,15 @@
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import { createPortal } from "react-dom";
+import { getBossConfig } from "#/game/bosses";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateEnemyName } from "#/game/world/i18n";
 import type {
@@ -8,7 +17,9 @@ import type {
 	CampSource,
 	DamageEvent,
 	Enemy,
+	RareIntroStage,
 } from "#/hooks/useCombatLoop";
+import { playSfx } from "#/lib/sfx";
 import { m } from "#/paraglide/messages";
 import CampCinematic from "./CampCinematic";
 import HealthGlobe from "./HealthGlobe";
@@ -16,11 +27,14 @@ import HitFx from "./HitFx";
 import MonsterTooltip from "./MonsterTooltip";
 
 // Rarity-tinted nameplate colors mirror the item rarity palette so the
-// player reads "blue = magic, yellow = rare" consistently across UI.
+// player reads "blue = magic, yellow = rare" consistently across UI. The
+// `unique` entry is a fallback — bosses override per-instance via
+// BossConfig.nameplateColor.
 const RARITY_NAMEPLATE_COLOR: Record<MonsterRarity, string> = {
 	normal: "#ffffff",
 	magic: "#8888ff",
 	rare: "#ffff77",
+	unique: "#af6025",
 };
 
 // Glow reinforces rarity. Normal keeps only a readability shadow; magic/rare
@@ -30,6 +44,7 @@ const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
 	normal: "0 2px 4px rgba(0, 0, 0, 0.9)",
 	magic: "0 0 14px rgba(136, 136, 255, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
 	rare: "0 0 18px rgba(255, 255, 119, 0.7), 0 2px 4px rgba(0, 0, 0, 0.9)",
+	unique: "0 0 22px rgba(175, 96, 37, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
 };
 
 export type ConsumableKey = "potion" | "teleport" | "incense";
@@ -39,11 +54,14 @@ type Props = {
 	zoneLevel: number;
 	state:
 		| "searching"
+		| "rare_intro"
 		| "boss_intro"
 		| "engaged"
 		| "victory"
 		| "miniboss_victory"
 		| "acampamento";
+	isBossNode: boolean;
+	rareIntroStage: RareIntroStage;
 	bossIntroStage: BossIntroStage;
 	enemy: Enemy | null;
 	events: DamageEvent[];
@@ -98,6 +116,8 @@ export default function CombatScene({
 	zoneName,
 	zoneLevel,
 	state,
+	isBossNode,
+	rareIntroStage,
 	bossIntroStage,
 	enemy,
 	events,
@@ -170,32 +190,45 @@ export default function CombatScene({
 		}
 		return null;
 	}, [playerEvents]);
-	const nameColor = enemy ? RARITY_NAMEPLATE_COLOR[enemy.rarity] : "#ffffff";
-	const nameShadow = enemy
-		? RARITY_NAMEPLATE_SHADOW[enemy.rarity]
-		: RARITY_NAMEPLATE_SHADOW.normal;
-	// Micro-stagger for non-rare reveals: sprite → name → hp in ~160ms total.
-	// Rares are paced by the boss intro cascade (sprite/name/hp stages), so
-	// any extra delay here would compound and feel sluggish.
-	const isRareEnemy = enemy?.rarity === "rare";
-	const nameplateDelay = isRareEnemy ? 0 : 0.08;
-	const hpBarDelay = isRareEnemy ? 0 : 0.16;
+	// Bosses get a per-instance nameplate color from BossConfig (rare yellow
+	// shouldn't double-duty as the boss color, and each boss can pick a hue
+	// that matches its theme — Gralfor: ember orange).
+	const bossConfig = useMemo(
+		() => (enemy ? getBossConfig(enemy) : null),
+		[enemy?.rarity, enemy?.def.id],
+	);
+	const nameColor = bossConfig
+		? bossConfig.nameplateColor
+		: enemy
+			? RARITY_NAMEPLATE_COLOR[enemy.rarity]
+			: "#ffffff";
+	const nameShadow = bossConfig
+		? bossConfig.nameplateShadow
+		: enemy
+			? RARITY_NAMEPLATE_SHADOW[enemy.rarity]
+			: RARITY_NAMEPLATE_SHADOW.normal;
+	const isStagedEnemy =
+		enemy?.rarity === "rare" || enemy?.rarity === "unique";
+	const nameplateDelay = isStagedEnemy ? 0 : 0.08;
+	const hpBarDelay = isStagedEnemy ? 0 : 0.16;
 
-	// Staged reveal for rare minibosses. The nameplate appears at stage "name",
-	// the HP bar at stage "hp". The sprite is always shown once the spawn
-	// transitions out of "searching". For non-boss spawns (bossIntroStage is
-	// null), everything appears together as before.
+	// Staged reveal for rare minibosses (3 beats) and bosses (4 beats — adds
+	// an "impact" beat between sprite and name for sfx + screenshake). The
+	// sprite is always shown once the spawn transitions out of "searching".
 	// On victory, both fade out alongside the sprite so the exit mirrors the
 	// entrance instead of the nameplate/bar popping out when the enemy unmounts.
 	const showNameplate =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
-		state !== "victory" &&
-		(state !== "boss_intro" || bossIntroStage !== "sprite");
+				state !== "victory" &&
+		(state !== "rare_intro" || rareIntroStage !== "sprite") &&
+		(state !== "boss_intro" ||
+			(bossIntroStage !== "sprite" && bossIntroStage !== "impact"));
 	const showHpBar =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
-		state !== "victory" &&
+				state !== "victory" &&
+		(state !== "rare_intro" || rareIntroStage === "hp") &&
 		(state !== "boss_intro" || bossIntroStage === "hp");
 	// Read once per render — both the nameplate text and the img alt need it.
 	const enemyDisplayName = enemy ? translateEnemyName(enemy) : "";
@@ -218,16 +251,12 @@ export default function CombatScene({
 		prevEnemyRef.current = enemy;
 		if (!enemy) return;
 		if (!wasNull) return;
-		const isRare = enemy.rarity === "rare";
-		// Non-rare entrance uses a "fading from the dark" feel — slight y
-		// offset + blur — instead of the rare's bold scale-down. Keeps the
-		// rare's cinematic entrance distinctive.
 		enemyControls.set({
 			opacity: 0,
-			scale: isRare ? 1.2 : 1,
+			scale: isStagedEnemy ? 1.2 : 1,
 			x: 0,
-			y: isRare ? 0 : 8,
-			filter: isRare
+			y: isStagedEnemy ? 0 : 8,
+			filter: isStagedEnemy
 				? "brightness(1) saturate(1) hue-rotate(0deg)"
 				: "brightness(1) saturate(1) blur(4px)",
 		});
@@ -236,9 +265,9 @@ export default function CombatScene({
 			scale: 1,
 			y: 0,
 			filter: "brightness(1) saturate(1) hue-rotate(0deg)",
-			transition: { duration: isRare ? 0.7 : 0.4, ease: "easeOut" },
+			transition: { duration: isStagedEnemy ? 0.7 : 0.4, ease: "easeOut" },
 		});
-	}, [enemy, enemyControls]);
+	}, [enemy, enemyControls, isStagedEnemy]);
 
 	useEffect(() => {
 		if (!lastDamagingHit) return;
@@ -257,19 +286,45 @@ export default function CombatScene({
 
 	useEffect(() => {
 		if (state !== "victory" || !enemy) return;
-		// Mirror the entrance: non-rare "falls back into the dark" (y down +
-		// blur), rare keeps a clean fade so we don't add unrelated motion to
-		// the boss exit. easeIn pairs with the entrance's easeOut.
-		const isRare = enemy.rarity === "rare";
 		enemyControls.start({
 			opacity: 0,
-			y: isRare ? 0 : 8,
-			filter: isRare
+			y: isStagedEnemy ? 0 : 8,
+			filter: isStagedEnemy
 				? "brightness(1) saturate(1) hue-rotate(0deg)"
 				: "brightness(1) saturate(1) blur(4px)",
 			transition: { duration: 0.5, ease: "easeIn" },
 		});
-	}, [state, enemy, enemyControls]);
+	}, [state, enemy, enemyControls, isStagedEnemy]);
+
+	// Boss intro sfx — fires when the sprite stage begins so the entry roar
+	// plays WHILE the boss materializes. The screenshake fires later at the
+	// impact beat (after sprite is fully visible) for a two-phase buildup.
+	useEffect(() => {
+		if (state !== "boss_intro" || bossIntroStage !== "sprite") return;
+		if (!bossConfig) return;
+		playSfx(bossConfig.cinematic.entrySfx, { volume: 0.8 });
+	}, [state, bossIntroStage, bossConfig]);
+
+	// Boss intro screenshake — fires at the impact beat. Shakes the entire
+	// combat section (arena, HP globe, time bar) via a CSS keyframe class
+	// so the "ground trembles" while the meta UI (sidebar) stays stable.
+	const sectionRef = useRef<HTMLElement>(null);
+	const spriteGroupRef = useRef<HTMLDivElement>(null);
+	const [isHoveringSprite, setIsHoveringSprite] = useState(false);
+	const onSpriteEnter = useCallback(() => setIsHoveringSprite(true), []);
+	const onSpriteLeave = useCallback(() => setIsHoveringSprite(false), []);
+	useEffect(() => {
+		if (state !== "boss_intro" || bossIntroStage !== "impact") return;
+		if (!bossConfig || !sectionRef.current) return;
+		const section = sectionRef.current;
+		section.classList.add("boss-screenshake");
+		const cleanup = () => section.classList.remove("boss-screenshake");
+		section.addEventListener("animationend", cleanup, { once: true });
+		return () => {
+			section.removeEventListener("animationend", cleanup);
+			section.classList.remove("boss-screenshake");
+		};
+	}, [state, bossIntroStage, bossConfig]);
 
 	const inCamp = state === "acampamento";
 	// Camp arrival is immediate: hitting the threshold triggers the HUD
@@ -302,6 +357,7 @@ export default function CombatScene({
 
 	return (
 		<section
+			ref={sectionRef}
 			onClick={handleSectionClick}
 			className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black"
 		>
@@ -450,6 +506,7 @@ export default function CombatScene({
 						<ZoneCompletePanel
 							onContinue={onDismissMinibossModal}
 							onRetreat={onRetreat}
+							showContinue={!isBossNode}
 						/>
 					)}
 					{inCamp && cinematicEnabled && (
@@ -465,10 +522,15 @@ export default function CombatScene({
 					{enemy &&
 						state !== "searching" &&
 						state !== "miniboss_victory" &&
-						state !== "acampamento" && (
-						<div className="group relative">
+												state !== "acampamento" && (
+						<div
+							ref={spriteGroupRef}
+							className="group relative"
+							onMouseEnter={onSpriteEnter}
+							onMouseLeave={onSpriteLeave}
+						>
 							<motion.div
-								className="relative h-64 w-64"
+								className={`relative h-64 w-64 ${enemy.rarity === "unique" ? "scale-150" : ""}`}
 								animate={enemyControls}
 							>
 								<img
@@ -507,10 +569,12 @@ export default function CombatScene({
 									/>
 								)}
 							</AnimatePresence>
-							{enemy.rarity !== "normal" && (
-								<div className="-translate-x-1/2 pointer-events-none absolute top-full left-1/2 z-20 mt-2 hidden group-hover:block">
-									<MonsterTooltip enemy={enemy} />
-								</div>
+							{enemy.rarity !== "normal" && isHoveringSprite && (
+								<SpriteTooltipPortal
+									spriteRef={spriteGroupRef}
+									enemy={enemy}
+									bossConfig={bossConfig}
+								/>
 							)}
 						</div>
 					)}
@@ -684,9 +748,11 @@ export default function CombatScene({
 function ZoneCompletePanel({
 	onContinue,
 	onRetreat,
+	showContinue = true,
 }: {
 	onContinue: () => void;
 	onRetreat: () => void;
+	showContinue?: boolean;
 }) {
 	return (
 		<motion.div
@@ -708,13 +774,15 @@ function ZoneCompletePanel({
 				{m.miniboss_modal_body()}
 			</p>
 			<div className="flex gap-3">
-				<button
-					type="button"
-					onClick={onContinue}
-					className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
-				>
-					{m.miniboss_modal_continue()}
-				</button>
+				{showContinue && (
+					<button
+						type="button"
+						onClick={onContinue}
+						className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+					>
+						{m.miniboss_modal_continue()}
+					</button>
+				)}
 				<button
 					type="button"
 					onClick={onRetreat}
@@ -724,6 +792,33 @@ function ZoneCompletePanel({
 				</button>
 			</div>
 		</motion.div>
+	);
+}
+
+function SpriteTooltipPortal({
+	spriteRef,
+	enemy,
+	bossConfig,
+}: {
+	spriteRef: React.RefObject<HTMLDivElement | null>;
+	enemy: Enemy;
+	bossConfig: import("#/game/bosses").BossConfig | null;
+}) {
+	const el = spriteRef.current;
+	if (!el) return null;
+	const rect = el.getBoundingClientRect();
+	return createPortal(
+		<div
+			className="pointer-events-none fixed z-[9999]"
+			style={{
+				top: rect.bottom + 8,
+				left: rect.left + rect.width / 2,
+				transform: "translateX(-50%)",
+			}}
+		>
+			<MonsterTooltip enemy={enemy} bossConfig={bossConfig} />
+		</div>,
+		document.body,
 	);
 }
 

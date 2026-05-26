@@ -123,6 +123,7 @@ export const generatedItemValidator = v.object({
 		v.literal("rare"),
 		v.literal("legendary"),
 		v.literal("epic"),
+		v.literal("unique"),
 	),
 	itemLevel: v.number(),
 	baseStats,

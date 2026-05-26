@@ -1,5 +1,23 @@
+import type { BossId } from "../bosses";
 import type { MonsterId } from "../monsters";
 import type { ZoneEncounterPlan } from "./encounter-schedule";
+
+// Boss-node config — only set when `kind === "boss"`. Drives the warmup →
+// gauntlet → boss sequence that replaces the time-bar flow in regular zones.
+// See CONTEXT.md → Act Boss + ADR 0004.
+export interface BossNodeConfig {
+	bossId: BossId;
+	// Optional warmup phase — regular mob spawns for N seconds before the
+	// gauntlet starts. No camps fire during the warmup. Omit or set to 0 to
+	// skip straight to the gauntlet.
+	warmupSeconds?: number;
+	gauntlet: {
+		/** How many rare fights precede the boss. Act 1 / Gralfor: 3. */
+		fights: number;
+		/** Monster ids the gauntlet rares are picked from (uniformly). */
+		monsterPool: MonsterId[];
+	};
+}
 
 // Drives flavor-text selection in the camp cinematic — baked camps read the
 // zone's CAMP_LINES, incenso-triggered camps read a generic incense set.
@@ -39,6 +57,9 @@ export interface WorldNode {
 	// Encounter pacing — replaces the hard-coded threshold + spawn delay.
 	// Only set for combat nodes. See `encounter-schedule.ts`.
 	encounterPlan?: ZoneEncounterPlan;
+	// Boss-node config — required when `kind === "boss"`, unused otherwise.
+	// Drives the gauntlet + the boss spawn that follows it.
+	bossNode?: BossNodeConfig;
 }
 
 export interface Act {

@@ -78,16 +78,41 @@ A **rare-rarity** monster that spawns when the time bar fills in a normal zone. 
 After a miniboss kill the combat scene shows an inline "Zone Complete" panel where the enemy was: **continue farming** (combat resumes, the bar resets to 0 and the schedule is rerolled) or **retreat** (standard exit-zone flow with the loot picker).
 
 ### Act Boss
-A distinct, more powerful enemy that gates progression to the next act. Lives in the **final node** of the act (a dedicated boss node, not a regular zone). For Act 1, the boss node follows **Model B**:
+A distinct, more powerful enemy that gates progression to the next act. Lives in the **final node** of the act (a dedicated `kind: "boss"` node, not a regular zone). The boss node runs a **fixed gauntlet** — a configured sequence of rare-rarity fights ending in the act boss — instead of the time bar that regular zones use:
 
-1. Bar 1 fills (mobs) → a miniboss appears
-2. Player kills the miniboss → Bar 2 starts
-3. Bar 2 fills (harder mobs) → the **act boss** appears
-4. Player kills the act boss → the act is complete; next act unlocks
+1. **Gauntlet fights**: N back-to-back rare-rarity miniboss fights (count + monster pool declared per boss node — Act 1 / Gralfor: 3 fights). Each gauntlet fight is a single rare monster picked from the pool and rolled with 4 mods (identical to the standard zone miniboss flow). Each one plays its own rare intro cascade (sprite → name → hp).
+2. After the last gauntlet fight, the **act boss** spawns with its own [Boss Cinematic](#boss-cinematic).
+3. Player kills the act boss → the act is complete; next act unlocks.
 
-The act boss is **farmable** — it does not despawn permanently after the first kill. The challenge comes from having to clear both bars and the miniboss every attempt; the player can't just walk in and re-kill it.
+**No camps and no Incenso Etéreo inside a boss node.** Boss node = commitment. The `useEtherealIncense` action is rejected while the player is in a `kind: "boss"` node (same UI treatment as during an active boss fight — button greyed out).
 
-Future acts may use different boss-node mechanics (gauntlets, multi-boss, scripted sequences). The system must accommodate this without hardcoding Act 1's pattern.
+**Retreat between gauntlet fights** is allowed (the usual retreat button stays enabled in exploration phase) — bag retention is the standard 30% (combat tier). Re-entering the boss node restarts the gauntlet **from fight 1**; no checkpoint per rare killed.
+
+The act boss is **farmable** — it does not despawn permanently after the first kill. The challenge is having to clear the full gauntlet every attempt; the player can't walk in and re-kill the boss alone.
+
+Each boss node declares the gauntlet length and pool. Future acts can configure 5-fight gauntlets, multi-boss sequences, or gauntlet-less direct-fight nodes by adjusting the boss-node config — no per-act code path. The legacy "Model B" (Bar 1 → miniboss → Bar 2 → boss) is **superseded** by this and won't ship.
+
+### Boss
+A handcrafted enemy that headlines an Act Boss node. Distinct from a rare miniboss: bosses have **declared stats and resistances** on their template (not rolled from the modifier pool), their own sprite + entry/death sfx, and a **Boss Cinematic** that gates engagement.
+
+Bosses use **`rarity: "unique"`** — a dedicated `MonsterRarity` tier parallel to `normal | magic | rare`. This is the same convention as PoE: `unique` means "single fixed identity, handcrafted". The runtime `Enemy.rarity` carries `"unique"` for bosses so downstream code (drop tables, UI paths, tooltip renderer) can branch on rarity directly. Boss-specific data (cinematic, custom nameplate color, sprite path, declared resistances) lives in `BossConfig` under `src/game/bosses/`.
+
+Bosses do **not** roll from the `MonsterModId[]` pool — their `MonsterTooltip` doesn't render an affix list because they have no affixes. Instead the tooltip renders their declared traits (resistances, damage breakdown, attack speed) as a stat sheet derived directly from the scaled template. This is the visible difference between "rare = rolled affixes" and "unique = handcrafted stat sheet".
+
+**Boss names are translated like every other display string** — `BossConfig.nameKey` references a paraglide message key (e.g. `boss_gralfor_name`) that resolves per locale. The **proper-noun part** of the name is kept identical across locales by convention (e.g. "Gralfor" stays "Gralfor" in both `en.json` and `pt.json`), but the **epithet** localizes naturally: `"Gralfor, the Persistent"` (en) / `"Gralfor, O Persistente"` (pt). Same PoE convention that produces `Kaom's Heart` / `Coração de Kaom`. `translateEnemyName(enemy)` resolves via `m[boss.nameKey]()` when the enemy is a boss.
+
+This convention will extend to **unique items** when introduced (Act 2+) — same paraglide path, same proper-noun-stays/epithet-translates rule.
+
+### Boss Cinematic
+The configurable intro sequence each boss plays before engagement. Extends the rare miniboss intro (sprite → name → hp) with two extra beats:
+
+1. **Sprite fade-in** (boss-configurable duration).
+2. **Entry sfx** (boss-configurable file, e.g., `bosses/gralfor.wav`).
+3. **Screenshake** on sfx beat (boss-configurable amplitude + duration).
+4. **Nameplate reveal** (uses the boss's configured nameplate color — distinct from rare yellow `#ffff77`).
+5. **HP bar reveal** → engagement begins.
+
+The cinematic is declared on `BossConfig` so each boss can tune timings, sfx, shake intensity, and name color. Cinematic plays on every engagement (not skippable on respawn — re-entering the boss node always replays the gauntlet + cinematic).
 
 ---
 
@@ -358,7 +383,7 @@ Combat is otherwise automatic, but the player has **three active controls today*
 - **Incenso Etéreo**: consumable that triggers the camp cinematic at the player's chosen moment. Used during **exploração**, the next spawn doesn't occur and the modal opens with the same two options as a baked camp (Retornar com 100% / Seguir em frente). May be **activated during combate** and is then **queued** — it doesn't interrupt the current fight; immediately after the current enemy is resolved, the cinematic plays. Activation may also occur mid-ambush; the current mob completes, the remaining mobs in the ambush pack do NOT spawn, the cinematic takes over. **Does NOT activate during a boss fight** (boss = full commitment).
   - Uncapped. **Drop only — never sold by vendors.** ~2-3% chance from any monster kill (independent roll, like potions). Lives on the character document as a counter (`char.etherealIncense: number`) until used.
   - Cinematic uses the same structure as baked camps with different flavor text (e.g., "A fumaça arcana se dissipa pelos ares.", "O ar pesado e os sons perturbantes se reduzem à música do ambiente.").
-  - HUD button is the 4th active control in combat; greyed out during boss fight and while a camp cinematic is already active.
+  - HUD button is the 4th active control in combat; greyed out during boss fight, **inside any `kind: "boss"` node (gauntlet included)**, and while a camp cinematic is already active.
 
 The travel consumable is tracked on the character document as `teleportStones`. The wind crystal counter was retired in this consolidation; if any legacy data has it, treat as zero.
 
@@ -434,6 +459,7 @@ The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all
 | Normal mob | 30% | 70% Normal · 25% Magic · 5% Rare |
 | Magic mob | 60% | 40% Normal · 50% Magic · 10% Rare |
 | Miniboss (Rare) | 100% | **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare |
+| Gauntlet rare (inside a boss node) | 100% | Same as Miniboss — **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare |
 | Act boss | 100% | **2-3 items** · 1 **guaranteed Rare** · remaining slots: 75% Rare · 25% Magic (no Normals from boss) |
 
 **Magic Find** (item rarity %) shifts every drop's distribution toward higher rarity, including the **guaranteed Rare slots** from minibosses and the act boss. Every drop — including the guaranteed slots — can be promoted upward by enough MF:

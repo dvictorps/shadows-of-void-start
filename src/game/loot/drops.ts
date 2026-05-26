@@ -54,6 +54,16 @@ const DROP_TABLE: Record<
 			{ rarity: "rare", weight: 15 },
 		],
 	},
+	unique: {
+		// Act-boss distribution per CONTEXT.md → Drop rates. The guarantee
+		// handling + multi-item rolling live on the caller (`rollBossDrops`).
+		// No Normal entries — boss loot floor is Magic.
+		dropChance: 1,
+		rarity: [
+			{ rarity: "magic", weight: 25 },
+			{ rarity: "rare", weight: 75 },
+		],
+	},
 };
 
 function pickRarity(distribution: { rarity: ItemRarity; weight: number }[]) {
@@ -138,6 +148,29 @@ export function rollMinibossDrops(params: {
 		monsterLevel: params.monsterLevel,
 	});
 	if (second) drops.push(second);
+	return drops;
+}
+
+/**
+ * Act-boss drop set per CONTEXT.md → Drop rates: 2-3 items with one
+ * guaranteed Rare; remaining slots use the unique table (75% Rare / 25%
+ * Magic, no Normals). Legendary upgrade chance is applied per-slot.
+ */
+export function rollBossDrops(params: {
+	monsterLevel: number;
+}): GeneratedItem[] {
+	const drops: GeneratedItem[] = [];
+	const guaranteed = rollItemAtRarity("rare", params.monsterLevel);
+	if (guaranteed) drops.push(guaranteed);
+	// 2-3 items: always emit a second from the table, 50/50 on a third.
+	const extras = Math.random() < 0.5 ? 1 : 2;
+	for (let i = 0; i < extras; i++) {
+		const rolled = rollDrop({
+			monsterRarity: "unique",
+			monsterLevel: params.monsterLevel,
+		});
+		if (rolled) drops.push(rolled);
+	}
 	return drops;
 }
 

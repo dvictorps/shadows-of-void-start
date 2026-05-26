@@ -246,6 +246,10 @@ export function modCountForRarity(rarity: MonsterRarity): number {
 			// 4 mods = exactly the 2+2 affix cap; rare always spawns with the
 			// max prefix-suffix mix the pool allows.
 			return 4;
+		case "unique":
+			// Bosses don't roll affixes — their stats are declared on the
+			// BossConfig template. See CONTEXT.md → Boss.
+			return 0;
 	}
 }
 
