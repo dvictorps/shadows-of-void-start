@@ -299,7 +299,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		characterLevel: character.level,
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
-		initialBarrier: character.barrierCurrent,
+		initialBarrier: stats.maxBarrier,
 		potions: character.potions ?? 0,
 		incense: character.etherealIncense ?? 0,
 		monsterPool,
@@ -629,7 +629,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			setOutOfCombatBarrier(null);
 			return;
 		}
-		const initial = character.barrierCurrent ?? stats.maxBarrier;
+		const initial = view === "city" ? stats.maxBarrier : (character.barrierCurrent ?? stats.maxBarrier);
 		const state: ReturnType<typeof makeBarrierState> = {
 			current: Math.min(initial, stats.maxBarrier),
 			max: stats.maxBarrier,
