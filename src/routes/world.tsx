@@ -20,6 +20,7 @@ import { WorldModals } from "#/components/world/WorldModals";
 import { findClassDefinition } from "#/game/classes/data";
 import { makeBarrierState, tickBarrier } from "#/game/combat/barrier";
 import { computeBagKeepCap } from "#/game/combat/constants";
+import { useTicker } from "#/hooks/useTicker";
 import { xpToNextLevel } from "#/game/progression/levels";
 import { computeCharacterStats } from "#/game/stats/compute";
 import {
@@ -35,7 +36,7 @@ import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useModal } from "#/hooks/useModal";
-import { useSessionToken } from "#/hooks/useSessionToken";
+import { useSessionedMutation, useSessionToken } from "#/hooks/useSessionToken";
 import { useViewMode } from "#/hooks/useViewMode";
 import { useWorldMutations } from "#/hooks/useWorldMutations";
 import { convexErrorMessage } from "#/lib/convex-errors";
@@ -620,7 +621,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const hpOverride = view === "combat" ? combat.playerHp : undefined;
 
-	// Barrier regen outside combat — ticks in real time on map/city per CONTEXT.md.
 	const [outOfCombatBarrier, setOutOfCombatBarrier] = useState<number | null>(null);
 	const outOfCombatBarrierRef = useRef(makeBarrierState(stats.maxBarrier));
 
@@ -630,23 +630,41 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			return;
 		}
 		const initial = character.barrierCurrent ?? stats.maxBarrier;
-		const state = makeBarrierState(stats.maxBarrier);
-		state.current = Math.min(initial, stats.maxBarrier);
+		const state: ReturnType<typeof makeBarrierState> = {
+			current: Math.min(initial, stats.maxBarrier),
+			max: stats.maxBarrier,
+			cooldownRemaining: 0,
+		};
 		outOfCombatBarrierRef.current = state;
 		setOutOfCombatBarrier(state.current);
+	}, [view, stats.maxBarrier]); // character.barrierCurrent excluded — one-time init per view switch
 
-		if (state.current >= stats.maxBarrier) return;
+	const needsBarrierRegen =
+		view !== "combat" &&
+		outOfCombatBarrierRef.current.current < outOfCombatBarrierRef.current.max;
 
-		const id = setInterval(() => {
-			const next = tickBarrier(outOfCombatBarrierRef.current, 0.1);
-			if (next !== outOfCombatBarrierRef.current) {
-				outOfCombatBarrierRef.current = next;
-				setOutOfCombatBarrier(next.current);
-			}
-			if (next.current >= next.max) clearInterval(id);
-		}, 100);
-		return () => clearInterval(id);
-	}, [view, character.barrierCurrent, stats.maxBarrier]);
+	useTicker(needsBarrierRegen, 500, () => {
+		const next = tickBarrier(outOfCombatBarrierRef.current, 0.5);
+		if (next !== outOfCombatBarrierRef.current) {
+			outOfCombatBarrierRef.current = next;
+			setOutOfCombatBarrier(next.current);
+		}
+	});
+
+	// Persist regenerated barrier to DB when entering combat.
+	const barrierSyncMutation = useSessionedMutation(useMutation(api.combat.syncHp));
+	useEffect(() => {
+		if (view !== "combat") return;
+		const regen = outOfCombatBarrierRef.current.current;
+		const dbValue = character.barrierCurrent ?? stats.maxBarrier;
+		if (regen > dbValue) {
+			barrierSyncMutation({
+				characterId: character._id,
+				hpCurrent: character.hpCurrent ?? stats.maxLife,
+				barrierCurrent: regen,
+			}).catch(() => {});
+		}
+	}, [view]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const barrierOverride =
 		view === "combat"
