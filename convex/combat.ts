@@ -457,8 +457,11 @@ export const enterZone = mutation({
 		// to DEFAULT_ENCOUNTER_PLAN for safety, though every combat node in act-1
 		// declares its own plan today. See docs/plans/in-progress.md
 		// "Server-authoritative camp/phase derivation".
+		// Boss nodes have no camps — empty threshold array so the client's
+		// encounter schedule never fires onCampTriggered.
 		const encounterPlan = zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN
-		const campThresholdsMs = rollCampThresholdsMs(encounterPlan)
+		const campThresholdsMs =
+			zone.kind === "boss" ? [] : rollCampThresholdsMs(encounterPlan)
 		const zoneStartedAt = Date.now()
 		// Spread the helper first so every per-visit field (including future
 		// additions like `lastCampIndex`) gets a clean slate; the explicit
@@ -495,6 +498,11 @@ export const enterCamp = mutation({
 
 		const zoneStartedAt = char.zoneStartedAt
 		if (zoneStartedAt === undefined) throw new ConvexError("Not in a zone")
+
+		// Boss nodes never have camps — reject any client attempt.
+		const currentLocation = char.currentLocation ?? "city"
+		const zone = findNode(ACT_1, currentLocation)
+		if (zone?.kind === "boss") throw new ConvexError("No camps in boss nodes")
 
 		const thresholds = char.campThresholdsMs ?? []
 		if (
