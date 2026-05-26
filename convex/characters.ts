@@ -53,7 +53,9 @@ export const list = query({
 			.withIndex("by_authUserId", (q) => q.eq("authUserId", authUser._id))
 			.order("desc")
 			.collect()
-		return docs.map((char) => ({ ...char, ...normalize(char) }))
+		return docs
+			.filter((c) => !c.dead)
+			.map((char) => ({ ...char, ...normalize(char) }))
 	},
 })
 
@@ -117,6 +119,7 @@ export const create = mutation({
 			rubys: 0,
 			teleportStones: 0,
 			unlockedNodes: ["city"],
+			...(args.classId === "mage" ? { selectedElement: "fire" as const } : {}),
 		})
 
 		// Create the starter item entry in the items table so equip lifecycle is
