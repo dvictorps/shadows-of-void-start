@@ -19,6 +19,7 @@ export type CombatState =
 	| "engaged"
 	| "victory"
 	| "miniboss_victory"
+	| "boss_victory"
 	| "acampamento";
 
 export function derivePhase(state: CombatState): CombatPhase {
@@ -28,7 +29,12 @@ export function derivePhase(state: CombatState): CombatPhase {
 	// miniboss-victory panel pause is itself a safe banking moment: the
 	// player either retreats with the full bag they just earned, or
 	// continues hunting and gives up that safety until the next camp.
-	if (state === "acampamento" || state === "miniboss_victory") return "camp";
+	if (
+		state === "acampamento" ||
+		state === "miniboss_victory" ||
+		state === "boss_victory"
+	)
+		return "camp";
 	return "combat";
 }
 

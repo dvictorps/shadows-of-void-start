@@ -175,6 +175,8 @@
   "monster_criatura_do_vazio": "Void Creature",
 
   "boss_gralfor_name": "Gralfor, the Persistent",
+  "boss_defeated": "Defeated",
+  "boss_retreat_with_loot": "Retreat with Loot",
 
   "settings_title": "Settings",
   "settings_language": "Language",

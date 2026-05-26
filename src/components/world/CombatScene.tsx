@@ -51,6 +51,7 @@ type Props = {
 		| "engaged"
 		| "victory"
 		| "miniboss_victory"
+		| "boss_victory"
 		| "acampamento";
 	rareIntroStage: RareIntroStage;
 	bossIntroStage: BossIntroStage;
@@ -216,6 +217,7 @@ export default function CombatScene({
 	const showNameplate =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
+		state !== "boss_victory" &&
 		state !== "victory" &&
 		(state !== "rare_intro" || rareIntroStage !== "sprite") &&
 		(state !== "boss_intro" ||
@@ -223,6 +225,7 @@ export default function CombatScene({
 	const showHpBar =
 		enemy !== null &&
 		state !== "miniboss_victory" &&
+		state !== "boss_victory" &&
 		state !== "victory" &&
 		(state !== "rare_intro" || rareIntroStage === "hp") &&
 		(state !== "boss_intro" || bossIntroStage === "hp");
@@ -300,30 +303,31 @@ export default function CombatScene({
 		});
 	}, [state, enemy, enemyControls]);
 
-	// Boss intro impact beat — fires the entry sfx + a screenshake on the
-	// sprite as soon as the stage flips to "impact". The shake is scoped to
-	// the enemyControls (sprite only) per CONTEXT.md → Boss Cinematic so the
-	// HUD stays readable; whole-viewport shake is nauseating and obscures
-	// HP / consumables the player needs to react.
+	// Boss intro sfx — fires when the sprite stage begins so the entry roar
+	// plays WHILE the boss materializes. The screenshake fires later at the
+	// impact beat (after sprite is fully visible) for a two-phase buildup.
 	useEffect(() => {
-		if (state !== "boss_intro" || bossIntroStage !== "impact") return;
+		if (state !== "boss_intro" || bossIntroStage !== "sprite") return;
 		if (!bossConfig) return;
 		playSfx(bossConfig.cinematic.entrySfx, { volume: 0.8 });
-		const amp = bossConfig.cinematic.screenshake.amplitudePx;
-		const dur = bossConfig.cinematic.screenshake.durationMs / 1000;
-		enemyControls.start({
-			x: [
-				0,
-				-amp,
-				amp,
-				-Math.round(amp * 0.7),
-				Math.round(amp * 0.5),
-				-Math.round(amp * 0.3),
-				0,
-			],
-			transition: { duration: dur, times: [0, 0.15, 0.3, 0.5, 0.7, 0.85, 1] },
-		});
-	}, [state, bossIntroStage, bossConfig, enemyControls]);
+	}, [state, bossIntroStage, bossConfig]);
+
+	// Boss intro screenshake — fires at the impact beat. Shakes the entire
+	// combat section (arena, HP globe, time bar) via a CSS keyframe class
+	// so the "ground trembles" while the meta UI (sidebar) stays stable.
+	const sectionRef = useRef<HTMLElement>(null);
+	useEffect(() => {
+		if (state !== "boss_intro" || bossIntroStage !== "impact") return;
+		if (!bossConfig || !sectionRef.current) return;
+		const section = sectionRef.current;
+		section.classList.add("boss-screenshake");
+		const cleanup = () => section.classList.remove("boss-screenshake");
+		section.addEventListener("animationend", cleanup, { once: true });
+		return () => {
+			section.removeEventListener("animationend", cleanup);
+			section.classList.remove("boss-screenshake");
+		};
+	}, [state, bossIntroStage, bossConfig]);
 
 	const inCamp = state === "acampamento";
 	// Camp arrival is immediate: hitting the threshold triggers the HUD
@@ -356,6 +360,7 @@ export default function CombatScene({
 
 	return (
 		<section
+			ref={sectionRef}
 			onClick={handleSectionClick}
 			className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black"
 		>
@@ -506,6 +511,59 @@ export default function CombatScene({
 							onRetreat={onRetreat}
 						/>
 					)}
+					{state === "boss_victory" && bossConfig && (
+						<motion.div
+							className="flex flex-col items-center gap-6"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ duration: 1.2, ease: "easeOut" }}
+						>
+							<div className="text-center">
+								<motion.p
+									className="display-title text-3xl uppercase tracking-[0.2em]"
+									style={{
+										color: bossConfig.nameplateColor,
+										textShadow: bossConfig.nameplateShadow,
+									}}
+									initial={{ opacity: 0, y: 12 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{
+										duration: 0.8,
+										delay: 0.5,
+										ease: "easeOut",
+									}}
+								>
+									{translateEnemyName(enemy!)}
+								</motion.p>
+								<motion.p
+									className="display-title mt-2 text-lg uppercase tracking-[0.3em] text-white/60"
+									initial={{ opacity: 0 }}
+									animate={{ opacity: 1 }}
+									transition={{
+										duration: 0.6,
+										delay: 1.0,
+										ease: "easeOut",
+									}}
+								>
+									{m.boss_defeated()}
+								</motion.p>
+							</div>
+							<motion.button
+								type="button"
+								onClick={onRetreat}
+								className="display-title mt-4 cursor-pointer rounded border border-white/30 bg-white/10 px-6 py-2 text-sm uppercase tracking-[0.15em] text-white/80 transition-colors hover:border-white/50 hover:bg-white/20 hover:text-white"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								transition={{
+									duration: 0.5,
+									delay: 1.8,
+									ease: "easeOut",
+								}}
+							>
+								{m.boss_retreat_with_loot()}
+							</motion.button>
+						</motion.div>
+					)}
 					{inCamp && cinematicEnabled && (
 						<CampCinematic
 							zoneId={zoneId}
@@ -519,10 +577,11 @@ export default function CombatScene({
 					{enemy &&
 						state !== "searching" &&
 						state !== "miniboss_victory" &&
+						state !== "boss_victory" &&
 						state !== "acampamento" && (
 						<div className="group relative">
 							<motion.div
-								className={`relative ${enemy.rarity === "unique" ? "h-80 w-80" : "h-64 w-64"}`}
+								className={`relative ${enemy.rarity === "unique" ? "h-96 w-96" : "h-64 w-64"}`}
 								animate={enemyControls}
 							>
 								<img
@@ -592,7 +651,7 @@ export default function CombatScene({
 				{/* HP bar slot. Always reserved when an enemy is present so the
 				 * sprite above doesn't shift when the bar fades in during
 				 * boss_intro stage 3. */}
-				{enemy && state !== "miniboss_victory" && (
+				{enemy && state !== "miniboss_victory" && state !== "boss_victory" && (
 					<motion.div
 						className="flex w-full justify-center"
 						initial={{ opacity: 0, y: -6 }}

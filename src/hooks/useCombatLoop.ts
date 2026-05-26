@@ -136,6 +136,7 @@ export function useCombatLoop({
 	// Read by the victory-delay handler — state and lastKill have already been
 	// reset by then, so we can't recover the rarity from them.
 	const lastKillWasMinibossRef = useRef(false);
+	const lastKillWasBossRef = useRef(false);
 
 	// Refs the interval callbacks read directly for mid-tick state visibility.
 	const stateRef = useRef(state);
@@ -221,15 +222,15 @@ export function useCombatLoop({
 			setLastKill({ xp: xpGained, potion: false });
 			setState("victory");
 			playKillSfx(killed);
-			// Three flows produce a 100%-retention "miniboss modal" victory:
-			// (1) zone miniboss kill (rare in a regular combat zone),
-			// (2) act-boss kill (rarity "unique" in a boss node).
-			// Gauntlet rares (rare inside a boss node) are NOT a victory beat —
-			// the next gauntlet fight or the boss spawn follows immediately.
+			// Three kill categories produce 100%-retention pauses:
+			// (1) zone miniboss (rare in combat zone) → miniboss_victory modal
+			// (2) act boss (unique) → boss_victory cinematic (retreat only)
+			// Gauntlet rares (rare in boss zone) advance the gauntlet, no pause.
 			const inBossNode = bossNode != null;
 			const isMinibossKill = killed.rarity === "rare" && !inBossNode;
 			const isBossKill = killed.rarity === "unique";
-			lastKillWasMinibossRef.current = isMinibossKill || isBossKill;
+			lastKillWasMinibossRef.current = isMinibossKill;
+			lastKillWasBossRef.current = isBossKill;
 			if (isMinibossKill) {
 				schedule.resetForMiniboss();
 			}
@@ -562,7 +563,11 @@ export function useCombatLoop({
 			setState("searching");
 			return;
 		}
-		if (lastKillWasMinibossRef.current) {
+		if (lastKillWasBossRef.current) {
+			lastKillWasBossRef.current = false;
+			stateRef.current = "boss_victory";
+			setState("boss_victory");
+		} else if (lastKillWasMinibossRef.current) {
 			lastKillWasMinibossRef.current = false;
 			stateRef.current = "miniboss_victory";
 			setState("miniboss_victory");
