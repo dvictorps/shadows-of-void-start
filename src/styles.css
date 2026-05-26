@@ -417,6 +417,18 @@ a {
   }
 }
 
+/* Scale the entire UI on small viewports so nothing is clipped.
+   Design target is 1080p; 768p gets ~71% zoom, 900p gets ~83%. */
+@media (max-height: 800px) {
+  html { zoom: 0.7; }
+}
+@media (min-height: 801px) and (max-height: 950px) {
+  html { zoom: 0.83; }
+}
+@media (min-height: 951px) and (max-height: 1050px) {
+  html { zoom: 0.92; }
+}
+
 .site-footer {
   border-top: 1px solid var(--line);
   background: color-mix(in oklab, var(--header-bg) 84%, transparent 16%);
