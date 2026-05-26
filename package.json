@@ -40,6 +40,7 @@
     "convex": "^1.32.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
+    "nitro": "3.0.260522-beta",
     "posthog-js": "^1.358.1",
     "radix-ui": "^1.4.3",
     "react": "^19.2.0",
