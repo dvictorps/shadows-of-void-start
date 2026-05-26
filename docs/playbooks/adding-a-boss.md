@@ -145,9 +145,9 @@ Then in `npm run dev`:
 
 The `useEtherealIncense` button is greyed out inside any `kind: "boss"` node — server-side too. Per CONTEXT.md → Incenso Etéreo. No code change needed when adding a new boss; the gate keys off `node.kind`, not the boss id.
 
-## Gotcha: gauntlet rare drops are reduced
+## Gotcha: gauntlet rare drops use the standard miniboss table
 
-Gauntlet rare kills drop 1 item (70% Magic / 30% Rare) — much less than a zone miniboss (2 items, 1 guaranteed Rare). The reduction is intentional: the boss kill itself is the payout pump, not the gauntlet. See `rollGauntletRareDrops` in `src/game/loot/drops.ts`.
+Gauntlet rare kills use the same `rollMinibossDrops` as zone minibosses (2 items, 1 guaranteed Rare). The boss kill itself also drops via `rollBossDrops` (2-3 items, guaranteed Rare, 75/25 Rare/Magic). See `src/game/loot/drops.ts`.
 
 ## Gotcha: rarity is "unique", not a separate type
 

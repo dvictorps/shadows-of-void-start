@@ -4,7 +4,7 @@ import {
 	RarityHeader,
 	TooltipSeparator,
 } from "#/components/ui/rarity-card";
-import { getBossConfig } from "#/game/bosses";
+import type { BossConfig } from "#/game/bosses";
 import {
 	translateEnemyName,
 	translateMonsterModDescription,
@@ -94,8 +94,13 @@ function BossStatSheet({ enemy }: { enemy: Enemy }) {
 	);
 }
 
-export default function MonsterTooltip({ enemy }: { enemy: Enemy }) {
-	const bossConfig = getBossConfig(enemy);
+export default function MonsterTooltip({
+	enemy,
+	bossConfig = null,
+}: {
+	enemy: Enemy;
+	bossConfig?: BossConfig | null;
+}) {
 	const headerColor = bossConfig
 		? bossConfig.nameplateColor
 		: RARITY_COLORS[enemy.rarity];

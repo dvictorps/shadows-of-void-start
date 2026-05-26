@@ -263,7 +263,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			};
 		}
 		return currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
-	}, [currentNode]);
+	}, [currentNode?.bossNode?.warmupSeconds, currentNode?.encounterPlan]);
 
 	const handlePlayerDeath = useCallback(async () => {
 		try {
@@ -715,11 +715,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 							combat.state !== "miniboss_victory" &&
 							currentNode.kind !== "boss" &&
 							!(
-								combat.state === "engaged" && combat.enemy?.rarity === "rare"
-							) &&
-							!(
 								combat.state === "engaged" &&
-								combat.enemy?.rarity === "unique"
+								(combat.enemy?.rarity === "rare" ||
+									combat.enemy?.rarity === "unique")
 							) &&
 							!combat.ambushActive &&
 							!isUsingIncense

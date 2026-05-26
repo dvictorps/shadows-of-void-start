@@ -46,7 +46,7 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 | `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `pickGendered`) |
 | `inventory/` | Inventory constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, bySlotAsc) |
 | `items/` | Item generator, modifier data, equip helpers, lexicon | See below — the biggest subdir |
-| `loot/` | Drop tables | `drops.ts` (rollDrop, rollMonsterLevel, rollMinibossDrops, rollGauntletRareDrops, rollBossDrops) |
+| `loot/` | Drop tables | `drops.ts` (rollDrop, rollMonsterLevel, rollMinibossDrops, rollBossDrops) |
 | `monsters/` | Monster definitions, modifier pool, instance-level scaler | `data.ts`, `types.ts`, `modifiers.ts` (pool + roll), `scaling.ts` (geometric 1.06^L) |
 | `progression/` | XP curves, death penalty | `levels.ts` (xpToNextLevel, applyXpGain, applyDeathXpPenalty) |
 | `stats/` | The stat engine | `compute.ts` (computeCharacterStats), `types.ts` (EquippedSlot, narrowEquippedSlot, ComputedCharacterStats) |

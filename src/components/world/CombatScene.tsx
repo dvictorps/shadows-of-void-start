@@ -573,6 +573,7 @@ export default function CombatScene({
 								<SpriteTooltipPortal
 									spriteRef={spriteGroupRef}
 									enemy={enemy}
+									bossConfig={bossConfig}
 								/>
 							)}
 						</div>
@@ -797,31 +798,25 @@ function ZoneCompletePanel({
 function SpriteTooltipPortal({
 	spriteRef,
 	enemy,
+	bossConfig,
 }: {
 	spriteRef: React.RefObject<HTMLDivElement | null>;
 	enemy: Enemy;
+	bossConfig: import("#/game/bosses").BossConfig | null;
 }) {
-	const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-	useEffect(() => {
-		const el = spriteRef.current;
-		if (!el) return;
-		const rect = el.getBoundingClientRect();
-		setPos({
-			top: rect.bottom + 8,
-			left: rect.left + rect.width / 2,
-		});
-	}, [spriteRef]);
-	if (!pos) return null;
+	const el = spriteRef.current;
+	if (!el) return null;
+	const rect = el.getBoundingClientRect();
 	return createPortal(
 		<div
 			className="pointer-events-none fixed z-[9999]"
 			style={{
-				top: pos.top,
-				left: pos.left,
+				top: rect.bottom + 8,
+				left: rect.left + rect.width / 2,
 				transform: "translateX(-50%)",
 			}}
 		>
-			<MonsterTooltip enemy={enemy} />
+			<MonsterTooltip enemy={enemy} bossConfig={bossConfig} />
 		</div>,
 		document.body,
 	);

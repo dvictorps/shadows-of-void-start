@@ -459,7 +459,7 @@ The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all
 | Normal mob | 30% | 70% Normal · 25% Magic · 5% Rare |
 | Magic mob | 60% | 40% Normal · 50% Magic · 10% Rare |
 | Miniboss (Rare) | 100% | **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare |
-| Gauntlet rare (inside a boss node) | 100% | **1 item** · 70% Magic · 30% Rare. Smaller payout than a zone miniboss so the boss node doesn't out-farm regular zones; the boss kill itself is the pump. |
+| Gauntlet rare (inside a boss node) | 100% | Same as Miniboss — **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare |
 | Act boss | 100% | **2-3 items** · 1 **guaranteed Rare** · remaining slots: 75% Rare · 25% Magic (no Normals from boss) |
 
 **Magic Find** (item rarity %) shifts every drop's distribution toward higher rarity, including the **guaranteed Rare slots** from minibosses and the act boss. Every drop — including the guaranteed slots — can be promoted upward by enough MF:
