@@ -38,11 +38,11 @@ export const CRIT_CHANCE_CAP = 100;
 export const BASE_CRIT_MULTIPLIER = 50;
 
 // Barrier regen: while barrier is above zero, it ticks back at this fraction
-// of max barrier per second (2% → 50s to fully refill from empty). The rate
+// of max barrier per second (0.5% → 200s to fully refill from empty). The rate
 // is fixed; no per-second cap on the absolute regen because heavy barrier
 // investment is intentionally rewarded with proportionally larger raw regen
 // (asymmetric to leech's 20%-max-life cap by design — see ADR 0005).
-export const BARRIER_REGEN_FRACTION_PER_SECOND = 0.02;
+export const BARRIER_REGEN_FRACTION_PER_SECOND = 0.005;
 
 // Barrier cooldown: when current barrier hits zero from damage, this many
 // seconds elapse before regen resumes. During the cooldown, regen is paused

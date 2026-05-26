@@ -246,22 +246,22 @@ export function useCombatTick({
 					leechHealAccRef.current += actualHeal;
 				}
 				const now = Date.now();
-				if (
-					now - lastLeechEventRef.current >= 500 &&
-					leechHealAccRef.current > 0
-				) {
-					pushEvent({
-						amount: Math.round(leechHealAccRef.current),
-						target: "player",
-						isHealing: true,
-					});
+				if (now - lastLeechEventRef.current >= 500) {
+					const rounded = Math.round(leechHealAccRef.current);
+					if (rounded > 0) {
+						pushEvent({
+							amount: rounded,
+							target: "player",
+							isHealing: true,
+						});
+					}
 					leechHealAccRef.current = 0;
 					lastLeechEventRef.current = now;
 				}
 			}
 		}
 
-		// Barrier ticks every frame: regen while above zero (5%/s of max),
+		// Barrier ticks every frame: regen while above zero (0.5%/s of max),
 		// cooldown countdown while below zero (10s after a break). See ADR 0005.
 		const nextBarrier = tickBarrier(barrierRef.current, dt);
 		if (nextBarrier !== barrierRef.current) {

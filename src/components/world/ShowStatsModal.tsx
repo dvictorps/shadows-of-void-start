@@ -153,7 +153,7 @@ function DefensesSection({
 			{stats.maxBarrier > 0 && (
 				<Row
 					label={m.stats_barrier()}
-					value={`${currentBarrier} / ${stats.maxBarrier}`}
+					value={`${Math.round(currentBarrier)} / ${Math.round(stats.maxBarrier)}`}
 				/>
 			)}
 			<Row
@@ -389,7 +389,7 @@ function UtilitySection({ stats }: { stats: ComputedCharacterStats }) {
 				<Row label={m.stats_mana_on_hit()} value={stats.manaGainOnHit} />
 				<Row
 					label={m.stats_life_leech()}
-					value={`${stats.lifeLeechPercent}%`}
+					value={`${Math.round(stats.lifeLeechPercent * 10) / 10}%`}
 				/>
 				<Row label={m.stats_life_on_kill()} value={stats.lifeOnKill} />
 				<Row label={m.stats_mana_on_kill()} value={stats.manaOnKill} />

@@ -28,7 +28,6 @@ import {
 	rollMonsterRarity,
 	scaleMonsterStats,
 } from "#/game/monsters";
-import { applyOverlevelPenalty } from "#/game/progression/levels";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import type { BossNodeConfig, CampSource } from "#/game/world";
 import type { ZoneEncounterPlan } from "#/game/world/encounter-schedule";
@@ -212,11 +211,7 @@ export function useCombatLoop({
 
 	const resolveKill = useCallback(
 		(killed: Enemy) => {
-			const xpGained = applyOverlevelPenalty(
-				killed.scaled.xpReward,
-				characterLevel,
-				killed.level,
-			);
+			const xpGained = killed.scaled.xpReward;
 			stateRef.current = "victory";
 			setLastKill({ xp: xpGained, potion: false });
 			setState("victory");

@@ -944,6 +944,8 @@ function FloatingDamage({
 
 	const isHeal = event.isHealing;
 
+	if (isHeal && event.amount === 0) return null;
+
 	let color: string;
 	let display: string;
 	if (isHeal) {
