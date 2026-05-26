@@ -34,14 +34,24 @@ export default function ElementSelector({
 	onSwitch,
 	onHover,
 	disabled,
+	lastSwitchAt,
 }: {
 	selected: Element;
 	onSwitch: (element: Element) => void;
 	onHover?: (key: HoverKey | null) => void;
 	disabled?: boolean;
+	lastSwitchAt?: number;
 }) {
-	const [cooldownEnd, setCooldownEnd] = useState(0);
+	const [cooldownEnd, setCooldownEnd] = useState(
+		lastSwitchAt ? lastSwitchAt + COOLDOWN_MS : 0,
+	);
 	const [now, setNow] = useState(Date.now());
+
+	useEffect(() => {
+		if (!lastSwitchAt) return;
+		const end = lastSwitchAt + COOLDOWN_MS;
+		if (end > Date.now()) setCooldownEnd(end);
+	}, [lastSwitchAt]);
 
 	const remaining = Math.max(0, cooldownEnd - now);
 	const onCooldown = remaining > 0;
@@ -55,7 +65,6 @@ export default function ElementSelector({
 	function handleClick(element: Element) {
 		if (element === selected || onCooldown || disabled) return;
 		onSwitch(element);
-		setCooldownEnd(Date.now() + COOLDOWN_MS);
 	}
 
 	return (

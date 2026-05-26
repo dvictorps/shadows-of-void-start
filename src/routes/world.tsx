@@ -199,9 +199,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				classDef,
 				level: character.level,
 				equippedItems: equippedSnapshot,
-				selectedElement: character.selectedElement,
+				selectedElement: character.selectedElement ?? (character.classId === "mage" ? "fire" : undefined),
 			}),
-		[classDef, character.level, equippedSnapshot, character.selectedElement],
+		[classDef, character.level, equippedSnapshot, character.selectedElement, character.classId],
 	);
 
 	const maxHp = stats.maxLife;
@@ -760,6 +760,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					classId={character.classId}
 					selectedElement={character.selectedElement ?? "fire"}
 					onSwitchElement={handleSwitchElement}
+					lastElementSwitchAt={character.lastElementSwitchAt}
 					/>
 				)}
 				<TextLog message={logMessage} tone={logTone} />

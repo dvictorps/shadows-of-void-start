@@ -114,6 +114,7 @@ type Props = {
 	classId?: string;
 	selectedElement?: "fire" | "cold" | "lightning";
 	onSwitchElement?: (element: "fire" | "cold" | "lightning") => void;
+	lastElementSwitchAt?: number;
 };
 
 export default function CombatScene({
@@ -156,6 +157,7 @@ export default function CombatScene({
 	classId,
 	selectedElement,
 	onSwitchElement,
+	lastElementSwitchAt,
 }: Props) {
 	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
 	const thresholdPct =
@@ -660,6 +662,7 @@ export default function CombatScene({
 						selected={selectedElement}
 						onSwitch={onSwitchElement}
 						onHover={(key) => onConsumableHover?.(key)}
+						lastSwitchAt={lastElementSwitchAt}
 					/>
 				)}
 
