@@ -213,6 +213,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		vendorBuy,
 		teleportStone,
 		vendorSellMany,
+		switchElement,
 	} = useWorldMutations({ movementSpeed: stats.movementSpeed });
 
 	const { view, setView, setPendingArrival, isTraveling, enterDestination } =
@@ -539,6 +540,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		}
 	};
 
+	const handleSwitchElement = useCallback(
+		async (element: "fire" | "cold" | "lightning") => {
+			try {
+				await switchElement({ characterId: character._id, element });
+			} catch {
+				// Cooldown or non-mage — silently swallowed
+			}
+		},
+		[switchElement, character._id],
+	);
+
 	// Spam-click guard around `combat.usePotion`. The local `potions` count
 	// already optimistically decrements, but a fast double-tap before the
 	// optimistic update reaches React can fire `consumePotion` twice and the
@@ -736,6 +748,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						onDismissMinibossModal={combat.dismissMinibossModal}
 						zoneId={currentNode.id}
 						onDismissCamp={combat.dismissCamp}
+					classId={character.classId}
+					selectedElement={character.selectedElement ?? "fire"}
+					onSwitchElement={handleSwitchElement}
 					/>
 				)}
 				<TextLog message={logMessage} tone={logTone} />

@@ -22,6 +22,7 @@ import type {
 import { playSfx } from "#/lib/sfx";
 import { m } from "#/paraglide/messages";
 import CampCinematic from "./CampCinematic";
+import ElementSelector from "./ElementSelector";
 import HealthGlobe from "./HealthGlobe";
 import HitFx from "./HitFx";
 import MonsterTooltip from "./MonsterTooltip";
@@ -110,6 +111,9 @@ type Props = {
 	// crosses a zone's camp threshold. See CONTEXT.md → Acampamento.
 	zoneId: string;
 	onDismissCamp: () => void;
+	classId?: string;
+	selectedElement?: "fire" | "cold" | "lightning";
+	onSwitchElement?: (element: "fire" | "cold" | "lightning") => void;
 };
 
 export default function CombatScene({
@@ -149,6 +153,9 @@ export default function CombatScene({
 	zoneId,
 	onDismissCamp,
 	onConsumableHover,
+	classId,
+	selectedElement,
+	onSwitchElement,
 }: Props) {
 	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
 	const thresholdPct =
@@ -647,6 +654,13 @@ export default function CombatScene({
 						</AnimatePresence>
 					</div>
 				</div>
+
+				{classId === "mage" && selectedElement && onSwitchElement && (
+					<ElementSelector
+						selected={selectedElement}
+						onSwitch={onSwitchElement}
+					/>
+				)}
 
 				<div className="flex-1 space-y-1">
 					<div className="text-[10px] uppercase tracking-wider text-yellow-300/80">
