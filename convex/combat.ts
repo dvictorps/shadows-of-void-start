@@ -34,6 +34,8 @@ import {
 	rollDrop,
 	rollMinibossDrops,
 } from "../src/game/loot/drops"
+import { findBoss as findBossConfig } from "../src/game/bosses/data"
+import type { BossId } from "../src/game/bosses/types"
 import { findMonster } from "../src/game/monsters/data"
 import { scaleMonsterStats } from "../src/game/monsters/scaling"
 import {
@@ -81,11 +83,15 @@ export const recordKill = mutation({
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
+		// Bosses live in the BOSSES registry (src/game/bosses/), not MONSTERS.
+		// Fall back to findBoss when findMonster misses.
 		const monster = findMonster(args.monsterId)
-		if (!monster) throw new ConvexError(`Unknown monster: ${args.monsterId}`)
+		const boss = monster ? null : findBossConfig(args.monsterId as BossId)
+		const template = monster ?? boss?.template
+		if (!template) throw new ConvexError(`Unknown monster: ${args.monsterId}`)
 
 		const monsterLevel = Math.max(1, Math.floor(args.monsterLevel))
-		const scaled = scaleMonsterStats(monster, monsterLevel)
+		const scaled = scaleMonsterStats(template, monsterLevel)
 
 		// Over-leveling penalty: characters more than +2 levels above the
 		// monster lose XP quadratically (see applyOverlevelPenalty).
@@ -201,7 +207,7 @@ export const recordKill = mutation({
 					zoneSession,
 					data: drop,
 					droppedAt: Date.now(),
-					droppedFrom: monster.id,
+					droppedFrom: template.id,
 					droppedFromLevel: monsterLevel,
 				})
 				drops.push({ id: insertedId, data: drop })
