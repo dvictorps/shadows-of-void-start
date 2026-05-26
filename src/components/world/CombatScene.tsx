@@ -1,6 +1,14 @@
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import { createPortal } from "react-dom";
 import { getBossConfig } from "#/game/bosses";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateEnemyName } from "#/game/world/i18n";
@@ -301,6 +309,10 @@ export default function CombatScene({
 	// combat section (arena, HP globe, time bar) via a CSS keyframe class
 	// so the "ground trembles" while the meta UI (sidebar) stays stable.
 	const sectionRef = useRef<HTMLElement>(null);
+	const spriteGroupRef = useRef<HTMLDivElement>(null);
+	const [isHoveringSprite, setIsHoveringSprite] = useState(false);
+	const onSpriteEnter = useCallback(() => setIsHoveringSprite(true), []);
+	const onSpriteLeave = useCallback(() => setIsHoveringSprite(false), []);
 	useEffect(() => {
 		if (state !== "boss_intro" || bossIntroStage !== "impact") return;
 		if (!bossConfig || !sectionRef.current) return;
@@ -511,7 +523,12 @@ export default function CombatScene({
 						state !== "searching" &&
 						state !== "miniboss_victory" &&
 												state !== "acampamento" && (
-						<div className="group relative">
+						<div
+							ref={spriteGroupRef}
+							className="group relative"
+							onMouseEnter={onSpriteEnter}
+							onMouseLeave={onSpriteLeave}
+						>
 							<motion.div
 								className={`relative ${enemy.rarity === "unique" ? "h-96 w-96" : "h-64 w-64"}`}
 								animate={enemyControls}
@@ -552,10 +569,11 @@ export default function CombatScene({
 									/>
 								)}
 							</AnimatePresence>
-							{enemy.rarity !== "normal" && (
-								<div className="-translate-x-1/2 pointer-events-none absolute top-full left-1/2 z-50 mt-2 hidden group-hover:block">
-									<MonsterTooltip enemy={enemy} />
-								</div>
+							{enemy.rarity !== "normal" && isHoveringSprite && (
+								<SpriteTooltipPortal
+									spriteRef={spriteGroupRef}
+									enemy={enemy}
+								/>
 							)}
 						</div>
 					)}
@@ -773,6 +791,39 @@ function ZoneCompletePanel({
 				</button>
 			</div>
 		</motion.div>
+	);
+}
+
+function SpriteTooltipPortal({
+	spriteRef,
+	enemy,
+}: {
+	spriteRef: React.RefObject<HTMLDivElement | null>;
+	enemy: Enemy;
+}) {
+	const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+	useEffect(() => {
+		const el = spriteRef.current;
+		if (!el) return;
+		const rect = el.getBoundingClientRect();
+		setPos({
+			top: rect.bottom + 8,
+			left: rect.left + rect.width / 2,
+		});
+	}, [spriteRef]);
+	if (!pos) return null;
+	return createPortal(
+		<div
+			className="pointer-events-none fixed z-[9999]"
+			style={{
+				top: pos.top,
+				left: pos.left,
+				transform: "translateX(-50%)",
+			}}
+		>
+			<MonsterTooltip enemy={enemy} />
+		</div>,
+		document.body,
 	);
 }
 
