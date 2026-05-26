@@ -471,7 +471,7 @@ The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all
 ## Item Identification and Loot Tiers per Act
 
 - **All items drop pre-identified.** No identification scrolls, no fog of war on stats.
-- **Act 1 drop pool:** Normal, Magic, Rare. Legendary has a **low chance** to drop only from the **act boss**. Epic items do not exist in Act 1.
+- **Act 1 drop pool:** Normal, Magic, Rare. Legendary can drop from any source via the rarity promotion system. Epic items do not exist in Act 1.
 - **Act 2 onward (planned):** introduces Epic drops and continues to ramp Legendary frequency.
 
 ### Drop rates (Act 1 baseline)
@@ -484,11 +484,19 @@ The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all
 | Gauntlet rare (inside a boss node) | 100% | Same as Miniboss — **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare |
 | Act boss | 100% | **2-3 items** · 1 **guaranteed Rare** · remaining slots: 75% Rare · 25% Magic (no Normals from boss) |
 
-**Magic Find** (item rarity %) shifts every drop's distribution toward higher rarity, including the **guaranteed Rare slots** from minibosses and the act boss. Every drop — including the guaranteed slots — can be promoted upward by enough MF:
+### Rarity promotion (Magic Find)
 
-- Normal → Magic → Rare → **Legendary**
+After each item's base rarity is rolled (including guaranteed slots), the game attempts to promote it one tier at a time. Each step is an independent roll:
 
-Legendaries are reachable in Act 1 from any source, but the baseline chance is **very low**. The act boss has the highest baseline Legendary chance (a few %); regular mobs need significant MF stacking to see one. Epic drops are not available in Act 1.
+| Promotion | Base chance | With 100% MF | With 200% MF |
+|---|---|---|---|
+| Normal → Magic | 10% | 20% | 30% |
+| Magic → Rare | 5% | 10% | 15% |
+| Rare → Legendary | 1% | 2% | 3% |
+
+**Formula:** `chance = basePct × (1 + magicFind / 100)`
+
+Promotions chain: a Normal can promote to Magic, then that result can promote to Rare, then to Legendary — each step is a separate roll. The act boss's guaranteed Rare has a baseline 1% chance to become Legendary (≈1% per item with 0 MF). Regular mobs need MF stacking to see Legendaries. Epic drops are not available in Act 1.
 
 ### Vendor catalog (MVP)
 

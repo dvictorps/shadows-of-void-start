@@ -20,11 +20,13 @@ import {
 	STASH_MAX_SLOTS,
 } from "#/game/inventory/constants";
 import type { GeneratedItem } from "#/game/items/types";
+import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { useInFlight } from "#/hooks/useInFlight";
 import { m } from "#/paraglide/messages";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
-const SLOT_SIZE = 80;
+const SLOT_SIZE_DEFAULT = 80;
+const SLOT_SIZE_COMPACT = 64;
 const COLUMNS = 8;
 
 type DropTargetData =
@@ -46,7 +48,10 @@ type Props = {
 	onWithdraw: (
 		itemIds: Id<"items">[],
 	) => Promise<{ withdrawn: number; failed: number }>;
-	onReorderInventory: (args: { itemId: Id<"items">; targetSlot: number }) => void;
+	onReorderInventory: (args: {
+		itemId: Id<"items">;
+		targetSlot: number;
+	}) => void;
 	onReorderStash: (args: { itemId: Id<"items">; targetSlot: number }) => void;
 };
 
@@ -60,6 +65,8 @@ export default function StashModal({
 	onReorderInventory,
 	onReorderStash,
 }: Props) {
+	const compact = useCompactViewport();
+	const slotSize = compact ? SLOT_SIZE_COMPACT : SLOT_SIZE_DEFAULT;
 
 	const [active, setActive] = useState<DragSourceData | null>(null);
 	const [invSelected, setInvSelected] = useState<Set<string>>(new Set());
@@ -273,7 +280,7 @@ export default function StashModal({
 			isOpen={isOpen}
 			onClose={onClose}
 			title={m.stash_title({ used: stashItems.length, total: STASH_MAX_SLOTS })}
-			className="max-w-[1400px]"
+			className={compact ? "max-w-[1200px]" : "max-w-[1440px]"}
 			hideHeaderClose
 			footer={
 				<div className="flex items-center justify-between">
@@ -348,7 +355,7 @@ export default function StashModal({
 							<div
 								className="grid gap-1.5"
 								style={{
-									gridTemplateColumns: `repeat(${COLUMNS}, ${SLOT_SIZE}px)`,
+									gridTemplateColumns: `repeat(${COLUMNS}, ${slotSize}px)`,
 								}}
 							>
 								{Array.from({ length: INVENTORY_MAX_SLOTS }, (_, slot) => {
@@ -376,6 +383,7 @@ export default function StashModal({
 													toggleInv(itemId.toString());
 												}
 											}}
+											slotSize={slotSize}
 										/>
 									);
 								})}
@@ -418,7 +426,7 @@ export default function StashModal({
 								<div
 									className="grid gap-1.5"
 									style={{
-										gridTemplateColumns: `repeat(${COLUMNS}, ${SLOT_SIZE}px)`,
+										gridTemplateColumns: `repeat(${COLUMNS}, ${slotSize}px)`,
 									}}
 								>
 									{Array.from({ length: STASH_MAX_SLOTS }, (_, slot) => {
@@ -446,6 +454,7 @@ export default function StashModal({
 														toggleStash(itemId.toString());
 													}
 												}}
+												slotSize={slotSize}
 											/>
 										);
 									})}
@@ -457,7 +466,7 @@ export default function StashModal({
 
 				<DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
 					{activeItem ? (
-						<ItemCard item={activeItem} size={SLOT_SIZE} suppressTooltip />
+						<ItemCard item={activeItem} size={slotSize} suppressTooltip />
 					) : null}
 				</DragOverlay>
 			</DndContext>
@@ -474,6 +483,7 @@ function StashSlotDroppable({
 	isDraggingThis,
 	isSelected,
 	onItemClick,
+	slotSize,
 }: {
 	droppableId: string;
 	kind: "inventory" | "stash";
@@ -483,6 +493,7 @@ function StashSlotDroppable({
 	isDraggingThis: boolean;
 	isSelected: boolean;
 	onItemClick: (itemId: Id<"items">, shiftKey: boolean) => void;
+	slotSize: number;
 }) {
 	const { setNodeRef: dropRef, isOver } = useDroppable({
 		id: droppableId,
@@ -494,7 +505,7 @@ function StashSlotDroppable({
 	return (
 		<div
 			ref={dropRef}
-			style={{ width: SLOT_SIZE, height: SLOT_SIZE }}
+			style={{ width: slotSize, height: slotSize }}
 			className={`relative rounded-md transition-shadow ${highlight || selectedRing}`}
 		>
 			<div className={`absolute inset-0 rounded-md ${SLOT_EMPTY}`} />
@@ -504,6 +515,7 @@ function StashSlotDroppable({
 					dragKind={dragKind}
 					hidden={isDraggingThis}
 					onClick={(itemId, shiftKey) => onItemClick(itemId, shiftKey)}
+					slotSize={slotSize}
 				/>
 			)}
 		</div>
@@ -515,11 +527,13 @@ function DraggableStashItem({
 	dragKind,
 	hidden,
 	onClick,
+	slotSize,
 }: {
 	item: Doc<"items">;
 	dragKind: "inventory" | "stash";
 	hidden: boolean;
 	onClick: (itemId: Id<"items">, shiftKey: boolean) => void;
+	slotSize: number;
 }) {
 	const handle = useDraggable({
 		id: `${dragKind}-${item._id}`,
@@ -546,7 +560,7 @@ function DraggableStashItem({
 			{...handle.listeners}
 			{...handle.attributes}
 		>
-			<ItemCard item={item.data} size={SLOT_SIZE} suppressTooltip={hidden} />
+			<ItemCard item={item.data} size={slotSize} suppressTooltip={hidden} />
 		</div>
 	);
 }

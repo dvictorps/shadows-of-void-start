@@ -9,18 +9,17 @@ import CombatScene, {
 	type ConsumableKey,
 } from "#/components/world/CombatScene";
 import EquipmentPanel from "#/components/world/EquipmentPanel";
+import LeaderboardModal from "#/components/world/LeaderboardModal";
 import MapScene from "#/components/world/MapScene";
 import SessionLostModal from "#/components/world/SessionLostModal";
 import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
-import LeaderboardModal from "#/components/world/LeaderboardModal";
 import { WorldModals } from "#/components/world/WorldModals";
 import { findClassDefinition } from "#/game/classes/data";
 import { makeBarrierState, tickBarrier } from "#/game/combat/barrier";
 import { computeBagKeepCap } from "#/game/combat/constants";
-import { useTicker } from "#/hooks/useTicker";
 import { xpToNextLevel } from "#/game/progression/levels";
 import { computeCharacterStats } from "#/game/stats/compute";
 import {
@@ -33,10 +32,12 @@ import { DEFAULT_ENCOUNTER_PLAN } from "#/game/world/encounter-schedule";
 import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
+import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useModal } from "#/hooks/useModal";
 import { useSessionedMutation, useSessionToken } from "#/hooks/useSessionToken";
+import { useTicker } from "#/hooks/useTicker";
 import { useViewMode } from "#/hooks/useViewMode";
 import { useWorldMutations } from "#/hooks/useWorldMutations";
 import { convexErrorMessage } from "#/lib/convex-errors";
@@ -102,6 +103,7 @@ const EMPTY_THRESHOLDS: readonly number[] = [];
 function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const navigate = useNavigate();
 	const confirm = useConfirmationModal();
+	const compact = useCompactViewport();
 	const classDef = findClassDefinition(character.classId);
 	const { sessionToken } = useSessionToken();
 	// Gate the combat loop on the active-session check — a stale tab whose
@@ -188,10 +190,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		`inventory:${character._id}`,
 		liveInventory,
 	);
-	const stashItems = useCachedQuery(
-		`stash:${character._id}`,
-		liveStash,
-	);
+	const stashItems = useCachedQuery(`stash:${character._id}`, liveStash);
 
 	const equippedSnapshot: EquippedItem[] = useMemo(() => {
 		const out: EquippedItem[] = [];
@@ -209,9 +208,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				classDef,
 				level: character.level,
 				equippedItems: equippedSnapshot,
-				selectedElement: character.selectedElement ?? (character.classId === "mage" ? "fire" : undefined),
+				selectedElement:
+					character.selectedElement ??
+					(character.classId === "mage" ? "fire" : undefined),
 			}),
-		[classDef, character.level, equippedSnapshot, character.selectedElement, character.classId],
+		[
+			classDef,
+			character.level,
+			equippedSnapshot,
+			character.selectedElement,
+			character.classId,
+		],
 	);
 
 	const maxHp = stats.maxLife;
@@ -633,7 +640,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const hpOverride = view === "combat" ? combat.playerHp : undefined;
 
-	const [outOfCombatBarrier, setOutOfCombatBarrier] = useState<number | null>(null);
+	const [outOfCombatBarrier, setOutOfCombatBarrier] = useState<number | null>(
+		null,
+	);
 	const outOfCombatBarrierRef = useRef(makeBarrierState(stats.maxBarrier));
 
 	useEffect(() => {
@@ -641,7 +650,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			setOutOfCombatBarrier(null);
 			return;
 		}
-		const initial = view === "city" ? stats.maxBarrier : (character.barrierCurrent ?? stats.maxBarrier);
+		const initial =
+			view === "city"
+				? stats.maxBarrier
+				: (character.barrierCurrent ?? stats.maxBarrier);
 		const state: ReturnType<typeof makeBarrierState> = {
 			current: Math.min(initial, stats.maxBarrier),
 			max: stats.maxBarrier,
@@ -664,7 +676,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	});
 
 	// Persist regenerated barrier to DB when entering combat.
-	const barrierSyncMutation = useSessionedMutation(useMutation(api.combat.syncHp));
+	const barrierSyncMutation = useSessionedMutation(
+		useMutation(api.combat.syncHp),
+	);
 	useEffect(() => {
 		if (view !== "combat") return;
 		const regen = outOfCombatBarrierRef.current.current;
@@ -724,7 +738,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		) : null;
 
 	return (
-		<main className="viewport-scale relative grid h-screen grid-cols-[1fr_640px] gap-3 overflow-hidden bg-black p-3 text-white">
+		<main
+			className={`relative grid h-screen overflow-hidden bg-black text-white ${compact ? "grid-cols-[1fr_520px] gap-2 p-2" : "grid-cols-[1fr_640px] gap-3 p-3"}`}
+		>
 			{view === "map" && (
 				<button
 					type="button"
@@ -736,7 +752,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					{m.back()}
 				</button>
 			)}
-			<div className="grid grid-rows-[1fr_160px] gap-3 overflow-hidden">
+			<div
+				className={`grid overflow-hidden ${compact ? "grid-rows-[1fr_100px] gap-2" : "grid-rows-[1fr_160px] gap-3"}`}
+			>
 				{view === "map" && (
 					<div className="relative overflow-hidden">
 						<MapScene
@@ -818,16 +836,18 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						onDismissMinibossModal={combat.dismissMinibossModal}
 						zoneId={currentNode.id}
 						onDismissCamp={combat.dismissCamp}
-					classId={character.classId}
-					selectedElement={character.selectedElement ?? "fire"}
-					onSwitchElement={handleSwitchElement}
-					lastElementSwitchAt={character.lastElementSwitchAt}
+						classId={character.classId}
+						selectedElement={character.selectedElement ?? "fire"}
+						onSwitchElement={handleSwitchElement}
+						lastElementSwitchAt={character.lastElementSwitchAt}
 					/>
 				)}
 				<TextLog message={logMessage} tone={logTone} />
 			</div>
 
-			<aside className="grid grid-rows-[1fr_auto] gap-3">
+			<aside
+				className={`grid grid-rows-[1fr_auto] ${compact ? "gap-1" : "gap-3"}`}
+			>
 				<EquipmentPanel
 					equippedBySlot={equippedBySlot}
 					stats={stats}
@@ -883,10 +903,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					return await depositToStash({ characterId: character._id, itemIds });
 				}}
 				onStashWithdraw={async (itemIds) => {
-					return await withdrawFromStash({ characterId: character._id, itemIds });
+					return await withdrawFromStash({
+						characterId: character._id,
+						itemIds,
+					});
 				}}
 				onReorderInventory={({ itemId, targetSlot }) => {
-					void reorderInventory({ characterId: character._id, itemId, targetSlot });
+					void reorderInventory({
+						characterId: character._id,
+						itemId,
+						targetSlot,
+					});
 				}}
 				onReorderStash={({ itemId, targetSlot }) => {
 					void reorderStash({ characterId: character._id, itemId, targetSlot });

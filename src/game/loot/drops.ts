@@ -66,6 +66,30 @@ const DROP_TABLE: Record<
 	},
 };
 
+// chance = basePct% × (1 + magicFind / 100), chained per tier
+const PROMOTION_CHAIN: Partial<
+	Record<ItemRarity, { next: ItemRarity; basePct: number }>
+> = {
+	normal: { next: "magic", basePct: 10 },
+	magic: { next: "rare", basePct: 5 },
+	rare: { next: "legendary", basePct: 1 },
+};
+
+export function promoteRarity(
+	rarity: ItemRarity,
+	magicFind: number,
+): ItemRarity {
+	let current = rarity;
+	let step = PROMOTION_CHAIN[current];
+	while (step) {
+		const chance = (step.basePct / 100) * (1 + magicFind / 100);
+		if (Math.random() >= chance) break;
+		current = step.next;
+		step = PROMOTION_CHAIN[current];
+	}
+	return current;
+}
+
 function pickRarity(distribution: { rarity: ItemRarity; weight: number }[]) {
 	return (
 		pickWeighted(distribution, (e) => e.weight)?.rarity ??
@@ -85,6 +109,7 @@ function templatesForType(
 export interface RollDropParams {
 	monsterRarity: MonsterRarity;
 	monsterLevel: number;
+	magicFind?: number;
 }
 
 /**
@@ -128,24 +153,29 @@ function rollItemAtRarity(
 export function rollDrop(params: RollDropParams): GeneratedItem | null {
 	const table = DROP_TABLE[params.monsterRarity];
 	if (Math.random() > table.dropChance) return null;
-	const rarity = pickRarity(table.rarity);
+	const baseRarity = pickRarity(table.rarity);
+	const rarity = promoteRarity(baseRarity, params.magicFind ?? 0);
 	return rollItemAtRarity(rarity, params.monsterLevel);
 }
 
 /**
  * Rolls the miniboss drop set per CONTEXT.md → Loot Pipeline → Drop rates:
  * two items, one guaranteed Rare and one rolled via the rare-tier table
- * (30 Normal / 55 Magic / 15 Rare).
+ * (30 Normal / 55 Magic / 15 Rare). MF can promote the guaranteed Rare.
  */
 export function rollMinibossDrops(params: {
 	monsterLevel: number;
+	magicFind?: number;
 }): GeneratedItem[] {
+	const mf = params.magicFind ?? 0;
 	const drops: GeneratedItem[] = [];
-	const guaranteed = rollItemAtRarity("rare", params.monsterLevel);
+	const guaranteedRarity = promoteRarity("rare", mf);
+	const guaranteed = rollItemAtRarity(guaranteedRarity, params.monsterLevel);
 	if (guaranteed) drops.push(guaranteed);
 	const second = rollDrop({
 		monsterRarity: "rare",
 		monsterLevel: params.monsterLevel,
+		magicFind: mf,
 	});
 	if (second) drops.push(second);
 	return drops;
@@ -154,13 +184,16 @@ export function rollMinibossDrops(params: {
 /**
  * Act-boss drop set per CONTEXT.md → Drop rates: 2-3 items with one
  * guaranteed Rare; remaining slots use the unique table (75% Rare / 25%
- * Magic, no Normals). Legendary upgrade chance is applied per-slot.
+ * Magic, no Normals). MF-based rarity promotion is applied per-slot.
  */
 export function rollBossDrops(params: {
 	monsterLevel: number;
+	magicFind?: number;
 }): GeneratedItem[] {
+	const mf = params.magicFind ?? 0;
 	const drops: GeneratedItem[] = [];
-	const guaranteed = rollItemAtRarity("rare", params.monsterLevel);
+	const guaranteedRarity = promoteRarity("rare", mf);
+	const guaranteed = rollItemAtRarity(guaranteedRarity, params.monsterLevel);
 	if (guaranteed) drops.push(guaranteed);
 	// 2-3 items: always emit a second from the table, 50/50 on a third.
 	const extras = Math.random() < 0.5 ? 1 : 2;
@@ -168,6 +201,7 @@ export function rollBossDrops(params: {
 		const rolled = rollDrop({
 			monsterRarity: "unique",
 			monsterLevel: params.monsterLevel,
+			magicFind: mf,
 		});
 		if (rolled) drops.push(rolled);
 	}

@@ -44,7 +44,6 @@ import {
 } from "../src/game/world/encounter-schedule"
 import {
 	applyDeathXpPenalty,
-	applyOverlevelPenalty,
 	applyXpGain,
 } from "../src/game/progression/levels"
 import { computeCharacterStats } from "../src/game/stats/compute"
@@ -93,30 +92,25 @@ export const recordKill = mutation({
 		const monsterLevel = Math.max(1, Math.floor(args.monsterLevel))
 		const scaled = scaleMonsterStats(template, monsterLevel)
 
-		// Over-leveling penalty: characters more than +2 levels above the
-		// monster lose XP quadratically (see applyOverlevelPenalty).
-		const xpAwarded = applyOverlevelPenalty(
-			scaled.xpReward,
-			char.level,
-			monsterLevel,
-		)
+		const xpAwarded = scaled.xpReward
 		const { level, xp, levelsGained } = applyXpGain(
 			char.level,
 			char.xp ?? 0,
 			xpAwarded,
 		)
 
+		const classDef = findClassDefinition(char.classId)
+		const equippedItems = await loadEquippedSet(ctx, args.characterId)
+		const stats = computeCharacterStats({
+			classDef,
+			level,
+			equippedItems,
+			selectedElement: char.selectedElement,
+		})
+
 		const updates: Partial<Doc<"characters">> = { level, xp }
 
 		if (levelsGained > 0) {
-			const classDef = findClassDefinition(char.classId)
-			const equippedItems = await loadEquippedSet(ctx, args.characterId)
-			const stats = computeCharacterStats({
-				classDef,
-				level,
-				equippedItems,
-				selectedElement: char.selectedElement,
-			})
 			updates.hpCurrent = stats.maxLife
 			updates.barrierCurrent = stats.maxBarrier
 		}
@@ -200,14 +194,16 @@ export const recordKill = mutation({
 		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []
 		if (zoneSession) {
 			const isAnyRareKill = isMinibossKill || isBossNodeRareKill
+			const mf = stats.magicFind
 			const rolledDrops = isBossKill
-				? rollBossDrops({ monsterLevel })
+				? rollBossDrops({ monsterLevel, magicFind: mf })
 				: isAnyRareKill
-					? rollMinibossDrops({ monsterLevel })
+					? rollMinibossDrops({ monsterLevel, magicFind: mf })
 					: [
 							rollDrop({
 								monsterRarity: args.monsterRarity,
 								monsterLevel,
+								magicFind: mf,
 							}),
 						].filter((d): d is NonNullable<typeof d> => d !== null)
 			for (const drop of rolledDrops) {
