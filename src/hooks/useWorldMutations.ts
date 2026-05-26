@@ -207,6 +207,10 @@ export function useWorldMutations({
 		),
 	);
 
+	const switchElement = useSessionedMutation(
+		useMutation(api.combat.switchElement),
+	);
+
 	const vendorSellMany = useSessionedMutation(
 		useMutation(api.vendor.vendorSellMany).withOptimisticUpdate(
 			(localStore, args) => {
@@ -253,5 +257,6 @@ export function useWorldMutations({
 		vendorBuy,
 		teleportStone,
 		vendorSellMany,
+		switchElement,
 	};
 }

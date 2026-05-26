@@ -413,13 +413,35 @@ In the MVP, classes differ along two axes only:
 
 The current classes are **Warrior**, **Rogue**, **Mage**.
 
-Deep class identity — active skills, passive tree branches — is **future work**, layered in this order:
+Any class may equip any weapon — class identity comes from a **unique class mechanic**, not from equipment restrictions. The weapon determines the damage **baseline**; the class mechanic determines **how** that damage behaves.
+
+### Elemental Attunement (Mage)
+
+The Mage's class mechanic. A selector with three elements — **Fire**, **Cold**, **Lightning** — always exactly one active. Void is reserved for a future unlock.
+
+**Conversion.** 100% of the weapon's base damage (the physical "Spell Damage" on a wand/staff) is converted to damage of the selected element. A wand showing `Spell Damage: 8–16` with Fire selected deals `8–16 Fire Damage` — zero physical remains. The converted damage is mitigated by the target's elemental resistance, not by armor.
+
+**Level bonus.** The Mage gains flat bonus damage of the selected element that scales with character level: **+1 min / +2 max per level**. At level 30 with Fire selected, the Mage adds `+30 min / +60 max Fire Damage` on top of the weapon's converted base. This compensates for spell weapons not rolling local damage mods (attack weapons inflate their header via local flat/% physical; the Mage's level bonus fills that gap).
+
+**Switching.** The player may switch elements **during combat** with a **5-second cooldown** between switches. No cooldown on the first selection. The cooldown creates a tactical cost — the Mage can adapt to monster resistances mid-fight, but not reactively per-swing.
+
+**Persistence.** The selected element is stored on the character document (`selectedElement: "fire" | "cold" | "lightning"`). Survives logout, refresh, and zone transitions. Default on character creation: **Fire**.
+
+**UI.** Three element buttons on the combat HUD. The active element glows; inactive elements are dimmed. During cooldown, all buttons are locked with a visual cooldown indicator.
+
+### Future class mechanics (planned, not designed)
+
+- **Warrior** — a survivability-oriented passive (e.g., damage reduction scaling with STR/level).
+- **Rogue** — a burst-oriented passive (e.g., bonus crit or extra hit scaling with DEX/level).
+
+These will follow the same pattern: a unique mechanic per class, unlocked at character creation, complementing the weapon rather than restricting it.
+
+### Deep class identity — layered roadmap
 
 1. MVP combat works for all classes
-2. **Passive tree** is added (shared system, class branches into it)
-3. **Active skills** per class are added on top of the passive tree
-
-Until passive tree + skills exist, classes effectively play the same way; they just start in different stat positions.
+2. **Class mechanics** are added (Elemental Attunement for Mage — current step)
+3. **Passive tree** is added (shared system, class branches into it)
+4. **Active skills** per class are added on top of the passive tree
 
 ---
 
@@ -815,7 +837,9 @@ Grouped under `allAttackWeapons` for `applicableTo` purposes.
 ### Caster weapons
 `staff`, `wand`.
 
-These have no martial header stats beyond a base crit chance. They never roll local attack mods (no physical flat, no attack-flat elemental, no attack speed, no melee-only).
+The tooltip header shows **Spell Damage** (the weapon's base min–max range) and **Critical Strike Chance**. "Spell Damage" is a **path label**, not a damage type — the underlying damage is physical, converted to elemental by class mechanics (see Elemental Attunement) or dealt as physical if no conversion applies. The label distinguishes caster weapons from attack weapons visually and conceptually: `+% Spell Damage` mods scale this header. Cast Speed is **not shown** on the tooltip — it uses a fixed base of `1.00` for all caster weapons with no local mods to modify it (the per-template `attackSpeed` field is ignored on the spell path). Global `+% Cast Speed` mods from gear multiply this hidden base.
+
+Caster weapons never roll local attack mods (no physical flat, no attack-flat elemental, no attack speed, no melee-only).
 
 What they **do** roll exclusively:
 - **Flat spell damage** — `+X Cold Damage to Spells`, `+X Fire Damage to Spells`, etc. This is the caster equivalent of attack flat damage and rolls **only** on staff and wand.
@@ -1022,6 +1046,42 @@ A modal opened from the "Show" button in the status card. Layout: `max-w-3xl`, f
 - **Utilidade** — movement speed, life/mana on hit, leech %, life/mana on kill, magic find.
 
 Inactive path is hidden (sword equipped → no spell stats shown). Totals per category only — no per-source breakdown in this iteration.
+
+---
+
+## Leaderboard
+
+A competitive ranking board accessible from the **world map** via a button next to the settings gear icon. Opens a modal showing player rankings.
+
+### Categories
+
+Two independent ranking tabs:
+
+- **Highest Level** — ranks characters by level (descending), then by XP within the same level. Filterable by class (Warrior / Rogue / Mage / All).
+- **Most Boss Kills** — ranks characters by total boss kill count (descending). Counts kills of all bosses (Gralfor and future act bosses). No class filter on this tab.
+
+### Scope
+
+- **Per character**, not per account. The same player may appear multiple times with different characters.
+- **Hardcore and softcore are separate rankings.** A toggle or tab switches between them. No mixing.
+- **Dead hardcore characters are hidden by default.** A "Show Fallen Heroes" checkbox reveals them with a visual death indicator (e.g., skull icon, dimmed row). When unchecked, only living characters appear.
+
+### Data model
+
+- **Boss kill count** is tracked as a counter on the character document: `bossKillCounts: Record<string, number>` (keyed by boss id, e.g., `{ gralfor: 12 }`). Incremented atomically inside the existing `recordKill` mutation when `monsterRarity === "unique"`.
+- **No separate kill-history table.** The leaderboard only needs totals; per-kill timestamps and metadata are not stored.
+
+### Snapshot
+
+The leaderboard is **not real-time**. A **Convex cron job** runs every **5 minutes**, queries the top 50 characters per category per mode (softcore/hardcore), and writes the result to a `leaderboardSnapshot` table. The client subscribes reactively to the snapshot — since it only changes every 5 minutes, the ranking updates at that cadence.
+
+Each snapshot entry stores: character name, class, level, total boss kills, hardcore flag, alive/dead status.
+
+**Why snapshots, not live queries.** Two reasons: (1) performance — the snapshot is pre-computed, so opening the leaderboard is a single small read, not a full table scan; (2) game design — a ranking that updates every swing is distracting and makes the board feel unstable. The 5-minute cadence gives the ranking weight.
+
+### Top N
+
+**Top 50** per category per mode. Characters outside the top 50 are not shown.
 
 ---
 

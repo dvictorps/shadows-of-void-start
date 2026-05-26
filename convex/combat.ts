@@ -115,6 +115,7 @@ export const recordKill = mutation({
 				classDef,
 				level,
 				equippedItems,
+				selectedElement: char.selectedElement,
 			})
 			updates.hpCurrent = stats.maxLife
 		}
@@ -179,6 +180,15 @@ export const recordKill = mutation({
 			updates.etherealIncense = (char.etherealIncense ?? 0) + 1
 		}
 
+		if (isBossKill) {
+			const counts =
+				(char.bossKillCounts as Record<string, number> | undefined) ?? {}
+			updates.bossKillCounts = {
+				...counts,
+				[args.monsterId]: (counts[args.monsterId] ?? 0) + 1,
+			}
+		}
+
 		await ctx.db.patch(args.characterId, updates)
 
 		// Drop routing per CONTEXT.md → Drop rates:
@@ -225,7 +235,11 @@ export const recordKill = mutation({
 })
 
 export const usePotion = mutation({
-	args: { characterId: v.id("characters"), sessionToken: v.string() },
+	args: {
+		characterId: v.id("characters"),
+		sessionToken: v.string(),
+		clientHp: v.optional(v.number()),
+	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
@@ -242,7 +256,11 @@ export const usePotion = mutation({
 			equippedItems,
 		})
 		const maxHp = stats.maxLife
-		const currentHp = char.hpCurrent ?? maxHp
+		// Use client-reported HP when available (same trust model as syncHp).
+		// Falls back to DB value for backward compat.
+		const currentHp = args.clientHp !== undefined
+			? Math.max(0, Math.min(maxHp, Math.floor(args.clientHp)))
+			: (char.hpCurrent ?? maxHp)
 		if (currentHp >= maxHp) throw new ConvexError("Already at full HP")
 
 		const healed = Math.min(
@@ -320,6 +338,7 @@ export const syncHp = mutation({
 		characterId: v.id("characters"),
 		sessionToken: v.string(),
 		hpCurrent: v.number(),
+		barrierCurrent: v.optional(v.number()),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -336,7 +355,12 @@ export const syncHp = mutation({
 		const maxHp = stats.maxLife
 		const clamped = Math.max(0, Math.min(maxHp, Math.floor(args.hpCurrent)))
 
-		await ctx.db.patch(args.characterId, { hpCurrent: clamped })
+		const patch: Record<string, unknown> = { hpCurrent: clamped }
+		if (args.barrierCurrent !== undefined) {
+			patch.barrierCurrent = Math.max(0, Math.min(stats.maxBarrier, Math.floor(args.barrierCurrent)))
+		}
+
+		await ctx.db.patch(args.characterId, patch)
 		return { hpCurrent: clamped }
 	},
 })
@@ -361,6 +385,7 @@ export const enterCity = mutation({
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxHp,
 			potions: refilledPotions,
+			barrierCurrent: stats.maxBarrier,
 		})
 		return { hpCurrent: maxHp, potions: refilledPotions }
 	},
@@ -379,7 +404,8 @@ export const respawnDead = mutation({
 		}
 
 		if (char.hardcore) {
-			// Cascade item delete then character delete (mirrors `remove`).
+			// Soft-delete: mark dead, cascade-delete owned items, but keep the
+			// character document so it can appear in leaderboard "Fallen Heroes".
 			const ownedItems = await ctx.db
 				.query("items")
 				.withIndex("by_character_kind", (q) =>
@@ -387,7 +413,15 @@ export const respawnDead = mutation({
 				)
 				.collect()
 			await Promise.all(ownedItems.map((item) => ctx.db.delete(item._id)))
-			await ctx.db.delete(args.characterId)
+			await ctx.db.patch(args.characterId, {
+				dead: true,
+				...clearPerVisitZoneState(),
+				currentLocation: undefined,
+				travelDestination: undefined,
+				travelStartedAt: undefined,
+				travelArrivesAt: undefined,
+				activeSessionToken: undefined,
+			})
 			return { mode: "hardcore" as const, xpLost: 0 }
 		}
 
@@ -405,6 +439,7 @@ export const respawnDead = mutation({
 
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxHp,
+			barrierCurrent: stats.maxBarrier,
 			xp,
 			potions: refilledPotions,
 			...clearPerVisitZoneState(),
@@ -758,5 +793,42 @@ export const useTeleportStone = mutation({
 			travelArrivesAt: arrivesAt,
 		})
 		return { teleportStones: stones - 1, startedAt, arrivesAt }
+	},
+})
+
+const ELEMENT_SWITCH_COOLDOWN_MS = 5_000
+
+export const switchElement = mutation({
+	args: {
+		characterId: v.id("characters"),
+		sessionToken: v.string(),
+		element: v.union(
+			v.literal("fire"),
+			v.literal("cold"),
+			v.literal("lightning"),
+		),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+
+		if (char.classId !== "mage")
+			throw new ConvexError("Only mages can switch elements")
+
+		if (args.element === char.selectedElement) return
+
+		const now = Date.now()
+		if (
+			char.lastElementSwitchAt &&
+			now - char.lastElementSwitchAt < ELEMENT_SWITCH_COOLDOWN_MS
+		) {
+			throw new ConvexError("Element switch on cooldown")
+		}
+
+		await ctx.db.patch(args.characterId, {
+			selectedElement: args.element,
+			lastElementSwitchAt: now,
+		})
 	},
 })

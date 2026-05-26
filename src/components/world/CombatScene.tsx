@@ -22,6 +22,7 @@ import type {
 import { playSfx } from "#/lib/sfx";
 import { m } from "#/paraglide/messages";
 import CampCinematic from "./CampCinematic";
+import ElementSelector from "./ElementSelector";
 import HealthGlobe from "./HealthGlobe";
 import HitFx from "./HitFx";
 import MonsterTooltip from "./MonsterTooltip";
@@ -47,7 +48,7 @@ const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
 	unique: "0 0 22px rgba(175, 96, 37, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
 };
 
-export type ConsumableKey = "potion" | "teleport" | "incense";
+export type ConsumableKey = "potion" | "teleport" | "incense" | "element_fire" | "element_cold" | "element_lightning";
 
 type Props = {
 	zoneName: string;
@@ -110,6 +111,10 @@ type Props = {
 	// crosses a zone's camp threshold. See CONTEXT.md → Acampamento.
 	zoneId: string;
 	onDismissCamp: () => void;
+	classId?: string;
+	selectedElement?: "fire" | "cold" | "lightning";
+	onSwitchElement?: (element: "fire" | "cold" | "lightning") => void;
+	lastElementSwitchAt?: number;
 };
 
 export default function CombatScene({
@@ -149,6 +154,10 @@ export default function CombatScene({
 	zoneId,
 	onDismissCamp,
 	onConsumableHover,
+	classId,
+	selectedElement,
+	onSwitchElement,
+	lastElementSwitchAt,
 }: Props) {
 	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
 	const thresholdPct =
@@ -647,6 +656,15 @@ export default function CombatScene({
 						</AnimatePresence>
 					</div>
 				</div>
+
+				{classId === "mage" && selectedElement && onSwitchElement && (
+					<ElementSelector
+						selected={selectedElement}
+						onSwitch={onSwitchElement}
+						onHover={(key) => onConsumableHover?.(key)}
+						lastSwitchAt={lastElementSwitchAt}
+					/>
+				)}
 
 				<div className="flex-1 space-y-1">
 					<div className="text-[10px] uppercase tracking-wider text-yellow-300/80">

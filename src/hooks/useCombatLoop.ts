@@ -63,6 +63,7 @@ type Params = {
 	characterLevel: number;
 	stats: ComputedCharacterStats;
 	initialHp: number;
+	initialBarrier?: number;
 	// Live potion count from the character query. The hook does NOT keep a
 	// local copy — drink + drop are both server-driven, and tracking the
 	// number in two places lets concurrent mutations race ("drink ghost"
@@ -98,6 +99,7 @@ export function useCombatLoop({
 	characterLevel,
 	stats,
 	initialHp,
+	initialBarrier,
 	potions,
 	incense,
 	monsterPool,
@@ -269,6 +271,7 @@ export function useCombatLoop({
 		enemy,
 		stats,
 		initialHp,
+		initialBarrier,
 		potions,
 		onPlayerDeath,
 		resolveKill,

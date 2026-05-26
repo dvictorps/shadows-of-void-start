@@ -222,18 +222,29 @@ export default function ItemTooltip({
 				</>
 			)}
 
-			{/* Spell weapons show only base crit chance — no damage stats roll on them. */}
-			{isSpellWeapon && stats.criticalChance != null && (
+			{isSpellWeapon && (
 				<>
 					<div className="space-y-0.5 px-4 py-1">
-						<div className="flex justify-between">
-							<span style={{ color: LABEL_COLOR }}>
-								{m.tooltip_critical_strike_chance()}
-							</span>
-							<span className="text-white">
-								{stats.criticalChance.toFixed(1)}%
-							</span>
-						</div>
+						{stats.minDamage != null && stats.maxDamage != null && (
+							<div className="flex justify-between">
+								<span style={{ color: LABEL_COLOR }}>
+									{m.tooltip_spell_damage()}
+								</span>
+								<span className="text-white">
+									{stats.minDamage}-{stats.maxDamage}
+								</span>
+							</div>
+						)}
+						{stats.criticalChance != null && (
+							<div className="flex justify-between">
+								<span style={{ color: LABEL_COLOR }}>
+									{m.tooltip_critical_strike_chance()}
+								</span>
+								<span className="text-white">
+									{stats.criticalChance.toFixed(1)}%
+								</span>
+							</div>
+						)}
 					</div>
 					<TooltipSeparator />
 				</>

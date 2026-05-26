@@ -469,35 +469,59 @@ function determinePath(
 
 // ── Build a swing profile from a weapon ──
 
+const ELEMENT_DISPLAY_NAME: Record<"fire" | "cold" | "lightning", string> = {
+	fire: "Fire",
+	cold: "Cold",
+	lightning: "Lightning",
+};
+
+interface BuildSwingOptions {
+	selectedElement?: "fire" | "cold" | "lightning";
+	level?: number;
+}
+
 function buildSwing(
 	item: GeneratedItem,
 	source: "mainHand" | "offHand",
 	gearFlat: GearFlatDamage,
 	path: "attack" | "spell",
+	options?: BuildSwingOptions,
 ): SwingProfile {
 	const cs = item.computedStats;
 	const physBase = cs?.physicalDamage ?? { min: 1, max: 1 };
-	// Layer gear flat damage on top of the weapon's own (attack path only —
-	// spells never receive flat-to-attacks).
-	const phys =
+	let phys =
 		path === "attack"
 			? {
 					min: physBase.min + gearFlat.physical,
 					max: physBase.max + gearFlat.physical,
 				}
-			: physBase;
+			: { ...physBase };
 	const weaponElem = cs?.elementalDamage ?? [];
-	const elem =
+	const elem: SwingProfile["elementalDamage"] =
 		path === "attack"
 			? addGearFlatToElements(weaponElem, gearFlat)
-			: weaponElem;
+			: weaponElem.map((e) => ({ ...e }));
 	const baseAS = path === "attack" ? (cs?.attackSpeed ?? 1.0) : BASE_CAST_SPEED;
+
+	if (path === "spell" && options?.selectedElement) {
+		const elementName = ELEMENT_DISPLAY_NAME[options.selectedElement];
+		const lvl = options.level ?? 1;
+		const convertedMin = phys.min + lvl;
+		const convertedMax = phys.max + lvl * 2;
+
+		const existing = elem.find((e) => e.element === elementName);
+		if (existing) {
+			existing.min += convertedMin;
+			existing.max += convertedMax;
+		} else {
+			elem.push({ element: elementName, min: convertedMin, max: convertedMax });
+		}
+		phys = { min: 0, max: 0 };
+	}
+
 	return {
 		source,
 		itemId: item.id,
-		// Path determination already ensured this item is a weapon; the fallback
-		// keeps the type non-optional on the SwingProfile side without forcing
-		// callers to handle "weaponless swing" cases that the engine prevents.
 		weaponType: item.weaponType ?? "sword",
 		physicalDamage: phys,
 		elementalDamage: elem,
@@ -629,11 +653,12 @@ function computeOnce(
 			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "attack"));
 		}
 	} else if (stats.path === "spell" && mainHand) {
-		stats.swings.push(buildSwing(mainHand, "mainHand", gearFlat, "spell"));
+		const spellOpts: BuildSwingOptions = { selectedElement: input.selectedElement, level: input.level };
+		stats.swings.push(buildSwing(mainHand, "mainHand", gearFlat, "spell", spellOpts));
 		// Staves are 2H and can't sit in the off-hand slot — only wand+wand.
 		// Caster dual-wield gets no implicits.
 		if (offHand && offHandType === "wand") {
-			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "spell"));
+			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "spell", spellOpts));
 		}
 	}
 

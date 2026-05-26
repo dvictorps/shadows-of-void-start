@@ -9,6 +9,7 @@ import {
 	Settings,
 	Skull,
 	Tornado,
+	Trophy,
 	TreePine,
 	Trees,
 } from "lucide-react";
@@ -31,6 +32,7 @@ type Props = {
 	// would be misleading.
 	hasTeleportStone: boolean;
 	onOpenSettings: () => void;
+	onOpenLeaderboard?: () => void;
 };
 
 const NODE_ICONS: Record<WorldNode["kind"], LucideIcon> = {
@@ -59,6 +61,7 @@ export default function MapScene({
 	completedZoneIds,
 	hasTeleportStone,
 	onOpenSettings,
+	onOpenLeaderboard,
 }: Props) {
 	const edges = useMemo(() => buildEdges(act.nodes), [act.nodes]);
 	const connectedIds = useMemo(() => {
@@ -70,14 +73,26 @@ export default function MapScene({
 
 	return (
 		<section className="relative h-full overflow-hidden rounded-md border border-white/40 bg-black">
-			<button
-				type="button"
-				onClick={onOpenSettings}
-				aria-label={m.open_settings()}
-				className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center border border-white/40 bg-black text-white/80 transition hover:border-white hover:bg-white/10 hover:text-white"
-			>
-				<Settings className="h-4 w-4" strokeWidth={2} />
-			</button>
+			<div className="absolute top-3 right-3 z-10 flex gap-2">
+				{onOpenLeaderboard && (
+					<button
+						type="button"
+						onClick={onOpenLeaderboard}
+						aria-label={m.leaderboard_title()}
+						className="inline-flex h-9 w-9 items-center justify-center border border-white/40 bg-black text-white/80 transition hover:border-white hover:bg-white/10 hover:text-white"
+					>
+						<Trophy className="h-4 w-4" strokeWidth={2} />
+					</button>
+				)}
+				<button
+					type="button"
+					onClick={onOpenSettings}
+					aria-label={m.open_settings()}
+					className="inline-flex h-9 w-9 items-center justify-center border border-white/40 bg-black text-white/80 transition hover:border-white hover:bg-white/10 hover:text-white"
+				>
+					<Settings className="h-4 w-4" strokeWidth={2} />
+				</button>
+			</div>
 			<svg
 				aria-hidden="true"
 				className="absolute inset-0 h-full w-full"

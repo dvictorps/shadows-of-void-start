@@ -15,6 +15,7 @@ import ShowStatsModal from "#/components/world/ShowStatsModal";
 import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
+import LeaderboardModal from "#/components/world/LeaderboardModal";
 import { WorldModals } from "#/components/world/WorldModals";
 import { findClassDefinition } from "#/game/classes/data";
 import { computeBagKeepCap } from "#/game/combat/constants";
@@ -49,6 +50,9 @@ const CONSUMABLE_DESCRIPTIONS: Record<ConsumableKey, () => string> = {
 	potion: m.consumable_desc_potion,
 	teleport: m.consumable_desc_teleport,
 	incense: m.incense_hint,
+	element_fire: m.element_desc_fire,
+	element_cold: m.element_desc_cold,
+	element_lightning: m.element_desc_lightning,
 };
 
 export const Route = createFileRoute("/world")({
@@ -153,6 +157,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const settingsModal = useModal();
 	const statsModal = useModal();
 	const vendorModal = useModal();
+	const leaderboardModal = useModal();
 	const currentLocation = character.currentLocation ?? "city";
 	const currentNode = findNode(ACT_1, currentLocation);
 	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
@@ -194,8 +199,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				classDef,
 				level: character.level,
 				equippedItems: equippedSnapshot,
+				selectedElement: character.selectedElement ?? (character.classId === "mage" ? "fire" : undefined),
 			}),
-		[classDef, character.level, equippedSnapshot],
+		[classDef, character.level, equippedSnapshot, character.selectedElement, character.classId],
 	);
 
 	const maxHp = stats.maxLife;
@@ -212,6 +218,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		vendorBuy,
 		teleportStone,
 		vendorSellMany,
+		switchElement,
 	} = useWorldMutations({ movementSpeed: stats.movementSpeed });
 
 	const { view, setView, setPendingArrival, isTraveling, enterDestination } =
@@ -290,6 +297,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		characterLevel: character.level,
 		stats,
 		initialHp: character.hpCurrent ?? maxHp,
+		initialBarrier: character.barrierCurrent,
 		potions: character.potions ?? 0,
 		incense: character.etherealIncense ?? 0,
 		monsterPool,
@@ -538,6 +546,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		}
 	};
 
+	const handleSwitchElement = useCallback(
+		async (element: "fire" | "cold" | "lightning") => {
+			try {
+				await switchElement({ characterId: character._id, element });
+			} catch {
+				// Cooldown or non-mage — silently swallowed
+			}
+		},
+		[switchElement, character._id],
+	);
+
 	// Spam-click guard around `combat.usePotion`. The local `potions` count
 	// already optimistically decrements, but a fast double-tap before the
 	// optimistic update reaches React can fire `consumePotion` twice and the
@@ -600,7 +619,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const hpOverride = view === "combat" ? combat.playerHp : undefined;
 	const barrierOverride =
-		view === "combat" ? combat.barrier.current : undefined;
+		view === "combat"
+			? combat.barrier.current
+			: (character.barrierCurrent ?? stats.maxBarrier);
 	const potionsOverride = view === "combat" ? combat.potions : undefined;
 	// Pass the wrapped handler when allowed; when an in-flight call is
 	// pending, clear it so StatusCard's internal `canUsePotion` check disables
@@ -668,6 +689,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 							completedZoneIds={completedZoneIds}
 							hasTeleportStone={(character.teleportStones ?? 0) > 0}
 							onOpenSettings={settingsModal.open}
+							onOpenLeaderboard={leaderboardModal.open}
 						/>
 						{travelOverlay}
 					</div>
@@ -735,6 +757,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						onDismissMinibossModal={combat.dismissMinibossModal}
 						zoneId={currentNode.id}
 						onDismissCamp={combat.dismissCamp}
+					classId={character.classId}
+					selectedElement={character.selectedElement ?? "fire"}
+					onSwitchElement={handleSwitchElement}
+					lastElementSwitchAt={character.lastElementSwitchAt}
 					/>
 				)}
 				<TextLog message={logMessage} tone={logTone} />
@@ -790,6 +816,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				onVendorSellMany={async (itemIds) => {
 					await vendorSellMany({ characterId: character._id, itemIds });
 				}}
+			/>
+			<LeaderboardModal
+				isOpen={leaderboardModal.isOpen}
+				onClose={leaderboardModal.close}
 			/>
 			{/* Gated mount (unique among the modals): currentBarrier/currentLife
 				change every 50ms combat tick, so unmounting when closed avoids

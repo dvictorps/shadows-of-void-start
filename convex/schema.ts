@@ -99,6 +99,19 @@ export default defineSchema({
 		// the current modal trigger uses simple first-rejection.
 		activeSessionToken: v.optional(v.string()),
 		activeSessionAt: v.optional(v.number()),
+		// Barrier current value — persisted so it survives zone exits and map
+		// transitions. Synced alongside hpCurrent by the combat loop's periodic
+		// write-back. City entry resets to maxBarrier.
+		barrierCurrent: v.optional(v.number()),
+		// Mage elemental attunement — see CONTEXT.md → Elemental Attunement.
+		selectedElement: v.optional(
+			v.union(v.literal("fire"), v.literal("cold"), v.literal("lightning")),
+		),
+		lastElementSwitchAt: v.optional(v.number()),
+		// Boss kill counters — keyed by boss id (e.g., { gralfor: 12 }).
+		bossKillCounts: v.optional(v.any()),
+		// Hardcore death — soft-delete for leaderboard "Fallen Heroes".
+		dead: v.optional(v.boolean()),
 	}).index("by_authUserId", ["authUserId"]),
 
 	// All items live here — drops, inventory, equipped, stash. Location is
@@ -150,4 +163,22 @@ export default defineSchema({
 		.index("by_character_kind", ["characterId", "locationKind"])
 		.index("by_zoneSession", ["zoneSession"])
 		.index("by_stash", ["authUserId", "stashMode"]),
+
+	leaderboardSnapshot: defineTable({
+		category: v.string(),
+		mode: v.string(),
+		entries: v.array(
+			v.object({
+				characterId: v.string(),
+				characterName: v.string(),
+				classId: v.string(),
+				level: v.number(),
+				xp: v.number(),
+				totalBossKills: v.number(),
+				hardcore: v.boolean(),
+				dead: v.boolean(),
+			}),
+		),
+		updatedAt: v.number(),
+	}).index("by_category_mode", ["category", "mode"]),
 })

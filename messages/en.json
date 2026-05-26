@@ -185,6 +185,9 @@
   "element_cold": "Ice",
   "element_lightning": "Lightning",
   "element_void": "Void",
+  "element_desc_fire": "Fire Attunement — 100% of base spell damage becomes fire damage. Bonus: +1 min / +2 max fire damage per level.",
+  "element_desc_cold": "Cold Attunement — 100% of base spell damage becomes cold damage. Bonus: +1 min / +2 max cold damage per level.",
+  "element_desc_lightning": "Lightning Attunement — 100% of base spell damage becomes lightning damage. Bonus: +1 min / +2 max lightning damage per level.",
   "stat_element_damage": "{element} Damage",
 
   "settings_title": "Settings",
@@ -343,9 +346,11 @@
   "stats_magic_find": "Magic Find",
 
   "tooltip_physical_damage": "Physical Damage",
+  "tooltip_spell_damage": "Spell Damage",
   "tooltip_damage_line": "{element} Damage",
   "tooltip_critical_strike_chance": "Critical Strike Chance",
   "tooltip_attacks_per_second": "Attacks per Second",
+  "tooltip_casts_per_second": "Casts per Second",
   "tooltip_armour": "Armour",
   "tooltip_evasion_rating": "Evasion Rating",
   "tooltip_block_chance": "Block Chance",
@@ -424,5 +429,19 @@
   "admin_revoke_message": "Remove admin permission from {email}?",
   "admin_revoke_action": "Revoke",
   "admin_revoke_success": "{email} removed from admins",
-  "admin_revoke_failed": "Failed to revoke"
+  "admin_revoke_failed": "Failed to revoke",
+
+  "leaderboard_title": "Leaderboard",
+  "leaderboard_level_tab": "Highest Level",
+  "leaderboard_kills_tab": "Boss Kills",
+  "leaderboard_softcore": "Softcore",
+  "leaderboard_hardcore": "Hardcore",
+  "leaderboard_show_fallen": "Show Fallen Heroes",
+  "leaderboard_rank": "#",
+  "leaderboard_name": "Name",
+  "leaderboard_class": "Class",
+  "leaderboard_level": "Level",
+  "leaderboard_kills": "Kills",
+  "leaderboard_empty": "No entries yet",
+  "leaderboard_all_classes": "All Classes"
 }
