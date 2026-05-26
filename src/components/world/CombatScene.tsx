@@ -944,13 +944,13 @@ function FloatingDamage({
 
 	const isHeal = event.isHealing;
 
-	if (isHeal && event.amount === 0) return null;
-
 	let color: string;
 	let display: string;
 	if (isHeal) {
+		const rounded = Math.round(event.amount);
+		if (rounded <= 0) return null;
 		color = "text-green-400";
-		display = `+${event.amount}`;
+		display = `+${rounded}`;
 	} else if (event.isMiss) {
 		color = "text-white/60";
 		display = "MISS";
