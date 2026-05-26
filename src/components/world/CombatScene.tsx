@@ -530,7 +530,7 @@ export default function CombatScene({
 							onMouseLeave={onSpriteLeave}
 						>
 							<motion.div
-								className={`relative ${enemy.rarity === "unique" ? "h-96 w-96" : "h-64 w-64"}`}
+								className={`relative h-64 w-64 ${enemy.rarity === "unique" ? "scale-150" : ""}`}
 								animate={enemyControls}
 							>
 								<img
