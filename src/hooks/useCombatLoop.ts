@@ -208,10 +208,8 @@ export function useCombatLoop({
 		setEnemy(next);
 	}, []);
 
-	// Optimistic XP popup mounts immediately; potion drop is patched in once
-	// the server replies. Shared between player-swing kills and thorns-reflect
-	// kills. The penalty is applied client-side too so the popup matches what
-	// the server will award (no mid-flight number swap).
+	const restoreToFullRef = useRef<() => void>(() => {});
+
 	const resolveKill = useCallback(
 		(killed: Enemy) => {
 			const xpGained = applyOverlevelPenalty(
@@ -243,15 +241,12 @@ export function useCombatLoop({
 				}),
 			)
 				.then((result) => {
+					if (result.levelsGained > 0) {
+						restoreToFullRef.current();
+					}
 					if (result.potionDropped) {
 						setLastKill({ xp: xpGained, potion: true });
-						// No local increment — character.potions is the source of
-						// truth and the Convex query refreshes when recordKill
-						// commits. Mirroring locally created a race with usePotion
-						// (the +1 could overwrite the optimistic -1 from a drink).
 					}
-					// Incense drop follows the same pattern — `etherealIncense`
-					// is the live query value, no local mirror.
 				})
 				.catch(() => {});
 		},
@@ -264,7 +259,7 @@ export function useCombatLoop({
 		],
 	);
 
-	const { playerHp, barrier, usePotion } = useCombatTick({
+	const { playerHp, barrier, usePotion, restoreToFull } = useCombatTick({
 		characterId,
 		active,
 		isEngaged: state === "engaged",
@@ -278,6 +273,7 @@ export function useCombatLoop({
 		pushEvent,
 		updateEnemy: updateEnemyForTick,
 	});
+	restoreToFullRef.current = restoreToFull;
 
 	// ── Activation transitions ──
 	const activeRef = useRef(active);

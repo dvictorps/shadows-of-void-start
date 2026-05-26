@@ -502,10 +502,21 @@ export function useCombatTick({
 		}
 	}, [potions, maxHp, characterId, consumePotion, withSession]);
 
+	const restoreToFull = useCallback(() => {
+		playerHpRef.current = maxHp;
+		setPlayerHp(maxHp);
+		lastSyncedHpRef.current = maxHp;
+		const full = makeBarrierState(stats.maxBarrier);
+		barrierRef.current = full;
+		setBarrier(full);
+		lastSyncedBarrierRef.current = stats.maxBarrier;
+	}, [maxHp, stats.maxBarrier]);
+
 	return {
 		playerHp,
 		barrier,
 		usePotion,
+		restoreToFull,
 	};
 }
 
