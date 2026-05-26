@@ -292,9 +292,9 @@ Each incoming hit rolls against `hitChance`. A miss deals **zero** damage and tr
 
 **Barrier** (sits over life, blue ring around HP globe):
 - Functions as overflow life — incoming damage hits barrier first; what remains carries to HP.
-- **Barrier regen** ticks **always**: while barrier is above zero, it recovers at **2% of max barrier per second**, **including while taking damage** (regen and damage absorb run independently — incoming hits subtract from current, regen adds to current on its own timer). Caps at max barrier; no floor on how slowly it can tick (the rate is fixed).
+- **Barrier regen** ticks **always**: while barrier is above zero, it recovers at **0.5% of max barrier per second**, **including while taking damage** (regen and damage absorb run independently — incoming hits subtract from current, regen adds to current on its own timer). Caps at max barrier; no floor on how slowly it can tick (the rate is fixed).
 - **Barrier break** = barrier hits zero from damage. Triggers a **10-second cooldown**, during which regen is **paused** and incoming damage hits life directly. The cooldown is not reset by further damage and is not consumed faster by anything.
-- After the cooldown elapses, regen resumes **from zero** at the standard 2%/s rate (so the full recovery from break is 10s pause + 50s of regen ≈ 60s back to full). The barrier never instantly refills.
+- After the cooldown elapses, regen resumes **from zero** at the standard 0.5%/s rate (so the full recovery from break is 10s pause + 200s of regen ≈ 210s back to full). The barrier never instantly refills.
 - **No cap on regen rate.** A larger max barrier gives proportionally more raw regen per second — investing heavily in barrier is rewarded with sustain, paralleling how leech rewards attack investment but without the 20%-max-life cap (the design accepts this asymmetry — monster damage scaling is the lever if endgame mages become invincible to trash).
 - **Out-of-combat behaviour is the same.** Regen and cooldown both tick in real time during exploração, on the map, and while travelling between zones. The single exception is **city entry**: arriving at the city restores barrier to full and clears any active cooldown (mirroring how city entry restores HP and refills potions).
 - **Gear swap preserves current.** Trading into gear with higher max barrier expands the ceiling but does not refill — current stays where it was, regen now ticks against the new max. Trading into lower max barrier clamps current down. Cooldown state is preserved across swaps.
@@ -559,7 +559,7 @@ Starter pool (Act 1):
 - **Increased Fire Resistance** — mitigates fire damage.
 - **Increased Lightning Resistance** — mitigates lightning damage.
 - **Increased Void Resistance** — mitigates void damage.
-- **Additional Barrier** — grants a barrier pool sized at 30% of the monster's HP (after other HP-affecting mods resolve). Mirrors the player barrier mechanic: regen 5%/s, 10s cooldown on break. See Defenses → Barrier.
+- **Additional Barrier** — grants a barrier pool sized at 30% of the monster's HP (after other HP-affecting mods resolve). Mirrors the player barrier mechanic: regen 0.5%/s, 10s cooldown on break. See Defenses → Barrier.
 - **Increased Critical Strike Chance** — multiplies the 5% baseline crit by 2.5× (12.5% effective).
 - **Critical Strike Multiplier** — adds 50 to the 50% baseline multiplier (crits do 2× damage instead of 1.5×).
 - **Cold / Fire / Lightning / Void Damage** (four mods) — each grants the monster `+30% of total damage as extra <element>`, computed once at hit time against the pre-conversion total. Stacking two damage mods (e.g., Cold + Fire) adds 30% per element independently — they don't compound. Mirrors the player's tome gain-as-extra family. Crit then multiplies everything uniformly; defender resistance for the matching element mitigates the extra layer.
