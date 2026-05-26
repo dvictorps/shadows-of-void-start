@@ -118,6 +118,7 @@ export const reorderStash = mutation({
 		if (source.locationKind !== "stash") throw new ConvexError("Item is not in stash")
 
 		const mode = char.hardcore ? "hardcore" : "softcore"
+		if (source.stashMode !== mode) throw new ConvexError("Item is in a different stash mode")
 		const allStash = await ctx.db
 			.query("items")
 			.withIndex("by_stash", (q) =>
