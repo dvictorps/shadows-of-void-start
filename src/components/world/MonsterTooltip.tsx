@@ -4,12 +4,13 @@ import {
 	RarityHeader,
 	TooltipSeparator,
 } from "#/components/ui/rarity-card";
-import { type BossId, findBoss } from "#/game/bosses";
+import { getBossConfig } from "#/game/bosses";
 import {
 	translateEnemyName,
 	translateMonsterModDescription,
 } from "#/game/world/i18n";
 import type { Enemy } from "#/hooks/useCombatLoop";
+import { m } from "#/paraglide/messages";
 
 // Slim cousin of ItemTooltip. Rarity-tinted shell + header with the rolled
 // name + level, body listing what each mod does. Only meaningful for magic /
@@ -22,11 +23,11 @@ import type { Enemy } from "#/hooks/useCombatLoop";
 
 type ElementKey = "fire" | "cold" | "lightning" | "void";
 
-const RES_LABELS: Record<ElementKey, string> = {
-	fire: "Fogo",
-	cold: "Gelo",
-	lightning: "Raio",
-	void: "Vazio",
+const ELEMENT_LABEL: Record<ElementKey, () => string> = {
+	fire: m.element_fire,
+	cold: m.element_cold,
+	lightning: m.element_lightning,
+	void: m.element_void,
 };
 
 function formatResistance(value: number): {
@@ -49,14 +50,14 @@ function BossStatSheet({ enemy }: { enemy: Enemy }) {
 	return (
 		<div className="space-y-1 px-4 pt-1 pb-3 text-[0.92em]">
 			<div style={{ color: "rgba(220, 220, 220, 0.95)" }}>
-				HP: {scaled.hp.toLocaleString()}
+				{m.stat_hp()}: {scaled.hp.toLocaleString()}
 			</div>
 			<div style={{ color: "rgba(220, 220, 220, 0.95)" }}>
-				Velocidade de Ataque: {scaled.attackSpeed.toFixed(2)}/s
+				{m.stat_attack_speed()}: {scaled.attackSpeed.toFixed(2)}/s
 			</div>
 			{(phys.min > 0 || phys.max > 0) && (
 				<div style={{ color: "rgba(220, 220, 220, 0.95)" }}>
-					Dano Físico:{" "}
+					{m.stat_physical_damage()}:{" "}
 					<span style={{ color: "#c8c8c8" }}>
 						{phys.min}–{phys.max}
 					</span>
@@ -67,14 +68,14 @@ function BossStatSheet({ enemy }: { enemy: Enemy }) {
 					key={e.element}
 					style={{ color: "rgba(220, 220, 220, 0.95)" }}
 				>
-					Dano de {RES_LABELS[e.element.toLowerCase() as ElementKey]}:{" "}
+					{m.stat_element_damage({ element: ELEMENT_LABEL[e.element.toLowerCase() as ElementKey]() })}:{" "}
 					<span style={{ color: "#ffaa66" }}>
 						{e.min}–{e.max}
 					</span>
 				</div>
 			))}
 			<div className="pt-1" style={{ color: "rgba(200, 200, 200, 0.8)" }}>
-				Resistências
+				{m.stat_resistances()}
 			</div>
 			{elementKeys.map((key) => {
 				const formatted = formatResistance(res[key]);
@@ -84,7 +85,7 @@ function BossStatSheet({ enemy }: { enemy: Enemy }) {
 						className="flex justify-between"
 						style={{ color: "rgba(220, 220, 220, 0.95)" }}
 					>
-						<span>{RES_LABELS[key]}</span>
+						<span>{ELEMENT_LABEL[key]()}</span>
 						<span style={{ color: formatted.color }}>{formatted.text}</span>
 					</div>
 				);
@@ -94,8 +95,7 @@ function BossStatSheet({ enemy }: { enemy: Enemy }) {
 }
 
 export default function MonsterTooltip({ enemy }: { enemy: Enemy }) {
-	const bossConfig =
-		enemy.rarity === "unique" ? findBoss(enemy.def.id as BossId) : null;
+	const bossConfig = getBossConfig(enemy);
 	const headerColor = bossConfig
 		? bossConfig.nameplateColor
 		: RARITY_COLORS[enemy.rarity];

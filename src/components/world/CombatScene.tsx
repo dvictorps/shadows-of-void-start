@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { type BossId, findBoss } from "#/game/bosses";
+import { getBossConfig } from "#/game/bosses";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateEnemyName } from "#/game/world/i18n";
 import type {
@@ -186,11 +186,8 @@ export default function CombatScene({
 	// shouldn't double-duty as the boss color, and each boss can pick a hue
 	// that matches its theme — Gralfor: ember orange).
 	const bossConfig = useMemo(
-		() =>
-			enemy?.rarity === "unique"
-				? findBoss(enemy.def.id as BossId)
-				: null,
-		[enemy],
+		() => (enemy ? getBossConfig(enemy) : null),
+		[enemy?.rarity, enemy?.def.id],
 	);
 	const nameColor = bossConfig
 		? bossConfig.nameplateColor
@@ -202,9 +199,6 @@ export default function CombatScene({
 		: enemy
 			? RARITY_NAMEPLATE_SHADOW[enemy.rarity]
 			: RARITY_NAMEPLATE_SHADOW.normal;
-	// Micro-stagger for non-staged reveals: sprite → name → hp in ~160ms total.
-	// Rares and bosses are paced by their own intro cascades, so any extra
-	// delay here would compound and feel sluggish.
 	const isStagedEnemy =
 		enemy?.rarity === "rare" || enemy?.rarity === "unique";
 	const nameplateDelay = isStagedEnemy ? 0 : 0.08;
@@ -249,16 +243,12 @@ export default function CombatScene({
 		prevEnemyRef.current = enemy;
 		if (!enemy) return;
 		if (!wasNull) return;
-		const isStaged = enemy.rarity === "rare" || enemy.rarity === "unique";
-		// Non-staged entrance uses a "fading from the dark" feel — slight y
-		// offset + blur — instead of the staged bold scale-down. Keeps the
-		// rare/boss cinematic entrance distinctive.
 		enemyControls.set({
 			opacity: 0,
-			scale: isStaged ? 1.2 : 1,
+			scale: isStagedEnemy ? 1.2 : 1,
 			x: 0,
-			y: isStaged ? 0 : 8,
-			filter: isStaged
+			y: isStagedEnemy ? 0 : 8,
+			filter: isStagedEnemy
 				? "brightness(1) saturate(1) hue-rotate(0deg)"
 				: "brightness(1) saturate(1) blur(4px)",
 		});
@@ -267,9 +257,9 @@ export default function CombatScene({
 			scale: 1,
 			y: 0,
 			filter: "brightness(1) saturate(1) hue-rotate(0deg)",
-			transition: { duration: isStaged ? 0.7 : 0.4, ease: "easeOut" },
+			transition: { duration: isStagedEnemy ? 0.7 : 0.4, ease: "easeOut" },
 		});
-	}, [enemy, enemyControls]);
+	}, [enemy, enemyControls, isStagedEnemy]);
 
 	useEffect(() => {
 		if (!lastDamagingHit) return;
@@ -288,19 +278,15 @@ export default function CombatScene({
 
 	useEffect(() => {
 		if (state !== "victory" || !enemy) return;
-		// Mirror the entrance: non-staged "falls back into the dark" (y down +
-		// blur), rare/boss keeps a clean fade so we don't add unrelated motion
-		// to the staged exit. easeIn pairs with the entrance's easeOut.
-		const isStaged = enemy.rarity === "rare" || enemy.rarity === "unique";
 		enemyControls.start({
 			opacity: 0,
-			y: isStaged ? 0 : 8,
-			filter: isStaged
+			y: isStagedEnemy ? 0 : 8,
+			filter: isStagedEnemy
 				? "brightness(1) saturate(1) hue-rotate(0deg)"
 				: "brightness(1) saturate(1) blur(4px)",
 			transition: { duration: 0.5, ease: "easeIn" },
 		});
-	}, [state, enemy, enemyControls]);
+	}, [state, enemy, enemyControls, isStagedEnemy]);
 
 	// Boss intro sfx — fires when the sprite stage begins so the entry roar
 	// plays WHILE the boss materializes. The screenshake fires later at the

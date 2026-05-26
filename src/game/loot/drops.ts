@@ -152,23 +152,6 @@ export function rollMinibossDrops(params: {
 }
 
 /**
- * Gauntlet-rare drop set per CONTEXT.md → Drop rates. One item, 70% Magic /
- * 30% Rare — reduced from a zone miniboss so the boss node doesn't out-farm
- * a regular zone. The boss kill is the payout pump.
- */
-export function rollGauntletRareDrops(params: {
-	monsterLevel: number;
-}): GeneratedItem[] {
-	const distribution: Array<{ rarity: ItemRarity; weight: number }> = [
-		{ rarity: "magic", weight: 70 },
-		{ rarity: "rare", weight: 30 },
-	];
-	const rarity = pickRarity(distribution);
-	const item = rollItemAtRarity(rarity, params.monsterLevel);
-	return item ? [item] : [];
-}
-
-/**
  * Act-boss drop set per CONTEXT.md → Drop rates: 2-3 items with one
  * guaranteed Rare; remaining slots use the unique table (75% Rare / 25%
  * Magic, no Normals). Legendary upgrade chance is applied per-slot.

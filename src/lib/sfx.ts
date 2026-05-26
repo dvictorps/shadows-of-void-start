@@ -4,7 +4,7 @@
 // promise rejection is silently swallowed so first-touch quirks don't crash
 // the combat loop.
 
-import { type BossId, findBoss } from "#/game/bosses";
+import { getBossConfig } from "#/game/bosses";
 import { WEAPON_FX } from "#/game/combat/weapon-fx";
 import type { WeaponType } from "#/game/items/types/base";
 import type { MonsterRarity } from "#/game/monsters/types";
@@ -157,12 +157,10 @@ export function playKillSfx(enemy: {
 	def: { id: string };
 	rarity: MonsterRarity;
 }): void {
-	if (enemy.rarity === "unique") {
-		const boss = findBoss(enemy.def.id as BossId);
-		if (boss) {
-			playSfx(boss.cinematic.deathSfx, { volume: 0.8 });
-			return;
-		}
+	const boss = getBossConfig(enemy);
+	if (boss) {
+		playSfx(boss.cinematic.deathSfx, { volume: 0.8 });
+		return;
 	}
 	playMonsterDeathSfx(enemy.def.id);
 }

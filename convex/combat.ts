@@ -175,10 +175,9 @@ export const recordKill = mutation({
 
 		await ctx.db.patch(args.characterId, updates)
 
-		// Drop routing per CONTEXT.md → Drop rates. Four flows:
+		// Drop routing per CONTEXT.md → Drop rates:
 		//   - act boss (unique): 2-3 items, guaranteed Rare, 75/25 Rare/Magic
-		//   - zone miniboss (rare in combat zone): 2 items, 1 guaranteed Rare
-		//   - gauntlet rare (rare in boss node): 1 item, 70/30 Magic/Rare
+		//   - any rare kill (zone miniboss or gauntlet): 2 items, 1 guaranteed Rare
 		//   - normal / magic mob: standard rolldrop
 		const zoneSession = char.currentZoneSession
 		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []

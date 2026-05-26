@@ -1,4 +1,4 @@
-import { type BossId, findBoss } from "#/game/bosses";
+import { getBossConfig } from "#/game/bosses";
 import {
 	MONSTER_ACCURACY_PER_LEVEL,
 	MONSTER_ARMOR_PER_LEVEL,
@@ -320,7 +320,7 @@ function suffixPhrasePt(noun: string | GenderedNoun): string {
  */
 export function translateEnemyName(enemy: NameableEnemy): string {
 	if (enemy.rarity === "unique") {
-		const boss = findBoss(enemy.def.id as BossId);
+		const boss = getBossConfig(enemy);
 		if (boss) {
 			// Boss names are zero-arg paraglide keys (no inputs), so we can call
 			// them positionally. Cast through `unknown` because paraglide's

@@ -23,6 +23,7 @@ import {
 	findMonster,
 	type MonsterId,
 	modCountForRarity,
+	type MonsterRarity,
 	rollMonsterMods,
 	rollMonsterRarity,
 	scaleMonsterStats,
@@ -31,7 +32,6 @@ import { applyOverlevelPenalty } from "#/game/progression/levels";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import type { BossNodeConfig, CampSource } from "#/game/world";
 import type { ZoneEncounterPlan } from "#/game/world/encounter-schedule";
-import type { RareNameSeed } from "#/game/world/i18n";
 import { applyCharacterDelta, findCharacter } from "#/lib/optimistic-character";
 import { pickRandom } from "#/lib/rng";
 import { playKillSfx } from "#/lib/sfx";
@@ -323,8 +323,12 @@ export function useCombatLoop({
 			s === "miniboss_victory"
 		)
 			return;
-		if (s === "engaged" && enemyRef.current?.rarity === "rare") return;
-		if (s === "engaged" && enemyRef.current?.rarity === "unique") return;
+		if (
+			s === "engaged" &&
+			(enemyRef.current?.rarity === "rare" ||
+				enemyRef.current?.rarity === "unique")
+		)
+			return;
 		// Ambush packs commit you to the burst — incense must wait until the
 		// last mob falls.
 		if (schedule.isAmbushPackActive()) return;
@@ -360,53 +364,53 @@ export function useCombatLoop({
 		withSession,
 	]);
 
+	// Shared mob-spawning pipeline: pick → find → scale → mod → Enemy.
+	// Used by the regular spawn path and the gauntlet rare path.
+	function spawnMob(
+		pool: readonly MonsterId[],
+		rarity: MonsterRarity,
+	): Enemy | null {
+		const pick = pickRandom(pool);
+		if (!pick) return null;
+		const def = findMonster(pick);
+		if (!def) return null;
+		const level = rollMonsterLevel(zoneLevel);
+		const baseScaled = scaleMonsterStats(def, level);
+		const mods = rollMonsterMods(modCountForRarity(rarity));
+		const scaled = applyMonsterMods(baseScaled, mods);
+		return {
+			def,
+			currentHp: scaled.hp,
+			currentBarrier: scaled.barrier,
+			level,
+			rarity,
+			mods,
+			scaled,
+			nameSeed: {
+				primary: Math.random(),
+				secondary: Math.random(),
+				epithet: Math.random(),
+			},
+		};
+	}
+
+	function commitEnemy(e: Enemy) {
+		enemyRef.current = e;
+		setEnemy(e);
+	}
+
 	// ── Search delay → spawn enemy ──
-	// Regular zones: roll a monster from `monsterPool` with the scheduled
-	// rarity. Boss-node warmup phase also fires through this path — during
-	// warmup the gate opens so normal/magic mobs spawn before the gauntlet.
-	// Once warmupDone, the gauntlet spawner below takes over.
 	useDelay(
 		active && state === "searching" && (!bossNode || warmupActive),
 		schedule.nextSpawnGapMs,
 		() => {
-			const pick = pickRandom(monsterPool);
-			if (!pick) return;
-			const def = findMonster(pick);
-			if (!def) return;
-			const level = rollMonsterLevel(zoneLevel);
-			const baseScaled = scaleMonsterStats(def, level);
-			// Slot consumption is a separate call (after commit below) so the
-			// spawn-failure early returns above can't accidentally drain the pack.
-			// During warmup the schedule might return "rare" when the calmaria
-			// budget fills — suppress that and force normal/magic since the
-			// gauntlet handles the rare spawns after warmup.
 			const rarity = warmupActive
 				? rollMonsterRarity()
 				: schedule.rollSpawnRarity();
-			const mods = rollMonsterMods(modCountForRarity(rarity));
-			const scaled = applyMonsterMods(baseScaled, mods);
-			const nameSeed: RareNameSeed = {
-				primary: Math.random(),
-				secondary: Math.random(),
-				epithet: Math.random(),
-			};
-			const newEnemy: Enemy = {
-				def,
-				currentHp: scaled.hp,
-				currentBarrier: scaled.barrier,
-				level,
-				rarity,
-				mods,
-				scaled,
-				nameSeed,
-			};
-			enemyRef.current = newEnemy;
-			setEnemy(newEnemy);
+			const e = spawnMob(monsterPool, rarity);
+			if (!e) return;
+			commitEnemy(e);
 			schedule.consumeAmbushSlot();
-			// Rare minibosses get a staged reveal (sprite → name → HP bar) before
-			// combat starts. Regular spawns engage immediately. Bosses (rarity
-			// "unique") never spawn through the schedule path — they come from
-			// the boss-node gauntlet orchestrator instead.
 			if (rarity === "rare") {
 				setRareIntroStage("sprite");
 				stateRef.current = "rare_intro";
@@ -420,59 +424,24 @@ export function useCombatLoop({
 	);
 
 	// ── Boss-node gauntlet spawner ──
-	// Fires when the player is searching inside a boss node. Spawns the next
-	// gauntlet rare (fight 1..N) or the boss (after N gauntlet kills).
-	// `gauntletFightIndex` is the 1-based index of the NEXT fight; `null`
-	// means the gauntlet is done and the boss is up.
 	useDelay(
 		active && state === "searching" && !!bossNode && warmupDone,
 		600,
 		() => {
 		if (!bossNode) return;
 		if (gauntletFightIndex !== null) {
-			// Spawn a gauntlet rare from the boss-node pool. Stats follow the
-			// node level + standard rare mod count.
-			const pick = pickRandom(bossNode.gauntlet.monsterPool);
-			if (!pick) return;
-			const def = findMonster(pick);
-			if (!def) return;
-			const level = rollMonsterLevel(zoneLevel);
-			const baseScaled = scaleMonsterStats(def, level);
-			const mods = rollMonsterMods(modCountForRarity("rare"));
-			const scaled = applyMonsterMods(baseScaled, mods);
-			const nameSeed: RareNameSeed = {
-				primary: Math.random(),
-				secondary: Math.random(),
-				epithet: Math.random(),
-			};
-			const newEnemy: Enemy = {
-				def,
-				currentHp: scaled.hp,
-				currentBarrier: scaled.barrier,
-				level,
-				rarity: "rare",
-				mods,
-				scaled,
-				nameSeed,
-			};
-			enemyRef.current = newEnemy;
-			setEnemy(newEnemy);
+			const e = spawnMob(bossNode.gauntlet.monsterPool, "rare");
+			if (!e) return;
+			commitEnemy(e);
 			setRareIntroStage("sprite");
 			stateRef.current = "rare_intro";
 			setState("rare_intro");
 			return;
 		}
-		// Gauntlet finished — spawn the boss with its declared template at the
-		// boss's own level (not zoneLevel ±1). No mods rolled for uniques.
 		const boss = findBoss(bossNode.bossId);
 		if (!boss) return;
 		const scaled = scaleMonsterStats(boss.template, boss.level);
-		const nameSeed: RareNameSeed = {
-			primary: 0,
-			secondary: 0,
-			epithet: 0,
-		};
-		const newEnemy: Enemy = {
+		commitEnemy({
 			def: boss.template,
 			currentHp: scaled.hp,
 			currentBarrier: scaled.barrier,
@@ -480,10 +449,8 @@ export function useCombatLoop({
 			rarity: "unique",
 			mods: [],
 			scaled,
-			nameSeed,
-		};
-		enemyRef.current = newEnemy;
-		setEnemy(newEnemy);
+			nameSeed: { primary: 0, secondary: 0, epithet: 0 },
+		});
 		setBossIntroStage("sprite");
 		stateRef.current = "boss_intro";
 		setState("boss_intro");
