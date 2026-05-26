@@ -46,6 +46,10 @@ Replace the binary 6s-timer-then-full-refill mechanic with a **continuous regen 
 - **Stat panel UI reads cooldown state, not "recovery remaining".** The label changes from "Recuperando…" / "X.Xs" to "Em recarga" / "X.Xs" (or equivalent), and the in-tooltip language follows.
 - **No migration required for character documents.** Barrier state lives on the in-process `BarrierState` object inside the combat loop, not in the Convex schema — the rename is local to `src/game/`.
 
+## Update (2026-05-26)
+
+Regen rate nerfed from 5%/s to **2%/s** (`BARRIER_REGEN_FRACTION_PER_SECOND = 0.02`). Full recovery from empty goes from 20s to 50s (60s total with cooldown). Motivation: barrier sustain was too strong at 5%/s, making INT-stacking mages overly durable against sustained damage.
+
 ## Related
 
 - `CONTEXT.md` → Combat Resolution → Defenses → Barrier (the canonical glossary entry, kept in sync with this ADR).

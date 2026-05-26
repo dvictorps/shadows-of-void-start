@@ -351,6 +351,16 @@ export function useCombatTick({
 				}
 
 				if (updated.currentHp <= 0) {
+					if (stats.lifeOnKill > 0 && !deadRef.current) {
+						const next = Math.min(
+							maxHp,
+							playerHpRef.current + stats.lifeOnKill,
+						);
+						if (next !== playerHpRef.current) {
+							playerHpRef.current = next;
+							setPlayerHp(next);
+						}
+					}
 					resolveKill(updated);
 					return;
 				}
@@ -454,6 +464,16 @@ export function useCombatTick({
 					isThorns: true,
 				});
 				if (updated.currentHp <= 0) {
+					if (stats.lifeOnKill > 0 && !deadRef.current) {
+						const next = Math.min(
+							maxHp,
+							playerHpRef.current + stats.lifeOnKill,
+						);
+						if (next !== playerHpRef.current) {
+							playerHpRef.current = next;
+							setPlayerHp(next);
+						}
+					}
 					resolveKill(updated);
 				}
 			}
