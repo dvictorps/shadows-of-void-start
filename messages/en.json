@@ -345,6 +345,9 @@
   "stats_mana_on_kill": "Mana on Kill",
   "stats_magic_find": "Magic Find",
 
+  "tooltip_two_handed": "Two-Handed",
+  "tooltip_one_handed": "One-Handed",
+  "tooltip_offhand": "Off-Hand",
   "tooltip_physical_damage": "Physical Damage",
   "tooltip_spell_damage": "Spell Damage",
   "tooltip_damage_line": "{element} Damage",

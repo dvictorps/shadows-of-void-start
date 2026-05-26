@@ -345,6 +345,9 @@
   "stats_mana_on_kill": "Mana no Abate",
   "stats_magic_find": "Raridade de Item",
 
+  "tooltip_two_handed": "Duas Mãos",
+  "tooltip_one_handed": "Uma Mão",
+  "tooltip_offhand": "Mão Secundária",
   "tooltip_physical_damage": "Dano Físico",
   "tooltip_spell_damage": "Dano de Conjuração",
   "tooltip_damage_line": "Dano de {element}",

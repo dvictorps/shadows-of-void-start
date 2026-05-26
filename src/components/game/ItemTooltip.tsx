@@ -4,6 +4,7 @@ import {
 	RarityHeader,
 	TooltipSeparator,
 } from "#/components/ui/rarity-card";
+import { isTwoHanded } from "#/game/items/equipment";
 import {
 	translateItemName,
 	translateTemplateName,
@@ -11,6 +12,8 @@ import {
 import { localizeImplicit, localizeMod } from "#/game/items/mod-i18n";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 import { m } from "#/paraglide/messages";
+
+const OFFHAND_TYPES = new Set(["offhand", "tome", "quiver"]);
 
 const HAS_GENERATED_NAME = new Set<ItemRarity>(["rare", "legendary", "epic"]);
 const HAS_GLOW = new Set<ItemRarity>(["legendary", "epic"]);
@@ -148,6 +151,17 @@ export default function ItemTooltip({
 						: translateItemName(item)}
 				</div>
 			</RarityHeader>
+
+			{item.equipmentType === "weapon" && (
+				<div className="px-4 py-0.5 text-center text-[10px] uppercase tracking-wider text-white/40">
+					{isTwoHanded(item) ? m.tooltip_two_handed() : m.tooltip_one_handed()}
+				</div>
+			)}
+			{OFFHAND_TYPES.has(item.equipmentType) && (
+				<div className="px-4 py-0.5 text-center text-[10px] uppercase tracking-wider text-white/40">
+					{m.tooltip_offhand()}
+				</div>
+			)}
 
 			<TooltipSeparator />
 
