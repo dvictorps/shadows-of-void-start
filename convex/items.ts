@@ -35,7 +35,6 @@ import {
 	loadOrCreateCombatState,
 	loadOwnedCharacterWithSession,
 } from "./_shared/character"
-import type { Doc } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
 

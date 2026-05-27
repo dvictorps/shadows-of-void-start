@@ -222,8 +222,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const xp = cs?.xp ?? character.xp ?? 0;
 	const zoneSession = cs?.currentZoneSession ?? character.currentZoneSession;
 	const campThresholds = cs?.campThresholdsMs ?? character.campThresholdsMs ?? EMPTY_THRESHOLDS;
-	const inCamp = cs?.inCamp ?? character.inCamp ?? false;
-	const currentZoneKills = cs?.currentZoneKills ?? character.currentZoneKills ?? 0;
 
 	const {
 		enterCity,
