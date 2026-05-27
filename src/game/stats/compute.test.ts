@@ -143,8 +143,8 @@ describe("computeCharacterStats — base", () => {
 			dexterity: 5,
 			intelligence: 5,
 		});
-		// 100 class base + 10 Str * 5 life/point = 150.
-		expect(stats.maxLife).toBe(150);
+		// 70 class base + 10 Str * 5 life/point = 120.
+		expect(stats.maxLife).toBe(120);
 		expect(stats.maxBarrier).toBe(0);
 		expect(stats.path).toBe("unarmed");
 		expect(stats.swings).toHaveLength(0);
@@ -156,8 +156,8 @@ describe("computeCharacterStats — base", () => {
 			level: 10,
 			equippedItems: [],
 		});
-		// 100 class base + 9 * 10 from level + 10 Str * 5 = 240.
-		expect(stats.maxLife).toBe(100 + 9 * 10 + 10 * 5);
+		// 70 class base + 9 * 10 from level + 10 Str * 5 = 210.
+		expect(stats.maxLife).toBe(70 + 9 * 10 + 10 * 5);
 	});
 
 	it("mage starts with class barrier", () => {
@@ -535,8 +535,8 @@ describe("attribute bonuses", () => {
 			level: 1,
 			equippedItems: [],
 		});
-		// 100 (warrior base) + 0 (L1 → no level bonus yet) + 10 Str * 5 = 150.
-		expect(stats.maxLife).toBe(150);
+		// 70 (warrior base) + 0 (L1 → no level bonus yet) + 10 Str * 5 = 120.
+		expect(stats.maxLife).toBe(120);
 	});
 
 	it("Dex adds 2 accuracy per point", () => {

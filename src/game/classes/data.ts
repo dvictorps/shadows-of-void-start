@@ -8,7 +8,7 @@ export const CLASS_DEFINITIONS = {
 			"A battle-hardened fighter who relies on raw strength and heavy armor to overpower enemies.",
 		primaryAttribute: "strength",
 		baseStats: {
-			hp: 100,
+			hp: 70,
 			barrier: 0,
 			attributes: { strength: 10, dexterity: 5, intelligence: 5 },
 		},
