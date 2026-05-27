@@ -58,10 +58,21 @@ describe("promoteRarity", () => {
 		expect(promoHigh).toBeGreaterThan(promoLow);
 	});
 
-	it("never promotes beyond legendary", () => {
+	it("never promotes beyond epic", () => {
 		for (let i = 0; i < 1000; i++) {
-			const result = promoteRarity("legendary", 9999);
-			expect(result).toBe("legendary");
+			const result = promoteRarity("epic", 9999);
+			expect(result).toBe("epic");
 		}
+	});
+
+	it("legendary can promote to epic with high MF", () => {
+		let sawEpic = false;
+		for (let i = 0; i < 10000; i++) {
+			if (promoteRarity("legendary", 9999) === "epic") {
+				sawEpic = true;
+				break;
+			}
+		}
+		expect(sawEpic).toBe(true);
 	});
 });

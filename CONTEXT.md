@@ -471,8 +471,8 @@ The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all
 ## Item Identification and Loot Tiers per Act
 
 - **All items drop pre-identified.** No identification scrolls, no fog of war on stats.
-- **Act 1 drop pool:** Normal, Magic, Rare. Legendary can drop from any source via the rarity promotion system. Epic items do not exist in Act 1.
-- **Act 2 onward (planned):** introduces Epic drops and continues to ramp Legendary frequency.
+- **Act 1 drop pool:** Normal, Magic, Rare. Legendary and Epic can drop from any source via the rarity promotion system. Epic requires two consecutive promotions (Rare → Legendary → Epic), making it astronomically rare without heavy magic-find investment.
+- **Act 2 onward (planned):** continues to ramp Legendary/Epic frequency.
 
 ### Drop rates (Act 1 baseline)
 
@@ -496,7 +496,7 @@ After each item's base rarity is rolled (including guaranteed slots), the game a
 
 **Formula:** `chance = basePct × (1 + magicFind / 100)`
 
-Promotions chain: a Normal can promote to Magic, then that result can promote to Rare, then to Legendary — each step is a separate roll. The act boss's guaranteed Rare has a baseline 1% chance to become Legendary (≈1% per item with 0 MF). Regular mobs need MF stacking to see Legendaries. Epic drops are not available in Act 1.
+Promotions chain: a Normal can promote to Magic, then that result can promote to Rare, then to Legendary, then to Epic — each step is a separate roll. The act boss's guaranteed Rare has a baseline 1% chance to become Legendary (≈1% per item with 0 MF), and a Legendary has a 1% base chance to promote to Epic (≈0.01% per Rare item with 0 MF). Regular mobs need MF stacking to see Legendaries; Epic is astronomically rare from any source.
 
 ### Vendor catalog (MVP)
 
@@ -1096,7 +1096,6 @@ Each snapshot entry stores: character name, class, level, total boss kills, hard
 ## Out of Scope (for now)
 
 - **Unique items** — hand-crafted rarity above Epic, planned. See `docs/plans/roadmap.md`.
-- **Epic items in Act 1** — Epic drops are reserved for Act 2+.
 - **Active skills with cooldowns** — planned, but only after all classes are implemented and the passive tree exists. The MVP combat loop has exactly one active control: the life potion.
 - **Passive tree** — planned, between MVP combat and active skills.
 - **Hub city** — the hub gets its own city (with vendor/stash/NPCs) only in late-game planning. For now the hub is pure navigation between acts.

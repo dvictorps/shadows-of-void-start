@@ -73,6 +73,7 @@ const PROMOTION_CHAIN: Partial<
 	normal: { next: "magic", basePct: 10 },
 	magic: { next: "rare", basePct: 5 },
 	rare: { next: "legendary", basePct: 1 },
+	legendary: { next: "epic", basePct: 1 },
 };
 
 export function promoteRarity(
