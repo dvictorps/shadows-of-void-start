@@ -112,6 +112,13 @@ export default defineSchema({
 		bossKillCounts: v.optional(v.any()),
 		// Hardcore death — soft-delete for leaderboard "Fallen Heroes".
 		dead: v.optional(v.boolean()),
+		// Denormalized stat cache — refreshed on equip/unequip/level-up.
+		// Hot mutations (recordKill, syncHp) read these instead of loading
+		// all equipped items + running computeCharacterStats every call.
+		cachedMaxLife: v.optional(v.number()),
+		cachedMaxBarrier: v.optional(v.number()),
+		cachedMagicFind: v.optional(v.number()),
+		cachedMovementSpeed: v.optional(v.number()),
 	}).index("by_authUserId", ["authUserId"]),
 
 	// All items live here — drops, inventory, equipped, stash. Location is

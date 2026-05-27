@@ -121,6 +121,10 @@ export const create = mutation({
 			teleportStones: 0,
 			unlockedNodes: ["city"],
 			...(args.classId === "mage" ? { selectedElement: "fire" as const } : {}),
+			cachedMaxLife: maxHp,
+			cachedMaxBarrier: baseStats.maxBarrier,
+			cachedMagicFind: baseStats.magicFind,
+			cachedMovementSpeed: baseStats.movementSpeed,
 		})
 
 		// Create the starter item entry in the items table so equip lifecycle is

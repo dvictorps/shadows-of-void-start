@@ -78,7 +78,10 @@ export function useWorldMutations({
 
 	const exitZone = useSessionedMutation(
 		useMutation(api.items.exitZone).withOptimisticUpdate((localStore, args) => {
-			const bagKey = { characterId: args.characterId };
+			const char = findCharacter(localStore, args.characterId);
+			const zoneSession = char?.currentZoneSession;
+			if (!zoneSession) return;
+			const bagKey = { zoneSession };
 			const bag = localStore.getQuery(api.items.zoneBag, bagKey);
 			if (bag) localStore.setQuery(api.items.zoneBag, bagKey, []);
 			const keep = new Set(args.keepIds.map((id) => id.toString()));
@@ -90,7 +93,10 @@ export function useWorldMutations({
 	const pickFromBag = useSessionedMutation(
 		useMutation(api.items.pickFromBag).withOptimisticUpdate(
 			(localStore, args) => {
-				const bagKey = { characterId: args.characterId };
+				const char = findCharacter(localStore, args.characterId);
+				const zoneSession = char?.currentZoneSession;
+				if (!zoneSession) return;
+				const bagKey = { zoneSession };
 				const bag = localStore.getQuery(api.items.zoneBag, bagKey);
 				if (!bag) return;
 				const idSet = new Set(args.itemIds.map((id) => id.toString()));
@@ -109,7 +115,10 @@ export function useWorldMutations({
 	const discardFromBag = useSessionedMutation(
 		useMutation(api.items.discardFromBag).withOptimisticUpdate(
 			(localStore, args) => {
-				const bagKey = { characterId: args.characterId };
+				const char = findCharacter(localStore, args.characterId);
+				const zoneSession = char?.currentZoneSession;
+				if (!zoneSession) return;
+				const bagKey = { zoneSession };
 				const bag = localStore.getQuery(api.items.zoneBag, bagKey);
 				if (!bag) return;
 				const idSet = new Set(args.itemIds.map((id) => id.toString()));
@@ -232,17 +241,11 @@ export function useWorldMutations({
 					{ characterId: args.characterId },
 					inventory.filter((it) => !idSet.has(it._id.toString())),
 				);
-				const characters = localStore.getQuery(api.characters.list, {});
-				if (!characters) return;
-				localStore.setQuery(
-					api.characters.list,
-					{},
-					characters.map((c) =>
-						c._id === args.characterId
-							? { ...c, rubys: (c.rubys ?? 0) + total }
-							: c,
-					),
-				);
+				const char = findCharacter(localStore, args.characterId);
+				if (!char) return;
+				applyCharacterDelta(localStore, args.characterId, {
+					rubys: (char.rubys ?? 0) + total,
+				});
 			},
 		),
 	);
@@ -256,9 +259,7 @@ export function useWorldMutations({
 				if (!inv) return;
 				const source = inv.find((it) => it._id === args.itemId);
 				if (!source) return;
-				const occupant = inv.find(
-					(it) => it.inventorySlot === args.targetSlot,
-				);
+				const occupant = inv.find((it) => it.inventorySlot === args.targetSlot);
 				const sourceSlot = source.inventorySlot;
 				const next = inv
 					.map((it) => {
@@ -281,11 +282,14 @@ export function useWorldMutations({
 	const depositToStash = useSessionedMutation(
 		useMutation(api.stash.depositToStash).withOptimisticUpdate(
 			(localStore, args) => {
+				const char = findCharacter(localStore, args.characterId);
+				if (!char) return;
+				const stashMode = char.hardcore ? "hardcore" : "softcore";
 				const inv = localStore.getQuery(api.items.inventory, {
 					characterId: args.characterId,
 				});
 				const stash = localStore.getQuery(api.items.stash, {
-					characterId: args.characterId,
+					stashMode,
 				});
 				if (!inv || !stash) return;
 				const idSet = new Set(args.itemIds.map((id) => id.toString()));
@@ -312,7 +316,7 @@ export function useWorldMutations({
 				);
 				localStore.setQuery(
 					api.items.stash,
-					{ characterId: args.characterId },
+					{ stashMode },
 					[...stash, ...moved].sort(byStashSlotAsc),
 				);
 			},
@@ -322,11 +326,14 @@ export function useWorldMutations({
 	const withdrawFromStash = useSessionedMutation(
 		useMutation(api.stash.withdrawFromStash).withOptimisticUpdate(
 			(localStore, args) => {
+				const char = findCharacter(localStore, args.characterId);
+				if (!char) return;
+				const stashMode = char.hardcore ? "hardcore" : "softcore";
 				const inv = localStore.getQuery(api.items.inventory, {
 					characterId: args.characterId,
 				});
 				const stash = localStore.getQuery(api.items.stash, {
-					characterId: args.characterId,
+					stashMode,
 				});
 				if (!inv || !stash) return;
 				const idSet = new Set(args.itemIds.map((id) => id.toString()));
@@ -349,7 +356,7 @@ export function useWorldMutations({
 				const movedIds = new Set(moved.map((it) => it._id));
 				localStore.setQuery(
 					api.items.stash,
-					{ characterId: args.characterId },
+					{ stashMode },
 					stash.filter((it) => !movedIds.has(it._id)).sort(byStashSlotAsc),
 				);
 				localStore.setQuery(
@@ -364,15 +371,16 @@ export function useWorldMutations({
 	const reorderStash = useSessionedMutation(
 		useMutation(api.stash.reorderStash).withOptimisticUpdate(
 			(localStore, args) => {
+				const char = findCharacter(localStore, args.characterId);
+				if (!char) return;
+				const stashMode = char.hardcore ? "hardcore" : "softcore";
 				const stash = localStore.getQuery(api.items.stash, {
-					characterId: args.characterId,
+					stashMode,
 				});
 				if (!stash) return;
 				const source = stash.find((it) => it._id === args.itemId);
 				if (!source) return;
-				const occupant = stash.find(
-					(it) => it.stashSlot === args.targetSlot,
-				);
+				const occupant = stash.find((it) => it.stashSlot === args.targetSlot);
 				const sourceSlot = source.stashSlot;
 				const next = stash
 					.map((it) => {
@@ -383,11 +391,7 @@ export function useWorldMutations({
 						return it;
 					})
 					.sort(byStashSlotAsc);
-				localStore.setQuery(
-					api.items.stash,
-					{ characterId: args.characterId },
-					next,
-				);
+				localStore.setQuery(api.items.stash, { stashMode }, next);
 			},
 		),
 	);

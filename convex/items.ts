@@ -26,8 +26,9 @@ import {
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
 import { isBow, isQuiver, isWeapon, planEquip } from "../src/game/items/equipment"
 import { computeCharacterStats } from "../src/game/stats/compute"
-import { type EquippedItem, narrowEquippedSlot } from "../src/game/stats/types"
+import { type EquippedItem, type EquippedSlot, narrowEquippedSlot } from "../src/game/stats/types"
 import {
+	cacheStatsFromEquipped,
 	clearPerVisitZoneState,
 	equippedSlotValidator,
 	fetchInventoryAllocator,
@@ -358,6 +359,13 @@ export const equipItem = mutation({
 				})
 			}),
 		])
+
+		const finalEquipped: EquippedItem[] = [
+			...newSetMinusNewItem,
+			{ slot: args.targetSlot as EquippedSlot, item: item.data },
+		]
+		await cacheStatsFromEquipped(ctx, args.characterId, char, finalEquipped)
+
 		return { equipped: 1, displaced: plan.displaced.length }
 	},
 })
@@ -374,7 +382,7 @@ export const unequipItem = mutation({
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const equipped = await ctx.db
 			.query("items")
@@ -432,6 +440,18 @@ export const unequipItem = mutation({
 			})
 		}
 
+		const finalEquipped: EquippedItem[] = equipped.flatMap((it) => {
+			const s = narrowEquippedSlot(it.equippedSlot)
+			if (!s) return []
+			if (it._id === item._id) return []
+			if (orphanQuiver && it._id === orphanQuiver._id) return []
+			if (offhandToPromote && it._id === offhandToPromote._id) {
+				return [{ slot: "weapon" as EquippedSlot, item: it.data }]
+			}
+			return [{ slot: s, item: it.data }]
+		})
+		await cacheStatsFromEquipped(ctx, args.characterId, char, finalEquipped)
+
 		return { unequipped: 1 }
 	},
 })
@@ -481,37 +501,38 @@ export const reorderInventory = mutation({
 })
 
 // Query: items in the current zone bag (for the preview/exit modals).
+// Takes zoneSession directly so the query doesn't read the character
+// document — avoids reactive invalidation on every recordKill/syncHp patch.
 export const zoneBag = query({
-	args: { characterId: v.id("characters") },
+	args: { zoneSession: v.string() },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) return []
-		const char = await ctx.db.get(args.characterId)
-		if (!char || char.authUserId !== authUser._id) return []
-		const zoneSession = char.currentZoneSession
-		if (!zoneSession) return []
-		return await ctx.db
+		const items = await ctx.db
 			.query("items")
-			.withIndex("by_zoneSession", (q) => q.eq("zoneSession", zoneSession))
+			.withIndex("by_zoneSession", (q) => q.eq("zoneSession", args.zoneSession))
 			.collect()
+		if (items.length > 0 && items[0].authUserId !== authUser._id) return []
+		return items
 	},
 })
 
 // Query: inventory items for a character. Returned in slot order so the
 // client can map slot→item directly.
+// Ownership verified via items' authUserId instead of reading the character
+// document — avoids reactive invalidation on every recordKill/syncHp patch.
 export const inventory = query({
 	args: { characterId: v.id("characters") },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) return []
-		const char = await ctx.db.get(args.characterId)
-		if (!char || char.authUserId !== authUser._id) return []
 		const items = await ctx.db
 			.query("items")
 			.withIndex("by_character_kind", (q) =>
 				q.eq("characterId", args.characterId).eq("locationKind", "inventory"),
 			)
 			.collect()
+		if (items.length > 0 && items[0].authUserId !== authUser._id) return []
 		return items.sort((a, b) => {
 			const sa = a.inventorySlot ?? Number.MAX_SAFE_INTEGER
 			const sb = b.inventorySlot ?? Number.MAX_SAFE_INTEGER
@@ -521,37 +542,38 @@ export const inventory = query({
 	},
 })
 
-// Query: a character's currently equipped items (just weapon for now).
+// Query: a character's currently equipped items.
+// Ownership verified via items' authUserId instead of reading the character
+// document — avoids reactive invalidation on every recordKill/syncHp patch.
 export const equipped = query({
 	args: { characterId: v.id("characters") },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) return []
-		const char = await ctx.db.get(args.characterId)
-		if (!char || char.authUserId !== authUser._id) return []
-		return await ctx.db
+		const items = await ctx.db
 			.query("items")
 			.withIndex("by_character_kind", (q) =>
 				q.eq("characterId", args.characterId).eq("locationKind", "equipped"),
 			)
 			.collect()
+		if (items.length > 0 && items[0].authUserId !== authUser._id) return []
+		return items
 	},
 })
 
 // Query: stash items for the current user's active mode.
 // Account-scoped (shared across characters in the same mode).
+// Takes stashMode directly so the query doesn't read the character
+// document — avoids reactive invalidation on every recordKill/syncHp patch.
 export const stash = query({
-	args: { characterId: v.id("characters") },
+	args: { stashMode: v.union(v.literal("softcore"), v.literal("hardcore")) },
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) return []
-		const char = await ctx.db.get(args.characterId)
-		if (!char || char.authUserId !== authUser._id) return []
-		const mode = char.hardcore ? "hardcore" : "softcore"
 		const items = await ctx.db
 			.query("items")
 			.withIndex("by_stash", (q) =>
-				q.eq("authUserId", authUser._id).eq("stashMode", mode),
+				q.eq("authUserId", authUser._id).eq("stashMode", args.stashMode),
 			)
 			.collect()
 		return items.sort((a, b) => {

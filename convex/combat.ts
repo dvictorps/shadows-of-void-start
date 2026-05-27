@@ -53,6 +53,7 @@ import {
 	appendUnique,
 	clearPerVisitZoneState,
 	deleteZoneBag,
+	getCachedStats,
 	loadEquippedSet,
 	loadOwnedCharacterWithSession,
 	newZoneSession,
@@ -99,20 +100,29 @@ export const recordKill = mutation({
 			xpAwarded,
 		)
 
-		const classDef = findClassDefinition(char.classId)
-		const equippedItems = await loadEquippedSet(ctx, args.characterId)
-		const stats = computeCharacterStats({
-			classDef,
-			level,
-			equippedItems,
-			selectedElement: char.selectedElement,
-		})
-
 		const updates: Partial<Doc<"characters">> = { level, xp }
 
-		if (levelsGained > 0) {
-			updates.hpCurrent = stats.maxLife
-			updates.barrierCurrent = stats.maxBarrier
+		let magicFind: number
+		if (levelsGained > 0 || char.cachedMaxLife === undefined) {
+			const classDef = findClassDefinition(char.classId)
+			const equippedItems = await loadEquippedSet(ctx, args.characterId)
+			const stats = computeCharacterStats({
+				classDef,
+				level,
+				equippedItems,
+				selectedElement: char.selectedElement,
+			})
+			magicFind = stats.magicFind
+			updates.cachedMaxLife = stats.maxLife
+			updates.cachedMaxBarrier = stats.maxBarrier
+			updates.cachedMagicFind = stats.magicFind
+			updates.cachedMovementSpeed = stats.movementSpeed
+			if (levelsGained > 0) {
+				updates.hpCurrent = stats.maxLife
+				updates.barrierCurrent = stats.maxBarrier
+			}
+		} else {
+			magicFind = char.cachedMagicFind ?? 0
 		}
 
 		// See CONTEXT.md → Threshold Bar and Zone states. Three kill flows:
@@ -194,7 +204,7 @@ export const recordKill = mutation({
 		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []
 		if (zoneSession) {
 			const isAnyRareKill = isMinibossKill || isBossNodeRareKill
-			const mf = stats.magicFind
+			const mf = magicFind
 			const rolledDrops = isBossKill
 				? rollBossDrops({ monsterLevel, magicFind: mf })
 				: isAnyRareKill
@@ -245,14 +255,8 @@ export const usePotion = mutation({
 		const potions = char.potions ?? 0
 		if (potions <= 0) throw new ConvexError("No potions to use")
 
-		const classDef = findClassDefinition(char.classId)
-		const equippedItems = await loadEquippedSet(ctx, args.characterId)
-		const stats = computeCharacterStats({
-			classDef,
-			level: char.level,
-			equippedItems,
-		})
-		const maxHp = stats.maxLife
+		const { maxLife } = await getCachedStats(ctx, args.characterId, char)
+		const maxHp = maxLife
 		// Use client-reported HP when available (same trust model as syncHp).
 		// Falls back to DB value for backward compat.
 		const currentHp = args.clientHp !== undefined
@@ -342,19 +346,12 @@ export const syncHp = mutation({
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
-		const classDef = findClassDefinition(char.classId)
-		const equippedItems = await loadEquippedSet(ctx, args.characterId)
-		const stats = computeCharacterStats({
-			classDef,
-			level: char.level,
-			equippedItems,
-		})
-		const maxHp = stats.maxLife
-		const clamped = Math.max(0, Math.min(maxHp, Math.floor(args.hpCurrent)))
+		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
+		const clamped = Math.max(0, Math.min(maxLife, Math.floor(args.hpCurrent)))
 
 		const patch: Record<string, unknown> = { hpCurrent: clamped }
 		if (args.barrierCurrent !== undefined) {
-			patch.barrierCurrent = Math.max(0, Math.min(stats.maxBarrier, Math.floor(args.barrierCurrent)))
+			patch.barrierCurrent = Math.max(0, Math.min(maxBarrier, Math.floor(args.barrierCurrent)))
 		}
 
 		await ctx.db.patch(args.characterId, patch)
@@ -369,22 +366,15 @@ export const enterCity = mutation({
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
-		const classDef = findClassDefinition(char.classId)
-		const equippedItems = await loadEquippedSet(ctx, args.characterId)
-		const stats = computeCharacterStats({
-			classDef,
-			level: char.level,
-			equippedItems,
-		})
-		const maxHp = stats.maxLife
+		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
 		const refilledPotions = refillPotionsToFloor(char)
 
 		await ctx.db.patch(args.characterId, {
-			hpCurrent: maxHp,
+			hpCurrent: maxLife,
 			potions: refilledPotions,
-			barrierCurrent: stats.maxBarrier,
+			barrierCurrent: maxBarrier,
 		})
-		return { hpCurrent: maxHp, potions: refilledPotions }
+		return { hpCurrent: maxLife, potions: refilledPotions }
 	},
 })
 
@@ -423,20 +413,13 @@ export const respawnDead = mutation({
 		}
 
 		const { xp, xpLost } = applyDeathXpPenalty(char.xp ?? 0)
-		const classDef = findClassDefinition(char.classId)
-		const equippedItems = await loadEquippedSet(ctx, args.characterId)
-		const stats = computeCharacterStats({
-			classDef,
-			level: char.level,
-			equippedItems,
-		})
-		const maxHp = stats.maxLife
+		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
 
 		const refilledPotions = refillPotionsToFloor(char)
 
 		await ctx.db.patch(args.characterId, {
-			hpCurrent: maxHp,
-			barrierCurrent: stats.maxBarrier,
+			hpCurrent: maxLife,
+			barrierCurrent: maxBarrier,
 			xp,
 			potions: refilledPotions,
 			...clearPerVisitZoneState(),
@@ -482,13 +465,7 @@ export const enterZone = mutation({
 			await deleteZoneBag(ctx, char.currentZoneSession)
 		}
 
-		const classDef = findClassDefinition(char.classId)
-		const equippedItems = await loadEquippedSet(ctx, args.characterId)
-		const stats = computeCharacterStats({
-			classDef,
-			level: char.level,
-			equippedItems,
-		})
+		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
 
 		const zoneSession = newZoneSession()
 		// Threshold counter resets on every entry — per CONTEXT.md: "fill resets
@@ -511,8 +488,8 @@ export const enterZone = mutation({
 		// writes below then set this visit's session/timestamp/thresholds.
 		await ctx.db.patch(args.characterId, {
 			...clearPerVisitZoneState(),
-			hpCurrent: stats.maxLife,
-			barrierCurrent: stats.maxBarrier,
+			hpCurrent: maxLife,
+			barrierCurrent: maxBarrier,
 			currentZoneSession: zoneSession,
 			currentZoneKills: 0,
 			zoneStartedAt,
@@ -640,14 +617,8 @@ export const startTravel = mutation({
 		if (!isNodeAccessible(destNode, char.completedZones))
 			throw new ConvexError("zone-locked")
 
-		const classDef = findClassDefinition(char.classId)
-		const equippedItems = await loadEquippedSet(ctx, args.characterId)
-		const stats = computeCharacterStats({
-			classDef,
-			level: char.level,
-			equippedItems,
-		})
-		const seconds = computeTravelTime(connection.distance, stats.movementSpeed)
+		const { movementSpeed } = await getCachedStats(ctx, args.characterId, char)
+		const seconds = computeTravelTime(connection.distance, movementSpeed)
 		const startedAt = Date.now()
 		const arrivesAt = startedAt + Math.round(seconds * 1000)
 
@@ -771,19 +742,13 @@ export const useTeleportStone = mutation({
 			// "safety" semantic requires that they can't keep taking damage
 			// or die during the trip. Treat the city stone as the moment of
 			// safety, not the arrival.
-			const classDef = findClassDefinition(char.classId)
-			const equippedItems = await loadEquippedSet(ctx, args.characterId)
-			const stats = computeCharacterStats({
-				classDef,
-				level: char.level,
-				equippedItems,
-			})
+			const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
 			const refilledPotions = refillPotionsToFloor(char)
 
 			await ctx.db.patch(args.characterId, {
 				teleportStones: stones - 1,
-				hpCurrent: stats.maxLife,
-				barrierCurrent: stats.maxBarrier,
+				hpCurrent: maxLife,
+				barrierCurrent: maxBarrier,
 				potions: refilledPotions,
 				...clearPerVisitZoneState(),
 				travelDestination: "city",

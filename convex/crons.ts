@@ -5,7 +5,7 @@ const crons = cronJobs()
 
 crons.interval(
 	"leaderboard snapshot",
-	{ minutes: 5 },
+	{ minutes: 30 },
 	internal.leaderboard.computeSnapshot,
 )
 

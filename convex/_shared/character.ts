@@ -1,6 +1,8 @@
 import { ConvexError, v } from "convex/values"
+import { findClassDefinition } from "../../src/game/classes/data"
 import { POTION_REFILL_FLOOR } from "../../src/game/combat/constants"
 import { INVENTORY_MAX_SLOTS, STASH_MAX_SLOTS } from "../../src/game/inventory/constants"
+import { computeCharacterStats } from "../../src/game/stats/compute"
 import {
 	EQUIPPED_SLOTS,
 	type EquippedItem,
@@ -170,6 +172,87 @@ export function assertInCity(char: Doc<"characters">): void {
 // the gap is filled. Centralised so a future tuning pass touches one place.
 export function refillPotionsToFloor(char: Doc<"characters">): number {
 	return Math.max(char.potions ?? 0, POTION_REFILL_FLOOR)
+}
+
+// ── Stat cache helpers ──────────────────────────────────────────────────────
+
+export interface CachedStats {
+	maxLife: number
+	maxBarrier: number
+	magicFind: number
+	movementSpeed: number
+}
+
+export async function getCachedStats(
+	ctx: MutationCtx,
+	characterId: Id<"characters">,
+	char: Doc<"characters">,
+): Promise<CachedStats> {
+	if (char.cachedMaxLife !== undefined) {
+		return {
+			maxLife: char.cachedMaxLife,
+			maxBarrier: char.cachedMaxBarrier ?? 0,
+			magicFind: char.cachedMagicFind ?? 0,
+			movementSpeed: char.cachedMovementSpeed ?? 0,
+		}
+	}
+	return recomputeAndCacheStats(ctx, characterId, char)
+}
+
+export async function recomputeAndCacheStats(
+	ctx: MutationCtx,
+	characterId: Id<"characters">,
+	char: Doc<"characters">,
+): Promise<CachedStats> {
+	const classDef = findClassDefinition(char.classId)
+	const equippedItems = await loadEquippedSet(ctx, characterId)
+	const stats = computeCharacterStats({
+		classDef,
+		level: char.level,
+		equippedItems,
+		selectedElement: char.selectedElement,
+	})
+	const cached: CachedStats = {
+		maxLife: stats.maxLife,
+		maxBarrier: stats.maxBarrier,
+		magicFind: stats.magicFind,
+		movementSpeed: stats.movementSpeed,
+	}
+	await ctx.db.patch(characterId, {
+		cachedMaxLife: cached.maxLife,
+		cachedMaxBarrier: cached.maxBarrier,
+		cachedMagicFind: cached.magicFind,
+		cachedMovementSpeed: cached.movementSpeed,
+	})
+	return cached
+}
+
+export async function cacheStatsFromEquipped(
+	ctx: MutationCtx,
+	characterId: Id<"characters">,
+	char: Doc<"characters">,
+	equippedItems: EquippedItem[],
+): Promise<CachedStats> {
+	const classDef = findClassDefinition(char.classId)
+	const stats = computeCharacterStats({
+		classDef,
+		level: char.level,
+		equippedItems,
+		selectedElement: char.selectedElement,
+	})
+	const cached: CachedStats = {
+		maxLife: stats.maxLife,
+		maxBarrier: stats.maxBarrier,
+		magicFind: stats.magicFind,
+		movementSpeed: stats.movementSpeed,
+	}
+	await ctx.db.patch(characterId, {
+		cachedMaxLife: cached.maxLife,
+		cachedMaxBarrier: cached.maxBarrier,
+		cachedMagicFind: cached.magicFind,
+		cachedMovementSpeed: cached.movementSpeed,
+	})
+	return cached
 }
 
 // Derived from the single source of truth in src/game/stats/types so the

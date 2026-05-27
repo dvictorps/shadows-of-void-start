@@ -71,17 +71,17 @@ export const Route = createFileRoute("/world")({
 function WorldView() {
 	const { characterId } = Route.useSearch();
 	const navigate = useNavigate();
-	const characters = useQuery(api.characters.list);
-	const character = characters?.find((c) => c._id === characterId);
+	const character = useQuery(api.characters.byId, {
+		id: characterId as Id<"characters">,
+	});
 
-	const charactersLoaded = characters !== undefined;
-	const missing = charactersLoaded && !character;
+	const missing = character === null;
 
 	useEffect(() => {
 		if (missing) void navigate({ to: "/character-select" });
 	}, [missing, navigate]);
 
-	if (!charactersLoaded || !character) {
+	if (!character) {
 		return (
 			<main className="flex h-screen items-center justify-center bg-black text-white">
 				<p className="text-xs uppercase tracking-[0.2em] text-neutral-600">
@@ -179,9 +179,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const liveInventory = useQuery(api.items.inventory, {
 		characterId: character._id,
 	});
-	const liveStash = useQuery(api.items.stash, {
-		characterId: character._id,
-	});
 	const equippedItems = useCachedQuery(
 		`equipped:${character._id}`,
 		liveEquipped,
@@ -190,7 +187,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		`inventory:${character._id}`,
 		liveInventory,
 	);
-	const stashItems = useCachedQuery(`stash:${character._id}`, liveStash);
 
 	const equippedSnapshot: EquippedItem[] = useMemo(() => {
 		const out: EquippedItem[] = [];
@@ -254,10 +250,19 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			onEnterNewArea: () => setDeathLog(null),
 		});
 
+	const stashMode = character.hardcore ? "hardcore" : "softcore";
+	const liveStash = useQuery(
+		api.items.stash,
+		view !== "combat" ? { stashMode } : "skip",
+	);
+	const stashItems = useCachedQuery(`stash:${character._id}`, liveStash);
+
 	const wantsBag = view === "combat" || exitModal.isOpen;
 	const zoneBag = useQuery(
 		api.items.zoneBag,
-		wantsBag ? { characterId: character._id } : "skip",
+		wantsBag && character.currentZoneSession
+			? { zoneSession: character.currentZoneSession }
+			: "skip",
 	);
 
 	const equippedBySlot = useMemo<

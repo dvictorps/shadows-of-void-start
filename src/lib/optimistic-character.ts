@@ -1,4 +1,4 @@
-// Shared optimistic-update primitives for the `api.characters.list` query.
+// Shared optimistic-update primitives for the `api.characters.byId` query.
 // Convex mutations that patch the active character (potion drink, ruby
 // spend, etc.) call these from their `.withOptimisticUpdate(...)` closure
 // so the local store reflects the change before the server replies.
@@ -16,8 +16,9 @@ export function findCharacter(
 	localStore: OptimisticLocalStore,
 	characterId: Id<"characters">,
 ): Doc<"characters"> | undefined {
-	const characters = localStore.getQuery(api.characters.list, {});
-	return characters?.find((c) => c._id === characterId);
+	return (
+		localStore.getQuery(api.characters.byId, { id: characterId }) ?? undefined
+	);
 }
 
 export function applyCharacterDelta(
@@ -25,11 +26,16 @@ export function applyCharacterDelta(
 	characterId: Id<"characters">,
 	delta: Partial<Doc<"characters">>,
 ): void {
-	const characters = localStore.getQuery(api.characters.list, {});
-	if (!characters) return;
+	const char = localStore.getQuery(api.characters.byId, {
+		id: characterId,
+	});
+	if (!char) return;
 	localStore.setQuery(
-		api.characters.list,
-		{},
-		characters.map((c) => (c._id === characterId ? { ...c, ...delta } : c)),
+		api.characters.byId,
+		{ id: characterId },
+		{
+			...char,
+			...delta,
+		},
 	);
 }
