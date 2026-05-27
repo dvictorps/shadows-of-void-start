@@ -169,23 +169,15 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const travelDestination = character.travelDestination;
 	const travelArrivesAt = character.travelArrivesAt;
 
-	// Always-on subscriptions (lifted from InventoryModal so the queries are
-	// warm whenever the modal opens — no flicker on first open). Combined with
-	// the localStorage cache below, cold reloads also render last-known data
-	// instantly.
+	// Equipped is always-on because stats (maxLife, damage, etc.) depend on it
+	// for the combat loop. Inventory is deferred until after `view` is known so
+	// it can be skipped during combat — see the conditional subscription below.
 	const liveEquipped = useQuery(api.items.equipped, {
-		characterId: character._id,
-	});
-	const liveInventory = useQuery(api.items.inventory, {
 		characterId: character._id,
 	});
 	const equippedItems = useCachedQuery(
 		`equipped:${character._id}`,
 		liveEquipped,
-	);
-	const inventoryItems = useCachedQuery(
-		`inventory:${character._id}`,
-		liveInventory,
 	);
 
 	const equippedSnapshot: EquippedItem[] = useMemo(() => {
@@ -250,10 +242,25 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			onEnterNewArea: () => setDeathLog(null),
 		});
 
+	// Inventory: skip during combat — player can't interact with it mid-fight,
+	// and each recordKill insert would otherwise cascade a full re-read of all
+	// ~60 inventory docs. useCachedQuery provides last-known data for any UI
+	// that renders the count badge outside combat.
+	const liveInventory = useQuery(
+		api.items.inventory,
+		view !== "combat" ? { characterId: character._id } : "skip",
+	);
+	const inventoryItems = useCachedQuery(
+		`inventory:${character._id}`,
+		liveInventory,
+	);
+
+	// Stash: only subscribe when the modal is open. Account-scoped reads are
+	// expensive (~60 items × 1KB each); useCachedQuery covers the cold-open.
 	const stashMode = character.hardcore ? "hardcore" : "softcore";
 	const liveStash = useQuery(
 		api.items.stash,
-		view !== "combat" ? { stashMode } : "skip",
+		stashModal.isOpen ? { stashMode } : "skip",
 	);
 	const stashItems = useCachedQuery(`stash:${character._id}`, liveStash);
 
