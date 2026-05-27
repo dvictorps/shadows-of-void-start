@@ -142,8 +142,11 @@ export function useCombatTick({
 		(localStore, args) => {
 			const char = findCharacter(localStore, args.characterId);
 			if (!char) return;
+			const currentHp = args.clientHp ?? char.hpCurrent ?? 0;
+			const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
 			applyCharacterDelta(localStore, args.characterId, {
 				potions: Math.max(0, (char.potions ?? 0) - 1),
+				hpCurrent: Math.min(maxHp, currentHp + heal),
 			});
 		},
 	);
