@@ -128,7 +128,8 @@ export const reorderStash = mutation({
 			const occupant = await ctx.db.get(args.swapWithItemId)
 			if (occupant && occupant._id !== source._id
 				&& occupant.authUserId === authUser._id
-				&& occupant.locationKind === "stash") {
+				&& occupant.locationKind === "stash"
+				&& occupant.stashSlot === args.targetSlot) {
 				await ctx.db.patch(occupant._id, { stashSlot: sourceSlot ?? -1 })
 			}
 		}

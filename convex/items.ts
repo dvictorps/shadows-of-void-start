@@ -458,7 +458,8 @@ export const reorderInventory = mutation({
 			const occupant = await ctx.db.get(args.swapWithItemId)
 			if (occupant && occupant._id !== source._id
 				&& occupant.characterId === args.characterId
-				&& occupant.locationKind === "inventory") {
+				&& occupant.locationKind === "inventory"
+				&& occupant.inventorySlot === args.targetSlot) {
 				await ctx.db.patch(occupant._id, { inventorySlot: sourceSlot ?? -1 })
 			}
 		}
