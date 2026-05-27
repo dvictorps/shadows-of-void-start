@@ -173,6 +173,21 @@ export default defineSchema({
 		.index("by_zoneSession", ["zoneSession"])
 		.index("by_stash", ["authUserId", "stashMode"]),
 
+	combatState: defineTable({
+		characterId: v.id("characters"),
+		hpCurrent: v.number(),
+		barrierCurrent: v.number(),
+		potions: v.number(),
+		xp: v.number(),
+		etherealIncense: v.number(),
+		currentZoneKills: v.number(),
+		currentZoneSession: v.optional(v.string()),
+		zoneStartedAt: v.optional(v.number()),
+		campThresholdsMs: v.optional(v.array(v.number())),
+		inCamp: v.boolean(),
+		lastCampIndex: v.optional(v.number()),
+	}).index("by_characterId", ["characterId"]),
+
 	leaderboardSnapshot: defineTable({
 		category: v.string(),
 		mode: v.string(),

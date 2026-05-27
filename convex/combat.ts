@@ -378,7 +378,7 @@ export const enterCity = mutation({
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
-		const refilledPotions = refillPotionsToFloor(char)
+		const refilledPotions = refillPotionsToFloor({ potions: char.potions ?? 0 })
 
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxLife,
@@ -426,7 +426,7 @@ export const respawnDead = mutation({
 		const { xp, xpLost } = applyDeathXpPenalty(char.xp ?? 0)
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
 
-		const refilledPotions = refillPotionsToFloor(char)
+		const refilledPotions = refillPotionsToFloor({ potions: char.potions ?? 0 })
 
 		await ctx.db.patch(args.characterId, {
 			hpCurrent: maxLife,
@@ -754,7 +754,7 @@ export const useTeleportStone = mutation({
 			// or die during the trip. Treat the city stone as the moment of
 			// safety, not the arrival.
 			const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
-			const refilledPotions = refillPotionsToFloor(char)
+			const refilledPotions = refillPotionsToFloor({ potions: char.potions ?? 0 })
 
 			await ctx.db.patch(args.characterId, {
 				teleportStones: stones - 1,
