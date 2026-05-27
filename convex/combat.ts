@@ -100,7 +100,9 @@ export const recordKill = mutation({
 			xpAwarded,
 		)
 
-		const updates: Partial<Doc<"characters">> = { level, xp }
+		const updates: Partial<Doc<"characters">> = {}
+		if (level !== char.level) updates.level = level
+		if (xp !== (char.xp ?? 0)) updates.xp = xp
 
 		let magicFind: number
 		if (levelsGained > 0 || char.cachedMaxLife === undefined) {
@@ -349,10 +351,19 @@ export const syncHp = mutation({
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
 		const clamped = Math.max(0, Math.min(maxLife, Math.floor(args.hpCurrent)))
 
-		const patch: Record<string, unknown> = { hpCurrent: clamped }
-		if (args.barrierCurrent !== undefined) {
-			patch.barrierCurrent = Math.max(0, Math.min(maxBarrier, Math.floor(args.barrierCurrent)))
-		}
+		const clampedBarrier = args.barrierCurrent !== undefined
+			? Math.max(0, Math.min(maxBarrier, Math.floor(args.barrierCurrent)))
+			: undefined
+
+		// Skip the patch entirely when nothing changed — Convex invalidates
+		// reactive queries on ANY patch, even if the value is identical.
+		const hpSame = clamped === (char.hpCurrent ?? maxLife)
+		const barrierSame = clampedBarrier === undefined || clampedBarrier === (char.barrierCurrent ?? maxBarrier)
+		if (hpSame && barrierSame) return { hpCurrent: clamped }
+
+		const patch: Record<string, unknown> = {}
+		if (!hpSame) patch.hpCurrent = clamped
+		if (!barrierSame) patch.barrierCurrent = clampedBarrier
 
 		await ctx.db.patch(args.characterId, patch)
 		return { hpCurrent: clamped }
