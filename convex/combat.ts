@@ -51,7 +51,7 @@ import { ACT_1, findNode, isNodeAccessible } from "../src/game/world"
 import { computeTravelTime } from "../src/game/world/travel"
 import {
 	appendUnique,
-	clearPerVisitZoneState,
+	clearCombatZoneState,
 	deleteZoneBag,
 	getCachedStats,
 	loadEquippedSet,
@@ -265,29 +265,20 @@ export const useEtherealIncense = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		const count = char.etherealIncense ?? 0
-		if (count <= 0) throw new ConvexError("No incense to use")
+		if (cs.etherealIncense <= 0) throw new ConvexError("No incense to use")
 
-		// Boss nodes are commitment — incense is banned inside them per
-		// CONTEXT.md → Incenso Etéreo / Act Boss. Server-side gate so a
-		// keyboard shortcut or tampered client can't bypass the HUD's
-		// greyed-out button.
 		const currentLocation = char.currentLocation ?? "city"
 		const zone = findNode(ACT_1, currentLocation)
 		if (zone?.kind === "boss") {
 			throw new ConvexError("Cannot use incense inside a boss node")
 		}
 
-		// `inCamp` is NOT flipped here. Incense may be queued during "engaged"
-		// (the cinematic only fires after the current fight finishes), so the
-		// client calls `enterCampViaIncense` separately when the cinematic
-		// actually begins. The counter still decrements on use so a kill
-		// landing between use+enter can't race the consume.
-		await ctx.db.patch(args.characterId, {
-			etherealIncense: count - 1,
+		await ctx.db.patch(cs._id, {
+			etherealIncense: cs.etherealIncense - 1,
 		})
-		return { etherealIncense: count - 1 }
+		return { etherealIncense: cs.etherealIncense - 1 }
 	},
 })
 
@@ -303,11 +294,12 @@ export const enterCampViaIncense = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		if (char.zoneStartedAt === undefined)
+		if (cs.zoneStartedAt === undefined)
 			throw new ConvexError("Not in a zone")
 
-		await ctx.db.patch(args.characterId, { inCamp: true })
+		await ctx.db.patch(cs._id, { inCamp: true })
 		return { inCamp: true }
 	},
 })
@@ -351,11 +343,12 @@ export const enterCity = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
-		const refilledPotions = refillPotionsToFloor({ potions: char.potions ?? 0 })
+		const refilledPotions = refillPotionsToFloor(cs)
 
-		await ctx.db.patch(args.characterId, {
+		await ctx.db.patch(cs._id, {
 			hpCurrent: maxLife,
 			potions: refilledPotions,
 			barrierCurrent: maxBarrier,
@@ -370,15 +363,13 @@ export const respawnDead = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		// Wipe the zone bag — death loses everything staged.
-		if (char.currentZoneSession) {
-			await deleteZoneBag(ctx, char.currentZoneSession)
+		if (cs.currentZoneSession) {
+			await deleteZoneBag(ctx, cs.currentZoneSession)
 		}
 
 		if (char.hardcore) {
-			// Soft-delete: mark dead, cascade-delete owned items, but keep the
-			// character document so it can appear in leaderboard "Fallen Heroes".
 			const ownedItems = await ctx.db
 				.query("items")
 				.withIndex("by_character_kind", (q) =>
@@ -386,9 +377,9 @@ export const respawnDead = mutation({
 				)
 				.collect()
 			await Promise.all(ownedItems.map((item) => ctx.db.delete(item._id)))
+			await ctx.db.delete(cs._id)
 			await ctx.db.patch(args.characterId, {
 				dead: true,
-				...clearPerVisitZoneState(),
 				currentLocation: undefined,
 				travelDestination: undefined,
 				travelStartedAt: undefined,
@@ -398,19 +389,19 @@ export const respawnDead = mutation({
 			return { mode: "hardcore" as const, xpLost: 0 }
 		}
 
-		const { xp, xpLost } = applyDeathXpPenalty(char.xp ?? 0)
+		const { xp, xpLost } = applyDeathXpPenalty(cs.xp)
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
+		const refilledPotions = refillPotionsToFloor(cs)
 
-		const refilledPotions = refillPotionsToFloor({ potions: char.potions ?? 0 })
-
-		await ctx.db.patch(args.characterId, {
+		await ctx.db.patch(cs._id, {
 			hpCurrent: maxLife,
 			barrierCurrent: maxBarrier,
 			xp,
 			potions: refilledPotions,
-			...clearPerVisitZoneState(),
+			...clearCombatZoneState(),
 			currentZoneKills: 0,
-			// Respawn resets you to the city and clears any in-flight travel.
+		})
+		await ctx.db.patch(args.characterId, {
 			currentLocation: "city",
 			travelDestination: undefined,
 			travelStartedAt: undefined,
@@ -430,13 +421,12 @@ export const enterZone = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
 		const zone = findNode(ACT_1, args.zoneId)
 		if (!zone || (zone.kind !== "combat" && zone.kind !== "boss"))
 			throw new ConvexError(`Unknown combat zone: ${args.zoneId}`)
 
-		// Travel guard — the character must be at this zone (already arrived) and
-		// not actively in transit.
 		const currentLocation = char.currentLocation ?? "city"
 		if (char.travelDestination !== undefined)
 			throw new ConvexError("Cannot enter — travel in progress")
@@ -445,35 +435,20 @@ export const enterZone = mutation({
 				`Cannot enter ${args.zoneId} from ${currentLocation}`,
 			)
 
-		// Wipe any leftover bag from a previous session (player closed tab mid-fight
-		// last time, etc.). Combat scope is "what dropped in THIS visit only".
-		if (char.currentZoneSession) {
-			await deleteZoneBag(ctx, char.currentZoneSession)
+		if (cs.currentZoneSession) {
+			await deleteZoneBag(ctx, cs.currentZoneSession)
 		}
 
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
 
 		const zoneSession = newZoneSession()
-		// Threshold counter resets on every entry — per CONTEXT.md: "fill resets
-		// to 0 every time the player leaves the zone with the miniboss unsummoned".
-		// Boss Deferral isn't implemented yet, so the counter resets unconditionally.
-		//
-		// Server-authoritative camp scheduling: roll the camp thresholds here so
-		// a tampered client can't fabricate an early `enterCamp` claim. Falls back
-		// to DEFAULT_ENCOUNTER_PLAN for safety, though every combat node in act-1
-		// declares its own plan today. See docs/plans/in-progress.md
-		// "Server-authoritative camp/phase derivation".
-		// Boss nodes have no camps — empty threshold array so the client's
-		// encounter schedule never fires onCampTriggered.
 		const encounterPlan = zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN
 		const campThresholdsMs =
 			zone.kind === "boss" ? [] : rollCampThresholdsMs(encounterPlan)
 		const zoneStartedAt = Date.now()
-		// Spread the helper first so every per-visit field (including future
-		// additions like `lastCampIndex`) gets a clean slate; the explicit
-		// writes below then set this visit's session/timestamp/thresholds.
-		await ctx.db.patch(args.characterId, {
-			...clearPerVisitZoneState(),
+
+		await ctx.db.patch(cs._id, {
+			...clearCombatZoneState(),
 			hpCurrent: maxLife,
 			barrierCurrent: maxBarrier,
 			currentZoneSession: zoneSession,
@@ -503,46 +478,37 @@ export const enterCamp = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		const zoneStartedAt = char.zoneStartedAt
-		if (zoneStartedAt === undefined) throw new ConvexError("Not in a zone")
+		if (cs.zoneStartedAt === undefined) throw new ConvexError("Not in a zone")
 
-		// Boss nodes never have camps — reject any client attempt.
 		const currentLocation = char.currentLocation ?? "city"
 		const zone = findNode(ACT_1, currentLocation)
 		if (zone?.kind === "boss") throw new ConvexError("No camps in boss nodes")
 
-		const thresholds = char.campThresholdsMs ?? []
+		const thresholds = cs.campThresholdsMs ?? []
 		if (
 			args.thresholdIndex < 0 ||
 			args.thresholdIndex >= thresholds.length
 		)
 			throw new ConvexError("Invalid camp threshold")
 
-		// Idempotent on the same index: if a network retry or double-fire from the
-		// client lands a second enterCamp while we're already in camp, swallow it
-		// instead of throwing — the player is already where they want to be.
-		if (char.inCamp) return { inCamp: true }
+		if (cs.inCamp) return { inCamp: true }
 
-		// Strictly-increasing index: each camp threshold is single-use per visit.
-		// Without this, a player could enter camp[0], exit, then re-call
-		// enterCamp(0) any time later — the elapsed-time gate still passes
-		// because time only moves forward, so inCamp would flip back to true
-		// and grant another 100% retention exit.
 		if (
-			char.lastCampIndex !== undefined &&
-			args.thresholdIndex <= char.lastCampIndex
+			cs.lastCampIndex !== undefined &&
+			args.thresholdIndex <= cs.lastCampIndex
 		) {
 			throw new ConvexError("Camp threshold already consumed")
 		}
 
 		const threshold = thresholds[args.thresholdIndex]
-		const elapsed = Date.now() - zoneStartedAt
+		const elapsed = Date.now() - cs.zoneStartedAt
 		if (elapsed < threshold - ENTER_CAMP_GRACE_MS) {
 			throw new ConvexError("Camp threshold not reached")
 		}
 
-		await ctx.db.patch(args.characterId, {
+		await ctx.db.patch(cs._id, {
 			inCamp: true,
 			lastCampIndex: args.thresholdIndex,
 		})
@@ -558,9 +524,10 @@ export const exitCamp = mutation({
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		await ctx.db.patch(args.characterId, { inCamp: false })
+		await ctx.db.patch(cs._id, { inCamp: false })
 		return { inCamp: false }
 	},
 })
@@ -669,24 +636,19 @@ export const useTeleportStone = mutation({
 	args: {
 		characterId: v.id("characters"),
 		sessionToken: v.string(),
-		// Optional for backward-compat with call sites that haven't been
-		// updated yet — undefined is interpreted as `"city"`.
 		destinationNodeId: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
 		const stones = char.teleportStones ?? 0
 		if (stones <= 0) throw new ConvexError("No teleport stones")
 
 		const destinationNodeId = args.destinationNodeId ?? "city"
 
-		// Destination validation runs for non-city targets only. "city" is
-		// always available (seeded into `unlockedNodes` on character creation,
-		// no zone-gate upstream). Checks are ordered cheapest-first so a bad
-		// id fails before we walk ACT_1.nodes via findNode.
 		if (destinationNodeId !== "city") {
 			if (char.travelDestination !== undefined)
 				throw new ConvexError("Already traveling")
@@ -706,37 +668,25 @@ export const useTeleportStone = mutation({
 				throw new ConvexError("zone-locked")
 		}
 
-		// Defensively wipe the zone bag here — the normal flow routes the
-		// player through ExitZoneModal → `exitZone` before this mutation
-		// fires, but if the modal is bypassed (page refresh, network blip,
-		// direct SDK call) any items still tagged to the session would
-		// leak into the items table: this mutation clears
-		// `currentZoneSession` below, so without a wipe the session id is
-		// lost and `enterZone`'s `if (char.currentZoneSession)` guard can
-		// never reach them again.
-		if (char.currentZoneSession) {
-			await deleteZoneBag(ctx, char.currentZoneSession)
+		if (cs.currentZoneSession) {
+			await deleteZoneBag(ctx, cs.currentZoneSession)
 		}
 		const startedAt = Date.now()
 		const arrivesAt =
 			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000
 
 		if (destinationNodeId === "city") {
-			// Heal + potion refill are applied *immediately* on use, not on
-			// arrival via `arriveAtTravel`. This is intentional: the player is
-			// in mid-travel for ~1.5s (panic exit from combat), and the
-			// "safety" semantic requires that they can't keep taking damage
-			// or die during the trip. Treat the city stone as the moment of
-			// safety, not the arrival.
 			const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
-			const refilledPotions = refillPotionsToFloor({ potions: char.potions ?? 0 })
+			const refilledPotions = refillPotionsToFloor(cs)
 
-			await ctx.db.patch(args.characterId, {
-				teleportStones: stones - 1,
+			await ctx.db.patch(cs._id, {
 				hpCurrent: maxLife,
 				barrierCurrent: maxBarrier,
 				potions: refilledPotions,
-				...clearPerVisitZoneState(),
+				...clearCombatZoneState(),
+			})
+			await ctx.db.patch(args.characterId, {
+				teleportStones: stones - 1,
 				travelDestination: "city",
 				travelStartedAt: startedAt,
 				travelArrivesAt: arrivesAt,
@@ -744,9 +694,9 @@ export const useTeleportStone = mutation({
 			return { teleportStones: stones - 1, startedAt, arrivesAt }
 		}
 
+		await ctx.db.patch(cs._id, clearCombatZoneState())
 		await ctx.db.patch(args.characterId, {
 			teleportStones: stones - 1,
-			...clearPerVisitZoneState(),
 			travelDestination: destinationNodeId,
 			travelStartedAt: startedAt,
 			travelArrivesAt: arrivesAt,
