@@ -31,7 +31,7 @@ import {
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import type { BossNodeConfig, CampSource } from "#/game/world";
 import type { ZoneEncounterPlan } from "#/game/world/encounter-schedule";
-import { applyCharacterDelta, findCharacter } from "#/lib/optimistic-character";
+import { applyCharacterDelta, applyCombatStateDelta, findCharacter } from "#/lib/optimistic-character";
 import { pickRandom } from "#/lib/rng";
 import { playKillSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
@@ -195,10 +195,17 @@ export function useCombatLoop({
 		api.combat.useEtherealIncense,
 	).withOptimisticUpdate((localStore, args) => {
 		const char = findCharacter(localStore, args.characterId);
-		if (!char) return;
-		applyCharacterDelta(localStore, args.characterId, {
-			etherealIncense: Math.max(0, (char.etherealIncense ?? 0) - 1),
-		});
+		if (char) {
+			applyCharacterDelta(localStore, args.characterId, {
+				etherealIncense: Math.max(0, (char.etherealIncense ?? 0) - 1),
+			});
+		}
+		const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+		if (csData) {
+			applyCombatStateDelta(localStore, args.characterId, {
+				etherealIncense: Math.max(0, csData.etherealIncense - 1),
+			});
+		}
 	});
 
 	const updateEnemyForTick = useCallback((next: Enemy) => {

@@ -29,12 +29,12 @@ import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, type EquippedSlot, narrowEquippedSlot } from "../src/game/stats/types"
 import {
 	cacheStatsFromEquipped,
-	clearPerVisitZoneState,
+	clearCombatZoneState,
 	equippedSlotValidator,
 	fetchInventoryAllocator,
+	loadOrCreateCombatState,
 	loadOwnedCharacterWithSession,
 } from "./_shared/character"
-import type { Doc } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
 
@@ -48,8 +48,8 @@ import { authComponent } from "./auth"
 // cap. Returning "combat" as the catch-all keeps the cap computation correct
 // today. If future logic ever needs the distinction (analytics, phase-gated
 // mechanics), the character doc has to gain a real phase field first.
-function derivePhaseFromCharacter(char: Doc<"characters">): CombatPhase {
-	return char.inCamp ? "camp" : "combat"
+function derivePhaseFromCombatState(cs: { inCamp: boolean }): CombatPhase {
+	return cs.inCamp ? "camp" : "combat"
 }
 
 export const exitZone = mutation({
@@ -62,9 +62,10 @@ export const exitZone = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
-		const derivedPhase = derivePhaseFromCharacter(char)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
+		const derivedPhase = derivePhaseFromCombatState(cs)
 
-		const zoneSession = char.currentZoneSession
+		const zoneSession = cs.currentZoneSession
 		if (!zoneSession) return { kept: 0, discarded: 0 }
 
 		const bagItems = await ctx.db
@@ -78,9 +79,6 @@ export const exitZone = mutation({
 				keepSet.has(it._id.toString()) && it.characterId === args.characterId,
 		)
 
-		// Non-camp exit: 30% cap on items kept (see RETENTION_CAP_FRACTION).
-		// Client mirrors this computation via the same helper, but the server
-		// is authoritative — a tampered client can't widen its share.
 		const cap = computeBagKeepCap(bagItems.length, derivedPhase)
 		if (derivedPhase !== "camp" && validKeeps.length > cap) {
 			throw new ConvexError(
@@ -116,7 +114,7 @@ export const exitZone = mutation({
 			...toDelete.map((it) => ctx.db.delete(it._id)),
 		])
 
-		await ctx.db.patch(args.characterId, clearPerVisitZoneState())
+		await ctx.db.patch(cs._id, clearCombatZoneState())
 		return { kept: validKeeps.length, discarded: toDelete.length }
 	},
 })
@@ -136,60 +134,33 @@ export const pickFromBag = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
-		const derivedPhase = derivePhaseFromCharacter(char)
-
-		if (derivedPhase !== "camp") {
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
+		if (!cs.inCamp) {
 			throw new ConvexError(
-				`pickFromBag is camp-only — phase ${derivedPhase} must commit via exitZone`,
+				"pickFromBag is camp-only — must commit via exitZone",
 			)
 		}
 
-		const zoneSession = char.currentZoneSession
+		const zoneSession = cs.currentZoneSession
 		if (!zoneSession || args.itemIds.length === 0) return { kept: 0 }
 
-		const idSet = new Set(args.itemIds.map((id) => id.toString()))
-		const bagItems = await ctx.db
-			.query("items")
-			.withIndex("by_zoneSession", (q) => q.eq("zoneSession", zoneSession))
-			.collect()
-		const valid = bagItems.filter(
-			(it) =>
-				idSet.has(it._id.toString()) && it.characterId === args.characterId,
-		)
-
-		const { used, nextFreeSlot } = await fetchInventoryAllocator(
-			ctx,
-			args.characterId,
-		)
-		if (used + valid.length > INVENTORY_MAX_SLOTS) {
-			throw new ConvexError(
-				`Inventory overflow: ${used + valid.length} > ${INVENTORY_MAX_SLOTS}`,
-			)
+		const { used, nextFreeSlot } = await fetchInventoryAllocator(ctx, args.characterId)
+		let kept = 0
+		for (const itemId of args.itemIds) {
+			const item = await ctx.db.get(itemId)
+			if (!item || item.characterId !== args.characterId || item.zoneSession !== zoneSession) continue
+			if (used + kept + 1 > INVENTORY_MAX_SLOTS) break
+			await ctx.db.patch(itemId, {
+				locationKind: "inventory" as const,
+				zoneSession: undefined,
+				inventorySlot: nextFreeSlot(),
+			})
+			kept++
 		}
-
-		const assignments = valid.map((it) => ({
-			id: it._id,
-			slot: nextFreeSlot(),
-		}))
-		await Promise.all(
-			assignments.map((a) =>
-				ctx.db.patch(a.id, {
-					locationKind: "inventory" as const,
-					zoneSession: undefined,
-					inventorySlot: a.slot,
-				}),
-			),
-		)
-		return { kept: valid.length }
+		return { kept }
 	},
 })
 
-/**
- * Delete a subset of zone-bag items. Session stays alive. Camp-only —
- * shrinking the bag in non-camp would let the player game the 30% cap
- * (smaller bag = smaller absolute discard ceiling). Non-camp exits commit
- * via exitZone, which discards everything not in keepIds atomically.
- */
 export const discardFromBag = mutation({
 	args: {
 		characterId: v.id("characters"),
@@ -200,28 +171,24 @@ export const discardFromBag = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
-		const derivedPhase = derivePhaseFromCharacter(char)
-
-		if (derivedPhase !== "camp") {
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
+		if (!cs.inCamp) {
 			throw new ConvexError(
-				`discardFromBag is camp-only — phase ${derivedPhase} must commit via exitZone`,
+				"discardFromBag is camp-only — must commit via exitZone",
 			)
 		}
 
-		const zoneSession = char.currentZoneSession
+		const zoneSession = cs.currentZoneSession
 		if (!zoneSession || args.itemIds.length === 0) return { discarded: 0 }
 
-		const idSet = new Set(args.itemIds.map((id) => id.toString()))
-		const bagItems = await ctx.db
-			.query("items")
-			.withIndex("by_zoneSession", (q) => q.eq("zoneSession", zoneSession))
-			.collect()
-		const toDelete = bagItems.filter(
-			(it) =>
-				idSet.has(it._id.toString()) && it.characterId === args.characterId,
-		)
-		await Promise.all(toDelete.map((it) => ctx.db.delete(it._id)))
-		return { discarded: toDelete.length }
+		let discarded = 0
+		for (const itemId of args.itemIds) {
+			const item = await ctx.db.get(itemId)
+			if (!item || item.characterId !== args.characterId || item.zoneSession !== zoneSession) continue
+			await ctx.db.delete(itemId)
+			discarded++
+		}
+		return { discarded }
 	},
 })
 
@@ -466,6 +433,7 @@ export const reorderInventory = mutation({
 		sessionToken: v.string(),
 		itemId: v.id("items"),
 		targetSlot: v.number(),
+		swapWithItemId: v.optional(v.id("items")),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -483,19 +451,17 @@ export const reorderInventory = mutation({
 		if (source.locationKind !== "inventory")
 			throw new ConvexError("Item is not in inventory")
 
-		// Find any item currently sitting on the target slot.
-		const allInv = await ctx.db
-			.query("items")
-			.withIndex("by_character_kind", (q) =>
-				q.eq("characterId", args.characterId).eq("locationKind", "inventory"),
-			)
-			.collect()
-		const occupant = allInv.find((it) => it.inventorySlot === args.targetSlot)
-
 		const sourceSlot = source.inventorySlot
 		await ctx.db.patch(source._id, { inventorySlot: args.targetSlot })
-		if (occupant && occupant._id !== source._id) {
-			await ctx.db.patch(occupant._id, { inventorySlot: sourceSlot ?? -1 })
+
+		if (args.swapWithItemId) {
+			const occupant = await ctx.db.get(args.swapWithItemId)
+			if (occupant && occupant._id !== source._id
+				&& occupant.characterId === args.characterId
+				&& occupant.locationKind === "inventory"
+				&& occupant.inventorySlot === args.targetSlot) {
+				await ctx.db.patch(occupant._id, { inventorySlot: sourceSlot ?? -1 })
+			}
 		}
 	},
 })

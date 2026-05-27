@@ -32,7 +32,7 @@ import type { LeechInstance } from "#/game/combat/leech";
 import { createLeechInstance, tickLeechInstances } from "#/game/combat/leech";
 import type { Enemy } from "#/game/combat/types";
 import type { ComputedCharacterStats } from "#/game/stats/types";
-import { applyCharacterDelta, findCharacter } from "#/lib/optimistic-character";
+import { applyCharacterDelta, applyCombatStateDelta, findCharacter } from "#/lib/optimistic-character";
 import { playPlayerSwingSfx, playSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -140,14 +140,23 @@ export function useCombatTick({
 	const syncHp = useMutation(api.combat.syncHp);
 	const consumePotion = useMutation(api.combat.usePotion).withOptimisticUpdate(
 		(localStore, args) => {
-			const char = findCharacter(localStore, args.characterId);
-			if (!char) return;
-			const currentHp = args.clientHp ?? char.hpCurrent ?? 0;
 			const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
-			applyCharacterDelta(localStore, args.characterId, {
-				potions: Math.max(0, (char.potions ?? 0) - 1),
-				hpCurrent: Math.min(maxHp, currentHp + heal),
-			});
+			const char = findCharacter(localStore, args.characterId);
+			if (char) {
+				const currentHp = args.clientHp ?? char.hpCurrent ?? 0;
+				applyCharacterDelta(localStore, args.characterId, {
+					potions: Math.max(0, (char.potions ?? 0) - 1),
+					hpCurrent: Math.min(maxHp, currentHp + heal),
+				});
+			}
+			const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+			if (csData) {
+				const currentHp = args.clientHp ?? csData.hpCurrent;
+				applyCombatStateDelta(localStore, args.characterId, {
+					potions: Math.max(0, csData.potions - 1),
+					hpCurrent: Math.min(maxHp, currentHp + heal),
+				});
+			}
 		},
 	);
 

@@ -39,3 +39,13 @@ export function applyCharacterDelta(
 		},
 	);
 }
+
+export function applyCombatStateDelta(
+	localStore: OptimisticLocalStore,
+	characterId: Id<"characters">,
+	delta: Partial<Doc<"combatState">>,
+): void {
+	const cs = localStore.getQuery(api.combatState.byCharacterId, { characterId });
+	if (!cs) return;
+	localStore.setQuery(api.combatState.byCharacterId, { characterId }, { ...cs, ...delta });
+}

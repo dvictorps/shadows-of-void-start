@@ -51,10 +51,11 @@ import { ACT_1, findNode, isNodeAccessible } from "../src/game/world"
 import { computeTravelTime } from "../src/game/world/travel"
 import {
 	appendUnique,
-	clearPerVisitZoneState,
+	clearCombatZoneState,
 	deleteZoneBag,
 	getCachedStats,
 	loadEquippedSet,
+	loadOrCreateCombatState,
 	loadOwnedCharacterWithSession,
 	newZoneSession,
 	refillPotionsToFloor,
@@ -82,9 +83,8 @@ export const recordKill = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		// Bosses live in the BOSSES registry (src/game/bosses/), not MONSTERS.
-		// Fall back to findBoss when findMonster misses.
 		const monster = findMonster(args.monsterId)
 		const boss = monster ? null : findBossConfig(args.monsterId as BossId)
 		const template = monster ?? boss?.template
@@ -96,11 +96,15 @@ export const recordKill = mutation({
 		const xpAwarded = scaled.xpReward
 		const { level, xp, levelsGained } = applyXpGain(
 			char.level,
-			char.xp ?? 0,
+			cs.xp,
 			xpAwarded,
 		)
 
-		const updates: Partial<Doc<"characters">> = { level, xp }
+		const charUpdates: Record<string, unknown> = {}
+		const csUpdates: Record<string, unknown> = {}
+
+		if (level !== char.level) charUpdates.level = level
+		csUpdates.xp = xp
 
 		let magicFind: number
 		if (levelsGained > 0 || char.cachedMaxLife === undefined) {
@@ -113,23 +117,18 @@ export const recordKill = mutation({
 				selectedElement: char.selectedElement,
 			})
 			magicFind = stats.magicFind
-			updates.cachedMaxLife = stats.maxLife
-			updates.cachedMaxBarrier = stats.maxBarrier
-			updates.cachedMagicFind = stats.magicFind
-			updates.cachedMovementSpeed = stats.movementSpeed
+			charUpdates.cachedMaxLife = stats.maxLife
+			charUpdates.cachedMaxBarrier = stats.maxBarrier
+			charUpdates.cachedMagicFind = stats.magicFind
+			charUpdates.cachedMovementSpeed = stats.movementSpeed
 			if (levelsGained > 0) {
-				updates.hpCurrent = stats.maxLife
-				updates.barrierCurrent = stats.maxBarrier
+				csUpdates.hpCurrent = stats.maxLife
+				csUpdates.barrierCurrent = stats.maxBarrier
 			}
 		} else {
 			magicFind = char.cachedMagicFind ?? 0
 		}
 
-		// See CONTEXT.md → Threshold Bar and Zone states. Three kill flows:
-		//   - zone miniboss (rare in `kind: "combat"`): completes zone, inCamp
-		//   - act boss (unique): completes node like a miniboss, inCamp
-		//   - gauntlet rare (rare in `kind: "boss"`): just a combat kill
-		const currentZoneKills = char.currentZoneKills ?? 0
 		const currentLocation = char.currentLocation ?? "city"
 		const zone = findNode(ACT_1, currentLocation)
 		const isBossNodeRareKill =
@@ -139,68 +138,49 @@ export const recordKill = mutation({
 		const isBossKill = args.monsterRarity === "unique"
 		const grantsCampTier = isMinibossKill || isBossKill
 		if (grantsCampTier) {
-			updates.currentZoneKills = 0
+			csUpdates.currentZoneKills = 0
 			const completed = char.completedZones ?? []
 			if (!completed.includes(currentLocation)) {
-				updates.completedZones = [...completed, currentLocation]
+				charUpdates.completedZones = [...completed, currentLocation]
 			}
-			// Both miniboss-victory and act-boss-kill are 100% bag-retention
-			// tiers (see derivePhase + CONTEXT.md → Bag retention tiers).
-			updates.inCamp = true
-			// Per CONTEXT.md → Zone Miniboss: continuing past the panel resets
-			// the bar to 0 and rerolls the schedule. Only meaningful for
-			// regular combat zones — boss nodes have no time bar.
+			csUpdates.inCamp = true
 			if (zone && zone.kind === "combat") {
 				const plan = zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN
-				updates.campThresholdsMs = rollCampThresholdsMs(plan)
-				updates.zoneStartedAt = Date.now()
-				updates.lastCampIndex = undefined
+				csUpdates.campThresholdsMs = rollCampThresholdsMs(plan)
+				csUpdates.zoneStartedAt = Date.now()
+				csUpdates.lastCampIndex = undefined
 			}
 		} else {
-			updates.currentZoneKills = currentZoneKills + 1
-			// Defense-in-depth: a camp-tier kill flips `inCamp = true` and
-			// expects the client to call `exitCamp` via dismissMinibossModal
-			// before resuming normal combat. If a client skips the dismiss and
-			// keeps farming, leaving `inCamp` set would grant 100% retention
-			// to subsequent bag commits. Clearing it on every non-camp-tier
-			// kill closes that gap without changing the legitimate flow.
-			// Gated on `char.inCamp` so the patch + reactive-query invalidation
-			// only fire on the rare flip transition, not every kill.
-			if (char.inCamp) updates.inCamp = false
+			csUpdates.currentZoneKills = cs.currentZoneKills + 1
+			if (cs.inCamp) csUpdates.inCamp = false
 		}
 
-		// Potion drop — independent of the equipment roll. At the 10-potion cap
-		// the roll is wasted silently (per CONTEXT.md → Potion drops).
-		const currentPotions = char.potions ?? 0
 		const potionDropped =
-			currentPotions < MAX_POTIONS && Math.random() < POTION_DROP_CHANCE
+			cs.potions < MAX_POTIONS && Math.random() < POTION_DROP_CHANCE
 		if (potionDropped) {
-			updates.potions = currentPotions + 1
+			csUpdates.potions = cs.potions + 1
 		}
 
-		// Incenso Etéreo drop — independent roll, uncapped (see
-		// ETHEREAL_INCENSE_DROP_CHANCE). Per CONTEXT.md → Incenso Etéreo.
 		const incenseDropped = Math.random() < ETHEREAL_INCENSE_DROP_CHANCE
 		if (incenseDropped) {
-			updates.etherealIncense = (char.etherealIncense ?? 0) + 1
+			csUpdates.etherealIncense = cs.etherealIncense + 1
 		}
 
 		if (isBossKill) {
 			const counts =
 				(char.bossKillCounts as Record<string, number> | undefined) ?? {}
-			updates.bossKillCounts = {
+			charUpdates.bossKillCounts = {
 				...counts,
 				[args.monsterId]: (counts[args.monsterId] ?? 0) + 1,
 			}
 		}
 
-		await ctx.db.patch(args.characterId, updates)
+		await ctx.db.patch(cs._id, csUpdates)
+		if (Object.keys(charUpdates).length > 0) {
+			await ctx.db.patch(args.characterId, charUpdates)
+		}
 
-		// Drop routing per CONTEXT.md → Drop rates:
-		//   - act boss (unique): 2-3 items, guaranteed Rare, 75/25 Rare/Magic
-		//   - any rare kill (zone miniboss or gauntlet): 2 items, 1 guaranteed Rare
-		//   - normal / magic mob: standard rolldrop
-		const zoneSession = char.currentZoneSession
+		const zoneSession = cs.currentZoneSession
 		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []
 		if (zoneSession) {
 			const isAnyRareKill = isMinibossKill || isBossNodeRareKill
@@ -251,28 +231,26 @@ export const usePotion = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		const potions = char.potions ?? 0
-		if (potions <= 0) throw new ConvexError("No potions to use")
+		if (cs.potions <= 0) throw new ConvexError("No potions to use")
 
 		const { maxLife } = await getCachedStats(ctx, args.characterId, char)
 		const maxHp = maxLife
-		// Use client-reported HP when available (same trust model as syncHp).
-		// Falls back to DB value for backward compat.
 		const currentHp = args.clientHp !== undefined
 			? Math.max(0, Math.min(maxHp, Math.floor(args.clientHp)))
-			: (char.hpCurrent ?? maxHp)
+			: cs.hpCurrent
 		if (currentHp >= maxHp) throw new ConvexError("Already at full HP")
 
 		const healed = Math.min(
 			maxHp,
 			currentHp + Math.floor(maxHp * POTION_HEAL_FRACTION),
 		)
-		await ctx.db.patch(args.characterId, {
+		await ctx.db.patch(cs._id, {
 			hpCurrent: healed,
-			potions: potions - 1,
+			potions: cs.potions - 1,
 		})
-		return { hpCurrent: healed, potions: potions - 1 }
+		return { hpCurrent: healed, potions: cs.potions - 1 }
 	},
 })
 
@@ -287,29 +265,20 @@ export const useEtherealIncense = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		const count = char.etherealIncense ?? 0
-		if (count <= 0) throw new ConvexError("No incense to use")
+		if (cs.etherealIncense <= 0) throw new ConvexError("No incense to use")
 
-		// Boss nodes are commitment — incense is banned inside them per
-		// CONTEXT.md → Incenso Etéreo / Act Boss. Server-side gate so a
-		// keyboard shortcut or tampered client can't bypass the HUD's
-		// greyed-out button.
 		const currentLocation = char.currentLocation ?? "city"
 		const zone = findNode(ACT_1, currentLocation)
 		if (zone?.kind === "boss") {
 			throw new ConvexError("Cannot use incense inside a boss node")
 		}
 
-		// `inCamp` is NOT flipped here. Incense may be queued during "engaged"
-		// (the cinematic only fires after the current fight finishes), so the
-		// client calls `enterCampViaIncense` separately when the cinematic
-		// actually begins. The counter still decrements on use so a kill
-		// landing between use+enter can't race the consume.
-		await ctx.db.patch(args.characterId, {
-			etherealIncense: count - 1,
+		await ctx.db.patch(cs._id, {
+			etherealIncense: cs.etherealIncense - 1,
 		})
-		return { etherealIncense: count - 1 }
+		return { etherealIncense: cs.etherealIncense - 1 }
 	},
 })
 
@@ -325,11 +294,12 @@ export const enterCampViaIncense = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		if (char.zoneStartedAt === undefined)
+		if (cs.zoneStartedAt === undefined)
 			throw new ConvexError("Not in a zone")
 
-		await ctx.db.patch(args.characterId, { inCamp: true })
+		await ctx.db.patch(cs._id, { inCamp: true })
 		return { inCamp: true }
 	},
 })
@@ -345,16 +315,24 @@ export const syncHp = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
 		const clamped = Math.max(0, Math.min(maxLife, Math.floor(args.hpCurrent)))
 
-		const patch: Record<string, unknown> = { hpCurrent: clamped }
-		if (args.barrierCurrent !== undefined) {
-			patch.barrierCurrent = Math.max(0, Math.min(maxBarrier, Math.floor(args.barrierCurrent)))
-		}
+		const clampedBarrier = args.barrierCurrent !== undefined
+			? Math.max(0, Math.min(maxBarrier, Math.floor(args.barrierCurrent)))
+			: undefined
 
-		await ctx.db.patch(args.characterId, patch)
+		const hpSame = clamped === cs.hpCurrent
+		const barrierSame = clampedBarrier === undefined || clampedBarrier === cs.barrierCurrent
+		if (hpSame && barrierSame) return { hpCurrent: clamped }
+
+		const patch: Record<string, unknown> = {}
+		if (!hpSame) patch.hpCurrent = clamped
+		if (!barrierSame) patch.barrierCurrent = clampedBarrier
+
+		await ctx.db.patch(cs._id, patch)
 		return { hpCurrent: clamped }
 	},
 })
@@ -365,11 +343,12 @@ export const enterCity = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
-		const refilledPotions = refillPotionsToFloor(char)
+		const refilledPotions = refillPotionsToFloor(cs)
 
-		await ctx.db.patch(args.characterId, {
+		await ctx.db.patch(cs._id, {
 			hpCurrent: maxLife,
 			potions: refilledPotions,
 			barrierCurrent: maxBarrier,
@@ -384,15 +363,13 @@ export const respawnDead = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		// Wipe the zone bag — death loses everything staged.
-		if (char.currentZoneSession) {
-			await deleteZoneBag(ctx, char.currentZoneSession)
+		if (cs.currentZoneSession) {
+			await deleteZoneBag(ctx, cs.currentZoneSession)
 		}
 
 		if (char.hardcore) {
-			// Soft-delete: mark dead, cascade-delete owned items, but keep the
-			// character document so it can appear in leaderboard "Fallen Heroes".
 			const ownedItems = await ctx.db
 				.query("items")
 				.withIndex("by_character_kind", (q) =>
@@ -400,9 +377,9 @@ export const respawnDead = mutation({
 				)
 				.collect()
 			await Promise.all(ownedItems.map((item) => ctx.db.delete(item._id)))
+			await ctx.db.delete(cs._id)
 			await ctx.db.patch(args.characterId, {
 				dead: true,
-				...clearPerVisitZoneState(),
 				currentLocation: undefined,
 				travelDestination: undefined,
 				travelStartedAt: undefined,
@@ -412,19 +389,19 @@ export const respawnDead = mutation({
 			return { mode: "hardcore" as const, xpLost: 0 }
 		}
 
-		const { xp, xpLost } = applyDeathXpPenalty(char.xp ?? 0)
+		const { xp, xpLost } = applyDeathXpPenalty(cs.xp)
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
+		const refilledPotions = refillPotionsToFloor(cs)
 
-		const refilledPotions = refillPotionsToFloor(char)
-
-		await ctx.db.patch(args.characterId, {
+		await ctx.db.patch(cs._id, {
 			hpCurrent: maxLife,
 			barrierCurrent: maxBarrier,
 			xp,
 			potions: refilledPotions,
-			...clearPerVisitZoneState(),
+			...clearCombatZoneState(),
 			currentZoneKills: 0,
-			// Respawn resets you to the city and clears any in-flight travel.
+		})
+		await ctx.db.patch(args.characterId, {
 			currentLocation: "city",
 			travelDestination: undefined,
 			travelStartedAt: undefined,
@@ -444,13 +421,12 @@ export const enterZone = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
 		const zone = findNode(ACT_1, args.zoneId)
 		if (!zone || (zone.kind !== "combat" && zone.kind !== "boss"))
 			throw new ConvexError(`Unknown combat zone: ${args.zoneId}`)
 
-		// Travel guard — the character must be at this zone (already arrived) and
-		// not actively in transit.
 		const currentLocation = char.currentLocation ?? "city"
 		if (char.travelDestination !== undefined)
 			throw new ConvexError("Cannot enter — travel in progress")
@@ -459,35 +435,20 @@ export const enterZone = mutation({
 				`Cannot enter ${args.zoneId} from ${currentLocation}`,
 			)
 
-		// Wipe any leftover bag from a previous session (player closed tab mid-fight
-		// last time, etc.). Combat scope is "what dropped in THIS visit only".
-		if (char.currentZoneSession) {
-			await deleteZoneBag(ctx, char.currentZoneSession)
+		if (cs.currentZoneSession) {
+			await deleteZoneBag(ctx, cs.currentZoneSession)
 		}
 
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
 
 		const zoneSession = newZoneSession()
-		// Threshold counter resets on every entry — per CONTEXT.md: "fill resets
-		// to 0 every time the player leaves the zone with the miniboss unsummoned".
-		// Boss Deferral isn't implemented yet, so the counter resets unconditionally.
-		//
-		// Server-authoritative camp scheduling: roll the camp thresholds here so
-		// a tampered client can't fabricate an early `enterCamp` claim. Falls back
-		// to DEFAULT_ENCOUNTER_PLAN for safety, though every combat node in act-1
-		// declares its own plan today. See docs/plans/in-progress.md
-		// "Server-authoritative camp/phase derivation".
-		// Boss nodes have no camps — empty threshold array so the client's
-		// encounter schedule never fires onCampTriggered.
 		const encounterPlan = zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN
 		const campThresholdsMs =
 			zone.kind === "boss" ? [] : rollCampThresholdsMs(encounterPlan)
 		const zoneStartedAt = Date.now()
-		// Spread the helper first so every per-visit field (including future
-		// additions like `lastCampIndex`) gets a clean slate; the explicit
-		// writes below then set this visit's session/timestamp/thresholds.
-		await ctx.db.patch(args.characterId, {
-			...clearPerVisitZoneState(),
+
+		await ctx.db.patch(cs._id, {
+			...clearCombatZoneState(),
 			hpCurrent: maxLife,
 			barrierCurrent: maxBarrier,
 			currentZoneSession: zoneSession,
@@ -517,46 +478,37 @@ export const enterCamp = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		const zoneStartedAt = char.zoneStartedAt
-		if (zoneStartedAt === undefined) throw new ConvexError("Not in a zone")
+		if (cs.zoneStartedAt === undefined) throw new ConvexError("Not in a zone")
 
-		// Boss nodes never have camps — reject any client attempt.
 		const currentLocation = char.currentLocation ?? "city"
 		const zone = findNode(ACT_1, currentLocation)
 		if (zone?.kind === "boss") throw new ConvexError("No camps in boss nodes")
 
-		const thresholds = char.campThresholdsMs ?? []
+		const thresholds = cs.campThresholdsMs ?? []
 		if (
 			args.thresholdIndex < 0 ||
 			args.thresholdIndex >= thresholds.length
 		)
 			throw new ConvexError("Invalid camp threshold")
 
-		// Idempotent on the same index: if a network retry or double-fire from the
-		// client lands a second enterCamp while we're already in camp, swallow it
-		// instead of throwing — the player is already where they want to be.
-		if (char.inCamp) return { inCamp: true }
+		if (cs.inCamp) return { inCamp: true }
 
-		// Strictly-increasing index: each camp threshold is single-use per visit.
-		// Without this, a player could enter camp[0], exit, then re-call
-		// enterCamp(0) any time later — the elapsed-time gate still passes
-		// because time only moves forward, so inCamp would flip back to true
-		// and grant another 100% retention exit.
 		if (
-			char.lastCampIndex !== undefined &&
-			args.thresholdIndex <= char.lastCampIndex
+			cs.lastCampIndex !== undefined &&
+			args.thresholdIndex <= cs.lastCampIndex
 		) {
 			throw new ConvexError("Camp threshold already consumed")
 		}
 
 		const threshold = thresholds[args.thresholdIndex]
-		const elapsed = Date.now() - zoneStartedAt
+		const elapsed = Date.now() - cs.zoneStartedAt
 		if (elapsed < threshold - ENTER_CAMP_GRACE_MS) {
 			throw new ConvexError("Camp threshold not reached")
 		}
 
-		await ctx.db.patch(args.characterId, {
+		await ctx.db.patch(cs._id, {
 			inCamp: true,
 			lastCampIndex: args.thresholdIndex,
 		})
@@ -572,9 +524,10 @@ export const exitCamp = mutation({
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
-		await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		await ctx.db.patch(args.characterId, { inCamp: false })
+		await ctx.db.patch(cs._id, { inCamp: false })
 		return { inCamp: false }
 	},
 })
@@ -683,24 +636,19 @@ export const useTeleportStone = mutation({
 	args: {
 		characterId: v.id("characters"),
 		sessionToken: v.string(),
-		// Optional for backward-compat with call sites that haven't been
-		// updated yet — undefined is interpreted as `"city"`.
 		destinationNodeId: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
 		const stones = char.teleportStones ?? 0
 		if (stones <= 0) throw new ConvexError("No teleport stones")
 
 		const destinationNodeId = args.destinationNodeId ?? "city"
 
-		// Destination validation runs for non-city targets only. "city" is
-		// always available (seeded into `unlockedNodes` on character creation,
-		// no zone-gate upstream). Checks are ordered cheapest-first so a bad
-		// id fails before we walk ACT_1.nodes via findNode.
 		if (destinationNodeId !== "city") {
 			if (char.travelDestination !== undefined)
 				throw new ConvexError("Already traveling")
@@ -720,37 +668,25 @@ export const useTeleportStone = mutation({
 				throw new ConvexError("zone-locked")
 		}
 
-		// Defensively wipe the zone bag here — the normal flow routes the
-		// player through ExitZoneModal → `exitZone` before this mutation
-		// fires, but if the modal is bypassed (page refresh, network blip,
-		// direct SDK call) any items still tagged to the session would
-		// leak into the items table: this mutation clears
-		// `currentZoneSession` below, so without a wipe the session id is
-		// lost and `enterZone`'s `if (char.currentZoneSession)` guard can
-		// never reach them again.
-		if (char.currentZoneSession) {
-			await deleteZoneBag(ctx, char.currentZoneSession)
+		if (cs.currentZoneSession) {
+			await deleteZoneBag(ctx, cs.currentZoneSession)
 		}
 		const startedAt = Date.now()
 		const arrivesAt =
 			startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000
 
 		if (destinationNodeId === "city") {
-			// Heal + potion refill are applied *immediately* on use, not on
-			// arrival via `arriveAtTravel`. This is intentional: the player is
-			// in mid-travel for ~1.5s (panic exit from combat), and the
-			// "safety" semantic requires that they can't keep taking damage
-			// or die during the trip. Treat the city stone as the moment of
-			// safety, not the arrival.
 			const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
-			const refilledPotions = refillPotionsToFloor(char)
+			const refilledPotions = refillPotionsToFloor(cs)
 
-			await ctx.db.patch(args.characterId, {
-				teleportStones: stones - 1,
+			await ctx.db.patch(cs._id, {
 				hpCurrent: maxLife,
 				barrierCurrent: maxBarrier,
 				potions: refilledPotions,
-				...clearPerVisitZoneState(),
+				...clearCombatZoneState(),
+			})
+			await ctx.db.patch(args.characterId, {
+				teleportStones: stones - 1,
 				travelDestination: "city",
 				travelStartedAt: startedAt,
 				travelArrivesAt: arrivesAt,
@@ -758,9 +694,9 @@ export const useTeleportStone = mutation({
 			return { teleportStones: stones - 1, startedAt, arrivesAt }
 		}
 
+		await ctx.db.patch(cs._id, clearCombatZoneState())
 		await ctx.db.patch(args.characterId, {
 			teleportStones: stones - 1,
-			...clearPerVisitZoneState(),
 			travelDestination: destinationNodeId,
 			travelStartedAt: startedAt,
 			travelArrivesAt: arrivesAt,

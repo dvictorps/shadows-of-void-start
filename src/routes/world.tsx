@@ -105,6 +105,9 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const confirm = useConfirmationModal();
 	const compact = useCompactViewport();
 	const classDef = findClassDefinition(character.classId);
+	const combatState = useQuery(api.combatState.byCharacterId, {
+		characterId: character._id,
+	});
 	const { sessionToken } = useSessionToken();
 	// Gate the combat loop on the active-session check — a stale tab whose
 	// claim was stolen by another tab/device shouldn't keep firing recordKill
@@ -211,6 +214,14 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const maxHp = stats.maxLife;
 
+	const hp = combatState?.hpCurrent ?? character.hpCurrent ?? maxHp;
+	const potions = combatState?.potions ?? character.potions ?? 0;
+	const incense = combatState?.etherealIncense ?? character.etherealIncense ?? 0;
+	const barrier = combatState?.barrierCurrent ?? character.barrierCurrent ?? stats.maxBarrier;
+	const xp = combatState?.xp ?? character.xp ?? 0;
+	const zoneSession = combatState?.currentZoneSession ?? character.currentZoneSession;
+	const campThresholds = combatState?.campThresholdsMs ?? character.campThresholdsMs ?? EMPTY_THRESHOLDS;
+
 	const {
 		enterCity,
 		enterZone,
@@ -267,8 +278,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const wantsBag = view === "combat" || exitModal.isOpen;
 	const zoneBag = useQuery(
 		api.items.zoneBag,
-		wantsBag && character.currentZoneSession
-			? { zoneSession: character.currentZoneSession }
+		wantsBag && zoneSession
+			? { zoneSession }
 			: "skip",
 	);
 
@@ -329,25 +340,15 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		characterId: character._id,
 		characterLevel: character.level,
 		stats,
-		initialHp: character.hpCurrent ?? maxHp,
-		initialBarrier: character.barrierCurrent ?? stats.maxBarrier,
-		potions: character.potions ?? 0,
-		incense: character.etherealIncense ?? 0,
+		initialHp: hp,
+		initialBarrier: barrier,
+		potions,
+		incense,
 		monsterPool,
 		zoneLevel,
 		encounterPlan,
 		bossNode: currentNode?.bossNode ?? null,
-		// Camp thresholds are server-rolled by enterZone; the time bar reads
-		// them off the character query so the markers and the ticker stay
-		// in lockstep with what enterCamp will accept. See
-		// docs/plans/in-progress.md "Server-authoritative camp/phase
-		// derivation".
-		serverCampThresholdsMs: character.campThresholdsMs ?? EMPTY_THRESHOLDS,
-		// Pause combat while the loot picker is open so the player can't die
-		// mid-selection from a goblin they've already retreated from. Also
-		// gated on the active-session token — the loop refuses to fire its
-		// per-tick mutations until the server confirms this tab owns the
-		// character.
+		serverCampThresholdsMs: campThresholds,
 		active: view === "combat" && !exitModal.isOpen && tokenMatches,
 		onPlayerDeath: handlePlayerDeath,
 	});
@@ -665,7 +666,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		const initial =
 			view === "city"
 				? stats.maxBarrier
-				: (character.barrierCurrent ?? stats.maxBarrier);
+				: barrier;
 		const state: ReturnType<typeof makeBarrierState> = {
 			current: Math.min(initial, stats.maxBarrier),
 			max: stats.maxBarrier,
@@ -694,11 +695,10 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	useEffect(() => {
 		if (view !== "combat") return;
 		const regen = outOfCombatBarrierRef.current.current;
-		const dbValue = character.barrierCurrent ?? stats.maxBarrier;
-		if (regen > dbValue) {
+		if (regen > barrier) {
 			barrierSyncMutation({
 				characterId: character._id,
-				hpCurrent: character.hpCurrent ?? stats.maxLife,
+				hpCurrent: hp,
 				barrierCurrent: regen,
 			}).catch(() => {});
 		}
@@ -707,7 +707,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const barrierOverride =
 		view === "combat"
 			? combat.barrier.current
-			: (outOfCombatBarrier ?? character.barrierCurrent ?? stats.maxBarrier);
+			: (outOfCombatBarrier ?? barrier);
 	const potionsOverride = view === "combat" ? combat.potions : undefined;
 	// Pass the wrapped handler when allowed; when an in-flight call is
 	// pending, clear it so StatusCard's internal `canUsePotion` check disables
@@ -806,7 +806,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						maxHp={maxHp}
 						barrier={combat.barrier.current}
 						maxBarrier={combat.barrier.max}
-						xp={character.xp ?? 0}
+						xp={xp}
 						xpNeeded={xpToNextLevel(character.level)}
 						lastKillXp={combat.lastKill?.xp}
 						potions={combat.potions}
@@ -873,6 +873,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					hpOverride={hpOverride}
 					barrierOverride={barrierOverride}
 					potionsOverride={potionsOverride}
+					xpOverride={xp}
 					teleportStones={character.teleportStones ?? 0}
 					onUsePotion={onUsePotion}
 					onUseTeleportStone={
@@ -903,7 +904,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				inventoryItems={inventoryItems ?? []}
 				stashItems={stashItems ?? []}
 				rubys={character.rubys ?? 0}
-				potions={character.potions ?? 0}
+				potions={potions}
 				teleportStones={character.teleportStones ?? 0}
 				onVendorBuy={async (productId) => {
 					await vendorBuy({ characterId: character._id, productId });
@@ -920,15 +921,16 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						itemIds,
 					});
 				}}
-				onReorderInventory={({ itemId, targetSlot }) => {
+				onReorderInventory={({ itemId, targetSlot, swapWithItemId }) => {
 					void reorderInventory({
 						characterId: character._id,
 						itemId,
 						targetSlot,
+						swapWithItemId,
 					});
 				}}
-				onReorderStash={({ itemId, targetSlot }) => {
-					void reorderStash({ characterId: character._id, itemId, targetSlot });
+				onReorderStash={({ itemId, targetSlot, swapWithItemId }) => {
+					void reorderStash({ characterId: character._id, itemId, targetSlot, swapWithItemId });
 				}}
 			/>
 			<LeaderboardModal

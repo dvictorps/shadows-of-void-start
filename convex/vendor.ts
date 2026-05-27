@@ -1,13 +1,10 @@
 import { ConvexError, v } from "convex/values"
 import { computeSellPrice } from "../src/game/items/sell-price"
 import { findVendorProduct } from "../src/game/vendor/products"
-import { assertInCity, loadOwnedCharacterWithSession } from "./_shared/character"
+import { assertInCity, loadOrCreateCombatState, loadOwnedCharacterWithSession } from "./_shared/character"
 import { mutation } from "./_generated/server"
 import { authComponent } from "./auth"
 
-// Vendor purchases. The catalog lives in src/game/vendor/products.ts. For
-// MVP this only sells potions; teleport stones / wind crystals join later
-// alongside their usage mechanics.
 export const vendorBuy = mutation({
 	args: {
 		characterId: v.id("characters"),
@@ -27,11 +24,18 @@ export const vendorBuy = mutation({
 		if (rubys < product.priceRubys)
 			throw new ConvexError("Not enough rubys")
 
-		// Per-product cap (if defined) + counter increment routed via the
-		// product's `counterField` and optional `cap` metadata. Single code
-		// path for all consumables; adding a new product means adding it to
-		// VENDOR_PRODUCTS — capped or uncapped.
 		const newRubys = rubys - product.priceRubys
+
+		if (product.counterField === "potions") {
+			const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
+			const currentCount = cs.potions
+			if (product.cap !== undefined && currentCount >= product.cap)
+				throw new ConvexError(`${product.id} cap reached`)
+			await ctx.db.patch(cs._id, { potions: currentCount + 1 })
+			await ctx.db.patch(args.characterId, { rubys: newRubys })
+			return { rubys: newRubys, [product.counterField]: currentCount + 1 }
+		}
+
 		const currentCount = char[product.counterField] ?? 0
 		if (product.cap !== undefined && currentCount >= product.cap)
 			throw new ConvexError(`${product.id} cap reached`)

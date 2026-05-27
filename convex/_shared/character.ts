@@ -11,6 +11,44 @@ import {
 import type { Doc, Id } from "../_generated/dataModel"
 import type { MutationCtx } from "../_generated/server"
 
+export async function loadOrCreateCombatState(
+	ctx: MutationCtx,
+	characterId: Id<"characters">,
+	char: Doc<"characters">,
+): Promise<Doc<"combatState">> {
+	const existing = await ctx.db
+		.query("combatState")
+		.withIndex("by_characterId", (q) => q.eq("characterId", characterId))
+		.unique()
+	if (existing) return existing
+
+	const id = await ctx.db.insert("combatState", {
+		characterId,
+		hpCurrent: char.hpCurrent ?? char.cachedMaxLife ?? 50,
+		barrierCurrent: char.barrierCurrent ?? char.cachedMaxBarrier ?? 0,
+		potions: char.potions ?? 0,
+		xp: char.xp ?? 0,
+		etherealIncense: char.etherealIncense ?? 0,
+		currentZoneKills: char.currentZoneKills ?? 0,
+		currentZoneSession: char.currentZoneSession,
+		zoneStartedAt: char.zoneStartedAt,
+		campThresholdsMs: char.campThresholdsMs,
+		inCamp: char.inCamp ?? false,
+		lastCampIndex: char.lastCampIndex,
+	})
+	return (await ctx.db.get(id))!
+}
+
+export function clearCombatZoneState() {
+	return {
+		currentZoneSession: undefined,
+		zoneStartedAt: undefined,
+		campThresholdsMs: undefined,
+		inCamp: false,
+		lastCampIndex: undefined,
+	} as const
+}
+
 export async function loadOwnedCharacter(
 	ctx: MutationCtx,
 	authUserId: string,
@@ -131,20 +169,6 @@ export function newZoneSession(): string {
 	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
 
-// Patch fields that scope to a single zone visit — session id, time-bar
-// origin, server-rolled camp thresholds, and the camp phase flag. Spread
-// into `ctx.db.patch` whenever a visit ends (exitZone, useTeleportStone,
-// respawnDead) so a new visit always starts from a clean slate without
-// any one site forgetting a field.
-export function clearPerVisitZoneState() {
-	return {
-		currentZoneSession: undefined,
-		zoneStartedAt: undefined,
-		campThresholdsMs: undefined,
-		inCamp: false,
-		lastCampIndex: undefined,
-	} as const
-}
 
 // Append `item` to `list` if it's not already present. Returns the same
 // reference when no change is needed so callers can `if (next === list)
@@ -170,8 +194,8 @@ export function assertInCity(char: Doc<"characters">): void {
 // teleport-stone-to-city arrival, softcore respawn) tops the carried potion
 // count up to POTION_REFILL_FLOOR. Player keeps anything ≥ the floor; only
 // the gap is filled. Centralised so a future tuning pass touches one place.
-export function refillPotionsToFloor(char: Doc<"characters">): number {
-	return Math.max(char.potions ?? 0, POTION_REFILL_FLOOR)
+export function refillPotionsToFloor(cs: { potions: number }): number {
+	return Math.max(cs.potions, POTION_REFILL_FLOOR)
 }
 
 // ── Stat cache helpers ──────────────────────────────────────────────────────

@@ -127,8 +127,17 @@ export const create = mutation({
 			cachedMovementSpeed: baseStats.movementSpeed,
 		})
 
-		// Create the starter item entry in the items table so equip lifecycle is
-		// consistent from day one (no special-casing later when equip/unequip lands).
+		await ctx.db.insert("combatState", {
+			characterId,
+			hpCurrent: maxHp,
+			barrierCurrent: baseStats.maxBarrier,
+			potions: STARTING_POTIONS,
+			xp: 0,
+			etherealIncense: 0,
+			currentZoneKills: 0,
+			inCamp: false,
+		})
+
 		if (starterWeaponId) {
 			const starterDef = findStarterItem(starterWeaponId)
 			if (starterDef) {
@@ -160,13 +169,17 @@ export const remove = mutation({
 		if (char.authUserId !== authUser._id)
 			throw new ConvexError("Not your character")
 
-		// Cascade: delete all items owned by this character (inventory, equipped, zoneBag).
-		// Stash is account-wide so we leave it.
 		const ownedItems = await ctx.db
 			.query("items")
 			.withIndex("by_character_kind", (q) => q.eq("characterId", args.id))
 			.collect()
 		await Promise.all(ownedItems.map((item) => ctx.db.delete(item._id)))
+
+		const cs = await ctx.db
+			.query("combatState")
+			.withIndex("by_characterId", (q) => q.eq("characterId", args.id))
+			.unique()
+		if (cs) await ctx.db.delete(cs._id)
 
 		await ctx.db.delete(args.id)
 	},

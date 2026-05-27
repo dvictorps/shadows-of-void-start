@@ -13,6 +13,7 @@ import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as characters from "../characters.js";
 import type * as combat from "../combat.js";
+import type * as combatState from "../combatState.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as itemValidator from "../itemValidator.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   characters: typeof characters;
   combat: typeof combat;
+  combatState: typeof combatState;
   crons: typeof crons;
   http: typeof http;
   itemValidator: typeof itemValidator;
