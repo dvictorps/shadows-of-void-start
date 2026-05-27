@@ -4,7 +4,8 @@ import { createStandardTiers } from "../../types";
 export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 	// ── Local attack mods (affect weapon header, attack weapons only) ──
 	physicalDamageFlat: {
-		id: "physicalDamageFlat",		affixType: "prefix",
+		id: "physicalDamageFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -15,7 +16,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	physicalDamageFlatGlobal: {
-		id: "physicalDamageFlatGlobal",		affixType: "prefix",
+		id: "physicalDamageFlatGlobal",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["ring", "amulet", "gloves", "quiver"],
@@ -25,7 +27,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 4, 24, 50),
 	},
 	physicalDamageIncrease: {
-		id: "physicalDamageIncrease",		affixType: "prefix",
+		id: "physicalDamageIncrease",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -35,7 +38,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(15, 25, 170, 211),
 	},
 	attackSpeedIncrease: {
-		id: "attackSpeedIncrease",		affixType: "suffix",
+		id: "attackSpeedIncrease",
+		affixType: "suffix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -46,7 +50,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(3, 5, 28, 31),
 	},
 	criticalChanceIncrease: {
-		id: "criticalChanceIncrease",		affixType: "suffix",
+		id: "criticalChanceIncrease",
+		affixType: "suffix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -57,7 +62,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(15, 20, 55, 70),
 	},
 	coldDamageToAttacksFlat: {
-		id: "coldDamageToAttacksFlat",		affixType: "prefix",
+		id: "coldDamageToAttacksFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -72,7 +78,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	fireDamageToAttacksFlat: {
-		id: "fireDamageToAttacksFlat",		affixType: "prefix",
+		id: "fireDamageToAttacksFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -87,7 +94,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	lightningDamageToAttacksFlat: {
-		id: "lightningDamageToAttacksFlat",		affixType: "prefix",
+		id: "lightningDamageToAttacksFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -102,7 +110,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(4, 12, 55, 140),
 	},
 	voidDamageToAttacksFlat: {
-		id: "voidDamageToAttacksFlat",		affixType: "prefix",
+		id: "voidDamageToAttacksFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons"],
@@ -120,7 +129,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 	// ── Global flat-to-attacks elementals (jewelry + quiver) ──
 	// Tiers scaled ~50% vs the local *-to-attacks equivalents (cf. physicalDamageFlatGlobal).
 	coldDamageToAttacksFlatGlobal: {
-		id: "coldDamageToAttacksFlatGlobal",		affixType: "prefix",
+		id: "coldDamageToAttacksFlatGlobal",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["ring", "amulet", "quiver"],
@@ -131,7 +141,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 4, 24, 50),
 	},
 	fireDamageToAttacksFlatGlobal: {
-		id: "fireDamageToAttacksFlatGlobal",		affixType: "prefix",
+		id: "fireDamageToAttacksFlatGlobal",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["ring", "amulet", "quiver"],
@@ -142,7 +153,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 4, 24, 50),
 	},
 	lightningDamageToAttacksFlatGlobal: {
-		id: "lightningDamageToAttacksFlatGlobal",		affixType: "prefix",
+		id: "lightningDamageToAttacksFlatGlobal",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["ring", "amulet", "quiver"],
@@ -153,7 +165,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 6, 28, 70),
 	},
 	voidDamageToAttacksFlatGlobal: {
-		id: "voidDamageToAttacksFlatGlobal",		affixType: "prefix",
+		id: "voidDamageToAttacksFlatGlobal",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["ring", "amulet", "quiver"],
@@ -166,7 +179,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 
 	// ── Global offensive mods (can roll on weapons + armor + jewelry) ──
 	accuracyFlat: {
-		id: "accuracyFlat",		affixType: "suffix",
+		id: "accuracyFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: [
@@ -183,7 +197,8 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(30, 60, 300, 400),
 	},
 	criticalStrikeMultiplierFlat: {
-		id: "criticalStrikeMultiplierFlat",		affixType: "suffix",
+		id: "criticalStrikeMultiplierFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: [

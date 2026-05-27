@@ -64,11 +64,11 @@ function BossStatSheet({ enemy }: { enemy: Enemy }) {
 				</div>
 			)}
 			{elems.map((e) => (
-				<div
-					key={e.element}
-					style={{ color: "rgba(220, 220, 220, 0.95)" }}
-				>
-					{m.stat_element_damage({ element: ELEMENT_LABEL[e.element.toLowerCase() as ElementKey]() })}:{" "}
+				<div key={e.element} style={{ color: "rgba(220, 220, 220, 0.95)" }}>
+					{m.stat_element_damage({
+						element: ELEMENT_LABEL[e.element.toLowerCase() as ElementKey](),
+					})}
+					:{" "}
 					<span style={{ color: "#ffaa66" }}>
 						{e.min}–{e.max}
 					</span>

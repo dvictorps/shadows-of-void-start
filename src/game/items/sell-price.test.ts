@@ -87,5 +87,4 @@ describe("computeSellPrice", () => {
 		);
 		expect(result).toBe(26400);
 	});
-
 });

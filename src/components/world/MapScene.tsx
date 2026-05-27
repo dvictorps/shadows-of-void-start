@@ -9,9 +9,9 @@ import {
 	Settings,
 	Skull,
 	Tornado,
-	Trophy,
 	TreePine,
 	Trees,
+	Trophy,
 } from "lucide-react";
 import { useMemo } from "react";
 import { type Act, isNodeAccessible, type WorldNode } from "#/game/world";

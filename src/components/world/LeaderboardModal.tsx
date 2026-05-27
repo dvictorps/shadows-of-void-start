@@ -47,7 +47,12 @@ export default function LeaderboardModal({
 	}, [snapshot, showFallen, mode, classFilter, category]);
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title={m.leaderboard_title()} className="max-w-2xl">
+		<Modal
+			isOpen={isOpen}
+			onClose={onClose}
+			title={m.leaderboard_title()}
+			className="max-w-2xl"
+		>
 			<div className="space-y-4">
 				{/* Category tabs */}
 				<div className="flex gap-2">
@@ -144,9 +149,7 @@ export default function LeaderboardModal({
 									<td className="py-1.5 pr-2">
 										<span className="flex items-center gap-1.5">
 											{entry.characterName}
-											{entry.dead && (
-												<Skull className="h-3 w-3 text-red-400" />
-											)}
+											{entry.dead && <Skull className="h-3 w-3 text-red-400" />}
 										</span>
 									</td>
 									<td className="py-1.5 pr-2 text-white/70">

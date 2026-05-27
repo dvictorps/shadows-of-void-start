@@ -118,12 +118,7 @@ const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
 		"o Preciso",
 		"o Sangrento",
 	],
-	monsterColdDamage: [
-		"o Gélido",
-		"o Glacial",
-		"o Congelante",
-		"o Invernal",
-	],
+	monsterColdDamage: ["o Gélido", "o Glacial", "o Congelante", "o Invernal"],
 	monsterFireDamage: [
 		"o Flamejante",
 		"o Ardente",
@@ -136,12 +131,7 @@ const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
 		"o Fulgurante",
 		"o Eletrizante",
 	],
-	monsterVoidDamage: [
-		"o Sombrio",
-		"o Profano",
-		"o Maculado",
-		"o Aberrante",
-	],
+	monsterVoidDamage: ["o Sombrio", "o Profano", "o Maculado", "o Aberrante"],
 };
 
 const rareCompoundEpithets: readonly string[] = [

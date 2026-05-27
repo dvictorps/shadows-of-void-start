@@ -8,7 +8,12 @@ type Props = {
 	onOpenStash: () => void;
 };
 
-export default function CityScene({ cityName, onLeave, onOpenVendor, onOpenStash }: Props) {
+export default function CityScene({
+	cityName,
+	onLeave,
+	onOpenVendor,
+	onOpenStash,
+}: Props) {
 	return (
 		<section className="relative flex flex-col items-center justify-center rounded-md border border-white/40 bg-black p-8">
 			{/* Vertically-centered vendor button on the left edge — the city's
@@ -21,9 +26,7 @@ export default function CityScene({ cityName, onLeave, onOpenVendor, onOpenStash
 				className="-translate-y-1/2 absolute top-1/2 left-8 inline-flex flex-col items-center gap-2 border-2 border-white/40 bg-black px-6 py-5 font-medium text-white/80 uppercase tracking-[0.2em] transition hover:border-white hover:bg-white/10 hover:text-white"
 			>
 				<Store className="h-12 w-12" strokeWidth={1.5} />
-				<span className="display-title text-base">
-					{m.city_vendor_label()}
-				</span>
+				<span className="display-title text-base">{m.city_vendor_label()}</span>
 			</button>
 
 			<button
@@ -33,9 +36,7 @@ export default function CityScene({ cityName, onLeave, onOpenVendor, onOpenStash
 				className="-translate-y-1/2 absolute top-1/2 right-8 inline-flex flex-col items-center gap-2 border-2 border-white/40 bg-black px-6 py-5 font-medium text-white/80 uppercase tracking-[0.2em] transition hover:border-white hover:bg-white/10 hover:text-white"
 			>
 				<Archive className="h-12 w-12" strokeWidth={1.5} />
-				<span className="display-title text-base">
-					{m.city_stash_label()}
-				</span>
+				<span className="display-title text-base">{m.city_stash_label()}</span>
 			</button>
 
 			{/* Top-right back button — mirrors the combat-view retreat affordance so

@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	promoteRarity,
-	rollBossDrops,
-	rollMinibossDrops,
-} from "./drops";
+import { promoteRarity, rollBossDrops, rollMinibossDrops } from "./drops";
 
 const SAMPLES = 200;
 

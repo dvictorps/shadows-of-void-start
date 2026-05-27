@@ -162,7 +162,8 @@ export const MONSTER_MODIFIERS = {
 		affixType: "prefix",
 		apply: (s) => ({
 			...s,
-			criticalChance: s.criticalChance * (1 + MONSTER_CRIT_CHANCE_INCREASE_PCT / 100),
+			criticalChance:
+				s.criticalChance * (1 + MONSTER_CRIT_CHANCE_INCREASE_PCT / 100),
 		}),
 	},
 	monsterCriticalMultiplier: {
@@ -202,8 +203,7 @@ export const MONSTER_MODIFIERS = {
 			...s,
 			gainAsExtraDamage: {
 				...s.gainAsExtraDamage,
-				lightning:
-					s.gainAsExtraDamage.lightning + MONSTER_ELEMENTAL_DAMAGE_PCT,
+				lightning: s.gainAsExtraDamage.lightning + MONSTER_ELEMENTAL_DAMAGE_PCT,
 			},
 		}),
 	},

@@ -1,8 +1,5 @@
 import { BASE_CRIT_MULTIPLIER, CRIT_CHANCE_FLOOR } from "../combat/constants";
-import {
-	type ElementalGainPct,
-	EMPTY_ELEMENTAL_GAIN,
-} from "../combat/damage";
+import { type ElementalGainPct, EMPTY_ELEMENTAL_GAIN } from "../combat/damage";
 import type { MonsterDefinition, MonsterElementDamage } from "./types";
 
 // Geometric scaling factor matches PoE/Last Epoch's approach: player power

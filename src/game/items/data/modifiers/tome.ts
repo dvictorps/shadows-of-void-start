@@ -4,7 +4,8 @@ import { createStandardTiers } from "../../types";
 // Tiers are provisional — the codebase-wide tier rebalance hasn't happened yet.
 export const TOME_MODIFIERS: Record<string, Modifier> = {
 	tomeGainAsExtraCold: {
-		id: "tomeGainAsExtraCold",		affixType: "prefix",
+		id: "tomeGainAsExtraCold",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["tome"],
@@ -14,7 +15,8 @@ export const TOME_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(1, 3, 12, 18),
 	},
 	tomeGainAsExtraFire: {
-		id: "tomeGainAsExtraFire",		affixType: "prefix",
+		id: "tomeGainAsExtraFire",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["tome"],
@@ -24,7 +26,8 @@ export const TOME_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(1, 3, 12, 18),
 	},
 	tomeGainAsExtraLightning: {
-		id: "tomeGainAsExtraLightning",		affixType: "prefix",
+		id: "tomeGainAsExtraLightning",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["tome"],
@@ -34,7 +37,8 @@ export const TOME_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(1, 3, 12, 18),
 	},
 	tomeGainAsExtraVoid: {
-		id: "tomeGainAsExtraVoid",		affixType: "prefix",
+		id: "tomeGainAsExtraVoid",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["tome"],

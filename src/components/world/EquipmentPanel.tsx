@@ -117,9 +117,9 @@ export default function EquipmentPanel({
 		() => ({
 			grid: {
 				gridTemplateColumns: `repeat(3, ${Math.round(COL_BASE * s)}px)`,
-				gridTemplateRows: ROW_HEIGHTS.map(
-					(h) => `${Math.round(h * s)}px`,
-				).join(" "),
+				gridTemplateRows: ROW_HEIGHTS.map((h) => `${Math.round(h * s)}px`).join(
+					" ",
+				),
 				gridTemplateAreas: GRID_AREAS,
 			},
 			slots: SLOT_CONFIG.map((cfg) => ({

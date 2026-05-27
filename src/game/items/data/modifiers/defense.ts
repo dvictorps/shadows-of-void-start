@@ -4,7 +4,8 @@ import { createStandardTiers } from "../../types";
 export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 	// ── Local defense (adapts to armor base type at roll time) ──
 	localDefenseFlat: {
-		id: "localDefenseFlat",		affixType: "prefix",
+		id: "localDefenseFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allArmor", "offhand", "tome"],
@@ -14,7 +15,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(15, 30, 180, 250),
 	},
 	localDefenseIncrease: {
-		id: "localDefenseIncrease",		affixType: "suffix",
+		id: "localDefenseIncrease",
+		affixType: "suffix",
 		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["allArmor", "offhand", "tome"],
@@ -26,7 +28,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 
 	// ── Global defense flat (jewelry only) ──
 	armorFlat: {
-		id: "armorFlat",		affixType: "prefix",
+		id: "armorFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allJewelry"],
@@ -36,7 +39,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(8, 15, 90, 125),
 	},
 	evasionFlat: {
-		id: "evasionFlat",		affixType: "prefix",
+		id: "evasionFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allJewelry"],
@@ -46,7 +50,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(8, 15, 90, 125),
 	},
 	barrierFlat: {
-		id: "barrierFlat",		affixType: "prefix",
+		id: "barrierFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allJewelry"],
@@ -58,7 +63,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 
 	// ── Global defense % ──
 	globalArmorIncrease: {
-		id: "globalArmorIncrease",		affixType: "suffix",
+		id: "globalArmorIncrease",
+		affixType: "suffix",
 		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry"],
@@ -68,7 +74,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(12, 18, 80, 100),
 	},
 	globalEvasionIncrease: {
-		id: "globalEvasionIncrease",		affixType: "suffix",
+		id: "globalEvasionIncrease",
+		affixType: "suffix",
 		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry"],
@@ -78,7 +85,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(12, 18, 80, 100),
 	},
 	globalBarrierIncrease: {
-		id: "globalBarrierIncrease",		affixType: "suffix",
+		id: "globalBarrierIncrease",
+		affixType: "suffix",
 		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry"],
@@ -90,7 +98,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 
 	// ── Life / Mana flat ──
 	healthFlat: {
-		id: "healthFlat",		affixType: "prefix",
+		id: "healthFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry", "quiver"],
@@ -101,7 +110,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(15, 25, 120, 150),
 	},
 	manaFlat: {
-		id: "manaFlat",		affixType: "prefix",
+		id: "manaFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry", "staff", "wand", "tome"],
@@ -113,7 +123,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 
 	// ── Regen ──
 	healthRegenFlat: {
-		id: "healthRegenFlat",		affixType: "suffix",
+		id: "healthRegenFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry", "quiver"],
@@ -123,7 +134,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 4, 15, 22),
 	},
 	manaRegenFlat: {
-		id: "manaRegenFlat",		affixType: "suffix",
+		id: "manaRegenFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allArmor", "allJewelry", "tome"],
@@ -137,7 +149,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 	// On-hit = combat slots (gloves yes, belt no). On-kill = sustain slots (belt yes, gloves no).
 	// Weight controls fillerness — these are mid-tier filler, not premium.
 	lifeGainOnHitFlat: {
-		id: "lifeGainOnHitFlat",		affixType: "prefix",
+		id: "lifeGainOnHitFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["weapon", "ring", "amulet", "gloves", "quiver"],
@@ -148,7 +161,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 4, 15, 25),
 	},
 	manaGainOnHitFlat: {
-		id: "manaGainOnHitFlat",		affixType: "prefix",
+		id: "manaGainOnHitFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["weapon", "ring", "amulet", "gloves", "quiver"],
@@ -159,7 +173,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(1, 2, 8, 14),
 	},
 	lifeOnKillFlat: {
-		id: "lifeOnKillFlat",		affixType: "suffix",
+		id: "lifeOnKillFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["weapon", "ring", "amulet", "belt"],
@@ -170,7 +185,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 5, 20, 35),
 	},
 	manaOnKillFlat: {
-		id: "manaOnKillFlat",		affixType: "suffix",
+		id: "manaOnKillFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["weapon", "ring", "amulet", "belt"],
@@ -183,7 +199,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 
 	// ── Thorns (bad mod — no tags, no synergy pull) ──
 	thornsDamageFlat: {
-		id: "thornsDamageFlat",		affixType: "suffix",
+		id: "thornsDamageFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "defensive",
 		applicableTo: ["allArmor", "offhand"],
@@ -195,7 +212,8 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 
 	// ── Block (shields only — multiplies base block chance) ──
 	blockChanceIncrease: {
-		id: "blockChanceIncrease",		affixType: "suffix",
+		id: "blockChanceIncrease",
+		affixType: "suffix",
 		modifierType: "increased",
 		category: "defensive",
 		applicableTo: ["offhand"],

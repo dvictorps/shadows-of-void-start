@@ -63,9 +63,16 @@ export function WorldModals({
 	teleportStones: number;
 	onVendorBuy: (productId: VendorProductId) => Promise<void>;
 	onVendorSellMany: (itemIds: Id<"items">[]) => Promise<void>;
-	onStashDeposit: (itemIds: Id<"items">[]) => Promise<{ deposited: number; failed: number }>;
-	onStashWithdraw: (itemIds: Id<"items">[]) => Promise<{ withdrawn: number; failed: number }>;
-	onReorderInventory: (args: { itemId: Id<"items">; targetSlot: number }) => void;
+	onStashDeposit: (
+		itemIds: Id<"items">[],
+	) => Promise<{ deposited: number; failed: number }>;
+	onStashWithdraw: (
+		itemIds: Id<"items">[],
+	) => Promise<{ withdrawn: number; failed: number }>;
+	onReorderInventory: (args: {
+		itemId: Id<"items">;
+		targetSlot: number;
+	}) => void;
 	onReorderStash: (args: { itemId: Id<"items">; targetSlot: number }) => void;
 }) {
 	return (

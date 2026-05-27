@@ -3,7 +3,8 @@ import { createStandardTiers } from "../../types";
 
 export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 	strengthFlat: {
-		id: "strengthFlat",		affixType: "suffix",
+		id: "strengthFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "attribute",
 		applicableTo: ["weapon", "offhand", "allArmor", "allJewelry"],
@@ -13,7 +14,8 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 	dexterityFlat: {
-		id: "dexterityFlat",		affixType: "suffix",
+		id: "dexterityFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "attribute",
 		applicableTo: ["weapon", "offhand", "allArmor", "allJewelry", "quiver"],
@@ -23,7 +25,8 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(8, 12, 48, 50),
 	},
 	intelligenceFlat: {
-		id: "intelligenceFlat",		affixType: "suffix",
+		id: "intelligenceFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "attribute",
 		applicableTo: ["weapon", "offhand", "allArmor", "allJewelry", "tome"],
@@ -36,7 +39,8 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 	// out of the random explicit pool; the engine still recognises the id when
 	// applied via template implicits (e.g., prismatic belt, amulets).
 	allAttributesFlat: {
-		id: "allAttributesFlat",		affixType: "suffix",
+		id: "allAttributesFlat",
+		affixType: "suffix",
 		modifierType: "flat",
 		category: "attribute",
 		applicableTo: [],

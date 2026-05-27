@@ -78,9 +78,7 @@ function Row({
 }) {
 	const row = (
 		<div className="flex items-center justify-between gap-2 py-0.5 text-sm">
-			<span
-				className={tooltip ? "cursor-help text-white/60" : "text-white/60"}
-			>
+			<span className={tooltip ? "cursor-help text-white/60" : "text-white/60"}>
 				{label}
 			</span>
 			<span className="text-right tabular-nums text-white">{value}</span>

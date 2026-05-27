@@ -583,7 +583,10 @@ describe("attribute bonuses", () => {
 	it("Int adds 0.2% barrier per point via the global fold", () => {
 		const mageClass = CLASS_DEFINITIONS.mage;
 		const base = computeCharacterStats({
-			classDef: { ...mageClass, baseStats: { ...mageClass.baseStats, barrier: 100 } },
+			classDef: {
+				...mageClass,
+				baseStats: { ...mageClass.baseStats, barrier: 100 },
+			},
 			level: 1,
 			equippedItems: [],
 		});

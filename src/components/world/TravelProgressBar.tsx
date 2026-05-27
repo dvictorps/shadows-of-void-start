@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { m } from "#/paraglide/messages";
 
 type Props = {
@@ -44,9 +44,7 @@ export default function TravelProgressBar({
 		<div className="pointer-events-none absolute right-0 bottom-0 left-0 px-4 pb-4">
 			<div className="rounded-md border border-white/40 bg-black/85 px-4 py-2 backdrop-blur-sm">
 				<div className="display-title flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-white">
-					<span>
-						{m.travel_in_progress({ from: fromName, to: toName })}
-					</span>
+					<span>{m.travel_in_progress({ from: fromName, to: toName })}</span>
 					<span className="text-yellow-300/90">
 						{m.travel_seconds_remaining({ seconds: remainingSeconds })}
 					</span>

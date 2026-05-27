@@ -507,9 +507,10 @@ function buildSwing(
 		path === "attack"
 			? addGearFlatToElements(weaponElem, gearFlat)
 			: weaponElem.map((e) => ({ ...e }));
-	const baseAS = path === "attack"
-		? (cs?.attackSpeed ?? (item.baseStats.attackSpeed ?? 1.0))
-		: BASE_CAST_SPEED;
+	const baseAS =
+		path === "attack"
+			? (cs?.attackSpeed ?? item.baseStats.attackSpeed ?? 1.0)
+			: BASE_CAST_SPEED;
 
 	if (path === "spell" && options?.selectedElement) {
 		const elementName = ELEMENT_DISPLAY_NAME[options.selectedElement];
@@ -533,7 +534,7 @@ function buildSwing(
 		weaponType: item.weaponType ?? "sword",
 		physicalDamage: phys,
 		elementalDamage: elem,
-		baseCritChance: cs?.criticalChance ?? (item.baseStats.criticalChance ?? 5),
+		baseCritChance: cs?.criticalChance ?? item.baseStats.criticalChance ?? 5,
 		baseAttackSpeed: baseAS,
 	};
 }
@@ -628,7 +629,10 @@ function computeOnce(
 
 	const mainHand = live.find((eq) => eq.slot === "weapon")?.item ?? null;
 	const offHand = live.find((eq) => eq.slot === "offhand")?.item ?? null;
-	stats.path = determinePath(mainHand, input.classDef?.id as CharacterClassId | undefined);
+	stats.path = determinePath(
+		mainHand,
+		input.classDef?.id as CharacterClassId | undefined,
+	);
 	const offHandType = offHand?.weaponType;
 	// Source of truth for "is this attack dual-wielding?". The public
 	// `isAttackDualWielding(stats)` helper below re-derives the same answer from
@@ -661,12 +665,19 @@ function computeOnce(
 			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "attack"));
 		}
 	} else if (stats.path === "spell" && mainHand) {
-		const spellOpts: BuildSwingOptions = { selectedElement: input.selectedElement, level: input.level };
-		stats.swings.push(buildSwing(mainHand, "mainHand", gearFlat, "spell", spellOpts));
+		const spellOpts: BuildSwingOptions = {
+			selectedElement: input.selectedElement,
+			level: input.level,
+		};
+		stats.swings.push(
+			buildSwing(mainHand, "mainHand", gearFlat, "spell", spellOpts),
+		);
 		// Staves are 2H and can't sit in the off-hand slot — only wand+wand.
 		// Caster dual-wield gets no implicits.
 		if (offHand && offHandType === "wand") {
-			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "spell", spellOpts));
+			stats.swings.push(
+				buildSwing(offHand, "offHand", gearFlat, "spell", spellOpts),
+			);
 		}
 	}
 

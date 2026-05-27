@@ -4,7 +4,8 @@ import { createStandardTiers } from "../../types";
 export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 	// ── Global damage % (prefixes) ──
 	globalPhysicalDamageIncrease: {
-		id: "globalPhysicalDamageIncrease",		affixType: "prefix",
+		id: "globalPhysicalDamageIncrease",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allJewelry"],
@@ -14,7 +15,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalColdDamageIncrease: {
-		id: "globalColdDamageIncrease",		affixType: "prefix",
+		id: "globalColdDamageIncrease",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["weapon", "allJewelry"],
@@ -25,7 +27,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalFireDamageIncrease: {
-		id: "globalFireDamageIncrease",		affixType: "prefix",
+		id: "globalFireDamageIncrease",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["weapon", "allJewelry"],
@@ -36,7 +39,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalLightningDamageIncrease: {
-		id: "globalLightningDamageIncrease",		affixType: "prefix",
+		id: "globalLightningDamageIncrease",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["weapon", "allJewelry"],
@@ -47,7 +51,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalVoidDamageIncrease: {
-		id: "globalVoidDamageIncrease",		affixType: "prefix",
+		id: "globalVoidDamageIncrease",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["weapon", "allJewelry"],
@@ -58,7 +63,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalSpellDamageIncrease: {
-		id: "globalSpellDamageIncrease",		affixType: "prefix",
+		id: "globalSpellDamageIncrease",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: [
@@ -75,7 +81,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalElementalDamageWithAttacksIncrease: {
-		id: "globalElementalDamageWithAttacksIncrease",		affixType: "prefix",
+		id: "globalElementalDamageWithAttacksIncrease",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allAttackWeapons", "allJewelry"],
@@ -86,7 +93,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalElementalDamageIncrease: {
-		id: "globalElementalDamageIncrease",		affixType: "prefix",
+		id: "globalElementalDamageIncrease",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["weapon", "allJewelry"],
@@ -97,7 +105,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 	globalMeleeDamageIncrease: {
-		id: "globalMeleeDamageIncrease",		affixType: "prefix",
+		id: "globalMeleeDamageIncrease",
+		affixType: "prefix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allJewelry", "gloves"],
@@ -109,7 +118,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 
 	// ── Global speed / crit (suffixes) ──
 	globalAttackSpeedIncrease: {
-		id: "globalAttackSpeedIncrease",		affixType: "suffix",
+		id: "globalAttackSpeedIncrease",
+		affixType: "suffix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["allJewelry", "gloves", "quiver"],
@@ -120,7 +130,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 4, 18, 22),
 	},
 	globalCastSpeedIncrease: {
-		id: "globalCastSpeedIncrease",		affixType: "suffix",
+		id: "globalCastSpeedIncrease",
+		affixType: "suffix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["staff", "wand", "allJewelry", "gloves", "tome"],
@@ -131,7 +142,8 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(2, 4, 18, 22),
 	},
 	globalCriticalChanceIncrease: {
-		id: "globalCriticalChanceIncrease",		affixType: "suffix",
+		id: "globalCriticalChanceIncrease",
+		affixType: "suffix",
 		modifierType: "increased",
 		category: "offensive",
 		applicableTo: ["weapon", "allJewelry", "gloves", "tome", "quiver"],

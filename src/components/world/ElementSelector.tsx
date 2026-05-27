@@ -86,9 +86,7 @@ export default function ElementSelector({
 						className="relative flex h-10 w-10 items-center justify-center border transition disabled:cursor-not-allowed disabled:opacity-40"
 						style={{
 							borderColor: isActive ? cfg.color : "rgba(255,255,255,0.3)",
-							backgroundColor: isActive
-								? `${cfg.color}22`
-								: "rgba(0,0,0,0.8)",
+							backgroundColor: isActive ? `${cfg.color}22` : "rgba(0,0,0,0.8)",
 							boxShadow: isActive ? `0 0 8px ${cfg.glowColor}` : "none",
 						}}
 					>

@@ -6,6 +6,7 @@
 
 import { useMutation } from "convex/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { findBoss } from "#/game/bosses";
 import type { CombatPhase } from "#/game/combat/constants";
 import {
 	BOSS_INTRO_STAGE_MS_DEFAULT,
@@ -16,14 +17,13 @@ import {
 	RARE_INTRO_STAGE_MS,
 	type RareIntroStage,
 } from "#/game/combat/types";
-import { findBoss } from "#/game/bosses";
 import { rollMonsterLevel } from "#/game/loot/drops";
 import {
 	applyMonsterMods,
 	findMonster,
 	type MonsterId,
-	modCountForRarity,
 	type MonsterRarity,
+	modCountForRarity,
 	rollMonsterMods,
 	rollMonsterRarity,
 	scaleMonsterStats,
@@ -110,8 +110,7 @@ export function useCombatLoop({
 	onPlayerDeath,
 }: Params) {
 	const [state, setState] = useState<CombatState>("searching");
-	const [rareIntroStage, setRareIntroStage] =
-		useState<RareIntroStage>(null);
+	const [rareIntroStage, setRareIntroStage] = useState<RareIntroStage>(null);
 	const [bossIntroStage, setBossIntroStage] = useState<BossIntroStage>(null);
 	const [enemy, setEnemy] = useState<Enemy | null>(null);
 	// Boss-node warmup: regular mob spawns until the calmaria budget fills
@@ -424,33 +423,34 @@ export function useCombatLoop({
 		active && state === "searching" && !!bossNode && warmupDone,
 		600,
 		() => {
-		if (!bossNode) return;
-		if (gauntletFightIndex !== null) {
-			const e = spawnMob(bossNode.gauntlet.monsterPool, "rare");
-			if (!e) return;
-			commitEnemy(e);
-			setRareIntroStage("sprite");
-			stateRef.current = "rare_intro";
-			setState("rare_intro");
-			return;
-		}
-		const boss = findBoss(bossNode.bossId);
-		if (!boss) return;
-		const scaled = scaleMonsterStats(boss.template, boss.level);
-		commitEnemy({
-			def: boss.template,
-			currentHp: scaled.hp,
-			currentBarrier: scaled.barrier,
-			level: boss.level,
-			rarity: "unique",
-			mods: [],
-			scaled,
-			nameSeed: { primary: 0, secondary: 0, epithet: 0 },
-		});
-		setBossIntroStage("sprite");
-		stateRef.current = "boss_intro";
-		setState("boss_intro");
-	});
+			if (!bossNode) return;
+			if (gauntletFightIndex !== null) {
+				const e = spawnMob(bossNode.gauntlet.monsterPool, "rare");
+				if (!e) return;
+				commitEnemy(e);
+				setRareIntroStage("sprite");
+				stateRef.current = "rare_intro";
+				setState("rare_intro");
+				return;
+			}
+			const boss = findBoss(bossNode.bossId);
+			if (!boss) return;
+			const scaled = scaleMonsterStats(boss.template, boss.level);
+			commitEnemy({
+				def: boss.template,
+				currentHp: scaled.hp,
+				currentBarrier: scaled.barrier,
+				level: boss.level,
+				rarity: "unique",
+				mods: [],
+				scaled,
+				nameSeed: { primary: 0, secondary: 0, epithet: 0 },
+			});
+			setBossIntroStage("sprite");
+			stateRef.current = "boss_intro";
+			setState("boss_intro");
+		},
+	);
 
 	// ── Rare intro stages → cascade into engaged ──
 	useDelay(

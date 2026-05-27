@@ -3,7 +3,8 @@ import { createStandardTiers } from "../../types";
 
 export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 	coldDamageFlat: {
-		id: "coldDamageFlat",		affixType: "prefix",
+		id: "coldDamageFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["staff", "wand"],
@@ -13,7 +14,8 @@ export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	fireDamageFlat: {
-		id: "fireDamageFlat",		affixType: "prefix",
+		id: "fireDamageFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["staff", "wand"],
@@ -23,7 +25,8 @@ export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 	lightningDamageFlat: {
-		id: "lightningDamageFlat",		affixType: "prefix",
+		id: "lightningDamageFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["staff", "wand"],
@@ -33,7 +36,8 @@ export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tiers: createStandardTiers(4, 12, 55, 140),
 	},
 	voidDamageFlat: {
-		id: "voidDamageFlat",		affixType: "prefix",
+		id: "voidDamageFlat",
+		affixType: "prefix",
 		modifierType: "flat",
 		category: "offensive",
 		applicableTo: ["staff", "wand"],
