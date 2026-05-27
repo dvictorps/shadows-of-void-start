@@ -195,10 +195,18 @@ export function useCombatLoop({
 		api.combat.useEtherealIncense,
 	).withOptimisticUpdate((localStore, args) => {
 		const char = findCharacter(localStore, args.characterId);
-		if (!char) return;
-		applyCharacterDelta(localStore, args.characterId, {
-			etherealIncense: Math.max(0, (char.etherealIncense ?? 0) - 1),
-		});
+		if (char) {
+			applyCharacterDelta(localStore, args.characterId, {
+				etherealIncense: Math.max(0, (char.etherealIncense ?? 0) - 1),
+			});
+		}
+		const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+		if (csData) {
+			localStore.setQuery(api.combatState.byCharacterId, { characterId: args.characterId }, {
+				...csData,
+				etherealIncense: Math.max(0, csData.etherealIncense - 1),
+			});
+		}
 	});
 
 	const updateEnemyForTick = useCallback((next: Enemy) => {

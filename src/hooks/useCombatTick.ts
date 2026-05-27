@@ -141,13 +141,24 @@ export function useCombatTick({
 	const consumePotion = useMutation(api.combat.usePotion).withOptimisticUpdate(
 		(localStore, args) => {
 			const char = findCharacter(localStore, args.characterId);
-			if (!char) return;
-			const currentHp = args.clientHp ?? char.hpCurrent ?? 0;
-			const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
-			applyCharacterDelta(localStore, args.characterId, {
-				potions: Math.max(0, (char.potions ?? 0) - 1),
-				hpCurrent: Math.min(maxHp, currentHp + heal),
-			});
+			if (char) {
+				const currentHp = args.clientHp ?? char.hpCurrent ?? 0;
+				const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
+				applyCharacterDelta(localStore, args.characterId, {
+					potions: Math.max(0, (char.potions ?? 0) - 1),
+					hpCurrent: Math.min(maxHp, currentHp + heal),
+				});
+			}
+			const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+			if (csData) {
+				const currentHp = args.clientHp ?? csData.hpCurrent ?? 0;
+				const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
+				localStore.setQuery(api.combatState.byCharacterId, { characterId: args.characterId }, {
+					...csData,
+					potions: Math.max(0, csData.potions - 1),
+					hpCurrent: Math.min(maxHp, currentHp + heal),
+				});
+			}
 		},
 	);
 

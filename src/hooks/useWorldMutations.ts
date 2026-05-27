@@ -175,12 +175,26 @@ export function useWorldMutations({
 				if (!product) return;
 				const rubys = char.rubys ?? 0;
 				if (rubys < product.priceRubys) return;
-				const currentCount = char[product.counterField] ?? 0;
-				if (product.cap !== undefined && currentCount >= product.cap) return;
-				applyCharacterDelta(localStore, args.characterId, {
-					rubys: rubys - product.priceRubys,
-					[product.counterField]: currentCount + 1,
-				});
+
+				if (product.counterField === "potions") {
+					const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+					const currentCount = csData?.potions ?? char.potions ?? 0;
+					if (product.cap !== undefined && currentCount >= product.cap) return;
+					applyCharacterDelta(localStore, args.characterId, { rubys: rubys - product.priceRubys });
+					if (csData) {
+						localStore.setQuery(api.combatState.byCharacterId, { characterId: args.characterId }, {
+							...csData,
+							potions: currentCount + 1,
+						});
+					}
+				} else {
+					const currentCount = char[product.counterField] ?? 0;
+					if (product.cap !== undefined && currentCount >= product.cap) return;
+					applyCharacterDelta(localStore, args.characterId, {
+						rubys: rubys - product.priceRubys,
+						[product.counterField]: currentCount + 1,
+					});
+				}
 			},
 		),
 	);
@@ -200,20 +214,23 @@ export function useWorldMutations({
 				const startedAt = Date.now();
 				const arrivesAt =
 					startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000;
-				// Per-visit fields mirror the server's `clearPerVisitZoneState()`
-				// (see convex/_shared/character.ts) — without this, the camp markers
-				// from the previous visit linger in the UI for the round-trip window.
 				applyCharacterDelta(localStore, args.characterId, {
 					teleportStones: stones - 1,
-					currentZoneSession: undefined,
-					zoneStartedAt: undefined,
-					campThresholdsMs: undefined,
-					inCamp: false,
-					lastCampIndex: undefined,
 					travelDestination: destinationNodeId,
 					travelStartedAt: startedAt,
 					travelArrivesAt: arrivesAt,
 				});
+				const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+				if (csData) {
+					localStore.setQuery(api.combatState.byCharacterId, { characterId: args.characterId }, {
+						...csData,
+						currentZoneSession: undefined,
+						zoneStartedAt: undefined,
+						campThresholdsMs: undefined,
+						inCamp: false,
+						lastCampIndex: undefined,
+					});
+				}
 			},
 		),
 	);
