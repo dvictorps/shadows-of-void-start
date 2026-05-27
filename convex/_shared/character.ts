@@ -169,20 +169,6 @@ export function newZoneSession(): string {
 	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
 }
 
-// Patch fields that scope to a single zone visit — session id, time-bar
-// origin, server-rolled camp thresholds, and the camp phase flag. Spread
-// into `ctx.db.patch` whenever a visit ends (exitZone, useTeleportStone,
-// respawnDead) so a new visit always starts from a clean slate without
-// any one site forgetting a field.
-export function clearPerVisitZoneState() {
-	return {
-		currentZoneSession: undefined,
-		zoneStartedAt: undefined,
-		campThresholdsMs: undefined,
-		inCamp: false,
-		lastCampIndex: undefined,
-	} as const
-}
 
 // Append `item` to `list` if it's not already present. Returns the same
 // reference when no change is needed so callers can `if (next === list)

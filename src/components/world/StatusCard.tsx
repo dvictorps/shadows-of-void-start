@@ -23,6 +23,7 @@ type Props = {
 	hpOverride?: number;
 	barrierOverride?: number;
 	potionsOverride?: number;
+	xpOverride?: number;
 	teleportStones: number;
 	onUsePotion?: () => void;
 	onUseTeleportStone?: () => void;
@@ -135,6 +136,7 @@ export default function StatusCard({
 	hpOverride,
 	barrierOverride,
 	potionsOverride,
+	xpOverride,
 	teleportStones,
 	onShowStats,
 	onUsePotion,
@@ -146,7 +148,7 @@ export default function StatusCard({
 	const hpServer = character.hpCurrent ?? maxHp;
 	const hp = hpOverride ?? hpServer;
 	const potions = potionsOverride ?? character.potions ?? 0;
-	const xp = character.xp ?? 0;
+	const xp = xpOverride ?? character.xp ?? 0;
 	const xpNeeded = xpToNextLevel(character.level);
 	const xpPct = Math.min(100, (xp / xpNeeded) * 100);
 	const maxBarrier = stats.maxBarrier;

@@ -214,14 +214,13 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const maxHp = stats.maxLife;
 
-	const cs = combatState;
-	const hp = cs?.hpCurrent ?? character.hpCurrent ?? maxHp;
-	const potions = cs?.potions ?? character.potions ?? 0;
-	const incense = cs?.etherealIncense ?? character.etherealIncense ?? 0;
-	const barrier = cs?.barrierCurrent ?? character.barrierCurrent ?? stats.maxBarrier;
-	const xp = cs?.xp ?? character.xp ?? 0;
-	const zoneSession = cs?.currentZoneSession ?? character.currentZoneSession;
-	const campThresholds = cs?.campThresholdsMs ?? character.campThresholdsMs ?? EMPTY_THRESHOLDS;
+	const hp = combatState?.hpCurrent ?? character.hpCurrent ?? maxHp;
+	const potions = combatState?.potions ?? character.potions ?? 0;
+	const incense = combatState?.etherealIncense ?? character.etherealIncense ?? 0;
+	const barrier = combatState?.barrierCurrent ?? character.barrierCurrent ?? stats.maxBarrier;
+	const xp = combatState?.xp ?? character.xp ?? 0;
+	const zoneSession = combatState?.currentZoneSession ?? character.currentZoneSession;
+	const campThresholds = combatState?.campThresholdsMs ?? character.campThresholdsMs ?? EMPTY_THRESHOLDS;
 
 	const {
 		enterCity,
@@ -874,6 +873,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					hpOverride={hpOverride}
 					barrierOverride={barrierOverride}
 					potionsOverride={potionsOverride}
+					xpOverride={xp}
 					teleportStones={character.teleportStones ?? 0}
 					onUsePotion={onUsePotion}
 					onUseTeleportStone={

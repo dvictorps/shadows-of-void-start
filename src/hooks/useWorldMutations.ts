@@ -22,7 +22,7 @@ import { computeSellPrice } from "#/game/items/sell-price";
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { ACT_1, findNode } from "#/game/world";
 import { computeTravelTime } from "#/game/world/travel";
-import { applyCharacterDelta, findCharacter } from "#/lib/optimistic-character";
+import { applyCharacterDelta, applyCombatStateDelta, findCharacter } from "#/lib/optimistic-character";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { useSessionedMutation } from "./useSessionToken";
@@ -181,12 +181,7 @@ export function useWorldMutations({
 					const currentCount = csData?.potions ?? char.potions ?? 0;
 					if (product.cap !== undefined && currentCount >= product.cap) return;
 					applyCharacterDelta(localStore, args.characterId, { rubys: rubys - product.priceRubys });
-					if (csData) {
-						localStore.setQuery(api.combatState.byCharacterId, { characterId: args.characterId }, {
-							...csData,
-							potions: currentCount + 1,
-						});
-					}
+					applyCombatStateDelta(localStore, args.characterId, { potions: currentCount + 1 });
 				} else {
 					const currentCount = char[product.counterField] ?? 0;
 					if (product.cap !== undefined && currentCount >= product.cap) return;
@@ -220,17 +215,13 @@ export function useWorldMutations({
 					travelStartedAt: startedAt,
 					travelArrivesAt: arrivesAt,
 				});
-				const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
-				if (csData) {
-					localStore.setQuery(api.combatState.byCharacterId, { characterId: args.characterId }, {
-						...csData,
-						currentZoneSession: undefined,
-						zoneStartedAt: undefined,
-						campThresholdsMs: undefined,
-						inCamp: false,
-						lastCampIndex: undefined,
-					});
-				}
+				applyCombatStateDelta(localStore, args.characterId, {
+					currentZoneSession: undefined,
+					zoneStartedAt: undefined,
+					campThresholdsMs: undefined,
+					inCamp: false,
+					lastCampIndex: undefined,
+				});
 			},
 		),
 	);
