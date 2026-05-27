@@ -254,28 +254,26 @@ export const usePotion = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		const potions = char.potions ?? 0
-		if (potions <= 0) throw new ConvexError("No potions to use")
+		if (cs.potions <= 0) throw new ConvexError("No potions to use")
 
 		const { maxLife } = await getCachedStats(ctx, args.characterId, char)
 		const maxHp = maxLife
-		// Use client-reported HP when available (same trust model as syncHp).
-		// Falls back to DB value for backward compat.
 		const currentHp = args.clientHp !== undefined
 			? Math.max(0, Math.min(maxHp, Math.floor(args.clientHp)))
-			: (char.hpCurrent ?? maxHp)
+			: cs.hpCurrent
 		if (currentHp >= maxHp) throw new ConvexError("Already at full HP")
 
 		const healed = Math.min(
 			maxHp,
 			currentHp + Math.floor(maxHp * POTION_HEAL_FRACTION),
 		)
-		await ctx.db.patch(args.characterId, {
+		await ctx.db.patch(cs._id, {
 			hpCurrent: healed,
-			potions: potions - 1,
+			potions: cs.potions - 1,
 		})
-		return { hpCurrent: healed, potions: potions - 1 }
+		return { hpCurrent: healed, potions: cs.potions - 1 }
 	},
 })
 
