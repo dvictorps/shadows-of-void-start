@@ -127,8 +127,17 @@ export const create = mutation({
 			cachedMovementSpeed: baseStats.movementSpeed,
 		})
 
-		// Create the starter item entry in the items table so equip lifecycle is
-		// consistent from day one (no special-casing later when equip/unequip lands).
+		await ctx.db.insert("combatState", {
+			characterId,
+			hpCurrent: maxHp,
+			barrierCurrent: baseStats.maxBarrier,
+			potions: STARTING_POTIONS,
+			xp: 0,
+			etherealIncense: 0,
+			currentZoneKills: 0,
+			inCamp: false,
+		})
+
 		if (starterWeaponId) {
 			const starterDef = findStarterItem(starterWeaponId)
 			if (starterDef) {
