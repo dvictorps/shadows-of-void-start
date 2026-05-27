@@ -55,6 +55,7 @@ import {
 	deleteZoneBag,
 	getCachedStats,
 	loadEquippedSet,
+	loadOrCreateCombatState,
 	loadOwnedCharacterWithSession,
 	newZoneSession,
 	refillPotionsToFloor,
@@ -347,6 +348,7 @@ export const syncHp = mutation({
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) throw new ConvexError("Not authenticated")
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
 		const clamped = Math.max(0, Math.min(maxLife, Math.floor(args.hpCurrent)))
@@ -355,17 +357,15 @@ export const syncHp = mutation({
 			? Math.max(0, Math.min(maxBarrier, Math.floor(args.barrierCurrent)))
 			: undefined
 
-		// Skip the patch entirely when nothing changed — Convex invalidates
-		// reactive queries on ANY patch, even if the value is identical.
-		const hpSame = clamped === (char.hpCurrent ?? maxLife)
-		const barrierSame = clampedBarrier === undefined || clampedBarrier === (char.barrierCurrent ?? maxBarrier)
+		const hpSame = clamped === cs.hpCurrent
+		const barrierSame = clampedBarrier === undefined || clampedBarrier === cs.barrierCurrent
 		if (hpSame && barrierSame) return { hpCurrent: clamped }
 
 		const patch: Record<string, unknown> = {}
 		if (!hpSame) patch.hpCurrent = clamped
 		if (!barrierSame) patch.barrierCurrent = clampedBarrier
 
-		await ctx.db.patch(args.characterId, patch)
+		await ctx.db.patch(cs._id, patch)
 		return { hpCurrent: clamped }
 	},
 })
