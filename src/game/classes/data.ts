@@ -20,7 +20,7 @@ export const CLASS_DEFINITIONS = {
 			"A swift and cunning combatant who exploits precision and agility to strike where it hurts most.",
 		primaryAttribute: "dexterity",
 		baseStats: {
-			hp: 60,
+			hp: 50,
 			barrier: 0,
 			attributes: { strength: 5, dexterity: 10, intelligence: 5 },
 		},
@@ -32,7 +32,7 @@ export const CLASS_DEFINITIONS = {
 			"A wielder of arcane power who sacrifices physical resilience for devastating magical potential and a natural energy barrier.",
 		primaryAttribute: "intelligence",
 		baseStats: {
-			hp: 40,
+			hp: 30,
 			barrier: 20,
 			attributes: { strength: 5, dexterity: 5, intelligence: 10 },
 		},

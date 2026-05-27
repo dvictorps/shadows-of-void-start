@@ -62,7 +62,7 @@ const HIT_CHANCE_MAX = 0.95;
 // tooltip can render the rule without duplicating the magnitude. Keep
 // these numbers in sync with the i18n hint strings.
 export const STR_MELEE_PCT_PER_POINT = 1;
-export const STR_LIFE_PER_POINT = 8;
+export const STR_LIFE_PER_POINT = 5;
 export const DEX_ACCURACY_PER_POINT = 2;
 export const DEX_EVASION_PCT_PER_POINT = 1;
 export const INT_BARRIER_PCT_PER_POINT = 0.2;
