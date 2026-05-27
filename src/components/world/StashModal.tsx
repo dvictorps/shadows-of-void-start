@@ -51,6 +51,7 @@ type Props = {
 	onReorderInventory: (args: {
 		itemId: Id<"items">;
 		targetSlot: number;
+		swapWithItemId?: Id<"items">;
 	}) => void;
 	onReorderStash: (args: { itemId: Id<"items">; targetSlot: number }) => void;
 };
@@ -131,9 +132,11 @@ export default function StashModal({
 		if (source.kind === "inventory" && target.kind === "inventory") {
 			const doc = inventoryItems.find((it) => it._id === source.itemId);
 			if (!doc || doc.inventorySlot === target.slot) return;
+			const occupant = inventoryItems.find((it) => it.inventorySlot === target.slot && it._id !== source.itemId);
 			onReorderInventory({
 				itemId: source.itemId,
 				targetSlot: target.slot,
+				swapWithItemId: occupant?._id,
 			});
 			return;
 		}

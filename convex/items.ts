@@ -467,6 +467,7 @@ export const reorderInventory = mutation({
 		sessionToken: v.string(),
 		itemId: v.id("items"),
 		targetSlot: v.number(),
+		swapWithItemId: v.optional(v.id("items")),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -484,19 +485,16 @@ export const reorderInventory = mutation({
 		if (source.locationKind !== "inventory")
 			throw new ConvexError("Item is not in inventory")
 
-		// Find any item currently sitting on the target slot.
-		const allInv = await ctx.db
-			.query("items")
-			.withIndex("by_character_kind", (q) =>
-				q.eq("characterId", args.characterId).eq("locationKind", "inventory"),
-			)
-			.collect()
-		const occupant = allInv.find((it) => it.inventorySlot === args.targetSlot)
-
 		const sourceSlot = source.inventorySlot
 		await ctx.db.patch(source._id, { inventorySlot: args.targetSlot })
-		if (occupant && occupant._id !== source._id) {
-			await ctx.db.patch(occupant._id, { inventorySlot: sourceSlot ?? -1 })
+
+		if (args.swapWithItemId) {
+			const occupant = await ctx.db.get(args.swapWithItemId)
+			if (occupant && occupant._id !== source._id
+				&& occupant.characterId === args.characterId
+				&& occupant.locationKind === "inventory") {
+				await ctx.db.patch(occupant._id, { inventorySlot: sourceSlot ?? -1 })
+			}
 		}
 	},
 })

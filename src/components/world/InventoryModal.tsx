@@ -322,11 +322,13 @@ export default function InventoryModal({
 		if (source.kind === "inventory" && target.kind === "inventory") {
 			const sourceDoc = inventory.find((it) => it._id === source.itemId);
 			if (!sourceDoc || sourceDoc.inventorySlot === target.slot) return;
+			const occupant = inventory.find((it) => it.inventorySlot === target.slot && it._id !== source.itemId);
 			void reorder(
 				withSession({
 					characterId,
 					itemId: source.itemId,
 					targetSlot: target.slot,
+					swapWithItemId: occupant?._id,
 				}),
 			);
 			return;

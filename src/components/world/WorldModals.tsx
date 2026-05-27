@@ -72,6 +72,7 @@ export function WorldModals({
 	onReorderInventory: (args: {
 		itemId: Id<"items">;
 		targetSlot: number;
+		swapWithItemId?: Id<"items">;
 	}) => void;
 	onReorderStash: (args: { itemId: Id<"items">; targetSlot: number }) => void;
 }) {

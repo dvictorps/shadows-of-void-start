@@ -923,11 +923,12 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						itemIds,
 					});
 				}}
-				onReorderInventory={({ itemId, targetSlot }) => {
+				onReorderInventory={({ itemId, targetSlot, swapWithItemId }) => {
 					void reorderInventory({
 						characterId: character._id,
 						itemId,
 						targetSlot,
+						swapWithItemId,
 					});
 				}}
 				onReorderStash={({ itemId, targetSlot }) => {
