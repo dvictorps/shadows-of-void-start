@@ -931,8 +931,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						swapWithItemId,
 					});
 				}}
-				onReorderStash={({ itemId, targetSlot }) => {
-					void reorderStash({ characterId: character._id, itemId, targetSlot });
+				onReorderStash={({ itemId, targetSlot, swapWithItemId }) => {
+					void reorderStash({ characterId: character._id, itemId, targetSlot, swapWithItemId });
 				}}
 			/>
 			<LeaderboardModal

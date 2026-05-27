@@ -101,6 +101,7 @@ export const reorderStash = mutation({
 		sessionToken: v.string(),
 		itemId: v.id("items"),
 		targetSlot: v.number(),
+		swapWithItemId: v.optional(v.id("items")),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -119,18 +120,17 @@ export const reorderStash = mutation({
 
 		const mode = char.hardcore ? "hardcore" : "softcore"
 		if (source.stashMode !== mode) throw new ConvexError("Item is in a different stash mode")
-		const allStash = await ctx.db
-			.query("items")
-			.withIndex("by_stash", (q) =>
-				q.eq("authUserId", authUser._id).eq("stashMode", mode),
-			)
-			.collect()
-		const occupant = allStash.find((it) => it.stashSlot === args.targetSlot)
 
 		const sourceSlot = source.stashSlot
 		await ctx.db.patch(source._id, { stashSlot: args.targetSlot })
-		if (occupant && occupant._id !== source._id) {
-			await ctx.db.patch(occupant._id, { stashSlot: sourceSlot ?? -1 })
+
+		if (args.swapWithItemId) {
+			const occupant = await ctx.db.get(args.swapWithItemId)
+			if (occupant && occupant._id !== source._id
+				&& occupant.authUserId === authUser._id
+				&& occupant.locationKind === "stash") {
+				await ctx.db.patch(occupant._id, { stashSlot: sourceSlot ?? -1 })
+			}
 		}
 	},
 })
