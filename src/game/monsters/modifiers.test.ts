@@ -179,11 +179,11 @@ describe("applyMonsterMods", () => {
 		});
 	});
 
-	it("Accuracy mod adds 30 × level to baseline (level × 10)", () => {
+	it("Accuracy mod adds 30 × level to baseline (level × 15)", () => {
 		const scaled = scaleMonsterStats(baseDef, 10);
-		// Baseline accuracy = level 10 × 10 = 100, +30×10 → 400
+		// Baseline accuracy = level 10 × 15 = 150, +30×10 → 450
 		const after = applyMonsterMods(scaled, ["monsterIncreasedAccuracy"]);
-		expect(after.accuracy).toBe(400);
+		expect(after.accuracy).toBe(450);
 	});
 
 	it("Evasion + Armor mods scale with monster level", () => {

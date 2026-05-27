@@ -104,12 +104,12 @@ describe("scaleMonsterStats", () => {
 		);
 	});
 
-	it("populates defensive defaults: zero armor/evasion/resists, accuracy = level × 10", () => {
+	it("populates defensive defaults: zero armor/evasion/resists, accuracy = level × 15", () => {
 		const stats = scaleMonsterStats(baseDef, 7);
 		expect(stats.level).toBe(7);
 		expect(stats.armor).toBe(0);
 		expect(stats.evasion).toBe(0);
-		expect(stats.accuracy).toBe(70);
+		expect(stats.accuracy).toBe(105);
 		expect(stats.resistances).toEqual({
 			cold: 0,
 			fire: 0,

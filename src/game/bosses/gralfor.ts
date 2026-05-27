@@ -4,7 +4,7 @@ import type { BossConfig } from "./types";
 // fire resistance and cold vulnerability, forcing the player into either a
 // cold-element build or a balanced mitigation profile. See CONTEXT.md →
 // Boss + Act Boss. Stats calibrated against the level-14 olho_do_vazio rare
-// (the strongest rare in the act): ~3.3× HP, ~1.5× damage, lvl 17.
+// (the strongest rare in the act): ~3.3× HP, ~1.3× damage, lvl 17.
 export const GRALFOR: BossConfig = {
 	id: "gralfor",
 	nameKey: "boss_gralfor_name",
@@ -17,10 +17,10 @@ export const GRALFOR: BossConfig = {
 		name: "Gralfor, O Persistente",
 		sprite: "/assets/sprites/bosses/gralfor.png",
 		baseStats: {
-			hp: 200,
+			hp: 300,
 			attackSpeed: 0.9,
-			physicalDamage: { min: 6, max: 10 },
-			elementalDamage: [{ element: "Fire", min: 6, max: 10 }],
+			physicalDamage: { min: 9, max: 15 },
+			elementalDamage: [{ element: "Fire", min: 9, max: 15 }],
 			resistances: { fire: 50, cold: -25, lightning: 0, void: 0 },
 		},
 		xpReward: 45,

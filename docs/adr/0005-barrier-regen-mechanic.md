@@ -48,7 +48,11 @@ Replace the binary 6s-timer-then-full-refill mechanic with a **continuous regen 
 
 ## Update (2026-05-26)
 
-Regen rate nerfed from 5%/s to **2%/s** (`BARRIER_REGEN_FRACTION_PER_SECOND = 0.02`). Full recovery from empty goes from 20s to 50s (60s total with cooldown). Motivation: barrier sustain was too strong at 5%/s, making INT-stacking mages overly durable against sustained damage.
+Regen rate nerfed from 5%/s to **0.5%/s** (`BARRIER_REGEN_FRACTION_PER_SECOND = 0.005`). Full recovery from empty goes from 20s to 200s (210s total with cooldown). Motivation: barrier sustain was too strong at 5%/s, making INT-stacking mages overly durable against sustained damage.
+
+## Update (2026-05-27)
+
+Regen rate buffed from 0.5%/s to **1%/s** (`BARRIER_REGEN_FRACTION_PER_SECOND = 0.01`). Full recovery from empty: 100s regen + 10s cooldown = 110s total. Motivation: 0.5%/s was too punishing — barrier felt like a dead stat in sustained combat. 1%/s preserves the "finite resource per fight" identity while making barrier investment feel rewarding again. Part of a broader Act 1 rebalance that also increased all monster HP/damage by 50%, added elemental damage to all monsters, and raised monster base accuracy (×15 instead of ×10).
 
 ## Related
 

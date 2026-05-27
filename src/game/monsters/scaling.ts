@@ -73,7 +73,7 @@ export function scaleMonsterStats(
 		xpReward: Math.max(1, Math.round(def.xpReward * factor)),
 		armor: 0,
 		evasion: 0,
-		accuracy: clampedLevel * 10,
+		accuracy: clampedLevel * 15,
 		resistances: {
 			cold: declared?.cold ?? 0,
 			fire: declared?.fire ?? 0,

@@ -21,9 +21,9 @@ describe("BOSSES registry", () => {
 describe("Gralfor stat sheet", () => {
 	it("scales HP, damage, and resistances at the declared level", () => {
 		const scaled = scaleMonsterStats(GRALFOR.template, GRALFOR.level);
-		// HP at lvl 17: 200 * 1.06^16 ≈ 508
-		expect(scaled.hp).toBeGreaterThan(450);
-		expect(scaled.hp).toBeLessThan(560);
+		// HP at lvl 17: 300 * 1.06^16 ≈ 762
+		expect(scaled.hp).toBeGreaterThan(700);
+		expect(scaled.hp).toBeLessThan(830);
 		// Resistances flow through from the template — including the negative
 		// cold value that expresses vulnerability (boss-only convention).
 		expect(scaled.resistances.fire).toBe(50);
