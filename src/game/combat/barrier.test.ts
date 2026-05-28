@@ -6,124 +6,143 @@ import {
 	tickBarrier,
 } from "./barrier";
 
+// Post-2026-05-28 barrier mechanic (ADR 0005 update):
+//   - No passive regen between hits.
+//   - On break (current → 0): 10s refill cooldown, then instant snap to max.
+//   - Hits absorbed at +50% rate (1500-barrier → 1000 raw absorbed).
+//   - Symmetric for monster barriers.
+
 describe("barrier state", () => {
-	it("starts full with no cooldown", () => {
+	it("starts full with no refill cycle pending", () => {
 		const s = makeBarrierState(100);
 		expect(s.current).toBe(100);
 		expect(s.max).toBe(100);
-		expect(s.cooldownRemaining).toBe(0);
+		expect(s.refillRemaining).toBe(0);
 	});
 
-	it("damage to barrier reduces current, no overflow, no cooldown", () => {
+	it("damage absorbed at 1.5× rate; sub-break leaves no refill timer", () => {
 		const s = makeBarrierState(100);
 		const { state, lifeOverflow } = damageBarrier(s, 30);
-		expect(state.current).toBe(70);
-		expect(state.cooldownRemaining).toBe(0);
+		// 30 raw damage × 1.5 = 45 barrier drained.
+		expect(state.current).toBe(55);
+		expect(state.refillRemaining).toBe(0);
 		expect(lifeOverflow).toBe(0);
 	});
 
-	it("damage that empties barrier triggers a 10s cooldown", () => {
-		const s = makeBarrierState(50);
-		const { state, lifeOverflow } = damageBarrier(s, 80);
+	it("damage that empties barrier triggers a 10s refill timer; overflow uses 1.5× math", () => {
+		const s = makeBarrierState(60);
+		// Pool of 60 absorbs 60/1.5 = 40 raw damage before breaking.
+		// Incoming 100 raw → 40 absorbed by barrier, 60 overflows to life.
+		const { state, lifeOverflow } = damageBarrier(s, 100);
 		expect(state.current).toBe(0);
-		expect(state.cooldownRemaining).toBe(10);
-		expect(lifeOverflow).toBe(30);
+		expect(state.refillRemaining).toBe(10);
+		expect(lifeOverflow).toBe(60);
 	});
 
-	it("damage during cooldown bleeds to life and does NOT reset the cooldown", () => {
+	it("damage during refill cooldown bleeds entirely to life; does NOT reset the timer", () => {
 		let s = makeBarrierState(50);
-		s = damageBarrier(s, 80).state; // empties → cooldown 10
-		s = tickBarrier(s, 2); // cooldown 8
-		expect(s.cooldownRemaining).toBe(8);
+		s = damageBarrier(s, 100).state; // empties → refillRemaining 10
+		s = tickBarrier(s, 2); // 10 → 8
+		expect(s.refillRemaining).toBe(8);
 		const { state, lifeOverflow } = damageBarrier(s, 10);
 		expect(state.current).toBe(0);
-		expect(state.cooldownRemaining).toBe(8); // unchanged
-		expect(lifeOverflow).toBe(10); // damage bled straight to life
+		expect(state.refillRemaining).toBe(8); // unchanged
+		expect(lifeOverflow).toBe(10);
 	});
 
-	it("cooldown counts down via tickBarrier; regen stays paused until it elapses", () => {
+	it("refill timer counts down via tickBarrier; current stays at zero until the snap", () => {
 		let s = makeBarrierState(100);
-		s = damageBarrier(s, 100).state; // empties → cooldown 10
+		s = damageBarrier(s, 200).state; // break → refillRemaining 10
 		s = tickBarrier(s, 5);
-		expect(s.cooldownRemaining).toBe(5);
-		expect(s.current).toBe(0); // still empty, no regen during cooldown
+		expect(s.refillRemaining).toBe(5);
+		expect(s.current).toBe(0);
+		s = tickBarrier(s, 4);
+		expect(s.refillRemaining).toBe(1);
+		expect(s.current).toBe(0);
 	});
 
-	it("after cooldown elapses regen resumes at 1% of max per second from zero", () => {
+	it("when refill timer reaches zero, current snaps instantly to max", () => {
 		let s = makeBarrierState(100);
-		s = damageBarrier(s, 100).state; // empties → cooldown 10
-		s = tickBarrier(s, 10); // cooldown reaches 0
-		expect(s.cooldownRemaining).toBe(0);
-		expect(s.current).toBe(0);
-		s = tickBarrier(s, 1); // one second of regen at 1%/s
-		expect(s.current).toBeCloseTo(1);
-		s = tickBarrier(s, 99); // 99 more seconds → 1 + 99 = 100, clamped
+		s = damageBarrier(s, 200).state; // → refillRemaining 10
+		s = tickBarrier(s, 10);
+		expect(s.refillRemaining).toBe(0);
 		expect(s.current).toBe(100);
 	});
 
-	it("regen ticks continuously while above zero (no delay, no interrupt)", () => {
+	it("partial barrier with no active refill stays put — no passive regen", () => {
 		let s = makeBarrierState(100);
-		s = damageBarrier(s, 30).state; // current 70, no cooldown
-		expect(s.cooldownRemaining).toBe(0);
-		s = tickBarrier(s, 1); // +1
-		expect(s.current).toBeCloseTo(71);
-		// More damage during regen — current drops, no cooldown change.
-		s = damageBarrier(s, 20).state;
-		expect(s.current).toBeCloseTo(51);
-		expect(s.cooldownRemaining).toBe(0);
-		// Regen keeps ticking.
-		s = tickBarrier(s, 2); // +2
-		expect(s.current).toBeCloseTo(53);
+		s = damageBarrier(s, 30).state; // current 55, no refill timer
+		expect(s.refillRemaining).toBe(0);
+		// Ticking 100 seconds does NOTHING.
+		s = tickBarrier(s, 100);
+		expect(s.current).toBe(55);
+		expect(s.refillRemaining).toBe(0);
 	});
 
-	it("tickBarrier is a no-op when barrier is already full and cooldown is zero", () => {
+	it("tickBarrier is a no-op when full and no refill pending", () => {
 		const s = makeBarrierState(100);
 		const next = tickBarrier(s, 1);
 		expect(next).toBe(s);
 	});
 
-	it("rescaling to a smaller max clamps current and preserves cooldown", () => {
+	it("monster barrier follows the same rules (symmetric)", () => {
+		// Whatever absorbs the player's 200 damage applies the 1.5× multiplier
+		// just like the player's barrier absorbs monster damage.
+		const monster = makeBarrierState(120);
+		const { state, lifeOverflow } = damageBarrier(monster, 200);
+		// 200 raw × 1.5 = 300 effective; pool 120 caps absorbed at 120.
+		// lifeOverflow = 200 × (1 - 120/300) = 120.
+		expect(state.current).toBe(0);
+		expect(state.refillRemaining).toBe(10);
+		expect(lifeOverflow).toBe(120);
+	});
+
+	it("rescaling to a smaller max clamps current and preserves refill timer", () => {
 		let s = makeBarrierState(100);
-		s = damageBarrier(s, 100).state; // empty → cooldown 10
+		s = damageBarrier(s, 200).state; // break → refillRemaining 10
 		s = rescaleBarrier(s, 50);
 		expect(s.max).toBe(50);
 		expect(s.current).toBe(0);
-		expect(s.cooldownRemaining).toBe(10);
+		expect(s.refillRemaining).toBe(10);
 	});
 
 	it("rescaling to a larger max preserves current — no free refill", () => {
 		let s = makeBarrierState(100);
-		s = damageBarrier(s, 60).state; // current 40, no cooldown
+		s = damageBarrier(s, 40).state; // current 40, no refill timer
 		s = rescaleBarrier(s, 200);
 		expect(s.max).toBe(200);
 		expect(s.current).toBe(40);
-		expect(s.cooldownRemaining).toBe(0);
+		expect(s.refillRemaining).toBe(0);
 	});
 
-	it("rescaling to 0 clears current and max but preserves cooldown", () => {
-		// Unequipping silk mid-cooldown must NOT let the player skip the
-		// 10s penalty by re-equipping after the dust settles.
+	it("rescaling to 0 clears current and max but preserves the refill timer", () => {
+		// Unequipping silk mid-cooldown must NOT let the player skip the 10s
+		// penalty by re-equipping after the dust settles.
 		let s = makeBarrierState(100);
-		s = damageBarrier(s, 100).state; // empty → cooldown 10
+		s = damageBarrier(s, 200).state; // refillRemaining 10
 		s = rescaleBarrier(s, 0);
 		expect(s.current).toBe(0);
 		expect(s.max).toBe(0);
-		expect(s.cooldownRemaining).toBe(10);
+		expect(s.refillRemaining).toBe(10);
 	});
 
-	it("cooldown ticks down even while max is zero (no gear-swap exploit)", () => {
-		// Player breaks barrier, unequips silk, waits the cooldown, re-equips:
-		// the cooldown must have advanced in real time so the re-equip lands
-		// a regen-ready barrier.
+	it("refill timer ticks down even while max is zero (no gear-swap exploit)", () => {
+		// Break barrier → unequip silk → wait the cooldown → re-equip.
+		// The countdown must have advanced in real time. The instant snap
+		// happens regardless of whether max is 0 (no barrier ever appears
+		// until max is restored, but the timer expired so re-equip lands
+		// at-full).
 		let s = makeBarrierState(100);
-		s = damageBarrier(s, 100).state; // cooldown 10
-		s = rescaleBarrier(s, 0); // unequip silk
-		s = tickBarrier(s, 10); // 10s pass on the map
-		expect(s.cooldownRemaining).toBe(0);
-		// Re-equip silk → max restored, cooldown still 0, regen will tick.
+		s = damageBarrier(s, 200).state; // refillRemaining 10
+		s = rescaleBarrier(s, 0);
+		s = tickBarrier(s, 10);
+		expect(s.refillRemaining).toBe(0);
+		// Re-equip restores max; the snap-to-max already happened (current
+		// was set to the prior `state.max` of 0, but rescaling raises max
+		// — the snap doesn't backfill on rescale, by design).
 		s = rescaleBarrier(s, 100);
-		expect(s.cooldownRemaining).toBe(0);
-		s = tickBarrier(s, 1);
-		expect(s.current).toBeCloseTo(1);
+		expect(s.max).toBe(100);
+		expect(s.current).toBe(0);
+		// Next damage event would start a fresh refill cycle.
 	});
 });

@@ -1,94 +1,94 @@
 import {
-	BARRIER_COOLDOWN_SECONDS,
-	BARRIER_REGEN_FRACTION_PER_SECOND,
+	BARRIER_DAMAGE_MULTIPLIER,
+	BARRIER_REFILL_DELAY_SECONDS,
 } from "./constants";
 
 export interface BarrierState {
 	current: number;
 	max: number;
 	/**
-	 * Seconds remaining until regen resumes after a barrier break. 0 means
-	 * regen is active (the normal state); positive means regen is paused and
-	 * incoming damage bleeds straight to life. See ADR 0005.
+	 * Seconds remaining until the pool refills instantly to `max`. 0 means
+	 * the barrier is in its steady-state (either full, partially damaged, or
+	 * empty post-cooldown awaiting the next refill cycle). The cycle is
+	 * driven exclusively by `damageBarrier` (sets the timer on break) and
+	 * `tickBarrier` (decrements + does the instant refill at 0). No passive
+	 * regen between hits. See ADR 0005 → 2026-05-28 update.
 	 */
-	cooldownRemaining: number;
+	refillRemaining: number;
 }
 
 export function makeBarrierState(max: number): BarrierState {
 	return {
 		current: max,
 		max,
-		cooldownRemaining: 0,
+		refillRemaining: 0,
 	};
 }
 
 /**
  * Reconcile the barrier state with a possibly-changed max (e.g. after a gear
- * swap). Current is clamped to the new max; cooldown is preserved. There is
- * no free refill — a gear swap that raises the ceiling does not refill the
- * pool. See ADR 0005.
+ * swap). Current is clamped to the new max; refill timer is preserved.
+ * A gear swap that raises the ceiling does not refill the pool. See ADR 0005.
  */
 export function rescaleBarrier(
 	state: BarrierState,
 	newMax: number,
 ): BarrierState {
 	if (newMax <= 0) {
-		return { current: 0, max: 0, cooldownRemaining: state.cooldownRemaining };
+		return { current: 0, max: 0, refillRemaining: state.refillRemaining };
 	}
 	const current = Math.min(state.current, newMax);
-	return { current, max: newMax, cooldownRemaining: state.cooldownRemaining };
+	return { current, max: newMax, refillRemaining: state.refillRemaining };
 }
 
 /**
- * Subtracts incoming barrier-portion of damage. Returns new state plus the
- * amount that bled through to life. When the hit empties the barrier, the
- * cooldown starts. The cooldown does NOT reset on subsequent damage during
- * the window — damage just hits life directly.
+ * Apply incoming damage to the barrier pool with the +50% multiplier:
+ * every 1 raw damage drains 1.5 barrier. When the pool empties, the refill
+ * timer starts; subsequent hits during the timer bypass barrier entirely
+ * (current === 0 → all damage carries to life). See ADR 0005.
  */
 export function damageBarrier(
 	state: BarrierState,
-	damage: number,
+	rawDamage: number,
 ): { state: BarrierState; lifeOverflow: number } {
-	if (damage <= 0) return { state, lifeOverflow: 0 };
-	if (state.current <= 0) return { state, lifeOverflow: damage };
-	const absorbed = Math.min(state.current, damage);
+	if (rawDamage <= 0) return { state, lifeOverflow: 0 };
+	if (state.current <= 0) return { state, lifeOverflow: rawDamage };
+	const effective = rawDamage * BARRIER_DAMAGE_MULTIPLIER;
+	const absorbed = Math.min(state.current, effective);
 	const newCurrent = state.current - absorbed;
-	const justEmptied = newCurrent === 0 && state.current > 0;
+	const justEmptied = newCurrent === 0;
+	// lifeOverflow = the raw-damage equivalent of the un-absorbed portion.
+	// `absorbed/effective` is the fraction of raw damage the barrier ate.
+	const lifeOverflow = rawDamage * (1 - absorbed / effective);
 	return {
 		state: {
 			current: newCurrent,
 			max: state.max,
-			cooldownRemaining: justEmptied
-				? BARRIER_COOLDOWN_SECONDS
-				: state.cooldownRemaining,
+			refillRemaining: justEmptied
+				? BARRIER_REFILL_DELAY_SECONDS
+				: state.refillRemaining,
 		},
-		lifeOverflow: damage - absorbed,
+		lifeOverflow,
 	};
 }
 
 /**
  * Advances the barrier state by `dt` seconds.
  *
- * - During cooldown (`cooldownRemaining > 0`): decrement the cooldown. This
- *   runs regardless of `max` so the cooldown can't be paused by unequipping
- *   barrier gear mid-cooldown — see ADR 0005's "cooldown counts down in real
- *   time" rule.
- * - Otherwise: regen `max × BARRIER_REGEN_FRACTION_PER_SECOND × dt` into
- *   `current`, clamped to `max`. Regen requires a non-zero max.
+ * - If `refillRemaining > 0`: decrement; on reaching 0, snap `current` back
+ *   to `max` (instant refill).
+ * - Otherwise: NO-OP. No passive regen between hits — the barrier sits at
+ *   its current value indefinitely until the next damage event or refill.
  *
  * Safe to call every frame regardless of barrier state — returns the same
- * reference when no change is needed.
+ * reference when nothing changed.
  */
 export function tickBarrier(state: BarrierState, dt: number): BarrierState {
-	if (state.cooldownRemaining > 0) {
-		const nextCd = Math.max(0, state.cooldownRemaining - dt);
-		if (nextCd === state.cooldownRemaining) return state;
-		return { ...state, cooldownRemaining: nextCd };
+	if (state.refillRemaining <= 0) return state;
+	const nextRemaining = Math.max(0, state.refillRemaining - dt);
+	if (nextRemaining === state.refillRemaining) return state;
+	if (nextRemaining === 0) {
+		return { ...state, refillRemaining: 0, current: state.max };
 	}
-	if (state.max <= 0) return state;
-	if (state.current >= state.max) return state;
-	const regen = state.max * BARRIER_REGEN_FRACTION_PER_SECOND * dt;
-	const nextCurrent = Math.min(state.max, state.current + regen);
-	if (nextCurrent === state.current) return state;
-	return { ...state, current: nextCurrent };
+	return { ...state, refillRemaining: nextRemaining };
 }

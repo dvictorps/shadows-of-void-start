@@ -692,17 +692,20 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		const state: ReturnType<typeof makeBarrierState> = {
 			current: Math.min(initial, stats.maxBarrier),
 			max: stats.maxBarrier,
-			cooldownRemaining: 0,
+			refillRemaining: 0,
 		};
 		outOfCombatBarrierRef.current = state;
 		setOutOfCombatBarrier(state.current);
 	}, [view, stats.maxBarrier, combatStateLoaded]); // barrier excluded — read at init time only
 
-	const needsBarrierRegen =
-		view !== "combat" &&
-		outOfCombatBarrierRef.current.current < outOfCombatBarrierRef.current.max;
+	// Post-2026-05-28: no passive regen. The ticker only fires while a refill
+	// cycle is in progress (refillRemaining > 0); when it reaches 0, tickBarrier
+	// snaps current back to max. Partial barrier sitting around between cycles
+	// does NOTHING — that's the new design.
+	const barrierRefillActive =
+		view !== "combat" && outOfCombatBarrierRef.current.refillRemaining > 0;
 
-	useTicker(needsBarrierRegen, 500, () => {
+	useTicker(barrierRefillActive, 500, () => {
 		const next = tickBarrier(outOfCombatBarrierRef.current, 0.5);
 		if (next !== outOfCombatBarrierRef.current) {
 			outOfCombatBarrierRef.current = next;
@@ -710,18 +713,18 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		}
 	});
 
-	// Persist regenerated barrier to DB when entering combat.
+	// Persist refilled barrier to DB when entering combat.
 	const barrierSyncMutation = useSessionedMutation(
 		useMutation(api.combat.syncHp),
 	);
 	useEffect(() => {
 		if (view !== "combat") return;
-		const regen = outOfCombatBarrierRef.current.current;
-		if (regen > barrier) {
+		const refilled = outOfCombatBarrierRef.current.current;
+		if (refilled > barrier) {
 			barrierSyncMutation({
 				characterId: character._id,
 				hpCurrent: hp,
-				barrierCurrent: regen,
+				barrierCurrent: refilled,
 			}).catch(() => {});
 		}
 	}, [view]); // eslint-disable-line react-hooks/exhaustive-deps

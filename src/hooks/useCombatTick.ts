@@ -234,7 +234,9 @@ export function useCombatTick({
 		}
 	};
 
-	// Barrier ticks independently of combat — regen runs during calmaria too.
+	// Barrier ticks independently of combat — refill countdown runs during
+	// calmaria too. tickBarrier is a no-op when refillRemaining === 0, so
+	// idle-and-full-barrier costs nothing.
 	useTicker(active && !isEngaged, 100, () => {
 		const next = tickBarrier(barrierRef.current, 0.1);
 		if (next !== barrierRef.current) {
@@ -282,8 +284,9 @@ export function useCombatTick({
 			}
 		}
 
-		// Barrier ticks every frame: regen while above zero (0.5%/s of max),
-		// cooldown countdown while below zero (10s after a break). See ADR 0005.
+		// Barrier ticks every frame: post-2026-05-28 this is purely the refill
+		// countdown after a break (10s → instant refill). No passive regen
+		// between hits. See ADR 0005.
 		const nextBarrier = tickBarrier(barrierRef.current, dt);
 		if (nextBarrier !== barrierRef.current) {
 			barrierRef.current = nextBarrier;
@@ -291,10 +294,9 @@ export function useCombatTick({
 		}
 
 		// Same mechanic on the enemy side when the monster has a barrier pool
-		// (monsterAdditionalBarrier rolled). The live `current` floats every
-		// frame; the React render only fires when the displayed integer
-		// changes — otherwise a regenerating barrier would push 20 no-op
-		// updateEnemy calls per second.
+		// (monsterAdditionalBarrier rolled). The live `current` floats only
+		// at refill snap; the React render gate avoids no-op updateEnemy
+		// calls.
 		if (enemyBarrierRef.current.max > 0) {
 			const nextEnemyBarrier = tickBarrier(enemyBarrierRef.current, dt);
 			if (nextEnemyBarrier !== enemyBarrierRef.current) {
