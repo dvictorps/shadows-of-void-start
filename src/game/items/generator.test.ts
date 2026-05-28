@@ -531,6 +531,49 @@ describe("global defense % mods respect armorType", () => {
 	});
 });
 
+// ── restrictedToArmorType filter (ADR 0007) ──
+
+describe("restrictedToArmorType modifier filter", () => {
+	// Mutates a gloves-eligible mod to add a silk restriction, generates many
+	// gloves of each armor type, then restores. Verifies the new field filters
+	// armor templates correctly without affecting non-armor eligibility.
+	it("filters armor templates by armorType; passes through non-armor", () => {
+		const target = MODIFIERS.physicalDamageFlatGlobal;
+		const original = target.restrictedToArmorType;
+		target.restrictedToArmorType = "silk";
+		try {
+			const silkGloves = generateMany(200, {
+				rarity: "legendary",
+				templateId: "silk_gloves_t1",
+				itemLevel: 80,
+			});
+			const leatherGloves = generateMany(200, {
+				rarity: "legendary",
+				templateId: "leather_gloves_t1",
+				itemLevel: 80,
+			});
+			const plateGloves = generateMany(200, {
+				rarity: "legendary",
+				templateId: "plate_gloves_t1",
+				itemLevel: 80,
+			});
+			const rings = generateMany(200, {
+				rarity: "legendary",
+				templateId: "cobalt_ring",
+				itemLevel: 80,
+			});
+
+			expect(allExplicitModIds(silkGloves).has("physicalDamageFlatGlobal")).toBe(true);
+			expect(allExplicitModIds(leatherGloves).has("physicalDamageFlatGlobal")).toBe(false);
+			expect(allExplicitModIds(plateGloves).has("physicalDamageFlatGlobal")).toBe(false);
+			// Rings have no armorType → restriction is a no-op.
+			expect(allExplicitModIds(rings).has("physicalDamageFlatGlobal")).toBe(true);
+		} finally {
+			target.restrictedToArmorType = original;
+		}
+	});
+});
+
 // ── Shield ──
 
 describe("shield", () => {
@@ -942,7 +985,7 @@ describe("flat damage mods roll as min-max range", () => {
 				itemLevel: 80,
 			}),
 			...generateMany(200, {
-				rarity: "epic",
+				rarity: "legendary",
 				templateId: "cobalt_ring",
 				itemLevel: 80,
 			}),

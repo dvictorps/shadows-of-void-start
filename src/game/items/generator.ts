@@ -155,6 +155,16 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 			return false;
 		}
 
+		// Per-mod inline restriction (ADR 0007). Filters armor templates only;
+		// non-armor templates (weapons, jewelry, tomes) are unaffected.
+		if (
+			mod.restrictedToArmorType &&
+			template.armorType &&
+			template.armorType !== mod.restrictedToArmorType
+		) {
+			return false;
+		}
+
 		return mod.applicableTo.some((target) => {
 			if (isGroupKey(target)) {
 				const members = EQUIPMENT_GROUPS[target] as readonly string[];

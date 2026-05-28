@@ -1,4 +1,4 @@
-import type { ModifierApplicableTo } from "./base";
+import type { ArmorType, ModifierApplicableTo } from "./base";
 
 // ── Modifier value types (how the value is applied) ──
 
@@ -62,6 +62,11 @@ export interface Modifier {
 	statEffect?: StatEffect;
 	weight?: number; // default DEFAULT_MODIFIER_WEIGHT. Higher = more common.
 	tags?: string[]; // synergy tags (e.g. ["cold", "spell"]) — used for intelligent generation
+	// Restricts the mod to a single armor type. Independent of applicableTo:
+	// a mod targeting "gloves" + restrictedToArmorType "silk" only rolls on
+	// silk-typed glove templates. No-op on non-armor templates (weapons,
+	// jewelry, tomes) where armorType is undefined.
+	restrictedToArmorType?: ArmorType;
 	tiers: ModifierTier[];
 }
 
