@@ -132,10 +132,8 @@ export default defineSchema({
 		totalBossKills: v.optional(v.number()),
 	})
 		.index("by_authUserId", ["authUserId"])
-		// Leaderboard "level" category — primary scope is hardcore mode,
-		// then level desc with xp as the tiebreak. `take(50)` against this
-		// index replaces the full-table collect that previously gated the
-		// leaderboard cron's scalability.
+		// Leaderboard "level" category — `take(50)` against `(hardcore, level, xp)`
+		// orders desc by level with xp as native tiebreak.
 		.index("by_hardcore_level", ["hardcore", "level", "xp"])
 		// Leaderboard "bossKills" category — same scope, different sort key.
 		.index("by_hardcore_bossKills", ["hardcore", "totalBossKills"]),
@@ -206,7 +204,7 @@ export default defineSchema({
 		// Append-only set of node ids whose rare miniboss has been killed.
 		completedZones: v.array(v.string()),
 		// Per-boss kill counts keyed by boss id (e.g. `{ gralfor: 12 }`).
-		bossKillCounts: v.any(),
+		bossKillCounts: v.record(v.string(), v.number()),
 	}).index("by_characterId", ["characterId"]),
 
 	combatState: defineTable({

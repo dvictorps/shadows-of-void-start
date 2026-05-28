@@ -129,23 +129,24 @@ export const create = mutation({
 			totalBossKills: 0,
 		})
 
-		await ctx.db.insert("combatState", {
-			characterId,
-			hpCurrent: maxHp,
-			barrierCurrent: baseStats.maxBarrier,
-			potions: STARTING_POTIONS,
-			xp: 0,
-			etherealIncense: 0,
-			currentZoneKills: 0,
-			inCamp: false,
-		})
-
-		await ctx.db.insert("characterProgression", {
-			characterId,
-			unlockedNodes: ["city"],
-			completedZones: [],
-			bossKillCounts: {},
-		})
+		await Promise.all([
+			ctx.db.insert("combatState", {
+				characterId,
+				hpCurrent: maxHp,
+				barrierCurrent: baseStats.maxBarrier,
+				potions: STARTING_POTIONS,
+				xp: 0,
+				etherealIncense: 0,
+				currentZoneKills: 0,
+				inCamp: false,
+			}),
+			ctx.db.insert("characterProgression", {
+				characterId,
+				unlockedNodes: ["city"],
+				completedZones: [],
+				bossKillCounts: {},
+			}),
+		])
 
 		if (starterWeaponId) {
 			const starterDef = findStarterItem(starterWeaponId)

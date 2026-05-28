@@ -37,10 +37,9 @@ async function listAllUsers(ctx: Parameters<typeof assertAdmin>[0]): Promise<Aut
 }
 
 /**
- * Top-of-page metrics. Aggregates over auth users + a single `userRoles`
- * collect — character counts are denormalized onto userRoles via
- * `adjustUserCharacterMetrics`, so this scales O(usersWithRoleRow) rather
- * than the previous O(users) fan-out over the characters table.
+ * Top-of-page metrics. Character counts come from `userRoles` (maintained
+ * by `adjustUserCharacterMetrics`) so this query does not fan out across
+ * the characters table.
  */
 export const pulse = query({
 	args: {},
@@ -72,10 +71,8 @@ export const pulse = query({
 })
 
 /**
- * Joined user listing for the dashboard. Reads userRoles once and maps it
- * by authUserId — character counts come from the denormalized counter on
- * userRoles, so each user is O(1) (a single map lookup) rather than the
- * previous per-user characters collect.
+ * Joined user listing for the dashboard. Character counts come from the
+ * denormalized counter on `userRoles`, so each user is a single map lookup.
  */
 export const listUsers = query({
 	args: {},

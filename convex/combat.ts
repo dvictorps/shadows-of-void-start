@@ -108,15 +108,13 @@ export const recordKill = mutation({
 		csUpdates.xp = xp
 
 		let magicFind: number
-		const cacheMissed =
-			levelsGained === 0 && char.cachedMaxLife === undefined
 		if (levelsGained > 0 || char.cachedMaxLife === undefined) {
-			if (cacheMissed) {
+			if (levelsGained === 0) {
 				// Defensive log — recordKill should never recompute stats outside
-				// of a level-up. If this fires, an equip/unequip path forgot to
-				// call cacheStatsFromEquipped (or a write path cleared the cache).
+				// of a level-up. Reaching here means cachedMaxLife was undefined,
+				// so an equip/unequip path forgot to refresh the cache.
 				console.warn(
-					`[recordKill] stat-cache miss for character ${args.characterId} — recomputing despite no level-up. Audit equip/unequip cache invalidation.`,
+					`[recordKill] stat-cache miss for character ${args.characterId} — audit equip/unequip cache invalidation.`,
 				)
 			}
 			const classDef = findClassDefinition(char.classId)
@@ -149,29 +147,19 @@ export const recordKill = mutation({
 		const isBossKill = args.monsterRarity === "unique"
 		const grantsCampTier = isMinibossKill || isBossKill
 
-		// Defer the progression read until we actually need it. Regular kills
-		// (the vast majority) never touch progression, so the index hit is
-		// only paid on miniboss / boss kills.
-		const progressionUpdates: Record<string, unknown> = {}
-		let cachedProgression: Doc<"characterProgression"> | undefined
-		const ensureProgression =
-			async (): Promise<Doc<"characterProgression">> => {
-				if (!cachedProgression) {
-					cachedProgression = await loadOrCreateProgression(
-						ctx,
-						args.characterId,
-						char,
-					)
-				}
-				return cachedProgression
-			}
-
+		// Regular kills (the vast majority) never touch progression — skip the
+		// index hit entirely. Miniboss / boss kills load it once and apply both
+		// the completedZones append and the bossKillCounts bump against the
+		// same doc.
+		const progressionUpdates: Partial<Doc<"characterProgression">> = {}
+		let progression: Doc<"characterProgression"> | undefined
 		if (grantsCampTier) {
+			progression = await loadOrCreateProgression(ctx, args.characterId, char)
+
 			csUpdates.currentZoneKills = 0
-			const prog = await ensureProgression()
-			if (!prog.completedZones.includes(currentLocation)) {
+			if (!progression.completedZones.includes(currentLocation)) {
 				progressionUpdates.completedZones = [
-					...prog.completedZones,
+					...progression.completedZones,
 					currentLocation,
 				]
 			}
@@ -181,6 +169,19 @@ export const recordKill = mutation({
 				csUpdates.campThresholdsMs = rollCampThresholdsMs(plan)
 				csUpdates.zoneStartedAt = Date.now()
 				csUpdates.lastCampIndex = undefined
+			}
+
+			if (isBossKill) {
+				const counts =
+					(progression.bossKillCounts as
+						| Record<string, number>
+						| undefined) ?? {}
+				progressionUpdates.bossKillCounts = {
+					...counts,
+					[args.monsterId]: (counts[args.monsterId] ?? 0) + 1,
+				}
+				// totalBossKills stays on characters — it's the leaderboard index key.
+				charUpdates.totalBossKills = (char.totalBossKills ?? 0) + 1
 			}
 		} else {
 			csUpdates.currentZoneKills = cs.currentZoneKills + 1
@@ -198,21 +199,9 @@ export const recordKill = mutation({
 			csUpdates.etherealIncense = cs.etherealIncense + 1
 		}
 
-		if (isBossKill) {
-			const prog = await ensureProgression()
-			const counts =
-				(prog.bossKillCounts as Record<string, number> | undefined) ?? {}
-			progressionUpdates.bossKillCounts = {
-				...counts,
-				[args.monsterId]: (counts[args.monsterId] ?? 0) + 1,
-			}
-			// totalBossKills stays on characters — it's the leaderboard index key.
-			charUpdates.totalBossKills = (char.totalBossKills ?? 0) + 1
-		}
-
 		await ctx.db.patch(cs._id, csUpdates)
-		if (cachedProgression && Object.keys(progressionUpdates).length > 0) {
-			await ctx.db.patch(cachedProgression._id, progressionUpdates)
+		if (progression && Object.keys(progressionUpdates).length > 0) {
+			await ctx.db.patch(progression._id, progressionUpdates)
 		}
 		if (Object.keys(charUpdates).length > 0) {
 			await ctx.db.patch(args.characterId, charUpdates)
@@ -247,10 +236,8 @@ export const recordKill = mutation({
 			}
 		}
 
-		// Note: the client doesn't need the inserted drops in the response —
-		// the `items.zoneBag` query is already subscribed during combat and
-		// picks up the new docs via reactivity. Returning the full `data`
-		// payload added ~500B–1.5KB per item per kill for no consumer.
+		// Drops aren't returned — the `items.zoneBag` query is already
+		// subscribed during combat and picks them up reactively.
 		return {
 			xpGained: xpAwarded,
 			levelsGained,

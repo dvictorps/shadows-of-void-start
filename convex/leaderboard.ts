@@ -9,19 +9,20 @@ function sumBossKills(counts: unknown): number {
 	)
 }
 
-// Pulls the top 50 characters per `(category, mode)` via the matching index.
-// Replaces the previous full-table collect — scales O(50) instead of O(users).
-// Tiebreak for `level` is `xp` (encoded in the index tuple), matching the
-// in-memory sort the previous implementation did.
+// Pulls the top 50 characters per `(category, mode)` via the matching
+// index. Tiebreak for `level` is `xp`, encoded in the index tuple so the
+// native order serves directly.
 export const computeSnapshot = internalMutation({
 	handler: async (ctx) => {
-		const categories = ["level", "bossKills"] as const
-		const modes = ["softcore", "hardcore"] as const
+		const jobs = [
+			{ category: "level", mode: "softcore", hardcore: false },
+			{ category: "level", mode: "hardcore", hardcore: true },
+			{ category: "bossKills", mode: "softcore", hardcore: false },
+			{ category: "bossKills", mode: "hardcore", hardcore: true },
+		] as const
 
-		for (const category of categories) {
-			for (const mode of modes) {
-				const hardcore = mode === "hardcore"
-
+		await Promise.all(
+			jobs.map(async ({ category, mode, hardcore }) => {
 				const top =
 					category === "level"
 						? await ctx.db
@@ -67,8 +68,8 @@ export const computeSnapshot = internalMutation({
 						updatedAt: Date.now(),
 					})
 				}
-			}
-		}
+			}),
+		)
 	},
 })
 
