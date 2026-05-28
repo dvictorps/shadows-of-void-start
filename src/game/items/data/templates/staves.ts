@@ -11,8 +11,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 1,
 		requirements: { level: 1, int: 12 },
 		baseStats: {
-			minDamage: 4,
-			maxDamage: 12,
+			minDamage: 6,
+			maxDamage: 18,
 			attackSpeed: 1.2,
 			criticalChance: 6,
 		},
@@ -35,8 +35,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 4,
 		requirements: { level: 4, int: 14 },
 		baseStats: {
-			minDamage: 8,
-			maxDamage: 16,
+			minDamage: 12,
+			maxDamage: 22,
 			attackSpeed: 1.2,
 			criticalChance: 6,
 		},
@@ -59,8 +59,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 7,
 		requirements: { level: 7, int: 18 },
 		baseStats: {
-			minDamage: 10,
-			maxDamage: 22,
+			minDamage: 12,
+			maxDamage: 28,
 			attackSpeed: 1.2,
 			criticalChance: 6,
 		},
@@ -83,8 +83,8 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 10,
 		requirements: { level: 10, int: 22 },
 		baseStats: {
-			minDamage: 16,
-			maxDamage: 32,
+			minDamage: 18,
+			maxDamage: 38,
 			attackSpeed: 1.2,
 			criticalChance: 6,
 		},
@@ -108,7 +108,7 @@ export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 14, int: 28 },
 		baseStats: {
 			minDamage: 24,
-			maxDamage: 50,
+			maxDamage: 52,
 			attackSpeed: 1.2,
 			criticalChance: 6,
 		},

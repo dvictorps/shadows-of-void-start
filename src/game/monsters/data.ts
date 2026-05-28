@@ -1,6 +1,14 @@
 import type { MonsterDefinition } from "./types";
 
 export const MONSTERS = {
+	// Early-zone monsters (forest_starter lvl 1, forest_profunda lvl 2,
+	// pantano lvl 4): physical damage softened ~20% and elemental damage
+	// stripped. Fresh lvl 1 characters have no gear, no mitigation, no
+	// resistances — full-strength stats from the original templates plus the
+	// 1.06^L scaling stacked into a punishing first-act ramp. These six
+	// monsters appear only in zones lvl ≤4 (cripta onward uses esqueleto/
+	// vampiro/etc with their original stats), so editing the templates here
+	// is the right place for an early-game softening pass.
 	goblin: {
 		id: "goblin",
 		name: "Goblin",
@@ -8,8 +16,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 30,
 			attackSpeed: 1.2,
-			physicalDamage: { min: 12, max: 18 },
-			elementalDamage: [{ element: "Fire", min: 2, max: 4 }],
+			physicalDamage: { min: 10, max: 14 },
+			elementalDamage: [],
 		},
 		xpReward: 5,
 		allowedRarities: ["normal"],
@@ -21,8 +29,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 54,
 			attackSpeed: 0.7,
-			physicalDamage: { min: 6, max: 12 },
-			elementalDamage: [{ element: "Cold", min: 2, max: 3 }],
+			physicalDamage: { min: 5, max: 10 },
+			elementalDamage: [],
 		},
 		xpReward: 8,
 		allowedRarities: ["normal"],
@@ -34,8 +42,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 18,
 			attackSpeed: 1.8,
-			physicalDamage: { min: 8, max: 11 },
-			elementalDamage: [{ element: "Lightning", min: 1, max: 3 }],
+			physicalDamage: { min: 6, max: 9 },
+			elementalDamage: [],
 		},
 		xpReward: 4,
 		allowedRarities: ["normal"],
@@ -47,8 +55,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 12,
 			attackSpeed: 2.0,
-			physicalDamage: { min: 6, max: 9 },
-			elementalDamage: [{ element: "Void", min: 1, max: 2 }],
+			physicalDamage: { min: 5, max: 7 },
+			elementalDamage: [],
 		},
 		xpReward: 4,
 		allowedRarities: ["normal"],
@@ -60,8 +68,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 24,
 			attackSpeed: 1.4,
-			physicalDamage: { min: 11, max: 15 },
-			elementalDamage: [{ element: "Cold", min: 2, max: 4 }],
+			physicalDamage: { min: 9, max: 12 },
+			elementalDamage: [],
 		},
 		xpReward: 6,
 		allowedRarities: ["normal"],
@@ -112,8 +120,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 36,
 			attackSpeed: 0.8,
-			physicalDamage: { min: 9, max: 15 },
-			elementalDamage: [{ element: "Void", min: 2, max: 4 }],
+			physicalDamage: { min: 7, max: 12 },
+			elementalDamage: [],
 		},
 		xpReward: 7,
 		allowedRarities: ["normal"],
