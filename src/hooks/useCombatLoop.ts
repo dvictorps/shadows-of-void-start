@@ -63,9 +63,6 @@ type Params = {
 	characterLevel: number;
 	stats: ComputedCharacterStats;
 	initialHp: number;
-	// Shared barrier state owned by useBarrier at the orchestrator level.
-	// Passed through to useCombatTick for in-tick damage; resolveKill calls
-	// barrierApi.restoreToFull on level-up.
 	barrierApi: BarrierApi;
 	// Live potion count from the character query. The hook does NOT keep a
 	// local copy — drink + drop are both server-driven, and tracking the

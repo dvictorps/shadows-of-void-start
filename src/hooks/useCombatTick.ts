@@ -59,10 +59,6 @@ type Params = {
 	stats: ComputedCharacterStats;
 	initialHp: number;
 	potions: number;
-	// Shared barrier state owned by useBarrier at the orchestrator level.
-	// Reads through barrierApi.barrierRef for mid-tick visibility; applies
-	// monster damage via barrierApi.applyDamage; resets to full on level-up
-	// via barrierApi.restoreToFull.
 	barrierApi: BarrierApi;
 	onPlayerDeath: () => void;
 	// Reset to "victory" by resolveKill before this returns — used by the
@@ -174,11 +170,8 @@ export function useCombatTick({
 		}
 	}, [enemyScaled]);
 
-	// Activation: reset HP + transient combat refs on zone entry. Barrier is
-	// not reset here — it lives in useBarrier and persists across views, so
-	// re-entering combat with a partially-refilled barrier preserves the
-	// refill cycle. Deactivation: flush HP sync if alive (graceful retreat /
-	// view change).
+	// Activation resets HP + transient combat refs. Barrier lives in
+	// useBarrier and persists across views — not reset here.
 	const activeRef = useRef(active);
 	useEffect(() => {
 		const wasActive = activeRef.current;
@@ -437,8 +430,6 @@ export function useCombatTick({
 					exclusive: true,
 				});
 			} else if (attack.amount > 0) {
-				// Apply to barrier first (shared state), then route the unabsorbed
-				// remainder into life via the existing helper.
 				const { lifeOverflow } = barrierApi.applyDamage(attack.amount);
 				const result = applyDamageToBarrierThenLife(
 					lifeOverflow,
@@ -535,10 +526,8 @@ export function useCombatTick({
 		}
 	}, [potions, maxHp, characterId, consumePotion, withSession]);
 
-	// Restore player HP to full. Optional override covers the level-up race
-	// where the closed-over `maxHp` may still reflect pre-level-up stats; the
-	// caller passes the fresh value from statsRef. Barrier restore is the
-	// caller's job (barrierApi.restoreToFull) since useBarrier owns it.
+	// `overrideMaxHp` wins the level-up reactive-query race. Barrier is the
+	// caller's job (barrierApi.restoreToFull).
 	const restoreToFull = useCallback(
 		(overrideMaxHp?: number) => {
 			const hp = overrideMaxHp ?? maxHp;

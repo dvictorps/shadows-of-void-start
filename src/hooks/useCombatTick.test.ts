@@ -270,6 +270,46 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 	});
 });
 
+function renderRegenHook({
+	lifeRegen,
+	maxLife,
+	initialHp,
+}: {
+	lifeRegen: number;
+	maxLife: number;
+	initialHp: number;
+}) {
+	return renderHook(
+		() => {
+			const stats = makeStats({ lifeRegen, maxLife });
+			const barrierApi = useBarrier({
+				maxBarrier: stats.maxBarrier,
+				active: true,
+			});
+			return useCombatTick({
+				characterId: "test-char" as unknown as Parameters<
+					typeof useCombatTick
+				>[0]["characterId"],
+				active: true,
+				isEngaged: false,
+				enemy: null,
+				stats,
+				initialHp,
+				potions: 0,
+				barrierApi,
+				onPlayerDeath: vi.fn(),
+				resolveKill: vi.fn(),
+				pushEvent: vi.fn(),
+				updateEnemy: vi.fn(),
+			});
+		},
+		{
+			wrapper: ({ children }) =>
+				createElement(SessionTokenProvider, null, children),
+		},
+	);
+}
+
 describe("useCombatTick — life regen modifier", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
@@ -282,36 +322,11 @@ describe("useCombatTick — life regen modifier", () => {
 	});
 
 	it("applies stats.lifeRegen as continuous HP recovery (out-of-engagement)", () => {
-		const { result } = renderHook(
-			() => {
-				const stats = makeStats({ lifeRegen: 10, maxLife: 100 });
-				const barrierApi = useBarrier({
-					maxBarrier: stats.maxBarrier,
-					active: true,
-				});
-				return useCombatTick({
-					characterId: "test-char" as unknown as Parameters<
-						typeof useCombatTick
-					>[0]["characterId"],
-					active: true,
-					isEngaged: false,
-					enemy: null,
-					stats,
-					initialHp: 50,
-					potions: 0,
-					barrierApi,
-					onPlayerDeath: vi.fn(),
-					resolveKill: vi.fn(),
-					pushEvent: vi.fn(),
-					updateEnemy: vi.fn(),
-				});
-			},
-			{
-				wrapper: ({ children }) =>
-					createElement(SessionTokenProvider, null, children),
-			},
-		);
-
+		const { result } = renderRegenHook({
+			lifeRegen: 10,
+			maxLife: 100,
+			initialHp: 50,
+		});
 		expect(result.current.playerHp).toBe(50);
 		act(() => {
 			vi.advanceTimersByTime(1000);
@@ -321,36 +336,11 @@ describe("useCombatTick — life regen modifier", () => {
 	});
 
 	it("caps at maxLife and resets the fractional accumulator on overfill", () => {
-		const { result } = renderHook(
-			() => {
-				const stats = makeStats({ lifeRegen: 5, maxLife: 100 });
-				const barrierApi = useBarrier({
-					maxBarrier: stats.maxBarrier,
-					active: true,
-				});
-				return useCombatTick({
-					characterId: "test-char" as unknown as Parameters<
-						typeof useCombatTick
-					>[0]["characterId"],
-					active: true,
-					isEngaged: false,
-					enemy: null,
-					stats,
-					initialHp: 98,
-					potions: 0,
-					barrierApi,
-					onPlayerDeath: vi.fn(),
-					resolveKill: vi.fn(),
-					pushEvent: vi.fn(),
-					updateEnemy: vi.fn(),
-				});
-			},
-			{
-				wrapper: ({ children }) =>
-					createElement(SessionTokenProvider, null, children),
-			},
-		);
-
+		const { result } = renderRegenHook({
+			lifeRegen: 5,
+			maxLife: 100,
+			initialHp: 98,
+		});
 		act(() => {
 			vi.advanceTimersByTime(2000);
 		});
@@ -359,36 +349,11 @@ describe("useCombatTick — life regen modifier", () => {
 	});
 
 	it("does not regen at fractional rates below 1 HP/s until the accumulator carries", () => {
-		const { result } = renderHook(
-			() => {
-				const stats = makeStats({ lifeRegen: 0.5, maxLife: 100 });
-				const barrierApi = useBarrier({
-					maxBarrier: stats.maxBarrier,
-					active: true,
-				});
-				return useCombatTick({
-					characterId: "test-char" as unknown as Parameters<
-						typeof useCombatTick
-					>[0]["characterId"],
-					active: true,
-					isEngaged: false,
-					enemy: null,
-					stats,
-					initialHp: 50,
-					potions: 0,
-					barrierApi,
-					onPlayerDeath: vi.fn(),
-					resolveKill: vi.fn(),
-					pushEvent: vi.fn(),
-					updateEnemy: vi.fn(),
-				});
-			},
-			{
-				wrapper: ({ children }) =>
-					createElement(SessionTokenProvider, null, children),
-			},
-		);
-
+		const { result } = renderRegenHook({
+			lifeRegen: 0.5,
+			maxLife: 100,
+			initialHp: 50,
+		});
 		act(() => {
 			vi.advanceTimersByTime(1000);
 		});

@@ -232,10 +232,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const zoneSession = combatState?.currentZoneSession ?? character.currentZoneSession;
 	const campThresholds = combatState?.campThresholdsMs ?? character.campThresholdsMs ?? EMPTY_THRESHOLDS;
 
-	// Shared barrier state across all views. Owns the in-process BarrierState +
-	// the refill ticker. Replaces the prior dual-ref pattern (useCombatTick
-	// owned the in-combat ref; world.tsx owned an out-of-combat mirror synced
-	// via view-change useEffects + a manual barrier-sync mutation).
 	const barrierApi = useBarrier({
 		maxBarrier: stats.maxBarrier,
 		initialBarrier: barrier,
@@ -682,10 +678,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const hpOverride = view === "combat" ? combat.playerHp : Math.min(hp, maxHp);
 
-	// City entry restores barrier to full (ADR 0005). All other transitions
-	// preserve current + refillRemaining — useBarrier is the same state object
-	// across views, so the refill cycle is structurally preserved at the
-	// retreat / re-enter combat boundary without any sync handshake.
+	// City entry restores barrier to full (ADR 0005).
 	useEffect(() => {
 		if (view === "city") barrierApi.restoreToFull();
 	}, [view, barrierApi]);

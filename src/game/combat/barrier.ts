@@ -40,10 +40,12 @@ export function rescaleBarrier(
 	newMax: number,
 ): BarrierState {
 	if (newMax <= 0) {
+		if (state.current === 0 && state.max === 0) return state;
 		return { current: 0, max: 0, refillRemaining: state.refillRemaining };
 	}
 	const seedAtFull = state.current === 0 && state.refillRemaining === 0;
 	const current = seedAtFull ? newMax : Math.min(state.current, newMax);
+	if (current === state.current && newMax === state.max) return state;
 	return { current, max: newMax, refillRemaining: state.refillRemaining };
 }
 

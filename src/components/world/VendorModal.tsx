@@ -43,13 +43,8 @@ export default function VendorModal({
 	const [tab, setTab] = useState<Tab>("buy");
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [rubyDeltas, setRubyDeltas] = useState<RubyDelta[]>([]);
-	// Per-product in-flight tracking so spamming buy on the same product
-	// only fires one request at a time. The button-disabled state is the
-	// actual guard; the early-return in handleBuy is belt-and-suspenders
-	// for the render-cycle window where a click arrives before React
-	// commits the disabled state. Real abuse hardening (e.g. someone
-	// hitting the Convex endpoint directly) needs server-side rate
-	// limiting — deferred, see docs/security/threat-model.md.
+	// Per-product spam-click guard. Server-side rate limiting is the real
+	// hardening — see docs/security/threat-model.md.
 	const [pendingBuys, setPendingBuys] = useState<Set<VendorProductId>>(
 		new Set(),
 	);
@@ -302,9 +297,6 @@ function BuyCard({
 	pending: boolean;
 	onBuy: (productId: VendorProductId, quantity: number) => Promise<void>;
 }) {
-	// Hard ceiling on the stepper so users can't accidentally queue a 4-digit
-	// batch with one click-and-hold. Caps the visual qty too; affordability and
-	// product cap will still clamp tighter when applicable.
 	const STEPPER_MAX = 99;
 	const capRemaining =
 		product.cap !== undefined ? Math.max(0, product.cap - currentCount) : STEPPER_MAX;
@@ -313,23 +305,20 @@ function BuyCard({
 	const maxQty = Math.min(STEPPER_MAX, capRemaining, maxAfford);
 	const atCap = capRemaining === 0;
 	const [qty, setQty] = useState(1);
-	// Clamp whenever the live caps move below the user's chosen qty (e.g. they
-	// type a number, then a recordKill arrives and shrinks affordability).
+	// Clamp when live affordability/cap shrinks below the user's chosen qty.
 	useEffect(() => {
 		if (maxQty <= 0) {
 			if (qty !== 1) setQty(1);
 			return;
 		}
 		if (qty > maxQty) setQty(maxQty);
-		if (qty < 1) setQty(1);
 	}, [qty, maxQty]);
 	const totalCost = product.priceRubys * qty;
 	const disabled = pending || atCap || maxQty < qty || rubys < totalCost;
-	const buttonLabel = atCap
-		? m.vendor_buy_at_cap()
-		: qty > 1
-			? `${m.vendor_buy_action()} x${qty}`
-			: m.vendor_buy_action();
+	let buttonLabel: string;
+	if (atCap) buttonLabel = m.vendor_buy_at_cap();
+	else if (qty > 1) buttonLabel = `${m.vendor_buy_action()} x${qty}`;
+	else buttonLabel = m.vendor_buy_action();
 	const decDisabled = qty <= 1 || pending;
 	const incDisabled = qty >= maxQty || pending;
 	return (

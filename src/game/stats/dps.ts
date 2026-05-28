@@ -14,24 +14,17 @@ export function estimateDps(stats: ComputedCharacterStats): number {
 	const isSpell = stats.path === "spell";
 	const pathBonus = isSpell ? inc.spell : inc.melee;
 
-	const elemInc = (key: string) => {
-		const per =
-			key === "cold"
-				? inc.cold
-				: key === "fire"
-					? inc.fire
-					: key === "lightning"
-						? inc.lightning
-						: key === "void"
-							? inc.void
-							: 0;
-		return (
-			per +
-			inc.elementalGlobal +
-			(isSpell ? 0 : inc.elementalWithAttacks) +
-			pathBonus
-		);
+	const perElement: Record<string, number> = {
+		cold: inc.cold,
+		fire: inc.fire,
+		lightning: inc.lightning,
+		void: inc.void,
 	};
+	const elemInc = (key: string) =>
+		(perElement[key] ?? 0) +
+		inc.elementalGlobal +
+		(isSpell ? 0 : inc.elementalWithAttacks) +
+		pathBonus;
 
 	const avgPerSwing =
 		stats.swings.reduce((sum, s) => {

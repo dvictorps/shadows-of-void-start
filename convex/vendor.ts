@@ -10,9 +10,6 @@ export const vendorBuy = mutation({
 		characterId: v.id("characters"),
 		sessionToken: v.string(),
 		productId: v.string(),
-		// Bulk purchases ship a single atomic mutation rather than firing N
-		// per-unit requests — keeps cap/rubys validation race-free and avoids
-		// inflating Convex call rates. Validated > 0 and integer below.
 		quantity: v.number(),
 	},
 	handler: async (ctx, args) => {
