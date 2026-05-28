@@ -25,7 +25,7 @@ import { useInFlight } from "#/hooks/useInFlight";
 import { m } from "#/paraglide/messages";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
-const SLOT_SIZE_DEFAULT = 80;
+const SLOT_SIZE_DEFAULT = 76;
 const SLOT_SIZE_COMPACT = 64;
 const COLUMNS = 8;
 
@@ -357,7 +357,7 @@ export default function StashModal({
 						</div>
 						<div className="fancy-scroll max-h-[60vh] overflow-y-auto pr-2">
 							<div
-								className="grid gap-1.5"
+								className="grid gap-1"
 								style={{
 									gridTemplateColumns: `repeat(${COLUMNS}, ${slotSize}px)`,
 								}}
@@ -428,7 +428,7 @@ export default function StashModal({
 								</p>
 							) : (
 								<div
-									className="grid gap-1.5"
+									className="grid gap-1"
 									style={{
 										gridTemplateColumns: `repeat(${COLUMNS}, ${slotSize}px)`,
 									}}

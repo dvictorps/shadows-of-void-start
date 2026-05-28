@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planEquip, validSlotsForItem } from "./equipment";
+import { canSwapHands, planEquip, validSlotsForItem } from "./equipment";
 import type { GeneratedItem } from "./types";
 
 function makeWeapon(
@@ -308,5 +308,60 @@ describe("planEquip", () => {
 		});
 		const slots = plan.displaced.map((d) => d.slot).sort();
 		expect(slots).toEqual(["offhand", "weapon"]);
+	});
+});
+
+describe("canSwapHands", () => {
+	it("allows attack 1H + attack 1H (sword + dagger)", () => {
+		const main = makeWeapon("sword", "sword");
+		const off = makeWeapon("dagger", "dagger");
+		expect(canSwapHands(main, off)).toBe(true);
+	});
+
+	it("allows wand + wand (caster dual-wield)", () => {
+		const main = makeWeapon("wand-a", "wand");
+		const off = makeWeapon("wand-b", "wand");
+		expect(canSwapHands(main, off)).toBe(true);
+	});
+
+	it("rejects when off-hand is a shield (offhand-only)", () => {
+		const main = makeWeapon("sword", "sword");
+		const off = makeShield("shield");
+		expect(canSwapHands(main, off)).toBe(false);
+	});
+
+	it("rejects when off-hand is a tome", () => {
+		const main = makeWeapon("wand", "wand");
+		const off = makeTome("tome");
+		expect(canSwapHands(main, off)).toBe(false);
+	});
+
+	it("rejects when main is 2H (greatsword)", () => {
+		const main = makeWeapon("gs", "greatsword");
+		const off = makeWeapon("sword", "sword");
+		// (this state can't legally exist, but the predicate must still say no)
+		expect(canSwapHands(main, off)).toBe(false);
+	});
+
+	it("rejects bow + quiver pair", () => {
+		const main = makeWeapon("bow", "bow");
+		const off: GeneratedItem = {
+			...makeShield("quiver"),
+			equipmentType: "quiver",
+		};
+		expect(canSwapHands(main, off)).toBe(false);
+	});
+
+	it("rejects mixed archetype (sword + wand)", () => {
+		const main = makeWeapon("sword", "sword");
+		const off = makeWeapon("wand", "wand");
+		expect(canSwapHands(main, off)).toBe(false);
+	});
+
+	it("rejects when either side is null (empty slot)", () => {
+		const sword = makeWeapon("sword", "sword");
+		expect(canSwapHands(sword, null)).toBe(false);
+		expect(canSwapHands(null, sword)).toBe(false);
+		expect(canSwapHands(null, null)).toBe(false);
 	});
 });

@@ -190,3 +190,19 @@ export function planEquip({
 
 	return { displaced };
 }
+
+// Shared client + server — the server mutation calls this too. Keep pure.
+export function canSwapHands(
+	mainHand: GeneratedItem | null,
+	offHand: GeneratedItem | null,
+): boolean {
+	if (!mainHand || !offHand) return false;
+	if (!isWeapon(mainHand) || !isWeapon(offHand)) return false;
+	if (isTwoHanded(mainHand) || isTwoHanded(offHand)) return false;
+	const mainArch = weaponArchetype(mainHand);
+	const offArch = weaponArchetype(offHand);
+	if (!mainArch || !offArch || mainArch !== offArch) return false;
+	const mainValid = validSlotsForItem(mainHand);
+	const offValid = validSlotsForItem(offHand);
+	return mainValid.includes("offhand") && offValid.includes("weapon");
+}

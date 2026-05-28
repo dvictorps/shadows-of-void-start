@@ -11,6 +11,7 @@ import {
 	useSensors,
 } from "@dnd-kit/core";
 import { useMutation } from "convex/react";
+import { ArrowLeftRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
@@ -23,7 +24,12 @@ import {
 	createInventorySlotAllocator,
 	INVENTORY_MAX_SLOTS,
 } from "#/game/inventory/constants";
-import { isWeapon, planEquip, validSlotsForItem } from "#/game/items/equipment";
+import {
+	canSwapHands,
+	isWeapon,
+	planEquip,
+	validSlotsForItem,
+} from "#/game/items/equipment";
 import { translateItemName } from "#/game/items/item-name";
 import type { GeneratedItem } from "#/game/items/types";
 import { describeBrokenReasons } from "#/game/stats/compute";
@@ -249,6 +255,29 @@ export default function InventoryModal({
 			);
 		},
 	);
+	const swapHands = useMutation(api.items.swapHands).withOptimisticUpdate(
+		(localStore, args) => {
+			const equipped = localStore.getQuery(api.items.equipped, {
+				characterId: args.characterId,
+			});
+			if (!equipped) return;
+			const main = equipped.find((it) => it.equippedSlot === "weapon");
+			const off = equipped.find((it) => it.equippedSlot === "offhand");
+			if (!main || !off) return;
+			const next = equipped.map((it) => {
+				if (it._id === main._id)
+					return { ...it, equippedSlot: "offhand" as const };
+				if (it._id === off._id)
+					return { ...it, equippedSlot: "weapon" as const };
+				return it;
+			});
+			localStore.setQuery(
+				api.items.equipped,
+				{ characterId: args.characterId },
+				next,
+			);
+		},
+	);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -274,6 +303,15 @@ export default function InventoryModal({
 	}, [equippedItems]);
 
 	const mainHandWeaponType = equippedBySlot.get("weapon")?.data.weaponType;
+
+	const handsSwappable = useMemo(
+		() =>
+			canSwapHands(
+				equippedBySlot.get("weapon")?.data ?? null,
+				equippedBySlot.get("offhand")?.data ?? null,
+			),
+		[equippedBySlot],
+	);
 
 	const inventory = inventoryItems;
 
@@ -322,7 +360,9 @@ export default function InventoryModal({
 		if (source.kind === "inventory" && target.kind === "inventory") {
 			const sourceDoc = inventory.find((it) => it._id === source.itemId);
 			if (!sourceDoc || sourceDoc.inventorySlot === target.slot) return;
-			const occupant = inventory.find((it) => it.inventorySlot === target.slot && it._id !== source.itemId);
+			const occupant = inventory.find(
+				(it) => it.inventorySlot === target.slot && it._id !== source.itemId,
+			);
 			void reorder(
 				withSession({
 					characterId,
@@ -364,8 +404,14 @@ export default function InventoryModal({
 			return;
 		}
 
-		// Equipped → equipment: unsupported in this iteration (user can unequip,
-		// then equip from inventory).
+		if (source.kind === "equipped" && target.kind === "equipment") {
+			const isHandPair =
+				(source.slot === "weapon" && target.slot === "offhand") ||
+				(source.slot === "offhand" && target.slot === "weapon");
+			if (!isHandPair || !handsSwappable) return;
+			await triggerSwapHands();
+			return;
+		}
 	};
 
 	const triggerEquip = async (
@@ -384,6 +430,14 @@ export default function InventoryModal({
 			await unequipItem(withSession({ characterId, slot }));
 		} catch (err) {
 			toast.error(convexErrorMessage(err, m.error_unequip_failed()));
+		}
+	};
+
+	const triggerSwapHands = async () => {
+		try {
+			await swapHands(withSession({ characterId }));
+		} catch (err) {
+			toast.error(convexErrorMessage(err, m.error_equip_failed()));
 		}
 	};
 
@@ -496,6 +550,7 @@ export default function InventoryModal({
 										item={item ?? null}
 										eligible={validEquipSlots.has(slot)}
 										dragging={active}
+										handsSwappable={handsSwappable}
 										broken={broken}
 										brokenReasons={reasons}
 										avoidRect={menuRect}
@@ -510,6 +565,23 @@ export default function InventoryModal({
 								);
 							})}
 						</div>
+						<button
+							type="button"
+							onClick={() => {
+								if (!handsSwappable) return;
+								void triggerSwapHands();
+							}}
+							disabled={!handsSwappable}
+							title={
+								handsSwappable
+									? undefined
+									: m.inventory_swap_hands_tooltip_disabled()
+							}
+							className="mt-3 flex w-full items-center justify-center gap-2 border border-white/30 bg-black px-3 py-2 font-medium text-[10px] text-white/70 uppercase tracking-[0.2em] transition hover:border-white hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-white/30 disabled:hover:bg-black disabled:hover:text-white/70"
+						>
+							<ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
+							{m.inventory_swap_hands()}
+						</button>
 					</section>
 
 					<div className="w-px bg-white/15" aria-hidden />
@@ -694,6 +766,7 @@ function EquipmentDroppable({
 	item,
 	eligible,
 	dragging,
+	handsSwappable,
 	broken,
 	brokenReasons,
 	avoidRect,
@@ -704,6 +777,7 @@ function EquipmentDroppable({
 	item: Doc<"items"> | null;
 	eligible: boolean;
 	dragging: DragSourceData | null;
+	handsSwappable: boolean;
 	broken: boolean;
 	brokenReasons: string[] | undefined;
 	avoidRect: DOMRect | null;
@@ -727,6 +801,23 @@ function EquipmentDroppable({
 		} else if (eligible) {
 			highlight =
 				"ring-2 ring-yellow-300/40 shadow-[0_0_8px_rgba(253,224,71,0.25)]";
+		}
+	} else if (
+		dragging?.kind === "equipped" &&
+		(dragging.slot === "weapon" || dragging.slot === "offhand")
+	) {
+		const isOppositeHand =
+			(dragging.slot === "weapon" && slot === "offhand") ||
+			(dragging.slot === "offhand" && slot === "weapon");
+		if (isOppositeHand) {
+			if (isOver) {
+				highlight = handsSwappable
+					? "ring-2 ring-yellow-300/90 shadow-[0_0_14px_rgba(253,224,71,0.55)]"
+					: "ring-2 ring-red-500/70";
+			} else if (handsSwappable) {
+				highlight =
+					"ring-2 ring-yellow-300/40 shadow-[0_0_8px_rgba(253,224,71,0.25)]";
+			}
 		}
 	}
 	return (

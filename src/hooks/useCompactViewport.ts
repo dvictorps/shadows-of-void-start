@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const MQ = "(max-height: 800px)";
+const MQ = "(max-height: 800px), (max-width: 1500px)";
 
 export function useCompactViewport(): boolean {
 	const [compact, setCompact] = useState(

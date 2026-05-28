@@ -31,7 +31,11 @@ import {
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import type { BossNodeConfig, CampSource } from "#/game/world";
 import type { ZoneEncounterPlan } from "#/game/world/encounter-schedule";
-import { applyCharacterDelta, applyCombatStateDelta, findCharacter } from "#/lib/optimistic-character";
+import {
+	applyCharacterDelta,
+	applyCombatStateDelta,
+	findCharacter,
+} from "#/lib/optimistic-character";
 import { pickRandom } from "#/lib/rng";
 import { playKillSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
@@ -93,6 +97,8 @@ type Params = {
 };
 
 const VICTORY_DELAY_MS = 800;
+
+const NOOP_RESTORE = (_overrideMaxHp?: number) => {};
 
 export function useCombatLoop({
 	characterId,
@@ -201,7 +207,9 @@ export function useCombatLoop({
 				etherealIncense: Math.max(0, (char.etherealIncense ?? 0) - 1),
 			});
 		}
-		const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+		const csData = localStore.getQuery(api.combatState.byCharacterId, {
+			characterId: args.characterId,
+		});
 		if (csData) {
 			applyCombatStateDelta(localStore, args.characterId, {
 				etherealIncense: Math.max(0, csData.etherealIncense - 1),
@@ -214,13 +222,8 @@ export function useCombatLoop({
 		setEnemy(next);
 	}, []);
 
-	// Latest stats mirrored into a ref so the post-recordKill .then handler
-	// reads fresh maxLife/maxBarrier even when the closure was captured one
-	// or more renders earlier (per Gemini review on PR #64).
-	const statsRef = useRef(stats);
-	statsRef.current = stats;
-
-	const restoreToFullRef = useRef<(overrideMaxHp?: number) => void>(() => {});
+	const restoreToFullRef =
+		useRef<(overrideMaxHp?: number) => void>(NOOP_RESTORE);
 
 	const resolveKill = useCallback(
 		(killed: Enemy) => {
@@ -249,11 +252,12 @@ export function useCombatLoop({
 				}),
 			)
 				.then((result) => {
-					if (result.levelsGained > 0) {
-						// Read from statsRef, not the closed-over `stats` — the
-						// closure was captured before the level-up bumped maxLife.
-						restoreToFullRef.current(statsRef.current.maxLife);
-						barrierApi.restoreToFull(statsRef.current.maxBarrier);
+					if (result.newMaxLife !== undefined) {
+						// Server-authoritative — kills the race between this `.then` and
+						// the reactive-query propagation that re-renders `stats` (closing
+						// over stale `stats` would set HP to oldMax = newMax - 10).
+						restoreToFullRef.current(result.newMaxLife);
+						barrierApi.restoreToFull(result.newMaxBarrier);
 					}
 					if (result.potionDropped) {
 						setLastKill({ xp: xpGained, potion: true });

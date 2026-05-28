@@ -59,8 +59,8 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 items/
 ├── generator.ts             # generateItem({ rarity, ilvl, type, weaponType }) — public API
 ├── generator.test.ts        # 101 tests covering rarity/tier/mod rules
-├── equipment.ts             # planEquip, validSlotsForItem, isTwoHanded, weaponArchetype — shared client+server
-├── equipment.test.ts        # planEquip rules (2H displacement, archetype, etc.)
+├── equipment.ts             # planEquip, canSwapHands, validSlotsForItem, isTwoHanded, weaponArchetype — shared client+server
+├── equipment.test.ts        # planEquip + canSwapHands rules (2H displacement, archetype, hand-swap eligibility)
 ├── starter-gear.ts          # Hand-crafted starter weapons (rusty_sword, rusty_dagger, cracked_wand)
 ├── item-name.ts             # translateItemName / translateTemplateName — display-time renderer (locale × rarity, UUID-seeded rare names)
 ├── item-name.test.ts        # 20 tests: gender concord, UUID determinism, locale switch, fallback

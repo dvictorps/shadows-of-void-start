@@ -58,6 +58,16 @@ export default function ExitZoneModal({
 		if (isOpen) setSelected(new Set());
 	}, [isOpen]);
 
+	// Without this the "Pegar selecionados (N)" button label keeps the pre-action N.
+	useEffect(() => {
+		if (!isOpen) return;
+		const present = new Set(bagItems.map((it) => it._id.toString()));
+		setSelected((prev) => {
+			const next = new Set([...prev].filter((id) => present.has(id)));
+			return next.size === prev.size ? prev : next;
+		});
+	}, [isOpen, bagItems]);
+
 	// Auto-close after a partial pick/discard empties the bag. The modal only
 	// opens with items > 0, so an empty bagItems here always means the user
 	// just cleared it via a selection action.

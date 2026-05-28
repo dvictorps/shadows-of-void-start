@@ -24,7 +24,7 @@ import {
 	computeBagKeepCap,
 } from "../src/game/combat/constants"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
-import { isBow, isQuiver, isWeapon, planEquip, weaponArchetype } from "../src/game/items/equipment"
+import { canSwapHands, isBow, isQuiver, isWeapon, planEquip, weaponArchetype } from "../src/game/items/equipment"
 import { computeWeaponStats } from "../src/game/items/generator"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, type EquippedSlot, narrowEquippedSlot } from "../src/game/stats/types"
@@ -421,6 +421,44 @@ export const unequipItem = mutation({
 		await cacheStatsFromEquipped(ctx, args.characterId, char, finalEquipped)
 
 		return { unequipped: 1 }
+	},
+})
+
+// No cached-stats invalidation: totals are identical when the two equipped items
+// only swap slots.
+export const swapHands = mutation({
+	args: {
+		characterId: v.id("characters"),
+		sessionToken: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const authUser = await authComponent.getAuthUser(ctx)
+		if (!authUser) throw new ConvexError("Not authenticated")
+		await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
+
+		const equipped = await ctx.db
+			.query("items")
+			.withIndex("by_character_kind", (q) =>
+				q
+					.eq("characterId", args.characterId)
+					.eq("locationKind", "equipped"),
+			)
+			.collect()
+
+		const mainDoc = equipped.find((it) => it.equippedSlot === "weapon")
+		const offDoc = equipped.find((it) => it.equippedSlot === "offhand")
+		if (!mainDoc || !offDoc) throw new ConvexError("Both hand slots must be filled")
+
+		if (!canSwapHands(mainDoc.data, offDoc.data)) {
+			throw new ConvexError("Cannot swap: hands are not interchangeable")
+		}
+
+		await Promise.all([
+			ctx.db.patch(mainDoc._id, { equippedSlot: "offhand" as const }),
+			ctx.db.patch(offDoc._id, { equippedSlot: "weapon" as const }),
+		])
+
+		return { swapped: 1 }
 	},
 })
 
