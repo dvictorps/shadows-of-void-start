@@ -51,15 +51,15 @@ const rustyDagger: GeneratedItem = {
 	// at the moment (gap also affects all dropped dagger tiers). Falls back to
 	// the emoji override. Add a sprite + populate this field when art lands.
 	baseStats: {
-		minDamage: 2,
-		maxDamage: 4,
+		minDamage: 3,
+		maxDamage: 5,
 		attackSpeed: 1.7,
 		criticalChance: 6.5,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 2, max: 4 },
+		physicalDamage: { min: 3, max: 5 },
 		elementalDamage: [],
 		attackSpeed: 1.7,
 		criticalChance: 6.5,
@@ -92,16 +92,45 @@ const crackedWand: GeneratedItem = {
 	},
 };
 
+// Rogue starter chestplate. Mirrors leather_chestplate_t1 (evasion 20) so the
+// fresh rogue has a non-zero defensive layer matching warrior's HP and mage's
+// barrier-from-class.
+const tatteredLeatherVest: GeneratedItem = {
+	id: "starter:tattered_leather_vest",
+	templateId: "leather_chestplate_t1",
+	nameBase: "vest",
+	nameModifier: "tattered",
+	equipmentType: "chestplate",
+	armorType: "leather",
+	rarity: "normal",
+	itemLevel: 1,
+	icon: "/assets/sprites/armaduras/evasao/armaduraEvasao1.png",
+	baseStats: { evasion: 20 },
+	implicits: [],
+	explicits: [],
+	computedDefenseStats: { evasion: 20 },
+};
+
 const STARTER_ITEMS: Record<string, GeneratedItem> = {
 	"starter:rusty_sword": rustySword,
 	"starter:rusty_dagger": rustyDagger,
 	"starter:cracked_wand": crackedWand,
+	"starter:tattered_leather_vest": tatteredLeatherVest,
 };
 
 export const STARTER_WEAPON_BY_CLASS: Record<CharacterClassId, string> = {
 	warrior: "starter:rusty_sword",
 	rogue: "starter:rusty_dagger",
 	mage: "starter:cracked_wand",
+};
+
+// Per-class starter armor — currently only rogues get one (warriors have HP
+// and mages have barrier from their class; rogues' evasion identity needs a
+// piece of leather to activate). Empty entries mean "no starter armor".
+export const STARTER_CHESTPLATE_BY_CLASS: Partial<
+	Record<CharacterClassId, string>
+> = {
+	rogue: "starter:tattered_leather_vest",
 };
 
 /**

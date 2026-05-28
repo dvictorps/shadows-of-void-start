@@ -1,4 +1,4 @@
-import type { ModifierApplicableTo } from "./base";
+import type { ArmorType, ModifierApplicableTo } from "./base";
 
 // ── Modifier value types (how the value is applied) ──
 
@@ -62,6 +62,16 @@ export interface Modifier {
 	statEffect?: StatEffect;
 	weight?: number; // default DEFAULT_MODIFIER_WEIGHT. Higher = more common.
 	tags?: string[]; // synergy tags (e.g. ["cold", "spell"]) — used for intelligent generation
+	// No-op on non-armor templates (weapons, jewelry, tomes) where armorType
+	// is undefined — so a mod targeting tome+amulet+gloves can still carry a
+	// silk restriction without losing the tome/amulet paths (ADR 0007).
+	restrictedToArmorType?: ArmorType;
+	// Narrows the AMULET slot to a specific attribute-typed implicit (e.g.
+	// "intelligenceFlat" → lapis_amulet). Mods like tomeGainAsExtra* want
+	// "mage-flavor" amulets without losing tome/glove/staff eligibility, so
+	// the gate is intentionally slot-conditional: applies ONLY when the
+	// template's equipmentType is "amulet"; other slots pass through.
+	restrictedToImplicitMod?: string;
 	tiers: ModifierTier[];
 }
 

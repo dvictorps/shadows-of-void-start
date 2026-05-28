@@ -213,7 +213,15 @@ export function useCombatLoop({
 		setEnemy(next);
 	}, []);
 
-	const restoreToFullRef = useRef<() => void>(() => {});
+	// Latest stats mirrored into a ref so the post-recordKill .then handler
+	// reads fresh maxLife/maxBarrier even when the closure was captured one
+	// or more renders earlier (per Gemini review on PR #64).
+	const statsRef = useRef(stats);
+	statsRef.current = stats;
+
+	const restoreToFullRef = useRef<
+		(overrideMaxHp?: number, overrideMaxBarrier?: number) => void
+	>(() => {});
 
 	const resolveKill = useCallback(
 		(killed: Enemy) => {
@@ -243,7 +251,12 @@ export function useCombatLoop({
 			)
 				.then((result) => {
 					if (result.levelsGained > 0) {
-						restoreToFullRef.current();
+						// Read from statsRef, not the closed-over `stats` — the
+						// closure was captured before the level-up bumped maxLife.
+						restoreToFullRef.current(
+							statsRef.current.maxLife,
+							statsRef.current.maxBarrier,
+						);
 					}
 					if (result.potionDropped) {
 						setLastKill({ xp: xpGained, potion: true });
@@ -573,6 +586,7 @@ export function useCombatLoop({
 		barrier: {
 			current: barrier.current,
 			max: barrier.max,
+			refillRemaining: barrier.refillRemaining,
 		},
 		potions,
 		incense,

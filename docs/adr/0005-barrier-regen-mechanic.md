@@ -54,6 +54,31 @@ Regen rate nerfed from 5%/s to **0.5%/s** (`BARRIER_REGEN_FRACTION_PER_SECOND = 
 
 Regen rate buffed from 0.5%/s to **1%/s** (`BARRIER_REGEN_FRACTION_PER_SECOND = 0.01`). Full recovery from empty: 100s regen + 10s cooldown = 110s total. Motivation: 0.5%/s was too punishing — barrier felt like a dead stat in sustained combat. 1%/s preserves the "finite resource per fight" identity while making barrier investment feel rewarding again. Part of a broader Act 1 rebalance that also increased all monster HP/damage by 50%, added elemental damage to all monsters, and raised monster base accuracy (×15 instead of ×10).
 
+## Update (2026-05-28) — pivot to "no passive regen + refill on break + damage multiplier"
+
+The continuous-regen-with-cooldown model from the 2026-05-24 decision (and its tuning updates of 2026-05-26 and 2026-05-27) made barrier feel like a dead stat in sustained combat. Players reported a structural asymmetry: armor and evasion mitigate every hit continuously, but barrier was a slowly-depleting pool that essentially provided "+N HP of overflow life" without functioning as a recurring defensive layer. A 300-armor warrior trivialised Gralfor; a mage with equivalent barrier investment ran out by the third engagement and reverted to relying on life and potions.
+
+The fix replaces continuous regen with a binary "have it / cooldown for 10s / get it all back" cycle, compensated by a +50% damage multiplier on absorbed hits:
+
+1. **No passive regen.** Once damaged, barrier stays at its current value indefinitely (city entry still resets fully).
+2. **Refill on break.** When current hits zero from damage, a 10-second cooldown starts. At expiry, current jumps instantly to max — no in-between regen.
+3. **+50% damage multiplier on absorption.** Effective pool = max / 1.5. A 1500-barrier mage absorbs 1000 raw damage before breaking. Applies symmetrically to the player damaging a monster's barrier.
+4. **Cooldown ticks in real time** across combat / exploração / travel / map.
+5. **Monster barrier mirrors.** The `monsterAdditionalBarrier` 30%-of-HP pool follows the same rules — same `damageBarrier`/`tickBarrier` functions, no asymmetric code path.
+
+The "auto-break metagame" (tank a trash hit pre-boss to reset partial barrier) is accepted as a small acknowledged quirk — the cost is real (10s of vulnerability during whatever fight you self-broke in) and the trick maps to existing PoE energy-shield trigger-pre-boss patterns. Not worth eliminating.
+
+City entry behavior and gear-swap behavior from the original ADR are preserved unchanged.
+
+The failure mode that motivated the original move-away-from-binary ("mage immortal to anything but continuous DPS over 10s, potions trivialise the 6s window, no build pressure on life") is partially mitigated by:
+- 10s vulnerability window (vs original 6s) is longer.
+- +50% damage multiplier shrinks effective pool by 33% — first-burst absorption is meaningfully weaker.
+- Player still must engage potions during the cooldown window — barrier doesn't save them from the next 1-2 fights without it.
+
+The full "double HP every cycle" loop returns vs sustained-damage profiles, accepted as the price of paridade with armor/evasão as continuous defensive layers.
+
+**API rename.** `BARRIER_REGEN_FRACTION_PER_SECOND` removed; `BARRIER_COOLDOWN_SECONDS` → `BARRIER_REFILL_DELAY_SECONDS`; new `BARRIER_DAMAGE_MULTIPLIER = 1.5`. `BarrierState.cooldownRemaining` → `BarrierState.refillRemaining`. Function signatures unchanged.
+
 ## Related
 
 - `CONTEXT.md` → Combat Resolution → Defenses → Barrier (the canonical glossary entry, kept in sync with this ADR).

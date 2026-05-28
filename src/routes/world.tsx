@@ -190,15 +190,19 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		liveEquipped,
 	);
 
+	// Prefer the raw live query over the cached copy so the snapshot
+	// recomputes the instant Convex serves a new equipped payload —
+	// the cache layer is only the cold-start / modal-open flicker fallback.
 	const equippedSnapshot: EquippedItem[] = useMemo(() => {
+		const source = liveEquipped ?? equippedItems ?? [];
 		const out: EquippedItem[] = [];
-		for (const item of equippedItems ?? []) {
+		for (const item of source) {
 			const slot = narrowEquippedSlot(item.equippedSlot);
 			if (!slot) continue;
 			out.push({ slot, item: item.data });
 		}
 		return out;
-	}, [equippedItems]);
+	}, [liveEquipped, equippedItems]);
 
 	const stats = useMemo(
 		() =>
@@ -681,24 +685,31 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			return;
 		}
 		if (!combatStateLoaded) return;
-		const initial =
-			view === "city"
-				? stats.maxBarrier
-				: barrier;
+		// City entry always restores to full. Otherwise, read from the live
+		// in-combat barrier state (useCombatTick seeds it from `barrier` on
+		// cold start, so cold-start lands on the persisted value too).
+		// Reading from combat.barrier is what carries `refillRemaining`
+		// across the combat → out-of-combat transition.
+		const isCity = view === "city";
+		const initialCurrent = isCity ? stats.maxBarrier : combat.barrier.current;
+		const initialRefill = isCity ? 0 : combat.barrier.refillRemaining;
 		const state: ReturnType<typeof makeBarrierState> = {
-			current: Math.min(initial, stats.maxBarrier),
+			current: Math.min(initialCurrent, stats.maxBarrier),
 			max: stats.maxBarrier,
-			cooldownRemaining: 0,
+			refillRemaining: initialRefill,
 		};
 		outOfCombatBarrierRef.current = state;
 		setOutOfCombatBarrier(state.current);
-	}, [view, stats.maxBarrier, combatStateLoaded]); // barrier excluded — read at init time only
+	}, [view, stats.maxBarrier, combatStateLoaded]); // barrier / combat.barrier excluded — read at init time only
 
-	const needsBarrierRegen =
-		view !== "combat" &&
-		outOfCombatBarrierRef.current.current < outOfCombatBarrierRef.current.max;
+	// No passive regen (ADR 0005). The ticker only fires while a refill cycle
+	// is in progress (refillRemaining > 0); when it reaches 0, tickBarrier
+	// snaps current back to max. Partial barrier sitting around between cycles
+	// does nothing.
+	const barrierRefillActive =
+		view !== "combat" && outOfCombatBarrierRef.current.refillRemaining > 0;
 
-	useTicker(needsBarrierRegen, 500, () => {
+	useTicker(barrierRefillActive, 500, () => {
 		const next = tickBarrier(outOfCombatBarrierRef.current, 0.5);
 		if (next !== outOfCombatBarrierRef.current) {
 			outOfCombatBarrierRef.current = next;
@@ -706,18 +717,18 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		}
 	});
 
-	// Persist regenerated barrier to DB when entering combat.
+	// Persist refilled barrier to DB when entering combat.
 	const barrierSyncMutation = useSessionedMutation(
 		useMutation(api.combat.syncHp),
 	);
 	useEffect(() => {
 		if (view !== "combat") return;
-		const regen = outOfCombatBarrierRef.current.current;
-		if (regen > barrier) {
+		const refilled = outOfCombatBarrierRef.current.current;
+		if (refilled > barrier) {
 			barrierSyncMutation({
 				characterId: character._id,
 				hpCurrent: hp,
-				barrierCurrent: regen,
+				barrierCurrent: refilled,
 			}).catch(() => {});
 		}
 	}, [view]); // eslint-disable-line react-hooks/exhaustive-deps

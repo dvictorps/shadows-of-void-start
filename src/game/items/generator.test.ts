@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { MODIFIERS, type ModifierId } from "./data/modifiers";
 import { EQUIPMENT_TEMPLATES } from "./data/templates";
-import { generateItem, getSynergyWeight } from "./generator";
+import {
+	generateItem,
+	getSynergyWeight,
+	SPELL_FLAT_TO_ELEMENT,
+} from "./generator";
 import type { GeneratedItem, ItemRarity } from "./types";
 
 // ── Helpers ──
@@ -31,6 +35,12 @@ const ATTACK_WEAPON_IDS = [
 	"twoHandedAxe_t1",
 ];
 const SPELL_WEAPON_IDS = ["staff_t1", "wand_t1"];
+const TOME_GAIN_MODS = [
+	"tomeGainAsExtraCold",
+	"tomeGainAsExtraFire",
+	"tomeGainAsExtraLightning",
+	"tomeGainAsExtraVoid",
+];
 const JEWELRY_IDS = [
 	"cobalt_ring",
 	"garnet_ring",
@@ -288,32 +298,43 @@ describe("spell weapons (staff/wand)", () => {
 			}
 		});
 
-		it(`${templateId}: does not compute weapon stats`, () => {
+		it(`${templateId}: computes weapon stats carrying base + spell flat elem damage`, () => {
 			const items = generateMany(50, {
 				rarity: "epic",
 				templateId,
 				itemLevel: 80,
 			});
 			for (const item of items) {
-				expect(item.computedStats).toBeUndefined();
+				expect(item.computedStats).toBeDefined();
+				const cs = item.computedStats!;
+				expect(cs.physicalDamage.min).toBe(item.baseStats.minDamage);
+				expect(cs.physicalDamage.max).toBe(item.baseStats.maxDamage);
+				expect(cs.attackSpeed).toBe(item.baseStats.attackSpeed);
 			}
 		});
 
-		it(`${templateId}: can roll spell damage flat mods`, () => {
+		it(`${templateId}: spell flat explicits land in computedStats.elementalDamage`, () => {
 			const items = generateMany(200, {
 				rarity: "epic",
 				templateId,
 				itemLevel: 80,
 			});
 			const rolledIds = allExplicitModIds(items);
-			const spellMods = [
-				"coldDamageFlat",
-				"fireDamageFlat",
-				"lightningDamageFlat",
-				"voidDamageFlat",
-			];
-			const hasAny = spellMods.some((id) => rolledIds.has(id));
-			expect(hasAny).toBe(true);
+			const spellMods = Object.keys(SPELL_FLAT_TO_ELEMENT);
+			expect(spellMods.some((id) => rolledIds.has(id))).toBe(true);
+
+			for (const item of items) {
+				for (const expl of item.explicits) {
+					const expectedElem = SPELL_FLAT_TO_ELEMENT[expl.modifierId];
+					if (!expectedElem) continue;
+					const entry = item.computedStats?.elementalDamage.find(
+						(e) => e.element === expectedElem,
+					);
+					expect(entry).toBeDefined();
+					expect(entry!.min).toBe(expl.minValue ?? expl.value);
+					expect(entry!.max).toBe(expl.maxValue ?? expl.value);
+				}
+			}
 		});
 	}
 });
@@ -516,6 +537,131 @@ describe("global defense % mods respect armorType", () => {
 	});
 });
 
+// ── restrictedToArmorType filter (ADR 0007) ──
+
+describe("restrictedToArmorType modifier filter", () => {
+	it("filters armor templates by armorType; passes through non-armor", () => {
+		const target = MODIFIERS.physicalDamageFlatGlobal;
+		const original = target.restrictedToArmorType;
+		target.restrictedToArmorType = "silk";
+		try {
+			const silkGloves = generateMany(200, {
+				rarity: "legendary",
+				templateId: "silk_gloves_t1",
+				itemLevel: 80,
+			});
+			const leatherGloves = generateMany(200, {
+				rarity: "legendary",
+				templateId: "leather_gloves_t1",
+				itemLevel: 80,
+			});
+			const plateGloves = generateMany(200, {
+				rarity: "legendary",
+				templateId: "plate_gloves_t1",
+				itemLevel: 80,
+			});
+			const rings = generateMany(200, {
+				rarity: "legendary",
+				templateId: "cobalt_ring",
+				itemLevel: 80,
+			});
+
+			expect(allExplicitModIds(silkGloves).has("physicalDamageFlatGlobal")).toBe(true);
+			expect(allExplicitModIds(leatherGloves).has("physicalDamageFlatGlobal")).toBe(false);
+			expect(allExplicitModIds(plateGloves).has("physicalDamageFlatGlobal")).toBe(false);
+			// Rings have no armorType → restriction is a no-op.
+			expect(allExplicitModIds(rings).has("physicalDamageFlatGlobal")).toBe(true);
+		} finally {
+			target.restrictedToArmorType = original;
+		}
+	});
+});
+
+// ── Tome ──
+
+describe("tome eligibility", () => {
+	// CONTEXT.md: "tome ... only off-hand without block chance, by design".
+	it("never rolls blockChanceIncrease", () => {
+		const items = generateMany(1000, {
+			rarity: "epic",
+			templateId: "tome_t1",
+			itemLevel: 80,
+		});
+		const rolledIds = allExplicitModIds(items);
+		expect(rolledIds.has("blockChanceIncrease")).toBe(false);
+	});
+
+	it("can still roll tomeGainAsExtra* mods", () => {
+		const items = generateMany(200, {
+			rarity: "epic",
+			templateId: "tome_t1",
+			itemLevel: 80,
+		});
+		const rolledIds = allExplicitModIds(items);
+		expect(TOME_GAIN_MODS.some((id) => rolledIds.has(id))).toBe(true);
+	});
+});
+
+describe("tomeGainAsExtra scope", () => {
+	it("int (lapis) amulets can roll tomeGainAsExtra; other amulets cannot", () => {
+		const lapis = generateMany(400, {
+			rarity: "legendary",
+			templateId: "lapis_amulet",
+			itemLevel: 80,
+		});
+		const gold = generateMany(400, {
+			rarity: "legendary",
+			templateId: "gold_amulet",
+			itemLevel: 80,
+		});
+		const jade = generateMany(400, {
+			rarity: "legendary",
+			templateId: "jade_amulet",
+			itemLevel: 80,
+		});
+		const amber = generateMany(400, {
+			rarity: "legendary",
+			templateId: "amber_amulet",
+			itemLevel: 80,
+		});
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(lapis).has(id))).toBe(true);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(gold).has(id))).toBe(false);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(jade).has(id))).toBe(false);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(amber).has(id))).toBe(false);
+	});
+
+	it("silk gloves can roll tomeGainAsExtra; leather and plate cannot", () => {
+		const silk = generateMany(400, {
+			rarity: "legendary",
+			templateId: "silk_gloves_t1",
+			itemLevel: 80,
+		});
+		const leather = generateMany(400, {
+			rarity: "legendary",
+			templateId: "leather_gloves_t1",
+			itemLevel: 80,
+		});
+		const plate = generateMany(400, {
+			rarity: "legendary",
+			templateId: "plate_gloves_t1",
+			itemLevel: 80,
+		});
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(silk).has(id))).toBe(true);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(leather).has(id))).toBe(false);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(plate).has(id))).toBe(false);
+	});
+
+	it("staves can roll tomeGainAsExtra", () => {
+		const items = generateMany(400, {
+			rarity: "legendary",
+			templateId: "staff_t1",
+			itemLevel: 80,
+		});
+		const rolled = allExplicitModIds(items);
+		expect(TOME_GAIN_MODS.some((id) => rolled.has(id))).toBe(true);
+	});
+});
+
 // ── Shield ──
 
 describe("shield", () => {
@@ -672,6 +818,31 @@ describe("shield", () => {
 			}
 		}
 		expect(found).toBe(true);
+	});
+
+	it("block sums additively across base + implicit + explicit (no multiplicative double-count)", () => {
+		// silk_shield_t2 (cotton ward): baseBlock 22, implicit blockChanceIncrease,
+		// magic+ may also roll an explicit blockChanceIncrease.
+		let asserted = 0;
+		for (let i = 0; i < 500 && asserted < 5; i++) {
+			const item = generateItem({
+				rarity: "epic",
+				templateId: "silk_shield_t2",
+				itemLevel: 80,
+			});
+			const implBlock = item.implicits
+				.filter((imp) => imp.modifierId === "blockChanceIncrease")
+				.reduce((s, imp) => s + imp.value, 0);
+			const explBlock = item.explicits
+				.filter((m) => m.modifierId === "blockChanceIncrease")
+				.reduce((s, m) => s + m.value, 0);
+			if (implBlock > 0 || explBlock > 0) {
+				const expected = 22 + implBlock + explBlock;
+				expect(item.computedDefenseStats?.blockChance).toBe(expected);
+				asserted++;
+			}
+		}
+		expect(asserted).toBeGreaterThan(0);
 	});
 });
 
@@ -1073,6 +1244,10 @@ describe("deterministic epic patterns", () => {
 		"globalLightningDamageIncrease",
 		"globalVoidDamageIncrease",
 		"globalElementalDamageIncrease",
+		"tomeGainAsExtraCold",
+		"tomeGainAsExtraFire",
+		"tomeGainAsExtraLightning",
+		"tomeGainAsExtraVoid",
 	]);
 	const SPELL_WEAPON_PATTERN_SUFFIXES = new Set([
 		"globalCastSpeedIncrease",
@@ -1085,6 +1260,10 @@ describe("deterministic epic patterns", () => {
 		"localDefenseFlat",
 		"healthFlat",
 		"manaFlat",
+		"tomeGainAsExtraCold",
+		"tomeGainAsExtraFire",
+		"tomeGainAsExtraLightning",
+		"tomeGainAsExtraVoid",
 	]);
 	const ARMOR_PATTERN_SUFFIXES = new Set([
 		"localDefenseIncrease",
@@ -1355,6 +1534,21 @@ describe("silk armor defense", () => {
 			}
 		}
 		expect(checked).toBeGreaterThan(0);
+	});
+});
+
+// ── Staff base damage invariant: 2.0 × wand at every tier ──
+
+describe("staff vs wand base damage parity", () => {
+	it("staff_tN base damage is exactly 2.0× wand_tN at every tier", () => {
+		for (let tier = 1; tier <= 21; tier++) {
+			const wand = EQUIPMENT_TEMPLATES.find((t) => t.id === `wand_t${tier}`);
+			const staff = EQUIPMENT_TEMPLATES.find((t) => t.id === `staff_t${tier}`);
+			expect(wand).toBeDefined();
+			expect(staff).toBeDefined();
+			expect(staff!.baseStats.minDamage).toBe((wand!.baseStats.minDamage ?? 0) * 2);
+			expect(staff!.baseStats.maxDamage).toBe((wand!.baseStats.maxDamage ?? 0) * 2);
+		}
 	});
 });
 

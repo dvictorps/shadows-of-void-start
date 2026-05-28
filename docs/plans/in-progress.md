@@ -18,6 +18,7 @@ Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #4
 
 Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastructure debt is empty. What remains splits into:
 - **Deferred, scoped**: camp cinematic biome ambience.
+- **Pure refactor (queued)**: extract `useBarrier(maxBarrier)` as a shared hook owning the cross-view `BarrierState`. Today `useCombatTick` and `world.tsx` each carry their own ref (`barrierRef` + `outOfCombatBarrierRef`) synced via view-change useEffects + a manual `barrierSyncMutation` on combat entry. A quick fix on `feat/caster-block-barrier-rogue` made the out-of-combat init read `combat.barrier.refillRemaining` to preserve the refill cycle across the retreat transition — but the dual-ref smell remains. Goal: single source of truth that both layers consume; remove the sync mutation. ~100-150 line refactor.
 - **Low-priority polish**: native PT review of `lexicon/pt.ts`, `TemplateBaseId` codegen, hash extraction to `src/lib/rng.ts`, rare-name bestiary, admin-dashboard cold-cache latency.
 - **Next big feature**: passive tree (per CONTEXT.md → Classes ordering: MVP combat ✅ → passive tree → active skills). Design work needed first — no stub plan yet.
 

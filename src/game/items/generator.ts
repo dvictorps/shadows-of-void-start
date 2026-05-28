@@ -129,19 +129,44 @@ const MOD_REQUIRED_ARMOR_TYPE: Record<string, ArmorType> = {
 	globalSpellDamageIncrease: "silk",
 };
 
+// Maps the four spell-flat mod ids (isGlobalStat-tagged, no statEffect) to the
+// elemental damage entry they fold into the spell weapon's swing. The mods
+// don't accumulate as character globals — see compute.ts no-op for the same
+// ids. Exported so tests can assert against the same source-of-truth.
+export const SPELL_FLAT_TO_ELEMENT: Record<string, string> = {
+	coldDamageFlat: "Cold",
+	fireDamageFlat: "Fire",
+	lightningDamageFlat: "Lightning",
+	voidDamageFlat: "Void",
+};
+
 function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 	return (Object.keys(MODIFIERS) as ModifierId[]).filter((modId) => {
 		const mod = MODIFIERS[modId];
 
-		// On armor pieces, gate mods to a specific base type. Non-armor templates
-		// (jewelry, weapons) pass through — template.armorType is undefined.
-		const requiredArmorType = MOD_REQUIRED_ARMOR_TYPE[modId];
+		// Gate mods to a specific armor base, from either the per-mod inline
+		// field (ADR 0007) or the legacy MOD_REQUIRED_ARMOR_TYPE registry.
+		// Non-armor templates (weapons, jewelry, tomes) pass through.
+		const requiredArmorType =
+			mod.restrictedToArmorType ?? MOD_REQUIRED_ARMOR_TYPE[modId];
 		if (
 			requiredArmorType &&
 			template.armorType &&
 			template.armorType !== requiredArmorType
 		) {
 			return false;
+		}
+
+		// Slot-conditional implicit gate (ADR 0007). Only narrows amulets —
+		// the slot where attribute-typed implicits live. Other slots pass.
+		if (
+			mod.restrictedToImplicitMod &&
+			template.equipmentType === "amulet"
+		) {
+			const hasImplicit = template.implicits.some(
+				(imp) => imp.modifierId === mod.restrictedToImplicitMod,
+			);
+			if (!hasImplicit) return false;
 		}
 
 		return mod.applicableTo.some((target) => {
@@ -235,6 +260,12 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"globalLightningDamageIncrease",
 			"globalVoidDamageIncrease",
 			"globalElementalDamageIncrease",
+			// Mage-flavor: applicableTo includes "staff" only — wands are
+			// eligibility-filtered out, so epic wands never get these.
+			"tomeGainAsExtraCold",
+			"tomeGainAsExtraFire",
+			"tomeGainAsExtraLightning",
+			"tomeGainAsExtraVoid",
 		] as ModifierId[],
 		suffixes: [
 			"globalCastSpeedIncrease",
@@ -244,7 +275,18 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 		] as ModifierId[],
 	},
 	armor: {
-		prefixes: ["localDefenseFlat", "healthFlat", "manaFlat"] as ModifierId[],
+		prefixes: [
+			"localDefenseFlat",
+			"healthFlat",
+			"manaFlat",
+			// Mage-flavor: applicableTo includes "gloves" only AND
+			// restrictedToArmorType "silk" — epic plate/leather gloves never
+			// roll these; epic helmet/chestplate never roll these.
+			"tomeGainAsExtraCold",
+			"tomeGainAsExtraFire",
+			"tomeGainAsExtraLightning",
+			"tomeGainAsExtraVoid",
+		] as ModifierId[],
 		suffixes: [
 			"localDefenseIncrease",
 			"coldResistance",
@@ -321,6 +363,13 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"globalPhysicalDamageIncrease",
 			"globalSpellDamageIncrease",
 			"lifeGainOnHitFlat",
+			// Mage-flavor: restrictedToImplicitMod "intelligenceFlat" narrows
+			// these to lapis_amulet only — epic gold/jade/amber amulets are
+			// eligibility-filtered out.
+			"tomeGainAsExtraCold",
+			"tomeGainAsExtraFire",
+			"tomeGainAsExtraLightning",
+			"tomeGainAsExtraVoid",
 		] as ModifierId[],
 		suffixes: [
 			"coldResistance",
@@ -419,23 +468,18 @@ function rollExplicits(
 		if (tier) tierCache.set(modId, tier);
 	}
 
-	// For epic items, also cache tiers for pattern mods that may not be in availableModifiers
-	if (epicPattern) {
-		for (const modId of [...epicPattern.prefixes, ...epicPattern.suffixes]) {
-			if (!tierCache.has(modId)) {
-				const tier = getModifierTierForItemLevel(modId, itemLevel);
-				if (tier) tierCache.set(modId, tier);
-			}
-		}
-	}
+	const availableSet: Set<string> = new Set(availableModifiers);
 
 	const getEligible = (affixType: "prefix" | "suffix"): ModifierId[] => {
-		// Epic: draw from pattern pool
+		// Epic: draw from the archetype pool, but intersect with the template's
+		// real eligibility so applicableTo / restrictedToArmorType /
+		// restrictedToImplicitMod are honored at epic rarity too.
 		if (epicPattern) {
 			const pool =
 				affixType === "prefix" ? epicPattern.prefixes : epicPattern.suffixes;
 			return pool.filter((modId) => {
 				if (usedModIds.has(modId)) return false;
+				if (!availableSet.has(modId)) return false;
 				return tierCache.has(modId);
 			});
 		}
@@ -550,6 +594,16 @@ function computeWeaponStats(
 	const elementalDamage: { element: string; min: number; max: number }[] = [];
 
 	for (const mod of explicits) {
+		const spellElement = SPELL_FLAT_TO_ELEMENT[mod.modifierId];
+		if (spellElement) {
+			elementalDamage.push({
+				element: spellElement,
+				min: mod.minValue ?? mod.value,
+				max: mod.maxValue ?? mod.value,
+			});
+			continue;
+		}
+
 		const modifier = MODIFIERS[mod.modifierId as ModifierId];
 		if (!modifier?.statEffect || modifier.isGlobalStat) continue;
 
@@ -612,25 +666,30 @@ function computeArmorStats(
 	baseStats: Partial<Record<BaseStatKey, number>>,
 	armorType: string | undefined,
 	explicits: RolledMod[],
+	implicits: RolledImplicit[] = [],
 ): ComputedDefenseStats | undefined {
 	const defenseInfo = armorType ? DEFENSE_LABELS[armorType] : null;
 
 	let flatBonus = 0;
 	let defenseIncrease = 0;
-	let blockIncrease = 0;
+	let blockAdditive = 0;
 
-	for (const mod of explicits) {
+	const accumulate = (mod: RolledImplicit | RolledMod) => {
+		if (!mod.modifierId) return;
 		const modifier = MODIFIERS[mod.modifierId as ModifierId];
-		if (!modifier?.statEffect || modifier.isGlobalStat) continue;
+		if (!modifier?.statEffect || modifier.isGlobalStat) return;
 
 		if (modifier.statEffect.target === "defense") {
 			if (modifier.statEffect.operation === "flat") flatBonus += mod.value;
 			else defenseIncrease += mod.value;
 		} else if (modifier.statEffect.target === "blockChance") {
-			if (modifier.statEffect.operation === "increased")
-				blockIncrease += mod.value;
+			// Additive across base + impl + expl (see docs/plans/2026-05-28).
+			blockAdditive += mod.value;
 		}
-	}
+	};
+
+	for (const mod of implicits) accumulate(mod);
+	for (const mod of explicits) accumulate(mod);
 
 	const baseDefense = defenseInfo ? (baseStats[defenseInfo.stat] ?? 0) : 0;
 	const baseBlock = baseStats.blockChance ?? 0;
@@ -640,7 +699,7 @@ function computeArmorStats(
 	// rolled mods, which silently dropped the item's base armor/evasion/barrier
 	// and shield blockChance for Normal pieces or rolls without defense mods.
 	const hasDefense = defenseInfo && (baseDefense > 0 || flatBonus !== 0);
-	const hasBlock = baseBlock > 0;
+	const hasBlock = baseBlock > 0 || blockAdditive > 0;
 
 	if (!hasDefense && !hasBlock) return undefined;
 
@@ -655,7 +714,7 @@ function computeArmorStats(
 	}
 
 	if (hasBlock) {
-		const block = Math.round(baseBlock * (1 + blockIncrease / 100));
+		const block = baseBlock + blockAdditive;
 		if (block > 0) result.blockChance = block;
 	}
 
@@ -695,16 +754,14 @@ export function generateItem(options: GenerateItemOptions): GeneratedItem {
 	const baseStats = { ...template.baseStats };
 
 	const isWeapon = "minDamage" in baseStats;
-	const isSpellWeapon =
-		template.weaponType === "staff" || template.weaponType === "wand";
-	const computed =
-		isWeapon && !isSpellWeapon
-			? computeWeaponStats(baseStats, explicits)
-			: undefined;
+	const computed = isWeapon
+		? computeWeaponStats(baseStats, explicits)
+		: undefined;
 	const computedDefense = computeArmorStats(
 		baseStats,
 		template.armorType,
 		explicits,
+		implicits,
 	);
 
 	return {

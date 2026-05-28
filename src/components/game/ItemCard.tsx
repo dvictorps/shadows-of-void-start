@@ -234,19 +234,18 @@ export default function ItemCard({
 				{(() => {
 					const icon = iconFor(item);
 					if (icon.kind === "sprite") {
-						// Jewelry sprites are physically tiny objects vs. weapons/armor —
-						// render them at half scale so a ring doesn't visually compete
-						// with a chestplate when sharing a grid.
-						const isJewelry =
+						// Rings + amulets are physically tiny objects vs. weapons/armor —
+						// render them at half scale so they don't visually dominate the
+						// grid. Belts are jewelry for stat purposes but render full-scale.
+						const isTinyJewelry =
 							item.equipmentType === "ring" ||
-							item.equipmentType === "amulet" ||
-							item.equipmentType === "belt";
+							item.equipmentType === "amulet";
 						return (
 							<img
 								src={icon.src}
 								alt=""
 								draggable={false}
-								className={`pointer-events-none h-full w-full select-none object-contain p-1.5 ${isJewelry ? "scale-50" : ""}`}
+								className={`pointer-events-none h-full w-full select-none object-contain p-1.5 ${isTinyJewelry ? "scale-50" : ""}`}
 							/>
 						);
 					}

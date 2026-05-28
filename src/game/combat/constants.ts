@@ -37,19 +37,16 @@ export const CRIT_CHANCE_FLOOR = 5;
 export const CRIT_CHANCE_CAP = 100;
 export const BASE_CRIT_MULTIPLIER = 50;
 
-// Barrier regen: while barrier is above zero, it ticks back at this fraction
-// of max barrier per second (1% → 100s to fully refill from empty). The rate
-// is fixed; no per-second cap on the absolute regen because heavy barrier
-// investment is intentionally rewarded with proportionally larger raw regen
-// (asymmetric to leech's 20%-max-life cap by design — see ADR 0005).
-export const BARRIER_REGEN_FRACTION_PER_SECOND = 0.01;
+// Barrier refill: when current hits zero from damage, this many seconds
+// elapse before the pool refills INSTANTLY back to max. No passive regen
+// between hits — once damaged, barrier stays at its current value until the
+// next break + refill cycle. See ADR 0005 → 2026-05-28 update.
+export const BARRIER_REFILL_DELAY_SECONDS = 10;
 
-// Barrier cooldown: when current barrier hits zero from damage, this many
-// seconds elapse before regen resumes. During the cooldown, regen is paused
-// and incoming damage hits life directly. The cooldown is not reset or
-// extended by further hits. After it expires, regen ticks from zero at the
-// standard rate — there is no instant-refill (see ADR 0005).
-export const BARRIER_COOLDOWN_SECONDS = 10;
+// Damage multiplier applied to hits absorbed by barrier — a 1500-barrier
+// pool effectively absorbs 1000 raw damage before breaking. Symmetric for
+// monster barriers. See ADR 0005 → 2026-05-28 update.
+export const BARRIER_DAMAGE_MULTIPLIER = 1.5;
 
 // Leech: how much of the magnitude ticks per second (so duration = 1/rate s).
 export const LEECH_RATE_PER_SECOND = 0.2;
