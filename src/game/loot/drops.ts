@@ -6,18 +6,23 @@ import type { GeneratedItem, ItemRarity } from "../items/types";
 import type { EquipmentType } from "../items/types/base";
 import type { MonsterRarity } from "../monsters/types";
 
-const ELIGIBLE_EQUIPMENT_TYPES: EquipmentType[] = [
-	"weapon",
-	"helmet",
-	"chestplate",
-	"boots",
-	"gloves",
-	"offhand",
-	"tome",
-	"quiver",
-	"ring",
-	"amulet",
-	"belt",
+// Equipment-type roll weights. weapon is the most build-defining drop and
+// players consistently called out that a 1-of-11 uniform pick made weapons
+// feel rare — a 3× bump puts weapons at ~23% of all drops (was ~9%), making
+// it the single most common category without flooding (still less than the
+// 4-armor / 3-jewelry / 3-offhand-class clusters combined).
+const DROP_TYPE_WEIGHTS: Array<{ type: EquipmentType; weight: number }> = [
+	{ type: "weapon", weight: 3 },
+	{ type: "helmet", weight: 1 },
+	{ type: "chestplate", weight: 1 },
+	{ type: "boots", weight: 1 },
+	{ type: "gloves", weight: 1 },
+	{ type: "offhand", weight: 1 },
+	{ type: "tome", weight: 1 },
+	{ type: "quiver", weight: 1 },
+	{ type: "ring", weight: 1 },
+	{ type: "amulet", weight: 1 },
+	{ type: "belt", weight: 1 },
 ];
 
 // Drop probabilities & rarity distributions per mob rarity, mirroring the
@@ -121,8 +126,9 @@ function rollItemAtRarity(
 	rarity: ItemRarity,
 	monsterLevel: number,
 ): GeneratedItem | null {
-	const equipmentType = pickRandom(ELIGIBLE_EQUIPMENT_TYPES);
-	if (!equipmentType) return null;
+	const picked = pickWeighted(DROP_TYPE_WEIGHTS, (e) => e.weight);
+	if (!picked) return null;
+	const equipmentType = picked.type;
 
 	// Hand control of weapon-subtype and armor-base to the template list: pick
 	// any template of the right equipment type whose dropLevel allows it at
