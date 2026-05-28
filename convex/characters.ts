@@ -4,7 +4,11 @@ import {
 	findClassDefinition,
 } from "../src/game/classes/data"
 import type { CharacterClassId } from "../src/game/classes/types"
-import { findStarterItem, STARTER_WEAPON_BY_CLASS } from "../src/game/items/starter-gear"
+import {
+	findStarterItem,
+	STARTER_CHESTPLATE_BY_CLASS,
+	STARTER_WEAPON_BY_CLASS,
+} from "../src/game/items/starter-gear"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { loadOwnedCharacter } from "./_shared/character"
 import type { Doc } from "./_generated/dataModel"
@@ -161,6 +165,24 @@ export const create = mutation({
 					droppedFrom: "starter",
 				})
 				await ctx.db.patch(characterId, { equippedWeaponId: itemId })
+			}
+		}
+
+		const starterChestId = isKnownClassId(args.classId)
+			? STARTER_CHESTPLATE_BY_CLASS[args.classId]
+			: undefined
+		if (starterChestId) {
+			const chestDef = findStarterItem(starterChestId)
+			if (chestDef) {
+				await ctx.db.insert("items", {
+					authUserId: authUser._id,
+					locationKind: "equipped",
+					characterId,
+					equippedSlot: "chestplate",
+					data: chestDef,
+					droppedAt: Date.now(),
+					droppedFrom: "starter",
+				})
 			}
 		}
 
