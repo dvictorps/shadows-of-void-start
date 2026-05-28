@@ -651,18 +651,20 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		logMessage = m.inside_zone({ zone: translateNodeName(currentNode) });
 	}
 
-	const hpOverride = view === "combat" ? combat.playerHp : undefined;
+	const hpOverride = view === "combat" ? combat.playerHp : Math.min(hp, maxHp);
 
 	const [outOfCombatBarrier, setOutOfCombatBarrier] = useState<number | null>(
 		null,
 	);
 	const outOfCombatBarrierRef = useRef(makeBarrierState(stats.maxBarrier));
+	const combatStateLoaded = combatState !== undefined;
 
 	useEffect(() => {
 		if (view === "combat") {
 			setOutOfCombatBarrier(null);
 			return;
 		}
+		if (!combatStateLoaded) return;
 		const initial =
 			view === "city"
 				? stats.maxBarrier
@@ -674,7 +676,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		};
 		outOfCombatBarrierRef.current = state;
 		setOutOfCombatBarrier(state.current);
-	}, [view, stats.maxBarrier]); // character.barrierCurrent excluded — one-time init per view switch
+	}, [view, stats.maxBarrier, combatStateLoaded]); // barrier excluded — read at init time only
 
 	const needsBarrierRegen =
 		view !== "combat" &&
@@ -708,7 +710,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		view === "combat"
 			? combat.barrier.current
 			: (outOfCombatBarrier ?? barrier);
-	const potionsOverride = view === "combat" ? combat.potions : undefined;
+	const potionsOverride = view === "combat" ? combat.potions : potions;
 	// Pass the wrapped handler when allowed; when an in-flight call is
 	// pending, clear it so StatusCard's internal `canUsePotion` check disables
 	// its button without needing a new prop. CombatScene receives the handler
