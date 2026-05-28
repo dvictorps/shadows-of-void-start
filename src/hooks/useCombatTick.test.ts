@@ -261,3 +261,114 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 		);
 	});
 });
+
+describe("useCombatTick — life regen modifier", () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		rollPlayerSwingMock.mockReset();
+		rollEnemyAttackMock.mockReset();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("applies stats.lifeRegen as continuous HP recovery (out-of-engagement)", () => {
+		const { result } = renderHook(
+			() =>
+				useCombatTick({
+					characterId: "test-char" as unknown as Parameters<
+						typeof useCombatTick
+					>[0]["characterId"],
+					active: true,
+					isEngaged: false,
+					enemy: null,
+					stats: makeStats({ lifeRegen: 10, maxLife: 100 }),
+					initialHp: 50,
+					potions: 0,
+					onPlayerDeath: vi.fn(),
+					resolveKill: vi.fn(),
+					pushEvent: vi.fn(),
+					updateEnemy: vi.fn(),
+				}),
+			{
+				wrapper: ({ children }) =>
+					createElement(SessionTokenProvider, null, children),
+			},
+		);
+
+		expect(result.current.playerHp).toBe(50);
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		// 10 HP/s × 1s = +10 HP.
+		expect(result.current.playerHp).toBe(60);
+	});
+
+	it("caps at maxLife and resets the fractional accumulator on overfill", () => {
+		const { result } = renderHook(
+			() =>
+				useCombatTick({
+					characterId: "test-char" as unknown as Parameters<
+						typeof useCombatTick
+					>[0]["characterId"],
+					active: true,
+					isEngaged: false,
+					enemy: null,
+					stats: makeStats({ lifeRegen: 5, maxLife: 100 }),
+					initialHp: 98,
+					potions: 0,
+					onPlayerDeath: vi.fn(),
+					resolveKill: vi.fn(),
+					pushEvent: vi.fn(),
+					updateEnemy: vi.fn(),
+				}),
+			{
+				wrapper: ({ children }) =>
+					createElement(SessionTokenProvider, null, children),
+			},
+		);
+
+		act(() => {
+			vi.advanceTimersByTime(2000);
+		});
+		// 5 HP/s × 2s = +10 raw, but capped at maxLife 100.
+		expect(result.current.playerHp).toBe(100);
+	});
+
+	it("does not regen at fractional rates below 1 HP/s until the accumulator carries", () => {
+		const { result } = renderHook(
+			() =>
+				useCombatTick({
+					characterId: "test-char" as unknown as Parameters<
+						typeof useCombatTick
+					>[0]["characterId"],
+					active: true,
+					isEngaged: false,
+					enemy: null,
+					stats: makeStats({ lifeRegen: 0.5, maxLife: 100 }),
+					initialHp: 50,
+					potions: 0,
+					onPlayerDeath: vi.fn(),
+					resolveKill: vi.fn(),
+					pushEvent: vi.fn(),
+					updateEnemy: vi.fn(),
+				}),
+			{
+				wrapper: ({ children }) =>
+					createElement(SessionTokenProvider, null, children),
+			},
+		);
+
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		// 0.5 HP/s × 1s = 0.5 accumulated, still <1 → no heal yet.
+		expect(result.current.playerHp).toBe(50);
+		act(() => {
+			vi.advanceTimersByTime(1100);
+		});
+		// After 2.1s total, accumulator ≥ 1 → +1 HP.
+		expect(result.current.playerHp).toBe(51);
+	});
+});

@@ -117,6 +117,10 @@ export function useCombatTick({
 	const leechHealAccRef = useRef(0);
 	const lastLeechEventRef = useRef(0);
 	const deadRef = useRef(false);
+	// Fractional regen carry — lets sub-1 HP/s rates accumulate over multiple
+	// ticks instead of being floored away. e.g. 0.5 HP/s + 100ms tick = 1 HP
+	// every 2 seconds.
+	const regenAccRef = useRef(0);
 
 	// Mirror the `enemy` prop into a ref so the tick reads the live value
 	// even if React hasn't committed a re-render between two consecutive
@@ -216,6 +220,9 @@ export function useCombatTick({
 			lastSyncedHpRef.current = playerHpRef.current;
 			lastSyncedBarrierRef.current = barrierRef.current.current;
 		}
+		if (active && !wasActive) {
+			regenAccRef.current = 0;
+		}
 		activeRef.current = active;
 	}, [active, characterId, syncHp, withSession]);
 
@@ -242,6 +249,26 @@ export function useCombatTick({
 		if (next !== barrierRef.current) {
 			barrierRef.current = next;
 			setBarrier(next);
+		}
+	});
+
+	// Passive life regen — fires whenever the player is alive in combat
+	// zones, in or out of engagement. Silent (no floating popup): regen is
+	// the slow-fill bar pattern, not a damage event. Resets the fractional
+	// accumulator when full or dead so a refill doesn't cash in stale credit.
+	useTicker(active && stats.lifeRegen > 0, 100, () => {
+		if (deadRef.current || playerHpRef.current >= maxHp) {
+			regenAccRef.current = 0;
+			return;
+		}
+		regenAccRef.current += stats.lifeRegen * 0.1;
+		if (regenAccRef.current < 1) return;
+		const whole = Math.floor(regenAccRef.current);
+		regenAccRef.current -= whole;
+		const next = Math.min(maxHp, playerHpRef.current + whole);
+		if (next > playerHpRef.current) {
+			playerHpRef.current = next;
+			setPlayerHp(next);
 		}
 	});
 
