@@ -224,6 +224,8 @@
   "inventory_free_slot_one": "{count} free",
   "inventory_free_slot_other": "{count} free",
   "inventory_full_error": "Inventory full — pick fewer items",
+  "inventory_swap_hands": "Swap hands",
+  "inventory_swap_hands_tooltip_disabled": "Both hands must hold 1H weapons of the same archetype",
 
   "loot_title": "Loot ({count})",
   "loot_found_title": "Items Found!",

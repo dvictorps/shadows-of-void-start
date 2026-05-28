@@ -11,6 +11,7 @@ import {
 	useSensors,
 } from "@dnd-kit/core";
 import { useMutation } from "convex/react";
+import { ArrowLeftRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
@@ -563,6 +564,23 @@ export default function InventoryModal({
 								);
 							})}
 						</div>
+						<button
+							type="button"
+							onClick={() => {
+								if (!handsSwappable) return;
+								void swapHands(withSession({ characterId }));
+							}}
+							disabled={!handsSwappable}
+							title={
+								handsSwappable
+									? undefined
+									: m.inventory_swap_hands_tooltip_disabled()
+							}
+							className="mt-3 flex w-full items-center justify-center gap-2 border border-white/30 bg-black px-3 py-2 font-medium text-[10px] text-white/70 uppercase tracking-[0.2em] transition hover:border-white hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-white/30 disabled:hover:bg-black disabled:hover:text-white/70"
+						>
+							<ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
+							{m.inventory_swap_hands()}
+						</button>
 					</section>
 
 					<div className="w-px bg-white/15" aria-hidden />

@@ -224,6 +224,8 @@
   "inventory_free_slot_one": "{count} livre",
   "inventory_free_slot_other": "{count} livres",
   "inventory_full_error": "Inventário cheio — escolha menos itens",
+  "inventory_swap_hands": "Inverter mãos",
+  "inventory_swap_hands_tooltip_disabled": "Ambas as mãos precisam ter armas 1H da mesma arquitetura",
 
   "loot_title": "Loot ({count})",
   "loot_found_title": "Itens Encontrados!",
