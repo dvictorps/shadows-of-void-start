@@ -241,6 +241,32 @@ describe("computeCharacterStats — equipment contributions", () => {
 		expect(stats.tickRate).toBeCloseTo(1.705);
 	});
 
+	it("shield blockChance comes only from computedDefenseStats (no double-count via explicits)", () => {
+		// Mimic a shield item where the generator already baked block additively.
+		// If compute.ts ever re-adds blockChanceIncrease via applyModifierValue
+		// the assertion will fail (expected 44, would get 44 + 4 = 48).
+		const shield: GeneratedItem = {
+			id: "test-shield",
+			templateId: "test_shield",
+			templateName: "Test Shield",
+			equipmentType: "offhand",
+			armorType: "silk",
+			rarity: "rare",
+			name: "Test Shield",
+			itemLevel: 10,
+			baseStats: { barrier: 30, blockChance: 22 },
+			implicits: [{ modifierId: "blockChanceIncrease", description: "", value: 18 }],
+			explicits: [mod("blockChanceIncrease", 4)],
+			computedDefenseStats: { barrier: 30, blockChance: 44 },
+		};
+		const stats = computeCharacterStats({
+			classDef: warrior,
+			level: 1,
+			equippedItems: [{ slot: "offhand", item: shield }],
+		});
+		expect(stats.blockChance).toBe(44);
+	});
+
 	it("attack dual-wielding grants +10% block chance", () => {
 		const eq: EquippedItem[] = [
 			{
@@ -288,6 +314,40 @@ describe("computeCharacterStats — equipment contributions", () => {
 		});
 		expect(stats.path).toBe("spell");
 		expect(stats.tickRate).toBe(1.0);
+	});
+
+	it("spell flat damage on wand folds into swing as elem alongside converted phys", () => {
+		const wandItem: GeneratedItem = {
+			id: "spell-flat-wand",
+			templateId: "test_wand_phys",
+			templateName: "Test Wand Phys",
+			equipmentType: "weapon",
+			weaponType: "wand",
+			rarity: "rare",
+			name: "Test Wand Phys",
+			itemLevel: 10,
+			baseStats: { minDamage: 12, maxDamage: 25, attackSpeed: 1.0, criticalChance: 6 },
+			implicits: [],
+			explicits: [],
+			computedStats: {
+				physicalDamage: { min: 12, max: 25 },
+				elementalDamage: [{ element: "Fire", min: 6, max: 12 }],
+				attackSpeed: 1.0,
+				criticalChance: 6,
+			},
+		};
+		const stats = computeCharacterStats({
+			classDef: mage,
+			level: 1,
+			equippedItems: [{ slot: "weapon", item: wandItem }],
+			selectedElement: "lightning",
+		});
+		const swing = stats.swings[0];
+		expect(swing.physicalDamage).toEqual({ min: 0, max: 0 });
+		const fire = swing.elementalDamage.find((e) => e.element === "Fire");
+		const lightning = swing.elementalDamage.find((e) => e.element === "Lightning");
+		expect(fire).toEqual({ element: "Fire", min: 6, max: 12 });
+		expect(lightning).toEqual({ element: "Lightning", min: 13, max: 27 });
 	});
 
 	it("wand+wand dual-wields without receiving the attack-DW buffs", () => {

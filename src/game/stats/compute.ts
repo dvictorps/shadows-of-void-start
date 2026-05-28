@@ -220,10 +220,9 @@ function applyModifierValue(
 			stats.thorns += v;
 			return;
 		case "blockChanceIncrease":
-			// Block chance "increased" rolls as an additive percentage value on
-			// the shield's base block (handled below in item contribution when
-			// the shield is the source). Global accumulator gets the raw add.
-			stats.blockChance += v;
+			// Block is now fully baked into the shield's computedDefenseStats.blockChance
+			// (base + implicits + explicits, summed additively). The character-global
+			// accumulator MUST stay out to avoid the historic double-count.
 			return;
 
 		case "globalArmorIncrease":

@@ -190,15 +190,19 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		liveEquipped,
 	);
 
+	// Prefer the raw live query over the cached copy so the snapshot
+	// recomputes the instant Convex serves a new equipped payload —
+	// the cache layer is only the cold-start / modal-open flicker fallback.
 	const equippedSnapshot: EquippedItem[] = useMemo(() => {
+		const source = liveEquipped ?? equippedItems ?? [];
 		const out: EquippedItem[] = [];
-		for (const item of equippedItems ?? []) {
+		for (const item of source) {
 			const slot = narrowEquippedSlot(item.equippedSlot);
 			if (!slot) continue;
 			out.push({ slot, item: item.data });
 		}
 		return out;
-	}, [equippedItems]);
+	}, [liveEquipped, equippedItems]);
 
 	const stats = useMemo(
 		() =>

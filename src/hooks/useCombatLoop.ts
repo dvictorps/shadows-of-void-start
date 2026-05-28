@@ -213,7 +213,9 @@ export function useCombatLoop({
 		setEnemy(next);
 	}, []);
 
-	const restoreToFullRef = useRef<() => void>(() => {});
+	const restoreToFullRef = useRef<
+		(overrideMaxHp?: number, overrideMaxBarrier?: number) => void
+	>(() => {});
 
 	const resolveKill = useCallback(
 		(killed: Enemy) => {
@@ -243,7 +245,11 @@ export function useCombatLoop({
 			)
 				.then((result) => {
 					if (result.levelsGained > 0) {
-						restoreToFullRef.current();
+						// Read stats.maxLife/maxBarrier fresh at call time — useCombatTick's
+						// own `maxHp` closure can lag the reactive query for one render
+						// after the level-up bumps character.level. Convex mutation
+						// completion guarantees the query has propagated by then.
+						restoreToFullRef.current(stats.maxLife, stats.maxBarrier);
 					}
 					if (result.potionDropped) {
 						setLastKill({ xp: xpGained, potion: true });
@@ -257,6 +263,7 @@ export function useCombatLoop({
 			recordKill,
 			schedule.resetForMiniboss,
 			withSession,
+			stats,
 		],
 	);
 

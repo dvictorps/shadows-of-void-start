@@ -549,7 +549,27 @@ function computeWeaponStats(
 
 	const elementalDamage: { element: string; min: number; max: number }[] = [];
 
+	const SPELL_FLAT_TO_ELEMENT: Record<string, string> = {
+		coldDamageFlat: "Cold",
+		fireDamageFlat: "Fire",
+		lightningDamageFlat: "Lightning",
+		voidDamageFlat: "Void",
+	};
+
 	for (const mod of explicits) {
+		// Spell flat mods are isGlobalStat-tagged (they don't roll on attack weapons
+		// nor accumulate as character globals — see compute.ts no-op for them) but
+		// still need to fold into the spell weapon's swing as elemental damage.
+		const spellElement = SPELL_FLAT_TO_ELEMENT[mod.modifierId];
+		if (spellElement) {
+			elementalDamage.push({
+				element: spellElement,
+				min: mod.minValue ?? mod.value,
+				max: mod.maxValue ?? mod.value,
+			});
+			continue;
+		}
+
 		const modifier = MODIFIERS[mod.modifierId as ModifierId];
 		if (!modifier?.statEffect || modifier.isGlobalStat) continue;
 
@@ -612,25 +632,31 @@ function computeArmorStats(
 	baseStats: Partial<Record<BaseStatKey, number>>,
 	armorType: string | undefined,
 	explicits: RolledMod[],
+	implicits: { modifierId?: string; value: number }[] = [],
 ): ComputedDefenseStats | undefined {
 	const defenseInfo = armorType ? DEFENSE_LABELS[armorType] : null;
 
 	let flatBonus = 0;
 	let defenseIncrease = 0;
-	let blockIncrease = 0;
+	let blockAdditive = 0;
 
-	for (const mod of explicits) {
+	const accumulate = (mod: { modifierId?: string; value: number }) => {
+		if (!mod.modifierId) return;
 		const modifier = MODIFIERS[mod.modifierId as ModifierId];
-		if (!modifier?.statEffect || modifier.isGlobalStat) continue;
+		if (!modifier?.statEffect || modifier.isGlobalStat) return;
 
 		if (modifier.statEffect.target === "defense") {
 			if (modifier.statEffect.operation === "flat") flatBonus += mod.value;
 			else defenseIncrease += mod.value;
 		} else if (modifier.statEffect.target === "blockChance") {
-			if (modifier.statEffect.operation === "increased")
-				blockIncrease += mod.value;
+			// Block sums additively across base + every block mod (impl + expl)
+			// per the 2026-05-28 rebalance — see ADR 0008 / docs/plans/2026-05-28.
+			blockAdditive += mod.value;
 		}
-	}
+	};
+
+	for (const mod of implicits) accumulate(mod);
+	for (const mod of explicits) accumulate(mod);
 
 	const baseDefense = defenseInfo ? (baseStats[defenseInfo.stat] ?? 0) : 0;
 	const baseBlock = baseStats.blockChance ?? 0;
@@ -640,7 +666,7 @@ function computeArmorStats(
 	// rolled mods, which silently dropped the item's base armor/evasion/barrier
 	// and shield blockChance for Normal pieces or rolls without defense mods.
 	const hasDefense = defenseInfo && (baseDefense > 0 || flatBonus !== 0);
-	const hasBlock = baseBlock > 0;
+	const hasBlock = baseBlock > 0 || blockAdditive > 0;
 
 	if (!hasDefense && !hasBlock) return undefined;
 
@@ -655,7 +681,7 @@ function computeArmorStats(
 	}
 
 	if (hasBlock) {
-		const block = Math.round(baseBlock * (1 + blockIncrease / 100));
+		const block = baseBlock + blockAdditive;
 		if (block > 0) result.blockChance = block;
 	}
 
@@ -695,16 +721,14 @@ export function generateItem(options: GenerateItemOptions): GeneratedItem {
 	const baseStats = { ...template.baseStats };
 
 	const isWeapon = "minDamage" in baseStats;
-	const isSpellWeapon =
-		template.weaponType === "staff" || template.weaponType === "wand";
-	const computed =
-		isWeapon && !isSpellWeapon
-			? computeWeaponStats(baseStats, explicits)
-			: undefined;
+	const computed = isWeapon
+		? computeWeaponStats(baseStats, explicits)
+		: undefined;
 	const computedDefense = computeArmorStats(
 		baseStats,
 		template.armorType,
 		explicits,
+		implicits,
 	);
 
 	return {

@@ -288,32 +288,49 @@ describe("spell weapons (staff/wand)", () => {
 			}
 		});
 
-		it(`${templateId}: does not compute weapon stats`, () => {
+		it(`${templateId}: computes weapon stats carrying base + spell flat elem damage`, () => {
 			const items = generateMany(50, {
 				rarity: "epic",
 				templateId,
 				itemLevel: 80,
 			});
 			for (const item of items) {
-				expect(item.computedStats).toBeUndefined();
+				expect(item.computedStats).toBeDefined();
+				const cs = item.computedStats!;
+				expect(cs.physicalDamage.min).toBe(item.baseStats.minDamage);
+				expect(cs.physicalDamage.max).toBe(item.baseStats.maxDamage);
+				expect(cs.attackSpeed).toBe(item.baseStats.attackSpeed);
 			}
 		});
 
-		it(`${templateId}: can roll spell damage flat mods`, () => {
+		it(`${templateId}: spell flat explicits land in computedStats.elementalDamage`, () => {
 			const items = generateMany(200, {
 				rarity: "epic",
 				templateId,
 				itemLevel: 80,
 			});
+			const SPELL_FLAT_TO_ELEM: Record<string, string> = {
+				coldDamageFlat: "Cold",
+				fireDamageFlat: "Fire",
+				lightningDamageFlat: "Lightning",
+				voidDamageFlat: "Void",
+			};
 			const rolledIds = allExplicitModIds(items);
-			const spellMods = [
-				"coldDamageFlat",
-				"fireDamageFlat",
-				"lightningDamageFlat",
-				"voidDamageFlat",
-			];
-			const hasAny = spellMods.some((id) => rolledIds.has(id));
-			expect(hasAny).toBe(true);
+			const spellMods = Object.keys(SPELL_FLAT_TO_ELEM);
+			expect(spellMods.some((id) => rolledIds.has(id))).toBe(true);
+
+			for (const item of items) {
+				for (const expl of item.explicits) {
+					const expectedElem = SPELL_FLAT_TO_ELEM[expl.modifierId];
+					if (!expectedElem) continue;
+					const entry = item.computedStats?.elementalDamage.find(
+						(e) => e.element === expectedElem,
+					);
+					expect(entry).toBeDefined();
+					expect(entry!.min).toBe(expl.minValue ?? expl.value);
+					expect(entry!.max).toBe(expl.maxValue ?? expl.value);
+				}
+			}
 		});
 	}
 });
@@ -672,6 +689,32 @@ describe("shield", () => {
 			}
 		}
 		expect(found).toBe(true);
+	});
+
+	it("block sums additively across base + implicit + explicit (no multiplicative double-count)", () => {
+		// silk_shield_t2 (cotton ward): base blockChance 22, implicit blockChanceIncrease.
+		// With magic+ rarity, an explicit blockChanceIncrease may also roll.
+		// Expected: blockChance === 22 (base) + impl.value + sum(expl block values).
+		let asserted = 0;
+		for (let i = 0; i < 500 && asserted < 5; i++) {
+			const item = generateItem({
+				rarity: "epic",
+				templateId: "silk_shield_t2",
+				itemLevel: 80,
+			});
+			const implBlock = item.implicits
+				.filter((imp) => imp.modifierId === "blockChanceIncrease")
+				.reduce((s, imp) => s + imp.value, 0);
+			const explBlock = item.explicits
+				.filter((m) => m.modifierId === "blockChanceIncrease")
+				.reduce((s, m) => s + m.value, 0);
+			if (implBlock > 0 || explBlock > 0) {
+				const expected = 22 + implBlock + explBlock;
+				expect(item.computedDefenseStats?.blockChance).toBe(expected);
+				asserted++;
+			}
+		}
+		expect(asserted).toBeGreaterThan(0);
 	});
 });
 

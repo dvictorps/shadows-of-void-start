@@ -550,15 +550,24 @@ export function useCombatTick({
 		}
 	}, [potions, maxHp, characterId, consumePotion, withSession]);
 
-	const restoreToFull = useCallback(() => {
-		playerHpRef.current = maxHp;
-		setPlayerHp(maxHp);
-		lastSyncedHpRef.current = maxHp;
-		const full = makeBarrierState(stats.maxBarrier);
-		barrierRef.current = full;
-		setBarrier(full);
-		lastSyncedBarrierRef.current = stats.maxBarrier;
-	}, [maxHp, stats.maxBarrier]);
+	// Accepts an explicit maxHp so the caller (post-recordKill .then handler in
+	// useCombatLoop) can pass the freshest stats.maxLife after a level-up,
+	// instead of relying on this hook's closure-captured `maxHp` which may lag
+	// the reactive query by a render.
+	const restoreToFull = useCallback(
+		(overrideMaxHp?: number, overrideMaxBarrier?: number) => {
+			const hp = overrideMaxHp ?? maxHp;
+			const bar = overrideMaxBarrier ?? stats.maxBarrier;
+			playerHpRef.current = hp;
+			setPlayerHp(hp);
+			lastSyncedHpRef.current = hp;
+			const full = makeBarrierState(bar);
+			barrierRef.current = full;
+			setBarrier(full);
+			lastSyncedBarrierRef.current = bar;
+		},
+		[maxHp, stats.maxBarrier],
+	);
 
 	return {
 		playerHp,
