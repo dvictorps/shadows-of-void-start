@@ -51,6 +51,20 @@ export const computeSnapshot = internalMutation({
 					dead: !!c.dead,
 				}))
 
+				// Re-sort the bossKills snapshot by the resolved (fallback-aware) value
+				// so legacy chars whose `totalBossKills` is still undefined but who carry
+				// a populated `bossKillCounts` aren't pushed to the bottom by the raw
+				// index order. Tiebreak by level desc, then xp desc.
+				if (category === "bossKills") {
+					entries.sort((a, b) => {
+						if (b.totalBossKills !== a.totalBossKills) {
+							return b.totalBossKills - a.totalBossKills
+						}
+						if (b.level !== a.level) return b.level - a.level
+						return b.xp - a.xp
+					})
+				}
+
 				const existing = await ctx.db
 					.query("leaderboardSnapshot")
 					.withIndex("by_category_mode", (q) =>
