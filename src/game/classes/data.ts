@@ -20,7 +20,7 @@ export const CLASS_DEFINITIONS = {
 			"A swift and cunning combatant who exploits precision and agility to strike where it hurts most.",
 		primaryAttribute: "dexterity",
 		baseStats: {
-			hp: 50,
+			hp: 75,
 			barrier: 0,
 			attributes: { strength: 5, dexterity: 10, intelligence: 5 },
 		},
