@@ -18,6 +18,7 @@ Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #4
 
 Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastructure debt is empty. What remains splits into:
 - **Deferred, scoped**: camp cinematic biome ambience.
+- **Pre-public-beta hardening (queued)**: chunk the `recomputeSpellWeaponStats` migration in `convex/items.ts` so it survives a many-thousands-of-items table. Convex mutations have a ~1s / 8MB read budget; today the function calls `ctx.db.query("items").collect()` which is fine at the friends-beta scale (~10 players × ~60 items) but will breach the budget once the table grows. Trigger: any planned public-beta announcement. Recommended shape: an action that drives a paginated internal mutation (`paginate({ numItems: 500 })`) and loops until the cursor returns null. Re-deploy + re-run via `npx convex run items:recomputeSpellWeaponStats`. Pure backend refactor.
 - **Low-priority polish**: native PT review of `lexicon/pt.ts`, `TemplateBaseId` codegen, hash extraction to `src/lib/rng.ts`, rare-name bestiary, admin-dashboard cold-cache latency.
 - **Next big feature**: passive tree (per CONTEXT.md → Classes ordering: MVP combat ✅ → passive tree → active skills). Design work needed first — no stub plan yet.
 
