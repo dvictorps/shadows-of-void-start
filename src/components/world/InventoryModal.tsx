@@ -23,7 +23,12 @@ import {
 	createInventorySlotAllocator,
 	INVENTORY_MAX_SLOTS,
 } from "#/game/inventory/constants";
-import { isWeapon, planEquip, validSlotsForItem } from "#/game/items/equipment";
+import {
+	canSwapHands,
+	isWeapon,
+	planEquip,
+	validSlotsForItem,
+} from "#/game/items/equipment";
 import { translateItemName } from "#/game/items/item-name";
 import type { GeneratedItem } from "#/game/items/types";
 import { describeBrokenReasons } from "#/game/stats/compute";
@@ -249,6 +254,7 @@ export default function InventoryModal({
 			);
 		},
 	);
+	const swapHands = useMutation(api.items.swapHands);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -364,8 +370,23 @@ export default function InventoryModal({
 			return;
 		}
 
-		// Equipped → equipment: unsupported in this iteration (user can unequip,
-		// then equip from inventory).
+		// Equipped → equipment: only the weapon ↔ offhand pair triggers a swap.
+		// Any other pair is silently ignored (the user can still unequip → equip).
+		if (source.kind === "equipped" && target.kind === "equipment") {
+			const isHandPair =
+				(source.slot === "weapon" && target.slot === "offhand") ||
+				(source.slot === "offhand" && target.slot === "weapon");
+			if (!isHandPair) return;
+			const main = equippedBySlot.get("weapon")?.data ?? null;
+			const off = equippedBySlot.get("offhand")?.data ?? null;
+			if (!canSwapHands(main, off)) return;
+			try {
+				await swapHands(withSession({ characterId }));
+			} catch (err) {
+				toast.error(convexErrorMessage(err, m.error_equip_failed()));
+			}
+			return;
+		}
 	};
 
 	const triggerEquip = async (
