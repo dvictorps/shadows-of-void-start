@@ -61,7 +61,7 @@ export function WorldModals({
 	rubys: number;
 	potions: number;
 	teleportStones: number;
-	onVendorBuy: (productId: VendorProductId) => Promise<void>;
+	onVendorBuy: (productId: VendorProductId, quantity: number) => Promise<void>;
 	onVendorSellMany: (itemIds: Id<"items">[]) => Promise<void>;
 	onStashDeposit: (
 		itemIds: Id<"items">[],

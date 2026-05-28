@@ -935,8 +935,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				rubys={character.rubys ?? 0}
 				potions={potions}
 				teleportStones={character.teleportStones ?? 0}
-				onVendorBuy={async (productId) => {
-					await vendorBuy({ characterId: character._id, productId });
+				onVendorBuy={async (productId, quantity) => {
+					await vendorBuy({ characterId: character._id, productId, quantity });
 				}}
 				onVendorSellMany={async (itemIds) => {
 					await vendorSellMany({ characterId: character._id, itemIds });

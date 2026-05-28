@@ -173,21 +173,26 @@ export function useWorldMutations({
 				if (!char) return;
 				const product = VENDOR_PRODUCTS[args.productId as VendorProductId];
 				if (!product) return;
+				const qty = args.quantity;
+				if (qty <= 0) return;
+				const totalCost = product.priceRubys * qty;
 				const rubys = char.rubys ?? 0;
-				if (rubys < product.priceRubys) return;
+				if (rubys < totalCost) return;
 
 				if (product.counterField === "potions") {
 					const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
 					const currentCount = csData?.potions ?? char.potions ?? 0;
-					if (product.cap !== undefined && currentCount >= product.cap) return;
-					applyCharacterDelta(localStore, args.characterId, { rubys: rubys - product.priceRubys });
-					applyCombatStateDelta(localStore, args.characterId, { potions: currentCount + 1 });
+					const newCount = currentCount + qty;
+					if (product.cap !== undefined && newCount > product.cap) return;
+					applyCharacterDelta(localStore, args.characterId, { rubys: rubys - totalCost });
+					applyCombatStateDelta(localStore, args.characterId, { potions: newCount });
 				} else {
 					const currentCount = char[product.counterField] ?? 0;
-					if (product.cap !== undefined && currentCount >= product.cap) return;
+					const newCount = currentCount + qty;
+					if (product.cap !== undefined && newCount > product.cap) return;
 					applyCharacterDelta(localStore, args.characterId, {
-						rubys: rubys - product.priceRubys,
-						[product.counterField]: currentCount + 1,
+						rubys: rubys - totalCost,
+						[product.counterField]: newCount,
 					});
 				}
 			},
