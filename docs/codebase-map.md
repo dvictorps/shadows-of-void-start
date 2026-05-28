@@ -58,7 +58,7 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 ```
 items/
 ├── generator.ts             # generateItem({ rarity, ilvl, type, weaponType }) — public API
-├── generator.test.ts        # 93 tests covering rarity/tier/mod rules
+├── generator.test.ts        # 101 tests covering rarity/tier/mod rules
 ├── equipment.ts             # planEquip, validSlotsForItem, isTwoHanded, weaponArchetype — shared client+server
 ├── equipment.test.ts        # planEquip rules (2H displacement, archetype, etc.)
 ├── starter-gear.ts          # Hand-crafted starter weapons (rusty_sword, rusty_dagger, cracked_wand)
@@ -194,7 +194,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | `index.tsx` | Splash screen ("Shadows of Void" title) |
 | `sign-in.tsx` | better-auth UI |
 | `character-select.tsx` | Roster + create modal + play button + delete confirm |
-| `world.tsx` | **Orchestrator** — wires `useCombatLoop` + `useWorldMutations` + `useViewMode` + `WorldModals` together and resolves the priority TextLog. 740 lines (split shipped in PR #45 + #52; was 900 before decomposition) |
+| `world.tsx` | **Orchestrator** — wires `useCombatLoop` + `useWorldMutations` + `useViewMode` + `WorldModals` together and resolves the priority TextLog. 929 lines — PR #45 + #52 split brought it to 740 from a 900-line monolith; PR #64 added the dual-ref barrier scaffolding (out-of-combat barrier ref + ticker + sync mutation around the retreat-refill quick fix) that the queued `useBarrier` extraction will reclaim |
 | `admin.tsx`, `admin/items.tsx` | Admin dashboard (only admins see) |
 | `api/auth/$.ts` | better-auth fallback route |
 
@@ -204,8 +204,8 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 
 | Hook | Purpose |
 |---|---|
-| `useCombatLoop.ts` | State-machine orchestrator (search → engaged → victory). Owns the spawn loop + zone-bag side effects. 411 lines (split shipped in PR #47 into the three hooks below) |
-| `useCombatTick.ts` | Engaged-state combat tick (50ms): leech heal → barrier regen/cooldown → player swing → enemy swing → thorns. Owns player vitals (HP, barrier, leech, dead) + the 10s `syncHp` + the potion mutation. 420 lines |
+| `useCombatLoop.ts` | State-machine orchestrator (search → engaged → victory). Owns the spawn loop + zone-bag side effects. 574 lines (split shipped in PR #47 into the three hooks below) |
+| `useCombatTick.ts` | Engaged-state combat tick (50ms): leech heal → barrier refill countdown → player swing → enemy swing → thorns. Owns player vitals (HP, barrier, leech, dead) + the 10s `syncHp` + the potion mutation. 541 lines |
 | `useEncounterSchedule.ts` | Per-activation encounter pacing — calmaria time bar, camp threshold rolls, ambush packs, gap rolls, next-spawn rarity decision. 218 lines |
 | `useWorldMutations.ts` | Optimistic mutation bundle for the `/world` route (enterZone, exitZone, pickFromBag, equipItem, etc). See [ADR 0001](./adr/0001-optimistic-mutations.md) |
 | `useCompactViewport.ts` | `matchMedia("(max-height: 800px)")` hook — returns `true` on short viewports (1366×768). Used by world layout, EquipmentPanel, StatusCard, StashModal |

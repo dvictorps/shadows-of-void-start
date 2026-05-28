@@ -28,6 +28,8 @@ Pick by appetite: feature work = passive tree design pass; cleanup pass = lexico
 
 PR #52 landed world.tsx at 740 lines (down from 774, the original monolith was 900). Further extraction (e.g. `useExitFlow`, `useTravelHandlers`) was considered and rejected — the file no longer mixes concerns (composition / handlers / derivations / JSX are contiguous sections), so further splitting would hide flow that today reads linearly. The trigger for revisiting is concerns getting *re-mixed* (business logic inside JSX, mutation hooks called outside the composition block, fetch in a handler) — NOT raw line growth. The styleguide rule in `.gemini/styleguide.md` was updated to reflect this distinction. Orchestrator routes at this app's scale have a natural floor around 700-750 lines.
 
+**Update (2026-05-28)**: world.tsx is now 929 lines. PR #64 added the dual-ref barrier scaffolding (out-of-combat barrier ref + ticker + sync mutation + the retreat-refill quick fix) — this is the "Pure refactor (queued)" `useBarrier` extraction's debt and the bulk of the regression. The closed decision still holds: growth is concerns-already-flagged-for-extraction, not concerns re-mixing inside JSX/handlers. The queued refactor pulls the file back toward the 700-750 floor.
+
 ---
 
 ## Project health snapshot (as of 2026-05-25)
