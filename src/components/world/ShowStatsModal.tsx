@@ -12,6 +12,7 @@ import {
 	STR_MELEE_PCT_PER_POINT,
 	totalCritMultiplier,
 } from "#/game/stats/compute";
+import { estimateDps } from "#/game/stats/dps";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
 import { m } from "#/paraglide/messages";
 
@@ -221,21 +222,7 @@ function OffenseSection({ stats }: { stats: ComputedCharacterStats }) {
 		.map((s) => (s.source === "mainHand" ? "MH" : "OH"))
 		.join(" + ");
 
-	// Compute a coarse DPS estimate by averaging per-swing damage and multiplying
-	// by the combined tick rate. Doesn't account for crits/evasion/armor — just
-	// a ballpark "if all hits land".
-	const avgSwingDamage = (swing: SwingProfile) => {
-		const physAvg = (swing.physicalDamage.min + swing.physicalDamage.max) / 2;
-		const elemAvg = swing.elementalDamage.reduce(
-			(sum, e) => sum + (e.min + e.max) / 2,
-			0,
-		);
-		return physAvg + elemAvg;
-	};
-	const avgPerSwing =
-		stats.swings.reduce((sum, s) => sum + avgSwingDamage(s), 0) /
-		stats.swings.length;
-	const dps = Math.round(avgPerSwing * stats.tickRate);
+	const dps = estimateDps(stats);
 
 	return (
 		<section>
