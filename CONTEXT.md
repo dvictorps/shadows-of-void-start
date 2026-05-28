@@ -291,7 +291,7 @@ Each incoming hit rolls against `hitChance`. A miss deals **zero** damage and tr
 **Resistances** (cold / fire / lightning / void) cap at 75%. Each elemental hit is multiplied by `(1 - resistance/100)`.
 
 **Barrier** (sits over life, blue ring around HP globe):
-- Functions as a spike absorber — incoming damage hits barrier first at a **+50% damage multiplier** (1 raw damage drains 1.5 barrier). A 1500-max-barrier mage absorbs 1000 raw damage before breaking.
+- Functions as a spike absorber — incoming damage hits barrier **1:1** before reaching life. A 1500-max-barrier mage absorbs 1500 raw damage before breaking.
 - **No passive regen.** Once damaged, barrier stays at its current value indefinitely. There is no recovery between hits.
 - **Refill on break.** When current hits zero from damage, a **10-second cooldown** starts. At expiry, current **snaps instantly back to max** — no in-between regen. Subsequent damage during the cooldown carries entirely to life (current is 0 → nothing to absorb) and does NOT reset the timer.
 - **Cooldown ticks in real time** across combat / exploração / map / travel — the cycle continues whether or not you're in a fight.
@@ -300,7 +300,7 @@ Each incoming hit rolls against `hitChance`. A miss deals **zero** damage and tr
 
 Historical note: prior iterations used a 6-second instant-refill timer (deemed trivialised by potions) and a continuous-regen-with-cooldown model (deemed "barrier as dead stat" in sustained combat — armor and evasion mitigate every hit continuously while barrier was an overflow-life pool that didn't recover within a fight). The current model accepts a small "auto-break metagame" (tank a trash hit pre-boss to reset partial barrier) — the 10s vulnerability window is the real cost. See [ADR 0005](docs/adr/0005-barrier-regen-mechanic.md).
 
-**Monster barrier mirrors the player.** Monsters that roll `monsterAdditionalBarrier` (see Monster Modifier Pool) get a barrier pool sized at **30% of their post-other-mods HP**, displayed as a thin blue strip above their HP bar. The same `damageBarrier`/`tickBarrier` mechanic runs — +50% damage multiplier on absorption, 10s refill cooldown on break, instant snap to max at expiry. The mod is applied **last** in the spawn-time mod chain so the barrier reads the HP after Increased Life has resolved (player reads "30% of the displayed HP"). Cooldown is reset only by a fresh spawn — no in-zone reset for monsters.
+**Monster barrier mirrors the player.** Monsters that roll `monsterAdditionalBarrier` (see Monster Modifier Pool) get a barrier pool sized at **30% of their post-other-mods HP**, displayed as a thin blue strip above their HP bar. The same `damageBarrier`/`tickBarrier` mechanic runs — 1:1 absorption, 10s refill cooldown on break, instant snap to max at expiry. The mod is applied **last** in the spawn-time mod chain so the barrier reads the HP after Increased Life has resolved (player reads "30% of the displayed HP"). Cooldown is reset only by a fresh spawn — no in-zone reset for monsters.
 
 **Block** — granted by **shields** (base + rolled mods) and by **attack dual-wielding** (flat +10% implicit). When a hit lands and is not evaded, roll once against `blockChance`. A blocked hit deals 0 damage to barrier/life but **does** trigger the attacker's on-hit (blocks are still "hits" for the attacker's purposes). Thorns still reflect to the attacker on block, regardless of whether the block came from a shield or from dual-wielding.
 
@@ -558,7 +558,7 @@ Starter pool (Act 1):
 - **Increased Fire Resistance** — mitigates fire damage.
 - **Increased Lightning Resistance** — mitigates lightning damage.
 - **Increased Void Resistance** — mitigates void damage.
-- **Additional Barrier** — grants a barrier pool sized at 30% of the monster's HP (after other HP-affecting mods resolve). Mirrors the player barrier mechanic: +50% damage multiplier on absorption, 10s refill cooldown on break, instant snap back to max at expiry. See Defenses → Barrier.
+- **Additional Barrier** — grants a barrier pool sized at 30% of the monster's HP (after other HP-affecting mods resolve). Mirrors the player barrier mechanic: 1:1 absorption, 10s refill cooldown on break, instant snap back to max at expiry. See Defenses → Barrier.
 - **Increased Critical Strike Chance** — multiplies the 5% baseline crit by 2.5× (12.5% effective).
 - **Critical Strike Multiplier** — adds 50 to the 50% baseline multiplier (crits do 2× damage instead of 1.5×).
 - **Cold / Fire / Lightning / Void Damage** (four mods) — each grants the monster `+30% of total damage as extra <element>`, computed once at hit time against the pre-conversion total. Stacking two damage mods (e.g., Cold + Fire) adds 30% per element independently — they don't compound. Mirrors the player's tome gain-as-extra family. Crit then multiplies everything uniformly; defender resistance for the matching element mitigates the extra layer.

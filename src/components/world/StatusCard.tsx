@@ -22,6 +22,7 @@ type Props = {
 	stats: ComputedCharacterStats;
 	hpOverride?: number;
 	barrierOverride?: number;
+	barrierRefillRemaining?: number;
 	potionsOverride?: number;
 	xpOverride?: number;
 	teleportStones: number;
@@ -66,6 +67,7 @@ export default function StatusCard({
 	stats,
 	hpOverride,
 	barrierOverride,
+	barrierRefillRemaining,
 	potionsOverride,
 	xpOverride,
 	teleportStones,
@@ -225,6 +227,7 @@ export default function StatusCard({
 						maxHp={maxHp}
 						barrier={barrier}
 						maxBarrier={maxBarrier}
+						barrierRefillRemaining={barrierRefillRemaining}
 					/>
 				</div>
 			</div>

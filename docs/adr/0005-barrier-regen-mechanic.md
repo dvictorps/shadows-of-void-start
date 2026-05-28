@@ -79,6 +79,14 @@ The full "double HP every cycle" loop returns vs sustained-damage profiles, acce
 
 **API rename.** `BARRIER_REGEN_FRACTION_PER_SECOND` removed; `BARRIER_COOLDOWN_SECONDS` → `BARRIER_REFILL_DELAY_SECONDS`; new `BARRIER_DAMAGE_MULTIPLIER = 1.5`. `BarrierState.cooldownRemaining` → `BarrierState.refillRemaining`. Function signatures unchanged.
 
+## Update (2026-05-28, later) — drop the +50% absorption multiplier
+
+The `BARRIER_DAMAGE_MULTIPLIER = 1.5` introduced in the earlier 2026-05-28 update is removed. Damage now drains barrier 1:1. The "first-burst absorption is meaningfully weaker" reasoning from that update was a balance instinct, not a play-tested need — once the 10s vulnerability window + lack-of-regen were in place, the additional multiplier nerf compressed mage durability past the design intent (a 1500-barrier mage absorbing only 1000 raw damage didn't feel like barrier was load-bearing). 1:1 absorption restores the mental model "barrier is the displayed number of damage you ignore".
+
+The other two pillars of the rework (no passive regen; 10s refill cooldown then instant snap) keep the original failure mode — "mage immortal to anything but continuous DPS over 10s" — bounded. Build pressure on life remains: the cooldown window is real, and barrier still doesn't save the player from sustained pressure across multiple fights.
+
+`BARRIER_DAMAGE_MULTIPLIER` constant deleted from `src/game/combat/constants.ts`. `damageBarrier` simplified to a straight subtraction; symmetric for monster barriers.
+
 ## Related
 
 - `CONTEXT.md` → Combat Resolution → Defenses → Barrier (the canonical glossary entry, kept in sync with this ADR).

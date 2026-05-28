@@ -785,6 +785,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						maxHp={maxHp}
 						barrier={barrierApi.barrier.current}
 						maxBarrier={barrierApi.barrier.max}
+						barrierRefillRemaining={barrierApi.barrier.refillRemaining}
 						xp={xp}
 						xpNeeded={xpToNextLevel(character.level)}
 						lastKillXp={combat.lastKill?.xp}
@@ -851,6 +852,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					stats={stats}
 					hpOverride={hpOverride}
 					barrierOverride={barrierOverride}
+					barrierRefillRemaining={barrierApi.barrier.refillRemaining}
 					potionsOverride={potionsOverride}
 					xpOverride={xp}
 					teleportStones={character.teleportStones ?? 0}

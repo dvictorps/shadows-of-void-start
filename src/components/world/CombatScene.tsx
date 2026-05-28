@@ -76,6 +76,7 @@ type Props = {
 	maxHp: number;
 	barrier: number;
 	maxBarrier: number;
+	barrierRefillRemaining?: number;
 	xp: number;
 	xpNeeded: number;
 	// XP from the most recent kill — fires a floating popup when state goes
@@ -136,6 +137,7 @@ export default function CombatScene({
 	maxHp,
 	barrier,
 	maxBarrier,
+	barrierRefillRemaining,
 	xp,
 	xpNeeded,
 	lastKillXp,
@@ -647,6 +649,7 @@ export default function CombatScene({
 						maxHp={maxHp}
 						barrier={barrier}
 						maxBarrier={maxBarrier}
+						barrierRefillRemaining={barrierRefillRemaining}
 						size="xl"
 						hitToken={lastPlayerHit?.id ?? null}
 					/>
