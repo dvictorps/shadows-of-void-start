@@ -303,6 +303,15 @@ export default function InventoryModal({
 
 	const mainHandWeaponType = equippedBySlot.get("weapon")?.data.weaponType;
 
+	const handsSwappable = useMemo(
+		() =>
+			canSwapHands(
+				equippedBySlot.get("weapon")?.data ?? null,
+				equippedBySlot.get("offhand")?.data ?? null,
+			),
+		[equippedBySlot],
+	);
+
 	const inventory = inventoryItems;
 
 	const inventoryBySlot = useMemo(() => {
@@ -539,6 +548,7 @@ export default function InventoryModal({
 										item={item ?? null}
 										eligible={validEquipSlots.has(slot)}
 										dragging={active}
+										handsSwappable={handsSwappable}
 										broken={broken}
 										brokenReasons={reasons}
 										avoidRect={menuRect}
@@ -737,6 +747,7 @@ function EquipmentDroppable({
 	item,
 	eligible,
 	dragging,
+	handsSwappable,
 	broken,
 	brokenReasons,
 	avoidRect,
@@ -747,6 +758,7 @@ function EquipmentDroppable({
 	item: Doc<"items"> | null;
 	eligible: boolean;
 	dragging: DragSourceData | null;
+	handsSwappable: boolean;
 	broken: boolean;
 	brokenReasons: string[] | undefined;
 	avoidRect: DOMRect | null;
@@ -770,6 +782,24 @@ function EquipmentDroppable({
 		} else if (eligible) {
 			highlight =
 				"ring-2 ring-yellow-300/40 shadow-[0_0_8px_rgba(253,224,71,0.25)]";
+		}
+	} else if (
+		dragging?.kind === "equipped" &&
+		(dragging.slot === "weapon" || dragging.slot === "offhand")
+	) {
+		// Hand-swap drag. The opposite hand is the only meaningful drop site.
+		const isOppositeHand =
+			(dragging.slot === "weapon" && slot === "offhand") ||
+			(dragging.slot === "offhand" && slot === "weapon");
+		if (isOppositeHand) {
+			if (isOver) {
+				highlight = handsSwappable
+					? "ring-2 ring-yellow-300/90 shadow-[0_0_14px_rgba(253,224,71,0.55)]"
+					: "ring-2 ring-red-500/70";
+			} else if (handsSwappable) {
+				highlight =
+					"ring-2 ring-yellow-300/40 shadow-[0_0_8px_rgba(253,224,71,0.25)]";
+			}
 		}
 	}
 	return (
