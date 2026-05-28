@@ -94,7 +94,7 @@ const crackedWand: GeneratedItem = {
 
 // Rogue starter chestplate. Mirrors leather_chestplate_t1 (evasion 20) so the
 // fresh rogue has a non-zero defensive layer matching warrior's HP and mage's
-// barrier-from-class. See docs/plans/2026-05-28 → Phase D Task 12.
+// barrier-from-class.
 const tatteredLeatherVest: GeneratedItem = {
 	id: "starter:tattered_leather_vest",
 	templateId: "leather_chestplate_t1",

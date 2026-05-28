@@ -11,7 +11,7 @@ import {
 } from "../src/game/items/starter-gear"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { loadOwnedCharacter } from "./_shared/character"
-import type { Doc } from "./_generated/dataModel"
+import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
 import { adjustUserCharacterMetrics } from "./users"
@@ -152,38 +152,33 @@ export const create = mutation({
 			}),
 		])
 
-		if (starterWeaponId) {
-			const starterDef = findStarterItem(starterWeaponId)
-			if (starterDef) {
-				const itemId = await ctx.db.insert("items", {
-					authUserId: authUser._id,
-					locationKind: "equipped",
-					characterId,
-					equippedSlot: "weapon",
-					data: starterDef,
-					droppedAt: Date.now(),
-					droppedFrom: "starter",
-				})
-				await ctx.db.patch(characterId, { equippedWeaponId: itemId })
-			}
+		const insertStarter = async (
+			itemId: string | undefined,
+			slot: "weapon" | "chestplate",
+		): Promise<Id<"items"> | null> => {
+			if (!itemId) return null
+			const def = findStarterItem(itemId)
+			if (!def) return null
+			return await ctx.db.insert("items", {
+				authUserId: authUser._id,
+				locationKind: "equipped",
+				characterId,
+				equippedSlot: slot,
+				data: def,
+				droppedAt: Date.now(),
+				droppedFrom: "starter",
+			})
 		}
 
 		const starterChestId = isKnownClassId(args.classId)
 			? STARTER_CHESTPLATE_BY_CLASS[args.classId]
 			: undefined
-		if (starterChestId) {
-			const chestDef = findStarterItem(starterChestId)
-			if (chestDef) {
-				await ctx.db.insert("items", {
-					authUserId: authUser._id,
-					locationKind: "equipped",
-					characterId,
-					equippedSlot: "chestplate",
-					data: chestDef,
-					droppedAt: Date.now(),
-					droppedFrom: "starter",
-				})
-			}
+		const [weaponItemId] = await Promise.all([
+			insertStarter(starterWeaponId, "weapon"),
+			insertStarter(starterChestId, "chestplate"),
+		])
+		if (weaponItemId) {
+			await ctx.db.patch(characterId, { equippedWeaponId: weaponItemId })
 		}
 
 		const isHardcore = args.hardcore === true

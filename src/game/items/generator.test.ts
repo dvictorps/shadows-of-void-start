@@ -1537,6 +1537,21 @@ describe("silk armor defense", () => {
 	});
 });
 
+// ── Staff base damage invariant: 2.0 × wand at every tier ──
+
+describe("staff vs wand base damage parity", () => {
+	it("staff_tN base damage is exactly 2.0× wand_tN at every tier", () => {
+		for (let tier = 1; tier <= 21; tier++) {
+			const wand = EQUIPMENT_TEMPLATES.find((t) => t.id === `wand_t${tier}`);
+			const staff = EQUIPMENT_TEMPLATES.find((t) => t.id === `staff_t${tier}`);
+			expect(wand).toBeDefined();
+			expect(staff).toBeDefined();
+			expect(staff!.baseStats.minDamage).toBe((wand!.baseStats.minDamage ?? 0) * 2);
+			expect(staff!.baseStats.maxDamage).toBe((wand!.baseStats.maxDamage ?? 0) * 2);
+		}
+	});
+});
+
 // ── Base tier selection by item level ──
 
 describe("base tier selection by item level", () => {
