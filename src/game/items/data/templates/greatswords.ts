@@ -1,9 +1,6 @@
 import type { EquipmentTemplate } from "./types";
 
-// Greatswords (2H, str) — AtkSpd: 1.10, Crit: 5.0, No implicit
-// Base damage = ~2.4× sword (was 2.0×). The +0.4× restores the design ratio
-// after physicalDamageFlat max +100 compresses 2H/1H from 2.0× to ~1.6× at
-// endgame. Slow heavy hits stay the archetype — AS unchanged.
+// Greatswords (2H, str) — AtkSpd: 1.10, Crit: 5.0, No implicit. Base damage ~2.3× sword (CONTEXT.md → Weapons).
 export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "greatsword_t1",

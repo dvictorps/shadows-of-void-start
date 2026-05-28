@@ -1,9 +1,6 @@
 import type { EquipmentTemplate } from "./types";
 
-// Two-Handed Axes (2H, str) — AtkSpd: 1.05, Crit: 5.0, No implicit
-// Base damage = ~2.4× axe (was 2.0×). Same rationale as greatswords —
-// the +20% restores the design ratio after physicalDamageFlat compression.
-// AS unchanged; heavy slow-hit feel is the point.
+// Two-Handed Axes (2H, str) — AtkSpd: 1.05, Crit: 5.0, No implicit. Base damage ~2.3× axe (CONTEXT.md → Weapons).
 export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "twoHandedAxe_t1",
