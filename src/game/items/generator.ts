@@ -144,23 +144,15 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 	return (Object.keys(MODIFIERS) as ModifierId[]).filter((modId) => {
 		const mod = MODIFIERS[modId];
 
-		// On armor pieces, gate mods to a specific base type. Non-armor templates
-		// (jewelry, weapons) pass through — template.armorType is undefined.
-		const requiredArmorType = MOD_REQUIRED_ARMOR_TYPE[modId];
+		// Gate mods to a specific armor base, from either the per-mod inline
+		// field (ADR 0007) or the legacy MOD_REQUIRED_ARMOR_TYPE registry.
+		// Non-armor templates (weapons, jewelry, tomes) pass through.
+		const requiredArmorType =
+			mod.restrictedToArmorType ?? MOD_REQUIRED_ARMOR_TYPE[modId];
 		if (
 			requiredArmorType &&
 			template.armorType &&
 			template.armorType !== requiredArmorType
-		) {
-			return false;
-		}
-
-		// Per-mod inline restriction (ADR 0007). Filters armor templates only;
-		// non-armor templates (weapons, jewelry, tomes) are unaffected.
-		if (
-			mod.restrictedToArmorType &&
-			template.armorType &&
-			template.armorType !== mod.restrictedToArmorType
 		) {
 			return false;
 		}

@@ -534,9 +534,6 @@ describe("global defense % mods respect armorType", () => {
 // ── restrictedToArmorType filter (ADR 0007) ──
 
 describe("restrictedToArmorType modifier filter", () => {
-	// Mutates a gloves-eligible mod to add a silk restriction, generates many
-	// gloves of each armor type, then restores. Verifies the new field filters
-	// armor templates correctly without affecting non-armor eligibility.
 	it("filters armor templates by armorType; passes through non-armor", () => {
 		const target = MODIFIERS.physicalDamageFlatGlobal;
 		const original = target.restrictedToArmorType;
@@ -985,7 +982,7 @@ describe("flat damage mods roll as min-max range", () => {
 				itemLevel: 80,
 			}),
 			...generateMany(200, {
-				rarity: "legendary",
+				rarity: "epic",
 				templateId: "cobalt_ring",
 				itemLevel: 80,
 			}),

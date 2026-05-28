@@ -37,7 +37,7 @@ The existing `MOD_REQUIRED_ARMOR_TYPE` registry stays for now. Migrating its fou
 ## Consequences
 
 - The `Modifier` interface gains one optional field. No data migration — existing mods omit it.
-- `getModifiersForTemplate` gains four lines of filter logic, sitting alongside the existing `MOD_REQUIRED_ARMOR_TYPE` check.
+- `getModifiersForTemplate` unifies both sources via `mod.restrictedToArmorType ?? MOD_REQUIRED_ARMOR_TYPE[modId]` — one filter block handles both the inline field and the legacy registry.
 - Mods that want INT-base-only / DEX-base-only / STR-base-only behavior in the future express it inline (e.g., `restrictedToArmorType: "silk"` for an int-coded mod) without touching the generator.
 - The four `tomeGainAsExtraX` mods (Phase C of the 2026-05-28 plan) become the first consumers.
-- A follow-up cleanup can migrate the four entries in `MOD_REQUIRED_ARMOR_TYPE` to the new field and delete the registry, unifying the mechanism.
+- A follow-up cleanup can migrate the four entries in `MOD_REQUIRED_ARMOR_TYPE` onto the modifiers themselves and delete the registry.
