@@ -128,21 +128,32 @@ describe("barrier state", () => {
 
 	it("refill timer ticks down even while max is zero (no gear-swap exploit)", () => {
 		// Break barrier → unequip silk → wait the cooldown → re-equip.
-		// The countdown must have advanced in real time. The instant snap
-		// happens regardless of whether max is 0 (no barrier ever appears
-		// until max is restored, but the timer expired so re-equip lands
-		// at-full).
+		// The countdown advances in real time even at max=0, and re-equip
+		// after expiry lands at FULL (seedAtFull branch — without it, the
+		// player would be permanently stuck at 0).
 		let s = makeBarrierState(100);
 		s = damageBarrier(s, 200).state; // refillRemaining 10
 		s = rescaleBarrier(s, 0);
 		s = tickBarrier(s, 10);
 		expect(s.refillRemaining).toBe(0);
-		// Re-equip restores max; the snap-to-max already happened (current
-		// was set to the prior `state.max` of 0, but rescaling raises max
-		// — the snap doesn't backfill on rescale, by design).
 		s = rescaleBarrier(s, 100);
 		expect(s.max).toBe(100);
-		expect(s.current).toBe(0);
-		// Next damage event would start a fresh refill cycle.
+		expect(s.current).toBe(100); // seedAtFull recovered the missed snap
+	});
+
+	it("seedAtFull triggers when re-equipping after unequip-from-partial (acknowledged minor refill on full gear-cycle)", () => {
+		// Tricky case: player at partial barrier unequips silk → current goes
+		// to 0 (forced by the newMax=0 branch). State now matches
+		// seedAtFull's condition. Re-equip would snap to full — that's a
+		// "free refill from 50%" exploit at first glance. In practice the
+		// player was at 0 barrier during the unequipped period and accepted
+		// the vulnerability; the trade-off is acceptable. This test pins
+		// the current behavior so a future "anti-exploit" change is an
+		// explicit decision, not an accident.
+		let s = makeBarrierState(100);
+		s = damageBarrier(s, 30).state; // partial: current 55
+		s = rescaleBarrier(s, 0); // unequip silk → current 0, max 0
+		s = rescaleBarrier(s, 100); // re-equip
+		expect(s.current).toBe(100); // seedAtFull fires
 	});
 });

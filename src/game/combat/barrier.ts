@@ -28,7 +28,12 @@ export function makeBarrierState(max: number): BarrierState {
 /**
  * Reconcile the barrier state with a possibly-changed max (e.g. after a gear
  * swap). Current is clamped to the new max; refill timer is preserved.
- * A gear swap that raises the ceiling does not refill the pool. See ADR 0005.
+ * A gear swap that raises the ceiling does not refill the pool — UNLESS the
+ * state represents "nothing to preserve" (current 0 + no active refill cycle),
+ * in which case the new pool seeds at full. Without that branch, breaking
+ * barrier → unequipping silk past the 10s expiry → re-equipping would leave
+ * the player stuck at 0 forever (the snap fired at max=0 during the unequip
+ * window). See ADR 0005.
  */
 export function rescaleBarrier(
 	state: BarrierState,
@@ -37,7 +42,8 @@ export function rescaleBarrier(
 	if (newMax <= 0) {
 		return { current: 0, max: 0, refillRemaining: state.refillRemaining };
 	}
-	const current = Math.min(state.current, newMax);
+	const seedAtFull = state.current === 0 && state.refillRemaining === 0;
+	const current = seedAtFull ? newMax : Math.min(state.current, newMax);
 	return { current, max: newMax, refillRemaining: state.refillRemaining };
 }
 

@@ -213,6 +213,12 @@ export function useCombatLoop({
 		setEnemy(next);
 	}, []);
 
+	// Latest stats mirrored into a ref so the post-recordKill .then handler
+	// reads fresh maxLife/maxBarrier even when the closure was captured one
+	// or more renders earlier (per Gemini review on PR #64).
+	const statsRef = useRef(stats);
+	statsRef.current = stats;
+
 	const restoreToFullRef = useRef<
 		(overrideMaxHp?: number, overrideMaxBarrier?: number) => void
 	>(() => {});
@@ -245,8 +251,12 @@ export function useCombatLoop({
 			)
 				.then((result) => {
 					if (result.levelsGained > 0) {
-						// Pass fresh stats — see restoreToFull's override comment.
-						restoreToFullRef.current(stats.maxLife, stats.maxBarrier);
+						// Read from statsRef, not the closed-over `stats` — the
+						// closure was captured before the level-up bumped maxLife.
+						restoreToFullRef.current(
+							statsRef.current.maxLife,
+							statsRef.current.maxBarrier,
+						);
 					}
 					if (result.potionDropped) {
 						setLastKill({ xp: xpGained, potion: true });
@@ -260,7 +270,6 @@ export function useCombatLoop({
 			recordKill,
 			schedule.resetForMiniboss,
 			withSession,
-			stats,
 		],
 	);
 
