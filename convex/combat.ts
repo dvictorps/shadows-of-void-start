@@ -108,6 +108,8 @@ export const recordKill = mutation({
 		csUpdates.xp = xp
 
 		let magicFind: number
+		let newMaxLife: number | undefined
+		let newMaxBarrier: number | undefined
 		if (levelsGained > 0 || char.cachedMaxLife === undefined) {
 			if (levelsGained === 0) {
 				// Defensive log — recordKill should never recompute stats outside
@@ -133,6 +135,8 @@ export const recordKill = mutation({
 			if (levelsGained > 0) {
 				csUpdates.hpCurrent = stats.maxLife
 				csUpdates.barrierCurrent = stats.maxBarrier
+				newMaxLife = stats.maxLife
+				newMaxBarrier = stats.maxBarrier
 			}
 		} else {
 			magicFind = char.cachedMagicFind ?? 0
@@ -251,6 +255,8 @@ export const recordKill = mutation({
 			levelsGained,
 			potionDropped,
 			incenseDropped,
+			newMaxLife,
+			newMaxBarrier,
 		}
 	},
 })
