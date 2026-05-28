@@ -39,6 +39,7 @@ myNewStatIncrease: {
     isGlobalStat: true,                 // omit for local mods (statEffect required instead)
     weight: 800,                        // omit for default (1000)
     // restrictedToArmorType: "silk",   // optional — armor-base gate (ADR 0007). No-op on weapons/jewelry/tomes.
+    // restrictedToImplicitMod: "intelligenceFlat", // optional — slot-conditional amulet gate (ADR 0007). No-op on non-amulet slots.
     tiers: createStandardTiers(5, 10, 30, 45), // (t10Min, t10Max, t1Min, t1Max)
 },
 ```

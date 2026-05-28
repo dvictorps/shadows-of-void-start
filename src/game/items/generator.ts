@@ -157,6 +157,18 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 			return false;
 		}
 
+		// Slot-conditional implicit gate (ADR 0007). Only narrows amulets —
+		// the slot where attribute-typed implicits live. Other slots pass.
+		if (
+			mod.restrictedToImplicitMod &&
+			template.equipmentType === "amulet"
+		) {
+			const hasImplicit = template.implicits.some(
+				(imp) => imp.modifierId === mod.restrictedToImplicitMod,
+			);
+			if (!hasImplicit) return false;
+		}
+
 		return mod.applicableTo.some((target) => {
 			if (isGroupKey(target)) {
 				const members = EQUIPMENT_GROUPS[target] as readonly string[];
@@ -248,6 +260,12 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"globalLightningDamageIncrease",
 			"globalVoidDamageIncrease",
 			"globalElementalDamageIncrease",
+			// Mage-flavor: applicableTo includes "staff" only — wands are
+			// eligibility-filtered out, so epic wands never get these.
+			"tomeGainAsExtraCold",
+			"tomeGainAsExtraFire",
+			"tomeGainAsExtraLightning",
+			"tomeGainAsExtraVoid",
 		] as ModifierId[],
 		suffixes: [
 			"globalCastSpeedIncrease",
@@ -257,7 +275,18 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 		] as ModifierId[],
 	},
 	armor: {
-		prefixes: ["localDefenseFlat", "healthFlat", "manaFlat"] as ModifierId[],
+		prefixes: [
+			"localDefenseFlat",
+			"healthFlat",
+			"manaFlat",
+			// Mage-flavor: applicableTo includes "gloves" only AND
+			// restrictedToArmorType "silk" — epic plate/leather gloves never
+			// roll these; epic helmet/chestplate never roll these.
+			"tomeGainAsExtraCold",
+			"tomeGainAsExtraFire",
+			"tomeGainAsExtraLightning",
+			"tomeGainAsExtraVoid",
+		] as ModifierId[],
 		suffixes: [
 			"localDefenseIncrease",
 			"coldResistance",
@@ -334,6 +363,13 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"globalPhysicalDamageIncrease",
 			"globalSpellDamageIncrease",
 			"lifeGainOnHitFlat",
+			// Mage-flavor: restrictedToImplicitMod "intelligenceFlat" narrows
+			// these to lapis_amulet only — epic gold/jade/amber amulets are
+			// eligibility-filtered out.
+			"tomeGainAsExtraCold",
+			"tomeGainAsExtraFire",
+			"tomeGainAsExtraLightning",
+			"tomeGainAsExtraVoid",
 		] as ModifierId[],
 		suffixes: [
 			"coldResistance",
@@ -432,23 +468,18 @@ function rollExplicits(
 		if (tier) tierCache.set(modId, tier);
 	}
 
-	// For epic items, also cache tiers for pattern mods that may not be in availableModifiers
-	if (epicPattern) {
-		for (const modId of [...epicPattern.prefixes, ...epicPattern.suffixes]) {
-			if (!tierCache.has(modId)) {
-				const tier = getModifierTierForItemLevel(modId, itemLevel);
-				if (tier) tierCache.set(modId, tier);
-			}
-		}
-	}
+	const availableSet: Set<string> = new Set(availableModifiers);
 
 	const getEligible = (affixType: "prefix" | "suffix"): ModifierId[] => {
-		// Epic: draw from pattern pool
+		// Epic: draw from the archetype pool, but intersect with the template's
+		// real eligibility so applicableTo / restrictedToArmorType /
+		// restrictedToImplicitMod are honored at epic rarity too.
 		if (epicPattern) {
 			const pool =
 				affixType === "prefix" ? epicPattern.prefixes : epicPattern.suffixes;
 			return pool.filter((modId) => {
 				if (usedModIds.has(modId)) return false;
+				if (!availableSet.has(modId)) return false;
 				return tierCache.has(modId);
 			});
 		}

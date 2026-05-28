@@ -66,6 +66,12 @@ export interface Modifier {
 	// is undefined — so a mod targeting tome+amulet+gloves can still carry a
 	// silk restriction without losing the tome/amulet paths (ADR 0007).
 	restrictedToArmorType?: ArmorType;
+	// Narrows the AMULET slot to a specific attribute-typed implicit (e.g.
+	// "intelligenceFlat" → lapis_amulet). Mods like tomeGainAsExtra* want
+	// "mage-flavor" amulets without losing tome/glove/staff eligibility, so
+	// the gate is intentionally slot-conditional: applies ONLY when the
+	// template's equipmentType is "amulet"; other slots pass through.
+	restrictedToImplicitMod?: string;
 	tiers: ModifierTier[];
 }
 

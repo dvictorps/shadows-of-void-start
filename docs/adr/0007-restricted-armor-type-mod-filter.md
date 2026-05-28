@@ -1,4 +1,4 @@
-# 0007 — `restrictedToArmorType` modifier filter
+# 0007 — Per-mod inline restriction filters
 
 **Status**: Accepted
 **Date**: 2026-05-28
@@ -41,3 +41,15 @@ The existing `MOD_REQUIRED_ARMOR_TYPE` registry stays for now. Migrating its fou
 - Mods that want INT-base-only / DEX-base-only / STR-base-only behavior in the future express it inline (e.g., `restrictedToArmorType: "silk"` for an int-coded mod) without touching the generator.
 - The four `tomeGainAsExtraX` mods (Phase C of the 2026-05-28 plan) become the first consumers.
 - A follow-up cleanup can migrate the four entries in `MOD_REQUIRED_ARMOR_TYPE` onto the modifiers themselves and delete the registry.
+
+## Update (2026-05-28) — adds `restrictedToImplicitMod` + makes EPIC patterns respect eligibility
+
+The original decision covered armor-type targeting. The 2026-05-28 rebalance also wanted to target the **intelligence-typed amulet** specifically (`lapis_amulet` — the only amulet whose implicit is `intelligenceFlat`) for the `tomeGainAsExtraX` family. `restrictedToArmorType` doesn't help here — amulets have no armorType.
+
+Two changes:
+
+1. **New `restrictedToImplicitMod?: string` field** on the `Modifier` interface. Semantics are intentionally **slot-conditional**: the filter applies ONLY when `template.equipmentType === "amulet"`. Other slots pass through unfiltered. This lets one mod target both attribute-typed amulets AND non-amulet slots (tomes, silk gloves, staves for `tomeGainAsExtraX`) without forcing a contortion where every target needs the implicit.
+
+2. **`EPIC_MOD_PATTERNS` now intersects with `availableModifiers`** when picking epic mods. Previously the epic pool bypassed the per-template eligibility filter — useful for curated archetype rolls but a hole when new `applicableTo` / `restrictedToArmorType` / `restrictedToImplicitMod` restrictions land. To preserve current behavior for pattern mods that USED the bypass (e.g., `manaRegenFlat` listed in `spellWeapon` suffixes despite its `applicableTo` excluding `staff`/`wand`), those mods had their `applicableTo` extended to include the patterns they appear in. This is a one-time data migration; future pattern additions should keep mod `applicableTo` aligned.
+
+`tomeGainAsExtraX` mods are added to `spellWeapon`, `armor`, and `amulet` epic patterns — the eligibility filter then narrows to staves (no wands), silk gloves (no plate/leather), and lapis amulets (no gold/jade/amber).

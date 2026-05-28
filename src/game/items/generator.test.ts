@@ -603,14 +603,31 @@ describe("tome eligibility", () => {
 });
 
 describe("tomeGainAsExtra scope", () => {
-	it("amulets can roll tomeGainAsExtra", () => {
-		const items = generateMany(400, {
+	it("int (lapis) amulets can roll tomeGainAsExtra; other amulets cannot", () => {
+		const lapis = generateMany(400, {
+			rarity: "legendary",
+			templateId: "lapis_amulet",
+			itemLevel: 80,
+		});
+		const gold = generateMany(400, {
 			rarity: "legendary",
 			templateId: "gold_amulet",
 			itemLevel: 80,
 		});
-		const rolled = allExplicitModIds(items);
-		expect(TOME_GAIN_MODS.some((id) => rolled.has(id))).toBe(true);
+		const jade = generateMany(400, {
+			rarity: "legendary",
+			templateId: "jade_amulet",
+			itemLevel: 80,
+		});
+		const amber = generateMany(400, {
+			rarity: "legendary",
+			templateId: "amber_amulet",
+			itemLevel: 80,
+		});
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(lapis).has(id))).toBe(true);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(gold).has(id))).toBe(false);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(jade).has(id))).toBe(false);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(amber).has(id))).toBe(false);
 	});
 
 	it("silk gloves can roll tomeGainAsExtra; leather and plate cannot", () => {
@@ -1227,6 +1244,10 @@ describe("deterministic epic patterns", () => {
 		"globalLightningDamageIncrease",
 		"globalVoidDamageIncrease",
 		"globalElementalDamageIncrease",
+		"tomeGainAsExtraCold",
+		"tomeGainAsExtraFire",
+		"tomeGainAsExtraLightning",
+		"tomeGainAsExtraVoid",
 	]);
 	const SPELL_WEAPON_PATTERN_SUFFIXES = new Set([
 		"globalCastSpeedIncrease",
@@ -1239,6 +1260,10 @@ describe("deterministic epic patterns", () => {
 		"localDefenseFlat",
 		"healthFlat",
 		"manaFlat",
+		"tomeGainAsExtraCold",
+		"tomeGainAsExtraFire",
+		"tomeGainAsExtraLightning",
+		"tomeGainAsExtraVoid",
 	]);
 	const ARMOR_PATTERN_SUFFIXES = new Set([
 		"localDefenseIncrease",
