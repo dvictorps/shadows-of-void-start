@@ -6,7 +6,7 @@ import {
 	tickBarrier,
 } from "./barrier";
 
-// Post-2026-05-28 barrier mechanic (ADR 0005 update):
+// Barrier mechanic (ADR 0005, current):
 //   - No passive regen between hits.
 //   - On break (current → 0): 10s refill cooldown, then instant snap to max.
 //   - Hits absorbed at +50% rate (1500-barrier → 1000 raw absorbed).

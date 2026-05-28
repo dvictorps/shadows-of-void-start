@@ -685,23 +685,27 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			return;
 		}
 		if (!combatStateLoaded) return;
-		const initial =
-			view === "city"
-				? stats.maxBarrier
-				: barrier;
+		// City entry always restores to full. Otherwise, read from the live
+		// in-combat barrier state (useCombatTick seeds it from `barrier` on
+		// cold start, so cold-start lands on the persisted value too).
+		// Reading from combat.barrier is what carries `refillRemaining`
+		// across the combat → out-of-combat transition.
+		const isCity = view === "city";
+		const initialCurrent = isCity ? stats.maxBarrier : combat.barrier.current;
+		const initialRefill = isCity ? 0 : combat.barrier.refillRemaining;
 		const state: ReturnType<typeof makeBarrierState> = {
-			current: Math.min(initial, stats.maxBarrier),
+			current: Math.min(initialCurrent, stats.maxBarrier),
 			max: stats.maxBarrier,
-			refillRemaining: 0,
+			refillRemaining: initialRefill,
 		};
 		outOfCombatBarrierRef.current = state;
 		setOutOfCombatBarrier(state.current);
-	}, [view, stats.maxBarrier, combatStateLoaded]); // barrier excluded — read at init time only
+	}, [view, stats.maxBarrier, combatStateLoaded]); // barrier / combat.barrier excluded — read at init time only
 
-	// Post-2026-05-28: no passive regen. The ticker only fires while a refill
-	// cycle is in progress (refillRemaining > 0); when it reaches 0, tickBarrier
+	// No passive regen (ADR 0005). The ticker only fires while a refill cycle
+	// is in progress (refillRemaining > 0); when it reaches 0, tickBarrier
 	// snaps current back to max. Partial barrier sitting around between cycles
-	// does NOTHING — that's the new design.
+	// does nothing.
 	const barrierRefillActive =
 		view !== "combat" && outOfCombatBarrierRef.current.refillRemaining > 0;
 

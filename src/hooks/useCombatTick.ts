@@ -284,9 +284,9 @@ export function useCombatTick({
 			}
 		}
 
-		// Barrier ticks every frame: post-2026-05-28 this is purely the refill
-		// countdown after a break (10s → instant refill). No passive regen
-		// between hits. See ADR 0005.
+		// Barrier ticks every frame: purely the refill countdown after a
+		// break (10s → instant refill). No passive regen between hits. See
+		// ADR 0005.
 		const nextBarrier = tickBarrier(barrierRef.current, dt);
 		if (nextBarrier !== barrierRef.current) {
 			barrierRef.current = nextBarrier;
