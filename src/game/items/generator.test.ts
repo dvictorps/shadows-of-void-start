@@ -35,6 +35,12 @@ const ATTACK_WEAPON_IDS = [
 	"twoHandedAxe_t1",
 ];
 const SPELL_WEAPON_IDS = ["staff_t1", "wand_t1"];
+const TOME_GAIN_MODS = [
+	"tomeGainAsExtraCold",
+	"tomeGainAsExtraFire",
+	"tomeGainAsExtraLightning",
+	"tomeGainAsExtraVoid",
+];
 const JEWELRY_IDS = [
 	"cobalt_ring",
 	"garnet_ring",
@@ -574,9 +580,6 @@ describe("restrictedToArmorType modifier filter", () => {
 // ── Tome ──
 
 describe("tome eligibility", () => {
-	// Tomes use equipmentType "tome" (not "offhand"), so blockChanceIncrease
-	// (applicableTo: ["offhand"]) is correctly excluded — and the new
-	// tomeGainAsExtra* opening to amulet/gloves/staff must not change that.
 	// CONTEXT.md: "tome ... only off-hand without block chance, by design".
 	it("never rolls blockChanceIncrease", () => {
 		const items = generateMany(1000, {
@@ -595,24 +598,11 @@ describe("tome eligibility", () => {
 			itemLevel: 80,
 		});
 		const rolledIds = allExplicitModIds(items);
-		const tomeMods = [
-			"tomeGainAsExtraCold",
-			"tomeGainAsExtraFire",
-			"tomeGainAsExtraLightning",
-			"tomeGainAsExtraVoid",
-		];
-		expect(tomeMods.some((id) => rolledIds.has(id))).toBe(true);
+		expect(TOME_GAIN_MODS.some((id) => rolledIds.has(id))).toBe(true);
 	});
 });
 
-describe("tomeGainAsExtra scope (Phase C)", () => {
-	const TOME_GAIN_MODS = [
-		"tomeGainAsExtraCold",
-		"tomeGainAsExtraFire",
-		"tomeGainAsExtraLightning",
-		"tomeGainAsExtraVoid",
-	];
-
+describe("tomeGainAsExtra scope", () => {
 	it("amulets can roll tomeGainAsExtra", () => {
 		const items = generateMany(400, {
 			rarity: "legendary",
