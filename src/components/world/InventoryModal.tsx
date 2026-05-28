@@ -254,7 +254,29 @@ export default function InventoryModal({
 			);
 		},
 	);
-	const swapHands = useMutation(api.items.swapHands);
+	const swapHands = useMutation(api.items.swapHands).withOptimisticUpdate(
+		(localStore, args) => {
+			const equipped = localStore.getQuery(api.items.equipped, {
+				characterId: args.characterId,
+			});
+			if (!equipped) return;
+			const main = equipped.find((it) => it.equippedSlot === "weapon");
+			const off = equipped.find((it) => it.equippedSlot === "offhand");
+			if (!main || !off) return;
+			const next = equipped.map((it) => {
+				if (it._id === main._id)
+					return { ...it, equippedSlot: "offhand" as const };
+				if (it._id === off._id)
+					return { ...it, equippedSlot: "weapon" as const };
+				return it;
+			});
+			localStore.setQuery(
+				api.items.equipped,
+				{ characterId: args.characterId },
+				next,
+			);
+		},
+	);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
