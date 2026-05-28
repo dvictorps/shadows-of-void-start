@@ -269,12 +269,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			onEnterNewArea: () => setDeathLog(null),
 		});
 
-	// Inventory: subscribe out-of-combat OR whenever the modal is open. The
-	// modal is the only path that mutates inventory (equip/unequip/discard);
-	// without a live subscription during in-combat modal sessions, optimistic
-	// updates bail (localStore.getQuery returns undefined) and the UI shows
-	// stale items until combat ends. Cost of the in-combat subscription is
-	// bounded by how long the user keeps the modal open.
+	// Subscribe while modal is open so optimistic equip/unequip/discard
+	// updates don't bail on a missing localStore baseline.
 	const liveInventory = useQuery(
 		api.items.inventory,
 		view !== "combat" || inventoryModal.isOpen

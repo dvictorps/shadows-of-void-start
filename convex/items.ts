@@ -24,8 +24,8 @@ import {
 	computeBagKeepCap,
 } from "../src/game/combat/constants"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
-import { isBow, isQuiver, isWeapon, planEquip } from "../src/game/items/equipment"
-import { SPELL_FLAT_TO_ELEMENT } from "../src/game/items/generator"
+import { isBow, isQuiver, isWeapon, planEquip, weaponArchetype } from "../src/game/items/equipment"
+import { computeWeaponStats } from "../src/game/items/generator"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, type EquippedSlot, narrowEquippedSlot } from "../src/game/stats/types"
 import {
@@ -555,17 +555,9 @@ export const stash = query({
 	},
 })
 
-// One-shot migration: wands/staves rolled before commit 5f49fae (PR #64
-// Phase A, 2026-05-28) were persisted with computedStats undefined because
-// the generator gated computeWeaponStats on !isSpellWeapon. The fix routes
-// spell-flat explicits into computedStats.elementalDamage, but stored docs
-// don't update retroactively — so any wand whose flat-element doesn't
-// match the player's selectedElement reads as "missing damage" in the
-// status modal. This mutation walks every wand/staff item and rebuilds
-// the computed weapon-stats payload from baseStats + the persisted
-// explicits. Idempotent — running again on a corrected item produces the
-// same result.
-//
+// One-shot backfill: rebuilds computedStats for wands/staves persisted
+// before spell-flat explicits routed into elementalDamage. Idempotent —
+// skips items whose stored computedStats already matches the rebuild.
 // Trigger via: npx convex run items:recomputeSpellWeaponStats
 export const recomputeSpellWeaponStats = internalMutation({
 	args: {},
@@ -575,41 +567,19 @@ export const recomputeSpellWeaponStats = internalMutation({
 		let skipped = 0
 		for (const item of items) {
 			const data = item.data
-			if (data.weaponType !== "wand" && data.weaponType !== "staff") {
+			if (weaponArchetype(data) !== "caster") {
 				skipped++
 				continue
 			}
-			const baseStats = data.baseStats ?? {}
-			const minDamage = baseStats.minDamage ?? 0
-			const maxDamage = baseStats.maxDamage ?? 0
-			const attackSpeed = baseStats.attackSpeed ?? 1
-			const criticalChance = baseStats.criticalChance ?? 5
-
-			const elementalDamage: Array<{
-				element: string
-				min: number
-				max: number
-			}> = []
-			for (const expl of data.explicits ?? []) {
-				const element = SPELL_FLAT_TO_ELEMENT[expl.modifierId]
-				if (!element) continue
-				elementalDamage.push({
-					element,
-					min: expl.minValue ?? expl.value,
-					max: expl.maxValue ?? expl.value,
-				})
+			const next = computeWeaponStats(data.baseStats ?? {}, data.explicits ?? [])
+			if (
+				data.computedStats &&
+				JSON.stringify(data.computedStats) === JSON.stringify(next)
+			) {
+				skipped++
+				continue
 			}
-
-			const nextComputedStats = {
-				physicalDamage: { min: minDamage, max: maxDamage },
-				elementalDamage,
-				attackSpeed,
-				criticalChance,
-			}
-
-			await ctx.db.patch(item._id, {
-				data: { ...data, computedStats: nextComputedStats },
-			})
+			await ctx.db.patch(item._id, { data: { ...data, computedStats: next } })
 			updated++
 		}
 		return { updated, skipped }
