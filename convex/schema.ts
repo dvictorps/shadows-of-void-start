@@ -6,6 +6,12 @@ export default defineSchema({
 	userRoles: defineTable({
 		authUserId: v.string(),
 		role: v.union(v.literal("user"), v.literal("admin")),
+		// Denormalized per-user character counts. Powers `admin.pulse` and
+		// `admin.listUsers` without an O(users) fan-out over the characters
+		// table. Maintained by `characters.create` + `characters.remove`.
+		// Backfill via `users.backfillUserMetrics` for legacy rows.
+		characterCount: v.optional(v.number()),
+		hardcoreCount: v.optional(v.number()),
 	})
 		.index("by_authUserId", ["authUserId"])
 		// Used by the admin dashboard's `listAdmins` to scan admins without
@@ -119,7 +125,18 @@ export default defineSchema({
 		cachedMaxBarrier: v.optional(v.number()),
 		cachedMagicFind: v.optional(v.number()),
 		cachedMovementSpeed: v.optional(v.number()),
-	}).index("by_authUserId", ["authUserId"]),
+		// Denormalized total boss-kill counter — drives the bossKills leaderboard
+		// without a full-table scan over `bossKillCounts` objects. Incremented
+		// in `recordKill` on `unique` rarity. Backfill via the internal
+		// `leaderboard.backfillLeaderboardFields` mutation for legacy docs.
+		totalBossKills: v.optional(v.number()),
+	})
+		.index("by_authUserId", ["authUserId"])
+		// Leaderboard "level" category — `take(50)` against `(hardcore, level, xp)`
+		// orders desc by level with xp as native tiebreak.
+		.index("by_hardcore_level", ["hardcore", "level", "xp"])
+		// Leaderboard "bossKills" category — same scope, different sort key.
+		.index("by_hardcore_bossKills", ["hardcore", "totalBossKills"]),
 
 	// All items live here — drops, inventory, equipped, stash. Location is
 	// expressed via the `locationKind` discriminator plus a handful of optional
@@ -172,6 +189,23 @@ export default defineSchema({
 		.index("by_character_kind", ["characterId", "locationKind"])
 		.index("by_zoneSession", ["zoneSession"])
 		.index("by_stash", ["authUserId", "stashMode"]),
+
+	// Append-only progression state extracted from `characters` so the hot
+	// `characters.byId` subscription doesn't grow with these arrays (a maxed
+	// character can carry 30+ entries in each). The character doc still keeps
+	// these fields as the lazy-migration source (read fallback). Once the
+	// backfill mutation has run for the full population, the legacy fields
+	// can be dropped at the next cleanup pass.
+	characterProgression: defineTable({
+		characterId: v.id("characters"),
+		// Append-only set of node ids the player has visited. Defaults to
+		// `["city"]` for a brand-new character.
+		unlockedNodes: v.array(v.string()),
+		// Append-only set of node ids whose rare miniboss has been killed.
+		completedZones: v.array(v.string()),
+		// Per-boss kill counts keyed by boss id (e.g. `{ gralfor: 12 }`).
+		bossKillCounts: v.record(v.string(), v.number()),
+	}).index("by_characterId", ["characterId"]),
 
 	combatState: defineTable({
 		characterId: v.id("characters"),

@@ -56,11 +56,12 @@ import {
 	getCachedStats,
 	loadEquippedSet,
 	loadOrCreateCombatState,
+	loadOrCreateProgression,
 	loadOwnedCharacterWithSession,
 	newZoneSession,
 	refillPotionsToFloor,
 } from "./_shared/character"
-import type { Doc, Id } from "./_generated/dataModel"
+import type { Doc } from "./_generated/dataModel"
 import { mutation } from "./_generated/server"
 import { authComponent } from "./auth"
 
@@ -108,6 +109,14 @@ export const recordKill = mutation({
 
 		let magicFind: number
 		if (levelsGained > 0 || char.cachedMaxLife === undefined) {
+			if (levelsGained === 0) {
+				// Defensive log — recordKill should never recompute stats outside
+				// of a level-up. Reaching here means cachedMaxLife was undefined,
+				// so an equip/unequip path forgot to refresh the cache.
+				console.warn(
+					`[recordKill] stat-cache miss for character ${args.characterId} — audit equip/unequip cache invalidation.`,
+				)
+			}
 			const classDef = findClassDefinition(char.classId)
 			const equippedItems = await loadEquippedSet(ctx, args.characterId)
 			const stats = computeCharacterStats({
@@ -137,11 +146,22 @@ export const recordKill = mutation({
 			args.monsterRarity === "rare" && !isBossNodeRareKill
 		const isBossKill = args.monsterRarity === "unique"
 		const grantsCampTier = isMinibossKill || isBossKill
+
+		// Regular kills (the vast majority) never touch progression — skip the
+		// index hit entirely. Miniboss / boss kills load it once and apply both
+		// the completedZones append and the bossKillCounts bump against the
+		// same doc.
+		const progressionUpdates: Partial<Doc<"characterProgression">> = {}
+		let progression: Doc<"characterProgression"> | undefined
 		if (grantsCampTier) {
+			progression = await loadOrCreateProgression(ctx, args.characterId, char)
+
 			csUpdates.currentZoneKills = 0
-			const completed = char.completedZones ?? []
-			if (!completed.includes(currentLocation)) {
-				charUpdates.completedZones = [...completed, currentLocation]
+			if (!progression.completedZones.includes(currentLocation)) {
+				progressionUpdates.completedZones = [
+					...progression.completedZones,
+					currentLocation,
+				]
 			}
 			csUpdates.inCamp = true
 			if (zone && zone.kind === "combat") {
@@ -149,6 +169,27 @@ export const recordKill = mutation({
 				csUpdates.campThresholdsMs = rollCampThresholdsMs(plan)
 				csUpdates.zoneStartedAt = Date.now()
 				csUpdates.lastCampIndex = undefined
+			}
+
+			if (isBossKill) {
+				const counts =
+					(progression.bossKillCounts as
+						| Record<string, number>
+						| undefined) ?? {}
+				const nextCounts = {
+					...counts,
+					[args.monsterId]: (counts[args.monsterId] ?? 0) + 1,
+				}
+				progressionUpdates.bossKillCounts = nextCounts
+				// totalBossKills stays on characters — it's the leaderboard index key.
+				// Legacy chars (pre-backfill) have totalBossKills === undefined but
+				// may already have a populated bossKillCounts on the progression doc.
+				// Falling back to `0 + 1` here would reset their tally to 1 and lose
+				// their leaderboard standing during the deploy → backfill window.
+				charUpdates.totalBossKills =
+					char.totalBossKills !== undefined
+						? char.totalBossKills + 1
+						: Object.values(nextCounts).reduce((sum, n) => sum + n, 0)
 			}
 		} else {
 			csUpdates.currentZoneKills = cs.currentZoneKills + 1
@@ -166,22 +207,15 @@ export const recordKill = mutation({
 			csUpdates.etherealIncense = cs.etherealIncense + 1
 		}
 
-		if (isBossKill) {
-			const counts =
-				(char.bossKillCounts as Record<string, number> | undefined) ?? {}
-			charUpdates.bossKillCounts = {
-				...counts,
-				[args.monsterId]: (counts[args.monsterId] ?? 0) + 1,
-			}
-		}
-
 		await ctx.db.patch(cs._id, csUpdates)
+		if (progression && Object.keys(progressionUpdates).length > 0) {
+			await ctx.db.patch(progression._id, progressionUpdates)
+		}
 		if (Object.keys(charUpdates).length > 0) {
 			await ctx.db.patch(args.characterId, charUpdates)
 		}
 
 		const zoneSession = cs.currentZoneSession
-		const drops: Array<{ id: Id<"items">; data: Doc<"items">["data"] }> = []
 		if (zoneSession) {
 			const isAnyRareKill = isMinibossKill || isBossNodeRareKill
 			const mf = magicFind
@@ -197,7 +231,7 @@ export const recordKill = mutation({
 							}),
 						].filter((d): d is NonNullable<typeof d> => d !== null)
 			for (const drop of rolledDrops) {
-				const insertedId = await ctx.db.insert("items", {
+				await ctx.db.insert("items", {
 					authUserId: authUser._id,
 					locationKind: "zoneBag",
 					characterId: args.characterId,
@@ -207,14 +241,14 @@ export const recordKill = mutation({
 					droppedFrom: template.id,
 					droppedFromLevel: monsterLevel,
 				})
-				drops.push({ id: insertedId, data: drop })
 			}
 		}
 
+		// Drops aren't returned — the `items.zoneBag` query is already
+		// subscribed during combat and picks them up reactively.
 		return {
 			xpGained: xpAwarded,
 			levelsGained,
-			drops,
 			potionDropped,
 			incenseDropped,
 		}
@@ -567,7 +601,12 @@ export const startTravel = mutation({
 				`Unknown destination node: ${args.destinationNodeId}`,
 			)
 
-		if (!isNodeAccessible(destNode, char.completedZones))
+		const progression = await loadOrCreateProgression(
+			ctx,
+			args.characterId,
+			char,
+		)
+		if (!isNodeAccessible(destNode, progression.completedZones))
 			throw new ConvexError("zone-locked")
 
 		const { movementSpeed } = await getCachedStats(ctx, args.characterId, char)
@@ -612,16 +651,25 @@ export const arriveAtTravel = mutation({
 
 		// Append destination to the unlocked set on first arrival. Wind crystals
 		// later read this list to validate jump targets.
-		const unlocked = char.unlockedNodes ?? ["city"]
-		const nextUnlocked = appendUnique(unlocked, char.travelDestination)
+		const progression = await loadOrCreateProgression(
+			ctx,
+			args.characterId,
+			char,
+		)
+		const nextUnlocked = appendUnique(
+			progression.unlockedNodes,
+			char.travelDestination,
+		)
 
 		await ctx.db.patch(args.characterId, {
 			currentLocation: char.travelDestination,
 			travelDestination: undefined,
 			travelStartedAt: undefined,
 			travelArrivesAt: undefined,
-			unlockedNodes: nextUnlocked,
 		})
+		if (nextUnlocked !== progression.unlockedNodes) {
+			await ctx.db.patch(progression._id, { unlockedNodes: nextUnlocked })
+		}
 		return { arrivedAt: char.travelDestination }
 	},
 })
@@ -656,15 +704,19 @@ export const useTeleportStone = mutation({
 			if (fromId === destinationNodeId)
 				throw new ConvexError("Already at destination")
 
-			const unlocked = char.unlockedNodes ?? ["city"]
-			if (!unlocked.includes(destinationNodeId))
+			const progression = await loadOrCreateProgression(
+				ctx,
+				args.characterId,
+				char,
+			)
+			if (!progression.unlockedNodes.includes(destinationNodeId))
 				throw new ConvexError("Destination not yet unlocked")
 
 			const destNode = findNode(ACT_1, destinationNodeId)
 			if (!destNode)
 				throw new ConvexError(`Unknown destination: ${destinationNodeId}`)
 
-			if (!isNodeAccessible(destNode, char.completedZones))
+			if (!isNodeAccessible(destNode, progression.completedZones))
 				throw new ConvexError("zone-locked")
 		}
 

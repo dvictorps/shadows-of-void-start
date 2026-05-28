@@ -108,6 +108,13 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const combatState = useQuery(api.combatState.byCharacterId, {
 		characterId: character._id,
 	});
+	// World-map progression (unlockedNodes / completedZones / bossKillCounts).
+	// Always-on so the map and travel gates always have fresh data, but the
+	// payload is tiny and only invalidates on infrequent events (zone
+	// completion, boss kill, travel arrival) — far less than `characters.byId`.
+	const progression = useQuery(api.characterProgression.byCharacterId, {
+		characterId: character._id,
+	});
 	const { sessionToken } = useSessionToken();
 	// Gate the combat loop on the active-session check — a stale tab whose
 	// claim was stolen by another tab/device shouldn't keep firing recordKill
@@ -373,13 +380,22 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const runRetreat = useInFlight(view)[1];
 	const [isUsingIncense, setIsUsingIncense] = useState(false);
 
+	// Prefer progression doc (post-split source of truth); fall back to the
+	// legacy character fields for the loading window or for pre-migration
+	// characters that haven't been touched by any mutation since deploy.
 	const unlockedNodeIds = useMemo(
-		() => new Set(character.unlockedNodes ?? ["city"]),
-		[character.unlockedNodes],
+		() =>
+			new Set(
+				progression?.unlockedNodes ?? character.unlockedNodes ?? ["city"],
+			),
+		[progression?.unlockedNodes, character.unlockedNodes],
 	);
 	const completedZoneIds = useMemo(
-		() => new Set(character.completedZones ?? []),
-		[character.completedZones],
+		() =>
+			new Set(
+				progression?.completedZones ?? character.completedZones ?? [],
+			),
+		[progression?.completedZones, character.completedZones],
 	);
 
 	const handleEnterNode = (nodeId: string) =>
