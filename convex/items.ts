@@ -424,12 +424,8 @@ export const unequipItem = mutation({
 	},
 })
 
-/**
- * Atomically swap the equipped slot of the main-hand and off-hand items.
- * Guarded by `canSwapHands` so caller can't sneak in a shield/tome/2H/etc.
- * Doesn't touch inventory, doesn't recheck requirements (the set of equipped
- * items is unchanged), doesn't invalidate cached stats (totals are identical).
- */
+// No cached-stats invalidation: totals are identical when the two equipped items
+// only swap slots.
 export const swapHands = mutation({
 	args: {
 		characterId: v.id("characters"),

@@ -98,6 +98,8 @@ type Params = {
 
 const VICTORY_DELAY_MS = 800;
 
+const NOOP_RESTORE = (_overrideMaxHp?: number) => {};
+
 export function useCombatLoop({
 	characterId,
 	characterLevel,
@@ -220,7 +222,8 @@ export function useCombatLoop({
 		setEnemy(next);
 	}, []);
 
-	const restoreToFullRef = useRef<(overrideMaxHp?: number) => void>(() => {});
+	const restoreToFullRef =
+		useRef<(overrideMaxHp?: number) => void>(NOOP_RESTORE);
 
 	const resolveKill = useCallback(
 		(killed: Enemy) => {
@@ -249,14 +252,10 @@ export function useCombatLoop({
 				}),
 			)
 				.then((result) => {
-					if (
-						result.levelsGained > 0 &&
-						result.newMaxLife !== undefined &&
-						result.newMaxBarrier !== undefined
-					) {
-						// Server-authoritative new maxes — kills the race between the
-						// `.then` and the reactive-query propagation that re-renders
-						// `stats` (statsRef would set HP to oldMax = newMax - 10).
+					if (result.newMaxLife !== undefined) {
+						// Server-authoritative — kills the race between this `.then` and
+						// the reactive-query propagation that re-renders `stats` (closing
+						// over stale `stats` would set HP to oldMax = newMax - 10).
 						restoreToFullRef.current(result.newMaxLife);
 						barrierApi.restoreToFull(result.newMaxBarrier);
 					}

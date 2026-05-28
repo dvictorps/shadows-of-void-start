@@ -191,12 +191,7 @@ export function planEquip({
 	return { displaced };
 }
 
-/**
- * Predicate the inventory hand-swap affordance gates on. True only when both
- * weapons are 1H, share archetype, and are slot-eligible in the opposite hand.
- * Covers both the click-button and drag-drop interactions; the server mutation
- * also calls this to guard the write.
- */
+// Shared client + server — the server mutation calls this too. Keep pure.
 export function canSwapHands(
 	mainHand: GeneratedItem | null,
 	offHand: GeneratedItem | null,

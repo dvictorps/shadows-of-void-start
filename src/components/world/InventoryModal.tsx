@@ -404,16 +404,11 @@ export default function InventoryModal({
 			return;
 		}
 
-		// Equipped → equipment: only the weapon ↔ offhand pair triggers a swap.
-		// Any other pair is silently ignored (the user can still unequip → equip).
 		if (source.kind === "equipped" && target.kind === "equipment") {
 			const isHandPair =
 				(source.slot === "weapon" && target.slot === "offhand") ||
 				(source.slot === "offhand" && target.slot === "weapon");
-			if (!isHandPair) return;
-			const main = equippedBySlot.get("weapon")?.data ?? null;
-			const off = equippedBySlot.get("offhand")?.data ?? null;
-			if (!canSwapHands(main, off)) return;
+			if (!isHandPair || !handsSwappable) return;
 			try {
 				await swapHands(withSession({ characterId }));
 			} catch (err) {
@@ -807,7 +802,6 @@ function EquipmentDroppable({
 		dragging?.kind === "equipped" &&
 		(dragging.slot === "weapon" || dragging.slot === "offhand")
 	) {
-		// Hand-swap drag. The opposite hand is the only meaningful drop site.
 		const isOppositeHand =
 			(dragging.slot === "weapon" && slot === "offhand") ||
 			(dragging.slot === "offhand" && slot === "weapon");

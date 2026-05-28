@@ -58,19 +58,13 @@ export default function ExitZoneModal({
 		if (isOpen) setSelected(new Set());
 	}, [isOpen]);
 
-	// Prune selection of IDs no longer in the bag (post pick/discard). Without
-	// this the "Pegar selecionados (N)" button label stays at the pre-action N.
+	// Without this the "Pegar selecionados (N)" button label keeps the pre-action N.
 	useEffect(() => {
 		if (!isOpen) return;
 		const present = new Set(bagItems.map((it) => it._id.toString()));
 		setSelected((prev) => {
-			let changed = false;
-			const next = new Set<string>();
-			for (const id of prev) {
-				if (present.has(id)) next.add(id);
-				else changed = true;
-			}
-			return changed ? next : prev;
+			const next = new Set([...prev].filter((id) => present.has(id)));
+			return next.size === prev.size ? prev : next;
 		});
 	}, [isOpen, bagItems]);
 

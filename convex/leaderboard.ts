@@ -51,10 +51,8 @@ export const computeSnapshot = internalMutation({
 					dead: !!c.dead,
 				}))
 
-				// Re-sort the bossKills snapshot by the resolved (fallback-aware) value
-				// so legacy chars whose `totalBossKills` is still undefined but who carry
-				// a populated `bossKillCounts` aren't pushed to the bottom by the raw
-				// index order. Tiebreak by level desc, then xp desc.
+				// Legacy chars with `totalBossKills === undefined` index-sort to the
+				// bottom even when their fallback `sumBossKills(bossKillCounts)` is high.
 				if (category === "bossKills") {
 					entries.sort((a, b) => {
 						if (b.totalBossKills !== a.totalBossKills) {
