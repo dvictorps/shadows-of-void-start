@@ -242,9 +242,8 @@ describe("computeCharacterStats — equipment contributions", () => {
 	});
 
 	it("shield blockChance comes only from computedDefenseStats (no double-count via explicits)", () => {
-		// Mimic a shield item where the generator already baked block additively.
 		// If compute.ts ever re-adds blockChanceIncrease via applyModifierValue
-		// the assertion will fail (expected 44, would get 44 + 4 = 48).
+		// this fails — expected 44, would get 44 + 4 = 48.
 		const shield: GeneratedItem = {
 			id: "test-shield",
 			templateId: "test_shield",

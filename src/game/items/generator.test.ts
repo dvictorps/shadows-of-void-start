@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { MODIFIERS, type ModifierId } from "./data/modifiers";
 import { EQUIPMENT_TEMPLATES } from "./data/templates";
-import { generateItem, getSynergyWeight } from "./generator";
+import {
+	generateItem,
+	getSynergyWeight,
+	SPELL_FLAT_TO_ELEMENT,
+} from "./generator";
 import type { GeneratedItem, ItemRarity } from "./types";
 
 // ── Helpers ──
@@ -309,19 +313,13 @@ describe("spell weapons (staff/wand)", () => {
 				templateId,
 				itemLevel: 80,
 			});
-			const SPELL_FLAT_TO_ELEM: Record<string, string> = {
-				coldDamageFlat: "Cold",
-				fireDamageFlat: "Fire",
-				lightningDamageFlat: "Lightning",
-				voidDamageFlat: "Void",
-			};
 			const rolledIds = allExplicitModIds(items);
-			const spellMods = Object.keys(SPELL_FLAT_TO_ELEM);
+			const spellMods = Object.keys(SPELL_FLAT_TO_ELEMENT);
 			expect(spellMods.some((id) => rolledIds.has(id))).toBe(true);
 
 			for (const item of items) {
 				for (const expl of item.explicits) {
-					const expectedElem = SPELL_FLAT_TO_ELEM[expl.modifierId];
+					const expectedElem = SPELL_FLAT_TO_ELEMENT[expl.modifierId];
 					if (!expectedElem) continue;
 					const entry = item.computedStats?.elementalDamage.find(
 						(e) => e.element === expectedElem,
@@ -692,9 +690,8 @@ describe("shield", () => {
 	});
 
 	it("block sums additively across base + implicit + explicit (no multiplicative double-count)", () => {
-		// silk_shield_t2 (cotton ward): base blockChance 22, implicit blockChanceIncrease.
-		// With magic+ rarity, an explicit blockChanceIncrease may also roll.
-		// Expected: blockChance === 22 (base) + impl.value + sum(expl block values).
+		// silk_shield_t2 (cotton ward): baseBlock 22, implicit blockChanceIncrease,
+		// magic+ may also roll an explicit blockChanceIncrease.
 		let asserted = 0;
 		for (let i = 0; i < 500 && asserted < 5; i++) {
 			const item = generateItem({

@@ -550,10 +550,8 @@ export function useCombatTick({
 		}
 	}, [potions, maxHp, characterId, consumePotion, withSession]);
 
-	// Accepts an explicit maxHp so the caller (post-recordKill .then handler in
-	// useCombatLoop) can pass the freshest stats.maxLife after a level-up,
-	// instead of relying on this hook's closure-captured `maxHp` which may lag
-	// the reactive query by a render.
+	// Overrides let callers pass fresh maxHp/maxBarrier — useful when the
+	// post-level-up reactive query hasn't yet rendered into this hook's closure.
 	const restoreToFull = useCallback(
 		(overrideMaxHp?: number, overrideMaxBarrier?: number) => {
 			const hp = overrideMaxHp ?? maxHp;

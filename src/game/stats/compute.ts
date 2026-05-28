@@ -220,9 +220,8 @@ function applyModifierValue(
 			stats.thorns += v;
 			return;
 		case "blockChanceIncrease":
-			// Block is now fully baked into the shield's computedDefenseStats.blockChance
-			// (base + implicits + explicits, summed additively). The character-global
-			// accumulator MUST stay out to avoid the historic double-count.
+			// Baked into the shield's computedDefenseStats.blockChance — must
+			// stay out of the global accumulator to avoid double-count.
 			return;
 
 		case "globalArmorIncrease":

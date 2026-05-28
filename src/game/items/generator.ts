@@ -129,6 +129,17 @@ const MOD_REQUIRED_ARMOR_TYPE: Record<string, ArmorType> = {
 	globalSpellDamageIncrease: "silk",
 };
 
+// Maps the four spell-flat mod ids (isGlobalStat-tagged, no statEffect) to the
+// elemental damage entry they fold into the spell weapon's swing. The mods
+// don't accumulate as character globals — see compute.ts no-op for the same
+// ids. Exported so tests can assert against the same source-of-truth.
+export const SPELL_FLAT_TO_ELEMENT: Record<string, string> = {
+	coldDamageFlat: "Cold",
+	fireDamageFlat: "Fire",
+	lightningDamageFlat: "Lightning",
+	voidDamageFlat: "Void",
+};
+
 function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 	return (Object.keys(MODIFIERS) as ModifierId[]).filter((modId) => {
 		const mod = MODIFIERS[modId];
@@ -549,17 +560,7 @@ function computeWeaponStats(
 
 	const elementalDamage: { element: string; min: number; max: number }[] = [];
 
-	const SPELL_FLAT_TO_ELEMENT: Record<string, string> = {
-		coldDamageFlat: "Cold",
-		fireDamageFlat: "Fire",
-		lightningDamageFlat: "Lightning",
-		voidDamageFlat: "Void",
-	};
-
 	for (const mod of explicits) {
-		// Spell flat mods are isGlobalStat-tagged (they don't roll on attack weapons
-		// nor accumulate as character globals — see compute.ts no-op for them) but
-		// still need to fold into the spell weapon's swing as elemental damage.
 		const spellElement = SPELL_FLAT_TO_ELEMENT[mod.modifierId];
 		if (spellElement) {
 			elementalDamage.push({
@@ -632,7 +633,7 @@ function computeArmorStats(
 	baseStats: Partial<Record<BaseStatKey, number>>,
 	armorType: string | undefined,
 	explicits: RolledMod[],
-	implicits: { modifierId?: string; value: number }[] = [],
+	implicits: RolledImplicit[] = [],
 ): ComputedDefenseStats | undefined {
 	const defenseInfo = armorType ? DEFENSE_LABELS[armorType] : null;
 
@@ -640,7 +641,7 @@ function computeArmorStats(
 	let defenseIncrease = 0;
 	let blockAdditive = 0;
 
-	const accumulate = (mod: { modifierId?: string; value: number }) => {
+	const accumulate = (mod: RolledImplicit | RolledMod) => {
 		if (!mod.modifierId) return;
 		const modifier = MODIFIERS[mod.modifierId as ModifierId];
 		if (!modifier?.statEffect || modifier.isGlobalStat) return;
@@ -649,8 +650,7 @@ function computeArmorStats(
 			if (modifier.statEffect.operation === "flat") flatBonus += mod.value;
 			else defenseIncrease += mod.value;
 		} else if (modifier.statEffect.target === "blockChance") {
-			// Block sums additively across base + every block mod (impl + expl)
-			// per the 2026-05-28 rebalance — see ADR 0008 / docs/plans/2026-05-28.
+			// Additive across base + impl + expl (see docs/plans/2026-05-28).
 			blockAdditive += mod.value;
 		}
 	};

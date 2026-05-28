@@ -245,10 +245,7 @@ export function useCombatLoop({
 			)
 				.then((result) => {
 					if (result.levelsGained > 0) {
-						// Read stats.maxLife/maxBarrier fresh at call time — useCombatTick's
-						// own `maxHp` closure can lag the reactive query for one render
-						// after the level-up bumps character.level. Convex mutation
-						// completion guarantees the query has propagated by then.
+						// Pass fresh stats — see restoreToFull's override comment.
 						restoreToFullRef.current(stats.maxLife, stats.maxBarrier);
 					}
 					if (result.potionDropped) {
