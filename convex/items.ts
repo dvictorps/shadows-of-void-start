@@ -469,6 +469,10 @@ export const reorderInventory = mutation({
 // Query: items in the current zone bag (for the preview/exit modals).
 // Takes zoneSession directly so the query doesn't read the character
 // document — avoids reactive invalidation on every recordKill/syncHp patch.
+// Defense in depth: a zoneSession id is the random session nanoid issued at
+// enterZone, so collision across users would already be a bug — but we still
+// verify ownership on every item rather than trusting `items[0]` to stand in
+// for the rest.
 export const zoneBag = query({
 	args: { zoneSession: v.string() },
 	handler: async (ctx, args) => {
@@ -478,8 +482,7 @@ export const zoneBag = query({
 			.query("items")
 			.withIndex("by_zoneSession", (q) => q.eq("zoneSession", args.zoneSession))
 			.collect()
-		if (items.length > 0 && items[0].authUserId !== authUser._id) return []
-		return items
+		return items.filter((it) => it.authUserId === authUser._id)
 	},
 })
 
@@ -492,13 +495,14 @@ export const inventory = query({
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
 		if (!authUser) return []
-		const items = await ctx.db
-			.query("items")
-			.withIndex("by_character_kind", (q) =>
-				q.eq("characterId", args.characterId).eq("locationKind", "inventory"),
-			)
-			.collect()
-		if (items.length > 0 && items[0].authUserId !== authUser._id) return []
+		const items = (
+			await ctx.db
+				.query("items")
+				.withIndex("by_character_kind", (q) =>
+					q.eq("characterId", args.characterId).eq("locationKind", "inventory"),
+				)
+				.collect()
+		).filter((it) => it.authUserId === authUser._id)
 		return items.sort((a, b) => {
 			const sa = a.inventorySlot ?? Number.MAX_SAFE_INTEGER
 			const sb = b.inventorySlot ?? Number.MAX_SAFE_INTEGER
@@ -522,8 +526,7 @@ export const equipped = query({
 				q.eq("characterId", args.characterId).eq("locationKind", "equipped"),
 			)
 			.collect()
-		if (items.length > 0 && items[0].authUserId !== authUser._id) return []
-		return items
+		return items.filter((it) => it.authUserId === authUser._id)
 	},
 })
 

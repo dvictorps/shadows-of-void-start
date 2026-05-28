@@ -11,6 +11,30 @@ import {
 import type { Doc, Id } from "../_generated/dataModel"
 import type { MutationCtx } from "../_generated/server"
 
+// Loads the character's progression doc, lazily seeding it from the legacy
+// character fields on first access. Mirror of `loadOrCreateCombatState` —
+// the split exists so the always-on `characters.byId` query doesn't keep
+// paying for arrays that only matter to the world-map / boss screens.
+export async function loadOrCreateProgression(
+	ctx: MutationCtx,
+	characterId: Id<"characters">,
+	char: Doc<"characters">,
+): Promise<Doc<"characterProgression">> {
+	const existing = await ctx.db
+		.query("characterProgression")
+		.withIndex("by_characterId", (q) => q.eq("characterId", characterId))
+		.unique()
+	if (existing) return existing
+
+	const id = await ctx.db.insert("characterProgression", {
+		characterId,
+		unlockedNodes: char.unlockedNodes ?? ["city"],
+		completedZones: char.completedZones ?? [],
+		bossKillCounts: char.bossKillCounts ?? {},
+	})
+	return (await ctx.db.get(id))!
+}
+
 export async function loadOrCreateCombatState(
 	ctx: MutationCtx,
 	characterId: Id<"characters">,

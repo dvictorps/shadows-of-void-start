@@ -37,47 +37,34 @@ async function listAllUsers(ctx: Parameters<typeof assertAdmin>[0]): Promise<Aut
 }
 
 /**
- * Top-of-page metrics. Aggregates over auth users + `userRoles` (filtered by
- * the `by_role` index for the admin count) + a per-user index walk on
- * `characters` so we never scan the entire characters table — see the
- * comment on `listUsers` for the same rationale.
+ * Top-of-page metrics. Aggregates over auth users + a single `userRoles`
+ * collect — character counts are denormalized onto userRoles via
+ * `adjustUserCharacterMetrics`, so this scales O(usersWithRoleRow) rather
+ * than the previous O(users) fan-out over the characters table.
  */
 export const pulse = query({
 	args: {},
 	handler: async (ctx) => {
 		await assertAdmin(ctx)
 
-		const [users, admins] = await Promise.all([
+		const [users, allRoles] = await Promise.all([
 			listAllUsers(ctx),
-			ctx.db
-				.query("userRoles")
-				.withIndex("by_role", (q) => q.eq("role", "admin"))
-				.collect(),
+			ctx.db.query("userRoles").collect(),
 		])
 
-		// Per-user character walks via `by_authUserId`. Each one is O(charsPerUser),
-		// not O(allCharacters), so this scales with the friends-beta user count
-		// instead of the global characters table.
-		const counts = await Promise.all(
-			users.map(async (u) => {
-				const chars = await ctx.db
-					.query("characters")
-					.withIndex("by_authUserId", (q) => q.eq("authUserId", u._id))
-					.collect()
-				return {
-					total: chars.length,
-					hardcore: chars.filter((c) => c.hardcore === true).length,
-				}
-			}),
-		)
-
-		const characterCount = counts.reduce((acc, c) => acc + c.total, 0)
-		const hardcoreCount = counts.reduce((acc, c) => acc + c.hardcore, 0)
+		let characterCount = 0
+		let hardcoreCount = 0
+		let adminCount = 0
+		for (const role of allRoles) {
+			characterCount += role.characterCount ?? 0
+			hardcoreCount += role.hardcoreCount ?? 0
+			if (role.role === "admin") adminCount++
+		}
 
 		return {
 			userCount: users.length,
 			characterCount,
-			adminCount: admins.length,
+			adminCount,
 			hardcoreCount,
 			softcoreCount: characterCount - hardcoreCount,
 		}
@@ -85,44 +72,35 @@ export const pulse = query({
 })
 
 /**
- * Joined user listing for the dashboard. One row per auth user with role +
- * character count denormalised so the UI doesn't need N+1 queries.
- *
- * Both per-user reads use `by_authUserId` indexes so a single dashboard
- * load scales with active users, not with totals of `characters` /
- * `userRoles` (per Gemini review on PR #46).
+ * Joined user listing for the dashboard. Reads userRoles once and maps it
+ * by authUserId — character counts come from the denormalized counter on
+ * userRoles, so each user is O(1) (a single map lookup) rather than the
+ * previous per-user characters collect.
  */
 export const listUsers = query({
 	args: {},
 	handler: async (ctx) => {
 		await assertAdmin(ctx)
 
-		const users = await listAllUsers(ctx)
+		const [users, allRoles] = await Promise.all([
+			listAllUsers(ctx),
+			ctx.db.query("userRoles").collect(),
+		])
 
-		return await Promise.all(
-			users.map(async (u) => {
-				const [chars, roleDoc] = await Promise.all([
-					ctx.db
-						.query("characters")
-						.withIndex("by_authUserId", (q) => q.eq("authUserId", u._id))
-						.collect(),
-					ctx.db
-						.query("userRoles")
-						.withIndex("by_authUserId", (q) => q.eq("authUserId", u._id))
-						.unique(),
-				])
+		const roleByUser = new Map(allRoles.map((r) => [r.authUserId, r]))
 
-				return {
-					authUserId: u._id,
-					name: u.name,
-					email: u.email,
-					emailVerified: u.emailVerified,
-					createdAt: u.createdAt,
-					role: roleDoc?.role ?? ("user" as const),
-					characterCount: chars.length,
-				}
-			}),
-		)
+		return users.map((u) => {
+			const roleDoc = roleByUser.get(u._id)
+			return {
+				authUserId: u._id,
+				name: u.name,
+				email: u.email,
+				emailVerified: u.emailVerified,
+				createdAt: u.createdAt,
+				role: roleDoc?.role ?? ("user" as const),
+				characterCount: roleDoc?.characterCount ?? 0,
+			}
+		})
 	},
 })
 

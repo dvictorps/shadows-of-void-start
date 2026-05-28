@@ -9,34 +9,43 @@ function sumBossKills(counts: unknown): number {
 	)
 }
 
+// Pulls the top 50 characters per `(category, mode)` via the matching index.
+// Replaces the previous full-table collect — scales O(50) instead of O(users).
+// Tiebreak for `level` is `xp` (encoded in the index tuple), matching the
+// in-memory sort the previous implementation did.
 export const computeSnapshot = internalMutation({
 	handler: async (ctx) => {
-		const allCharacters = await ctx.db.query("characters").collect()
-
 		const categories = ["level", "bossKills"] as const
 		const modes = ["softcore", "hardcore"] as const
 
 		for (const category of categories) {
 			for (const mode of modes) {
-				const filtered = allCharacters.filter((c) =>
-					mode === "hardcore" ? !!c.hardcore : !c.hardcore,
-				)
+				const hardcore = mode === "hardcore"
 
-				const sorted = [...filtered].sort((a, b) => {
-					if (category === "level") {
-						if (b.level !== a.level) return b.level - a.level
-						return (b.xp ?? 0) - (a.xp ?? 0)
-					}
-					return sumBossKills(b.bossKillCounts) - sumBossKills(a.bossKillCounts)
-				})
+				const top =
+					category === "level"
+						? await ctx.db
+								.query("characters")
+								.withIndex("by_hardcore_level", (q) =>
+									q.eq("hardcore", hardcore),
+								)
+								.order("desc")
+								.take(50)
+						: await ctx.db
+								.query("characters")
+								.withIndex("by_hardcore_bossKills", (q) =>
+									q.eq("hardcore", hardcore),
+								)
+								.order("desc")
+								.take(50)
 
-				const entries = sorted.slice(0, 50).map((c) => ({
+				const entries = top.map((c) => ({
 					characterId: c._id,
 					characterName: c.name,
 					classId: c.classId,
 					level: c.level,
 					xp: c.xp ?? 0,
-					totalBossKills: sumBossKills(c.bossKillCounts),
+					totalBossKills: c.totalBossKills ?? sumBossKills(c.bossKillCounts),
 					hardcore: !!c.hardcore,
 					dead: !!c.dead,
 				}))
@@ -60,6 +69,48 @@ export const computeSnapshot = internalMutation({
 				}
 			}
 		}
+	},
+})
+
+// One-shot migration to populate the new leaderboard index keys on legacy
+// characters. Idempotent — safe to re-run. Run from the Convex dashboard
+// once after the schema deploys, then this mutation can be deleted at the
+// next cleanup pass.
+//
+// Backfills:
+//   - `hardcore: false` where undefined (the leaderboard indexes can't match
+//     a character whose `hardcore` field is missing entirely)
+//   - `totalBossKills` from the existing `bossKillCounts` aggregate
+export const backfillLeaderboardFields = internalMutation({
+	handler: async (ctx) => {
+		const all = await ctx.db.query("characters").collect()
+		let patched = 0
+		for (const char of all) {
+			const patch: Record<string, unknown> = {}
+			if (char.hardcore === undefined) patch.hardcore = false
+
+			// Only seed totalBossKills when it's still undefined — once it's set,
+			// `recordKill` is the source of truth (increments per boss kill).
+			// The bossKillCounts source moved from characters → characterProgression,
+			// so reach into progression first and fall back to the legacy field
+			// for pre-split characters that haven't been touched yet.
+			if (char.totalBossKills === undefined) {
+				const progression = await ctx.db
+					.query("characterProgression")
+					.withIndex("by_characterId", (q) => q.eq("characterId", char._id))
+					.unique()
+				const counts = progression
+					? progression.bossKillCounts
+					: char.bossKillCounts
+				patch.totalBossKills = sumBossKills(counts)
+			}
+
+			if (Object.keys(patch).length > 0) {
+				await ctx.db.patch(char._id, patch)
+				patched++
+			}
+		}
+		return { scanned: all.length, patched }
 	},
 })
 

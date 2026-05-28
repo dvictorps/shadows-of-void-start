@@ -10,6 +10,7 @@ import { loadOwnedCharacter } from "./_shared/character"
 import type { Doc } from "./_generated/dataModel"
 import { mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
+import { adjustUserCharacterMetrics } from "./users"
 
 const MAX_CHARACTERS_PER_USER = 8
 const MAX_NAME_LENGTH = 20
@@ -125,6 +126,7 @@ export const create = mutation({
 			cachedMaxBarrier: baseStats.maxBarrier,
 			cachedMagicFind: baseStats.magicFind,
 			cachedMovementSpeed: baseStats.movementSpeed,
+			totalBossKills: 0,
 		})
 
 		await ctx.db.insert("combatState", {
@@ -136,6 +138,13 @@ export const create = mutation({
 			etherealIncense: 0,
 			currentZoneKills: 0,
 			inCamp: false,
+		})
+
+		await ctx.db.insert("characterProgression", {
+			characterId,
+			unlockedNodes: ["city"],
+			completedZones: [],
+			bossKillCounts: {},
 		})
 
 		if (starterWeaponId) {
@@ -153,6 +162,14 @@ export const create = mutation({
 				await ctx.db.patch(characterId, { equippedWeaponId: itemId })
 			}
 		}
+
+		const isHardcore = args.hardcore === true
+		await adjustUserCharacterMetrics(
+			ctx,
+			authUser._id,
+			1,
+			isHardcore ? 1 : 0,
+		)
 
 		return characterId
 	},
@@ -181,7 +198,21 @@ export const remove = mutation({
 			.unique()
 		if (cs) await ctx.db.delete(cs._id)
 
+		const prog = await ctx.db
+			.query("characterProgression")
+			.withIndex("by_characterId", (q) => q.eq("characterId", args.id))
+			.unique()
+		if (prog) await ctx.db.delete(prog._id)
+
 		await ctx.db.delete(args.id)
+
+		const wasHardcore = char.hardcore === true
+		await adjustUserCharacterMetrics(
+			ctx,
+			authUser._id,
+			-1,
+			wasHardcore ? -1 : 0,
+		)
 	},
 })
 
