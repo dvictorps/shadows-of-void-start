@@ -18,7 +18,6 @@ import TextLog from "#/components/world/TextLog";
 import TravelProgressBar from "#/components/world/TravelProgressBar";
 import { WorldModals } from "#/components/world/WorldModals";
 import { findClassDefinition } from "#/game/classes/data";
-import { makeBarrierState, tickBarrier } from "#/game/combat/barrier";
 import { computeBagKeepCap } from "#/game/combat/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
 import { computeCharacterStats } from "#/game/stats/compute";
@@ -30,14 +29,14 @@ import {
 import { ACT_1, findNode } from "#/game/world";
 import { DEFAULT_ENCOUNTER_PLAN } from "#/game/world/encounter-schedule";
 import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
+import { useBarrier } from "#/hooks/useBarrier";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useModal } from "#/hooks/useModal";
-import { useSessionedMutation, useSessionToken } from "#/hooks/useSessionToken";
-import { useTicker } from "#/hooks/useTicker";
+import { useSessionToken } from "#/hooks/useSessionToken";
 import { useViewMode } from "#/hooks/useViewMode";
 import { useWorldMutations } from "#/hooks/useWorldMutations";
 import { convexErrorMessage } from "#/lib/convex-errors";
@@ -233,6 +232,16 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const zoneSession = combatState?.currentZoneSession ?? character.currentZoneSession;
 	const campThresholds = combatState?.campThresholdsMs ?? character.campThresholdsMs ?? EMPTY_THRESHOLDS;
 
+	// Shared barrier state across all views. Owns the in-process BarrierState +
+	// the refill ticker. Replaces the prior dual-ref pattern (useCombatTick
+	// owned the in-combat ref; world.tsx owned an out-of-combat mirror synced
+	// via view-change useEffects + a manual barrier-sync mutation).
+	const barrierApi = useBarrier({
+		maxBarrier: stats.maxBarrier,
+		initialBarrier: barrier,
+		active: combatState !== undefined,
+	});
+
 	const {
 		enterCity,
 		enterZone,
@@ -352,7 +361,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		characterLevel: character.level,
 		stats,
 		initialHp: hp,
-		initialBarrier: barrier,
+		barrierApi,
 		potions,
 		incense,
 		monsterPool,
@@ -673,70 +682,15 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const hpOverride = view === "combat" ? combat.playerHp : Math.min(hp, maxHp);
 
-	const [outOfCombatBarrier, setOutOfCombatBarrier] = useState<number | null>(
-		null,
-	);
-	const outOfCombatBarrierRef = useRef(makeBarrierState(stats.maxBarrier));
-	const combatStateLoaded = combatState !== undefined;
-
+	// City entry restores barrier to full (ADR 0005). All other transitions
+	// preserve current + refillRemaining — useBarrier is the same state object
+	// across views, so the refill cycle is structurally preserved at the
+	// retreat / re-enter combat boundary without any sync handshake.
 	useEffect(() => {
-		if (view === "combat") {
-			setOutOfCombatBarrier(null);
-			return;
-		}
-		if (!combatStateLoaded) return;
-		// City entry always restores to full. Otherwise, read from the live
-		// in-combat barrier state (useCombatTick seeds it from `barrier` on
-		// cold start, so cold-start lands on the persisted value too).
-		// Reading from combat.barrier is what carries `refillRemaining`
-		// across the combat → out-of-combat transition.
-		const isCity = view === "city";
-		const initialCurrent = isCity ? stats.maxBarrier : combat.barrier.current;
-		const initialRefill = isCity ? 0 : combat.barrier.refillRemaining;
-		const state: ReturnType<typeof makeBarrierState> = {
-			current: Math.min(initialCurrent, stats.maxBarrier),
-			max: stats.maxBarrier,
-			refillRemaining: initialRefill,
-		};
-		outOfCombatBarrierRef.current = state;
-		setOutOfCombatBarrier(state.current);
-	}, [view, stats.maxBarrier, combatStateLoaded]); // barrier / combat.barrier excluded — read at init time only
+		if (view === "city") barrierApi.restoreToFull();
+	}, [view, barrierApi]);
 
-	// No passive regen (ADR 0005). The ticker only fires while a refill cycle
-	// is in progress (refillRemaining > 0); when it reaches 0, tickBarrier
-	// snaps current back to max. Partial barrier sitting around between cycles
-	// does nothing.
-	const barrierRefillActive =
-		view !== "combat" && outOfCombatBarrierRef.current.refillRemaining > 0;
-
-	useTicker(barrierRefillActive, 500, () => {
-		const next = tickBarrier(outOfCombatBarrierRef.current, 0.5);
-		if (next !== outOfCombatBarrierRef.current) {
-			outOfCombatBarrierRef.current = next;
-			setOutOfCombatBarrier(next.current);
-		}
-	});
-
-	// Persist refilled barrier to DB when entering combat.
-	const barrierSyncMutation = useSessionedMutation(
-		useMutation(api.combat.syncHp),
-	);
-	useEffect(() => {
-		if (view !== "combat") return;
-		const refilled = outOfCombatBarrierRef.current.current;
-		if (refilled > barrier) {
-			barrierSyncMutation({
-				characterId: character._id,
-				hpCurrent: hp,
-				barrierCurrent: refilled,
-			}).catch(() => {});
-		}
-	}, [view]); // eslint-disable-line react-hooks/exhaustive-deps
-
-	const barrierOverride =
-		view === "combat"
-			? combat.barrier.current
-			: (outOfCombatBarrier ?? barrier);
+	const barrierOverride = barrierApi.barrier.current;
 	const potionsOverride = view === "combat" ? combat.potions : potions;
 	// Pass the wrapped handler when allowed; when an in-flight call is
 	// pending, clear it so StatusCard's internal `canUsePotion` check disables
@@ -833,8 +787,8 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 						events={combat.events}
 						playerHp={combat.playerHp}
 						maxHp={maxHp}
-						barrier={combat.barrier.current}
-						maxBarrier={combat.barrier.max}
+						barrier={barrierApi.barrier.current}
+						maxBarrier={barrierApi.barrier.max}
 						xp={xp}
 						xpNeeded={xpToNextLevel(character.level)}
 						lastKillXp={combat.lastKill?.xp}
@@ -975,7 +929,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					onClose={statsModal.close}
 					stats={stats}
 					referenceEnemyLevel={zoneLevel}
-					currentBarrier={combat.barrier.current}
+					currentBarrier={barrierApi.barrier.current}
 					currentLife={combat.playerHp}
 				/>
 			)}

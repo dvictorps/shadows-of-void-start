@@ -57,6 +57,7 @@ vi.mock("#/game/combat/damage", async () => {
 
 // Imported AFTER mocks so the hook closure picks up the mocked deps.
 const { useCombatTick } = await import("./useCombatTick");
+const { useBarrier } = await import("./useBarrier");
 
 // ── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -217,22 +218,29 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 		const pushEvent = vi.fn();
 
 		renderHook(
-			() =>
-				useCombatTick({
+			() => {
+				const stats = makeStats({ thorns: THORNS });
+				const barrierApi = useBarrier({
+					maxBarrier: stats.maxBarrier,
+					active: true,
+				});
+				return useCombatTick({
 					characterId: "test-char" as unknown as Parameters<
 						typeof useCombatTick
 					>[0]["characterId"],
 					active: true,
 					isEngaged: true,
 					enemy: latestEnemy,
-					stats: makeStats({ thorns: THORNS }),
+					stats,
 					initialHp: 100,
 					potions: 0,
+					barrierApi,
 					onPlayerDeath,
 					resolveKill,
 					pushEvent,
 					updateEnemy,
-				}),
+				});
+			},
 			{
 				wrapper: ({ children }) =>
 					createElement(SessionTokenProvider, null, children),
@@ -275,22 +283,29 @@ describe("useCombatTick — life regen modifier", () => {
 
 	it("applies stats.lifeRegen as continuous HP recovery (out-of-engagement)", () => {
 		const { result } = renderHook(
-			() =>
-				useCombatTick({
+			() => {
+				const stats = makeStats({ lifeRegen: 10, maxLife: 100 });
+				const barrierApi = useBarrier({
+					maxBarrier: stats.maxBarrier,
+					active: true,
+				});
+				return useCombatTick({
 					characterId: "test-char" as unknown as Parameters<
 						typeof useCombatTick
 					>[0]["characterId"],
 					active: true,
 					isEngaged: false,
 					enemy: null,
-					stats: makeStats({ lifeRegen: 10, maxLife: 100 }),
+					stats,
 					initialHp: 50,
 					potions: 0,
+					barrierApi,
 					onPlayerDeath: vi.fn(),
 					resolveKill: vi.fn(),
 					pushEvent: vi.fn(),
 					updateEnemy: vi.fn(),
-				}),
+				});
+			},
 			{
 				wrapper: ({ children }) =>
 					createElement(SessionTokenProvider, null, children),
@@ -307,22 +322,29 @@ describe("useCombatTick — life regen modifier", () => {
 
 	it("caps at maxLife and resets the fractional accumulator on overfill", () => {
 		const { result } = renderHook(
-			() =>
-				useCombatTick({
+			() => {
+				const stats = makeStats({ lifeRegen: 5, maxLife: 100 });
+				const barrierApi = useBarrier({
+					maxBarrier: stats.maxBarrier,
+					active: true,
+				});
+				return useCombatTick({
 					characterId: "test-char" as unknown as Parameters<
 						typeof useCombatTick
 					>[0]["characterId"],
 					active: true,
 					isEngaged: false,
 					enemy: null,
-					stats: makeStats({ lifeRegen: 5, maxLife: 100 }),
+					stats,
 					initialHp: 98,
 					potions: 0,
+					barrierApi,
 					onPlayerDeath: vi.fn(),
 					resolveKill: vi.fn(),
 					pushEvent: vi.fn(),
 					updateEnemy: vi.fn(),
-				}),
+				});
+			},
 			{
 				wrapper: ({ children }) =>
 					createElement(SessionTokenProvider, null, children),
@@ -338,22 +360,29 @@ describe("useCombatTick — life regen modifier", () => {
 
 	it("does not regen at fractional rates below 1 HP/s until the accumulator carries", () => {
 		const { result } = renderHook(
-			() =>
-				useCombatTick({
+			() => {
+				const stats = makeStats({ lifeRegen: 0.5, maxLife: 100 });
+				const barrierApi = useBarrier({
+					maxBarrier: stats.maxBarrier,
+					active: true,
+				});
+				return useCombatTick({
 					characterId: "test-char" as unknown as Parameters<
 						typeof useCombatTick
 					>[0]["characterId"],
 					active: true,
 					isEngaged: false,
 					enemy: null,
-					stats: makeStats({ lifeRegen: 0.5, maxLife: 100 }),
+					stats,
 					initialHp: 50,
 					potions: 0,
+					barrierApi,
 					onPlayerDeath: vi.fn(),
 					resolveKill: vi.fn(),
 					pushEvent: vi.fn(),
 					updateEnemy: vi.fn(),
-				}),
+				});
+			},
 			{
 				wrapper: ({ children }) =>
 					createElement(SessionTokenProvider, null, children),
