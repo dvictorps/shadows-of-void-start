@@ -166,7 +166,8 @@ describe("computeCharacterStats — base", () => {
 			level: 1,
 			equippedItems: [],
 		});
-		expect(stats.maxBarrier).toBe(20);
+		// 20 barrier × (1 + 10 INT × 1% / 100) = 20 × 1.10 = 22.
+		expect(stats.maxBarrier).toBe(22);
 		expect(stats.attributes.intelligence).toBe(10);
 	});
 });
@@ -639,7 +640,7 @@ describe("attribute bonuses", () => {
 		expect(stats.evasion).toBe(0);
 	});
 
-	it("Int adds 0.2% barrier per point via the global fold", () => {
+	it("Int adds 1% barrier per point via the global fold", () => {
 		const mageClass = CLASS_DEFINITIONS.mage;
 		const base = computeCharacterStats({
 			classDef: {
@@ -649,7 +650,7 @@ describe("attribute bonuses", () => {
 			level: 1,
 			equippedItems: [],
 		});
-		// 10 Int → +2% barrier → 100 * 1.02 = 102 rounded.
-		expect(base.maxBarrier).toBe(102);
+		// 10 Int → +10% barrier → 100 × 1.10 = 110.
+		expect(base.maxBarrier).toBe(110);
 	});
 });

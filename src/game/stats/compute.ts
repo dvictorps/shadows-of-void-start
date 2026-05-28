@@ -65,7 +65,7 @@ export const STR_MELEE_PCT_PER_POINT = 1;
 export const STR_LIFE_PER_POINT = 5;
 export const DEX_ACCURACY_PER_POINT = 2;
 export const DEX_EVASION_PCT_PER_POINT = 1;
-export const INT_BARRIER_PCT_PER_POINT = 0.2;
+export const INT_BARRIER_PCT_PER_POINT = 1;
 
 const ATTACK_WEAPONS = new Set([
 	"sword",

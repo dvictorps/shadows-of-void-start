@@ -454,7 +454,7 @@ The three core attributes — **Strength**, **Dexterity**, **Intelligence** — 
 |---|---|---|
 | **Strength** | `+1% Melee Damage Increased` and `+5 Maximum Life` | Two effects from one stat — STR is the warrior identity (damage AND survivability). Mage with low STR still gets a small life floor; rogue with mid STR sits between the two. |
 | **Dexterity** | `+2 Accuracy Rating` and `+1% Evasion Increased` | Multiplicative on flat evasion sources, so DEX only converts into real evasion if the player is wearing leather pieces or has flat evasion mods rolled. A mage with 100 DEX and zero leather gear gets the accuracy but no evasion (matches how INT works for silk). |
-| **Intelligence** | `+0.2% Barrier Increased` per point (= +2% per 10 points) | Multiplicative on flat barrier sources. Mana scaling is planned for INT in a future iteration but **mage-only** — for now INT is the defensive scaler of the caster. |
+| **Intelligence** | `+1% Barrier Increased` per point (= +10% per 10 points) | Multiplicative on flat barrier sources. Mana scaling is planned for INT in a future iteration but **mage-only** — for now INT is the defensive scaler of the caster. |
 
 The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all funnel into the existing increased / global-defense pipelines — they don't bypass caps and they don't stack their own special multiplier. Same math as a gear roll, just sourced from the attribute instead of an explicit mod.
 

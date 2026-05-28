@@ -5,7 +5,7 @@
 
 ## Context
 
-Barrier is the caster-aligned defensive layer — a pool that sits over life, blue ring around the HP globe. Silk armor and the tome provide flat barrier; jewelry provides smaller flat barrier rolls; `+% Barrier` increases on silk pieces and jewelry scale the flat pool; INT contributes a per-point `+0.2% Barrier Increased`. Endgame mage builds can stack `+5 000` barrier on top of `~1 500` life — barrier is roughly the *majority* of the mage's effective HP pool.
+Barrier is the caster-aligned defensive layer — a pool that sits over life, blue ring around the HP globe. Silk armor and the tome provide flat barrier; jewelry provides smaller flat barrier rolls; `+% Barrier` increases on silk pieces and jewelry scale the flat pool; INT contributes a per-point `+1% Barrier Increased`. Endgame mage builds can stack `+5 000` barrier on top of `~1 500` life — barrier is roughly the *majority* of the mage's effective HP pool.
 
 The original recovery mechanic was binary: when current barrier hit zero, a 6-second timer started; when the timer expired, barrier refilled to **100% instantly** in a single tick. Damage during the recovery window passed through to life directly; the timer did not reset on subsequent hits.
 
