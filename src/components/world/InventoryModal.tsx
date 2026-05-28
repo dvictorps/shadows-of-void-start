@@ -409,11 +409,7 @@ export default function InventoryModal({
 				(source.slot === "weapon" && target.slot === "offhand") ||
 				(source.slot === "offhand" && target.slot === "weapon");
 			if (!isHandPair || !handsSwappable) return;
-			try {
-				await swapHands(withSession({ characterId }));
-			} catch (err) {
-				toast.error(convexErrorMessage(err, m.error_equip_failed()));
-			}
+			await triggerSwapHands();
 			return;
 		}
 	};
@@ -434,6 +430,14 @@ export default function InventoryModal({
 			await unequipItem(withSession({ characterId, slot }));
 		} catch (err) {
 			toast.error(convexErrorMessage(err, m.error_unequip_failed()));
+		}
+	};
+
+	const triggerSwapHands = async () => {
+		try {
+			await swapHands(withSession({ characterId }));
+		} catch (err) {
+			toast.error(convexErrorMessage(err, m.error_equip_failed()));
 		}
 	};
 
@@ -565,7 +569,7 @@ export default function InventoryModal({
 							type="button"
 							onClick={() => {
 								if (!handsSwappable) return;
-								void swapHands(withSession({ characterId }));
+								void triggerSwapHands();
 							}}
 							disabled={!handsSwappable}
 							title={
