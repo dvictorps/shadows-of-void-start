@@ -176,12 +176,20 @@ export const recordKill = mutation({
 					(progression.bossKillCounts as
 						| Record<string, number>
 						| undefined) ?? {}
-				progressionUpdates.bossKillCounts = {
+				const nextCounts = {
 					...counts,
 					[args.monsterId]: (counts[args.monsterId] ?? 0) + 1,
 				}
+				progressionUpdates.bossKillCounts = nextCounts
 				// totalBossKills stays on characters — it's the leaderboard index key.
-				charUpdates.totalBossKills = (char.totalBossKills ?? 0) + 1
+				// Legacy chars (pre-backfill) have totalBossKills === undefined but
+				// may already have a populated bossKillCounts on the progression doc.
+				// Falling back to `0 + 1` here would reset their tally to 1 and lose
+				// their leaderboard standing during the deploy → backfill window.
+				charUpdates.totalBossKills =
+					char.totalBossKills !== undefined
+						? char.totalBossKills + 1
+						: Object.values(nextCounts).reduce((sum, n) => sum + n, 0)
 			}
 		} else {
 			csUpdates.currentZoneKills = cs.currentZoneKills + 1
