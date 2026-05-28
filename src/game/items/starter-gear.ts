@@ -6,15 +6,9 @@ import type { GeneratedItem } from "./types";
 // through the random generator. IDs are namespaced with the "starter:" prefix
 // so equipped-item references can distinguish them from rolled items later.
 
-// Starter weapons sit slightly ABOVE T1 dropped equivalents (sword 4-9 vs
-// T1 3-7, dagger 5-8 vs T1 2-5, wand 4-8 vs T1 2-6). The original
-// "starters below T1" design was overcorrected — fresh lvl 1 characters
-// have no gear, no mods, no implicit accuracy/crit on the starter, and the
-// forest_starter pacing felt punishing. The starter buff plus the lvl 1-4
-// monster damage cliff together rebuild early-game footing. The bigger
-// upgrade incentive over starters is now the T1+ implicit (accuracy /
-// crit multi / spell damage) and the first rolled mods, not the base
-// damage gap.
+// Starter weapons sit slightly above their T1 dropped equivalents so fresh
+// lvl 1 characters aren't gated by base damage. T1+ implicits (accuracy /
+// crit multi / spell damage) and the first rolled mods remain the upgrade driver.
 
 const rustySword: GeneratedItem = {
 	id: "starter:rusty_sword",

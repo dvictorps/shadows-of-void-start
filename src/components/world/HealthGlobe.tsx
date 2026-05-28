@@ -94,9 +94,7 @@ export default function HealthGlobe({
 				/>
 			)}
 
-			{/* Refill cooldown ring — sweeps around the globe starting empty at
-			 * break and completing as the barrier snaps back to max. Begins
-			 * at 12 o'clock via the -90deg rotation. */}
+			{/* Refill cooldown ring — empty at break, full at snap. -rotate-90 starts it at 12 o'clock. */}
 			{showRefill && (
 				<svg
 					className="-rotate-90 pointer-events-none absolute inset-0 h-full w-full"

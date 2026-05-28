@@ -1,14 +1,9 @@
 import type { MonsterDefinition } from "./types";
 
 export const MONSTERS = {
-	// Early-zone monsters (forest_starter lvl 1, forest_profunda lvl 2,
-	// pantano lvl 4): physical damage softened ~20% and elemental damage
-	// stripped. Fresh lvl 1 characters have no gear, no mitigation, no
-	// resistances — full-strength stats from the original templates plus the
-	// 1.06^L scaling stacked into a punishing first-act ramp. These six
-	// monsters appear only in zones lvl ≤4 (cripta onward uses esqueleto/
-	// vampiro/etc with their original stats), so editing the templates here
-	// is the right place for an early-game softening pass.
+	// Early-zone monsters (lvl 1-4): physical softened, elemental stripped.
+	// Fresh lvl 1 characters have no resistances or mitigation. Cripta-onward
+	// monsters keep their original templates.
 	goblin: {
 		id: "goblin",
 		name: "Goblin",

@@ -1,17 +1,10 @@
 // @vitest-environment jsdom
 
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { useBarrier } from "./useBarrier";
 
 describe("useBarrier — initialBarrier cold-start race", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-	});
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("syncs to initialBarrier when it transitions from undefined to a real value", () => {
 		// Reproduces the cold-start race: useBarrier mounts with
 		// initialBarrier=undefined (combatState still loading), defaults
