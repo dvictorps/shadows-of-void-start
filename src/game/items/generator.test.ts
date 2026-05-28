@@ -571,6 +571,90 @@ describe("restrictedToArmorType modifier filter", () => {
 	});
 });
 
+// ── Tome ──
+
+describe("tome eligibility", () => {
+	// Tomes use equipmentType "tome" (not "offhand"), so blockChanceIncrease
+	// (applicableTo: ["offhand"]) is correctly excluded — and the new
+	// tomeGainAsExtra* opening to amulet/gloves/staff must not change that.
+	// CONTEXT.md: "tome ... only off-hand without block chance, by design".
+	it("never rolls blockChanceIncrease", () => {
+		const items = generateMany(1000, {
+			rarity: "epic",
+			templateId: "tome_t1",
+			itemLevel: 80,
+		});
+		const rolledIds = allExplicitModIds(items);
+		expect(rolledIds.has("blockChanceIncrease")).toBe(false);
+	});
+
+	it("can still roll tomeGainAsExtra* mods", () => {
+		const items = generateMany(200, {
+			rarity: "epic",
+			templateId: "tome_t1",
+			itemLevel: 80,
+		});
+		const rolledIds = allExplicitModIds(items);
+		const tomeMods = [
+			"tomeGainAsExtraCold",
+			"tomeGainAsExtraFire",
+			"tomeGainAsExtraLightning",
+			"tomeGainAsExtraVoid",
+		];
+		expect(tomeMods.some((id) => rolledIds.has(id))).toBe(true);
+	});
+});
+
+describe("tomeGainAsExtra scope (Phase C)", () => {
+	const TOME_GAIN_MODS = [
+		"tomeGainAsExtraCold",
+		"tomeGainAsExtraFire",
+		"tomeGainAsExtraLightning",
+		"tomeGainAsExtraVoid",
+	];
+
+	it("amulets can roll tomeGainAsExtra", () => {
+		const items = generateMany(400, {
+			rarity: "legendary",
+			templateId: "gold_amulet",
+			itemLevel: 80,
+		});
+		const rolled = allExplicitModIds(items);
+		expect(TOME_GAIN_MODS.some((id) => rolled.has(id))).toBe(true);
+	});
+
+	it("silk gloves can roll tomeGainAsExtra; leather and plate cannot", () => {
+		const silk = generateMany(400, {
+			rarity: "legendary",
+			templateId: "silk_gloves_t1",
+			itemLevel: 80,
+		});
+		const leather = generateMany(400, {
+			rarity: "legendary",
+			templateId: "leather_gloves_t1",
+			itemLevel: 80,
+		});
+		const plate = generateMany(400, {
+			rarity: "legendary",
+			templateId: "plate_gloves_t1",
+			itemLevel: 80,
+		});
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(silk).has(id))).toBe(true);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(leather).has(id))).toBe(false);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(plate).has(id))).toBe(false);
+	});
+
+	it("staves can roll tomeGainAsExtra", () => {
+		const items = generateMany(400, {
+			rarity: "legendary",
+			templateId: "staff_t1",
+			itemLevel: 80,
+		});
+		const rolled = allExplicitModIds(items);
+		expect(TOME_GAIN_MODS.some((id) => rolled.has(id))).toBe(true);
+	});
+});
+
 // ── Shield ──
 
 describe("shield", () => {
