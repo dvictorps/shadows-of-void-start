@@ -49,6 +49,22 @@ export function useBarrier({
 		});
 	}, [maxBarrier]);
 
+	// Cold-start race: useState runs once at mount. When combatState arrives
+	// from Convex after that (initialBarrier transitions from undefined to a
+	// real value), `useState` would silently drop it and the periodic syncHp
+	// would then overwrite the server with the local default. Pull the new
+	// value in on prop change, clamped to current max.
+	useEffect(() => {
+		if (initialBarrier === undefined) return;
+		setBarrier((prev) => {
+			const clamped = Math.min(initialBarrier, prev.max);
+			if (prev.current === clamped) return prev;
+			const next = { ...prev, current: clamped };
+			barrierRef.current = next;
+			return next;
+		});
+	}, [initialBarrier]);
+
 	useTicker(active, 100, () => {
 		const next = tickBarrier(barrierRef.current, 0.1);
 		if (next !== barrierRef.current) {

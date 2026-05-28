@@ -678,10 +678,13 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const hpOverride = view === "combat" ? combat.playerHp : Math.min(hp, maxHp);
 
-	// City entry restores barrier to full (ADR 0005).
+	// City entry restores barrier to full (ADR 0005). Destructure
+	// restoreToFull so the dep is the memoized callback, not the freshly-
+	// constructed barrierApi object (which would re-fire every render).
+	const { restoreToFull: restoreBarrierToFull } = barrierApi;
 	useEffect(() => {
-		if (view === "city") barrierApi.restoreToFull();
-	}, [view, barrierApi]);
+		if (view === "city") restoreBarrierToFull();
+	}, [view, restoreBarrierToFull]);
 
 	const barrierOverride = barrierApi.barrier.current;
 	const potionsOverride = view === "combat" ? combat.potions : potions;
