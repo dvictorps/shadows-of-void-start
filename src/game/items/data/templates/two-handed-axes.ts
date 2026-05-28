@@ -1,6 +1,6 @@
 import type { EquipmentTemplate } from "./types";
 
-// Two-Handed Axes (2H, str) — AtkSpd: 1.05, Crit: 5.0, No implicit
+// Two-Handed Axes (2H, str) — AtkSpd: 1.05, Crit: 5.0, No implicit. Base damage ~2.3× axe (CONTEXT.md → Weapons).
 export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "twoHandedAxe_t1",
@@ -11,8 +11,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 1,
 		requirements: { level: 1, str: 12 },
 		baseStats: {
-			minDamage: 8,
-			maxDamage: 15,
+			minDamage: 15,
+			maxDamage: 27,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -28,8 +28,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 4,
 		requirements: { level: 4, str: 20 },
 		baseStats: {
-			minDamage: 11,
-			maxDamage: 21,
+			minDamage: 18,
+			maxDamage: 35,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -45,8 +45,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 7,
 		requirements: { level: 7, str: 25 },
 		baseStats: {
-			minDamage: 15,
-			maxDamage: 31,
+			minDamage: 23,
+			maxDamage: 48,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -62,8 +62,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 10,
 		requirements: { level: 10, str: 30 },
 		baseStats: {
-			minDamage: 22,
-			maxDamage: 47,
+			minDamage: 31,
+			maxDamage: 66,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -79,8 +79,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 14,
 		requirements: { level: 14, str: 38 },
 		baseStats: {
-			minDamage: 34,
-			maxDamage: 71,
+			minDamage: 42,
+			maxDamage: 88,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -96,8 +96,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 24,
 		requirements: { level: 24, str: 68 },
 		baseStats: {
-			minDamage: 70,
-			maxDamage: 142,
+			minDamage: 84,
+			maxDamage: 170,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -113,8 +113,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 28,
 		requirements: { level: 28, str: 76 },
 		baseStats: {
-			minDamage: 80,
-			maxDamage: 160,
+			minDamage: 96,
+			maxDamage: 192,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -130,8 +130,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 32,
 		requirements: { level: 32, str: 86 },
 		baseStats: {
-			minDamage: 90,
-			maxDamage: 178,
+			minDamage: 108,
+			maxDamage: 214,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -147,8 +147,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 36,
 		requirements: { level: 36, str: 94 },
 		baseStats: {
-			minDamage: 100,
-			maxDamage: 198,
+			minDamage: 120,
+			maxDamage: 238,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -164,8 +164,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 40,
 		requirements: { level: 40, str: 104 },
 		baseStats: {
-			minDamage: 110,
-			maxDamage: 218,
+			minDamage: 132,
+			maxDamage: 262,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -181,8 +181,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 44,
 		requirements: { level: 44, str: 112 },
 		baseStats: {
-			minDamage: 121,
-			maxDamage: 240,
+			minDamage: 145,
+			maxDamage: 288,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -198,8 +198,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 48,
 		requirements: { level: 48, str: 122 },
 		baseStats: {
-			minDamage: 132,
-			maxDamage: 262,
+			minDamage: 158,
+			maxDamage: 314,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -215,8 +215,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 52,
 		requirements: { level: 52, str: 130 },
 		baseStats: {
-			minDamage: 143,
-			maxDamage: 284,
+			minDamage: 172,
+			maxDamage: 341,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -232,8 +232,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 56,
 		requirements: { level: 56, str: 140 },
 		baseStats: {
-			minDamage: 155,
-			maxDamage: 306,
+			minDamage: 186,
+			maxDamage: 367,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -249,8 +249,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 60,
 		requirements: { level: 60, str: 148 },
 		baseStats: {
-			minDamage: 167,
-			maxDamage: 330,
+			minDamage: 200,
+			maxDamage: 396,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -266,8 +266,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 64,
 		requirements: { level: 64, str: 158 },
 		baseStats: {
-			minDamage: 176,
-			maxDamage: 348,
+			minDamage: 211,
+			maxDamage: 418,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -283,8 +283,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 68,
 		requirements: { level: 68, str: 166 },
 		baseStats: {
-			minDamage: 186,
-			maxDamage: 368,
+			minDamage: 223,
+			maxDamage: 442,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -300,8 +300,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 72,
 		requirements: { level: 72, str: 176 },
 		baseStats: {
-			minDamage: 197,
-			maxDamage: 388,
+			minDamage: 236,
+			maxDamage: 466,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -317,8 +317,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 76,
 		requirements: { level: 76, str: 184 },
 		baseStats: {
-			minDamage: 208,
-			maxDamage: 408,
+			minDamage: 250,
+			maxDamage: 490,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -334,8 +334,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 80,
 		requirements: { level: 80, str: 194 },
 		baseStats: {
-			minDamage: 218,
-			maxDamage: 430,
+			minDamage: 262,
+			maxDamage: 516,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},
@@ -351,8 +351,8 @@ export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 83,
 		requirements: { level: 83, str: 200 },
 		baseStats: {
-			minDamage: 228,
-			maxDamage: 448,
+			minDamage: 274,
+			maxDamage: 538,
 			attackSpeed: 1.05,
 			criticalChance: 5,
 		},

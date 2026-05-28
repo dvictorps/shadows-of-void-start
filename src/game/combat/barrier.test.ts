@@ -9,7 +9,7 @@ import {
 // Barrier mechanic (ADR 0005, current):
 //   - No passive regen between hits.
 //   - On break (current → 0): 10s refill cooldown, then instant snap to max.
-//   - Hits absorbed at +50% rate (1500-barrier → 1000 raw absorbed).
+//   - Hits absorbed 1:1 (1500-barrier soaks 1500 raw before breaking).
 //   - Symmetric for monster barriers.
 
 describe("barrier state", () => {
@@ -20,23 +20,21 @@ describe("barrier state", () => {
 		expect(s.refillRemaining).toBe(0);
 	});
 
-	it("damage absorbed at 1.5× rate; sub-break leaves no refill timer", () => {
+	it("damage absorbed 1:1; sub-break leaves no refill timer", () => {
 		const s = makeBarrierState(100);
 		const { state, lifeOverflow } = damageBarrier(s, 30);
-		// 30 raw damage × 1.5 = 45 barrier drained.
-		expect(state.current).toBe(55);
+		expect(state.current).toBe(70);
 		expect(state.refillRemaining).toBe(0);
 		expect(lifeOverflow).toBe(0);
 	});
 
-	it("damage that empties barrier triggers a 10s refill timer; overflow uses 1.5× math", () => {
+	it("damage that empties barrier triggers a 10s refill timer; remainder carries to life", () => {
 		const s = makeBarrierState(60);
-		// Pool of 60 absorbs 60/1.5 = 40 raw damage before breaking.
-		// Incoming 100 raw → 40 absorbed by barrier, 60 overflows to life.
+		// Pool of 60 absorbs 60 raw damage; the remaining 40 hits life.
 		const { state, lifeOverflow } = damageBarrier(s, 100);
 		expect(state.current).toBe(0);
 		expect(state.refillRemaining).toBe(10);
-		expect(lifeOverflow).toBe(60);
+		expect(lifeOverflow).toBe(40);
 	});
 
 	it("damage during refill cooldown bleeds entirely to life; does NOT reset the timer", () => {
@@ -71,11 +69,11 @@ describe("barrier state", () => {
 
 	it("partial barrier with no active refill stays put — no passive regen", () => {
 		let s = makeBarrierState(100);
-		s = damageBarrier(s, 30).state; // current 55, no refill timer
+		s = damageBarrier(s, 30).state; // current 70, no refill timer
 		expect(s.refillRemaining).toBe(0);
 		// Ticking 100 seconds does NOTHING.
 		s = tickBarrier(s, 100);
-		expect(s.current).toBe(55);
+		expect(s.current).toBe(70);
 		expect(s.refillRemaining).toBe(0);
 	});
 
@@ -86,15 +84,12 @@ describe("barrier state", () => {
 	});
 
 	it("monster barrier follows the same rules (symmetric)", () => {
-		// Whatever absorbs the player's 200 damage applies the 1.5× multiplier
-		// just like the player's barrier absorbs monster damage.
 		const monster = makeBarrierState(120);
 		const { state, lifeOverflow } = damageBarrier(monster, 200);
-		// 200 raw × 1.5 = 300 effective; pool 120 caps absorbed at 120.
-		// lifeOverflow = 200 × (1 - 120/300) = 120.
+		// Pool 120 caps absorbed at 120; remaining 80 hits monster life.
 		expect(state.current).toBe(0);
 		expect(state.refillRemaining).toBe(10);
-		expect(lifeOverflow).toBe(120);
+		expect(lifeOverflow).toBe(80);
 	});
 
 	it("rescaling to a smaller max clamps current and preserves refill timer", () => {
@@ -108,10 +103,10 @@ describe("barrier state", () => {
 
 	it("rescaling to a larger max preserves current — no free refill", () => {
 		let s = makeBarrierState(100);
-		s = damageBarrier(s, 40).state; // current 40, no refill timer
+		s = damageBarrier(s, 40).state; // current 60, no refill timer
 		s = rescaleBarrier(s, 200);
 		expect(s.max).toBe(200);
-		expect(s.current).toBe(40);
+		expect(s.current).toBe(60);
 		expect(s.refillRemaining).toBe(0);
 	});
 
@@ -145,13 +140,13 @@ describe("barrier state", () => {
 		// Tricky case: player at partial barrier unequips silk → current goes
 		// to 0 (forced by the newMax=0 branch). State now matches
 		// seedAtFull's condition. Re-equip would snap to full — that's a
-		// "free refill from 50%" exploit at first glance. In practice the
+		// "free refill from partial" exploit at first glance. In practice the
 		// player was at 0 barrier during the unequipped period and accepted
 		// the vulnerability; the trade-off is acceptable. This test pins
 		// the current behavior so a future "anti-exploit" change is an
 		// explicit decision, not an accident.
 		let s = makeBarrierState(100);
-		s = damageBarrier(s, 30).state; // partial: current 55
+		s = damageBarrier(s, 30).state; // partial: current 70
 		s = rescaleBarrier(s, 0); // unequip silk → current 0, max 0
 		s = rescaleBarrier(s, 100); // re-equip
 		expect(s.current).toBe(100); // seedAtFull fires

@@ -58,7 +58,7 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 ```
 items/
 ├── generator.ts             # generateItem({ rarity, ilvl, type, weaponType }) — public API
-├── generator.test.ts        # 93 tests covering rarity/tier/mod rules
+├── generator.test.ts        # 101 tests covering rarity/tier/mod rules
 ├── equipment.ts             # planEquip, validSlotsForItem, isTwoHanded, weaponArchetype — shared client+server
 ├── equipment.test.ts        # planEquip rules (2H displacement, archetype, etc.)
 ├── starter-gear.ts          # Hand-crafted starter weapons (rusty_sword, rusty_dagger, cracked_wand)
@@ -115,6 +115,10 @@ See `docs/playbooks/i18n-which-system.md` for the broader decision tree (paragli
 ### `src/game/stats/compute.ts` — the stat engine
 
 The spine of every gameplay calculation. Read this if you're touching anything that reads character stats. Pure function, fixed-point cascade for broken-state detection, applies a single switch per modifier id.
+
+### `src/game/stats/dps.ts` — DPS estimator
+
+Single source of truth for the "if all hits land" damage-per-second number rendered in `StatusCard` and `ShowStatsModal`. Includes `%increased` pools, `gainAsExtraSpell` (spell path), and the crit factor (`baseCritMultiplier + bonusCritMultiplier` scaled by avg per-swing crit chance). Tests in `dps.test.ts`.
 
 ---
 
@@ -194,7 +198,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | `index.tsx` | Splash screen ("Shadows of Void" title) |
 | `sign-in.tsx` | better-auth UI |
 | `character-select.tsx` | Roster + create modal + play button + delete confirm |
-| `world.tsx` | **Orchestrator** — wires `useCombatLoop` + `useWorldMutations` + `useViewMode` + `WorldModals` together and resolves the priority TextLog. 740 lines (split shipped in PR #45 + #52; was 900 before decomposition) |
+| `world.tsx` | **Orchestrator** — wires `useBarrier` + `useCombatLoop` + `useWorldMutations` + `useViewMode` + `WorldModals` together and resolves the priority TextLog. 886 lines (was 929 before `useBarrier` extraction; was 740 after PR #45 + #52 split the original 900-line monolith) |
 | `admin.tsx`, `admin/items.tsx` | Admin dashboard (only admins see) |
 | `api/auth/$.ts` | better-auth fallback route |
 
@@ -204,8 +208,9 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 
 | Hook | Purpose |
 |---|---|
-| `useCombatLoop.ts` | State-machine orchestrator (search → engaged → victory). Owns the spawn loop + zone-bag side effects. 411 lines (split shipped in PR #47 into the three hooks below) |
-| `useCombatTick.ts` | Engaged-state combat tick (50ms): leech heal → barrier regen/cooldown → player swing → enemy swing → thorns. Owns player vitals (HP, barrier, leech, dead) + the 10s `syncHp` + the potion mutation. 420 lines |
+| `useCombatLoop.ts` | State-machine orchestrator (search → engaged → victory). Owns the spawn loop + zone-bag side effects. 570 lines (split shipped in PR #47 into the three hooks below; `useBarrier` extracted after that) |
+| `useCombatTick.ts` | Engaged-state combat tick (50ms): leech heal → life regen → player swing → enemy swing → thorns. Owns player vitals (HP, leech, dead) + the 10s `syncHp` + the potion mutation. Barrier writes route through `useBarrier`'s shared `applyDamage`. 524 lines |
+| `useBarrier.ts` | Player `BarrierState` owner across all views (map / combat / city / travel). 100ms refill ticker, `applyDamage` (wraps `damageBarrier` with the +50% multiplier), `restoreToFull` for city entry + level-up. Single source of truth — replaces the prior dual-ref pattern. 102 lines |
 | `useEncounterSchedule.ts` | Per-activation encounter pacing — calmaria time bar, camp threshold rolls, ambush packs, gap rolls, next-spawn rarity decision. 218 lines |
 | `useWorldMutations.ts` | Optimistic mutation bundle for the `/world` route (enterZone, exitZone, pickFromBag, equipItem, etc). See [ADR 0001](./adr/0001-optimistic-mutations.md) |
 | `useCompactViewport.ts` | `matchMedia("(max-height: 800px)")` hook — returns `true` on short viewports (1366×768). Used by world layout, EquipmentPanel, StatusCard, StashModal |

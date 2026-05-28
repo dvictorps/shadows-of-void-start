@@ -1,6 +1,9 @@
 import type { MonsterDefinition } from "./types";
 
 export const MONSTERS = {
+	// Early-zone monsters (lvl 1-4): physical softened, elemental stripped.
+	// Fresh lvl 1 characters have no resistances or mitigation. Cripta-onward
+	// monsters keep their original templates.
 	goblin: {
 		id: "goblin",
 		name: "Goblin",
@@ -8,8 +11,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 30,
 			attackSpeed: 1.2,
-			physicalDamage: { min: 12, max: 18 },
-			elementalDamage: [{ element: "Fire", min: 2, max: 4 }],
+			physicalDamage: { min: 10, max: 14 },
+			elementalDamage: [],
 		},
 		xpReward: 5,
 		allowedRarities: ["normal"],
@@ -21,8 +24,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 54,
 			attackSpeed: 0.7,
-			physicalDamage: { min: 6, max: 12 },
-			elementalDamage: [{ element: "Cold", min: 2, max: 3 }],
+			physicalDamage: { min: 5, max: 10 },
+			elementalDamage: [],
 		},
 		xpReward: 8,
 		allowedRarities: ["normal"],
@@ -34,8 +37,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 18,
 			attackSpeed: 1.8,
-			physicalDamage: { min: 8, max: 11 },
-			elementalDamage: [{ element: "Lightning", min: 1, max: 3 }],
+			physicalDamage: { min: 6, max: 9 },
+			elementalDamage: [],
 		},
 		xpReward: 4,
 		allowedRarities: ["normal"],
@@ -47,8 +50,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 12,
 			attackSpeed: 2.0,
-			physicalDamage: { min: 6, max: 9 },
-			elementalDamage: [{ element: "Void", min: 1, max: 2 }],
+			physicalDamage: { min: 5, max: 7 },
+			elementalDamage: [],
 		},
 		xpReward: 4,
 		allowedRarities: ["normal"],
@@ -60,8 +63,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 24,
 			attackSpeed: 1.4,
-			physicalDamage: { min: 11, max: 15 },
-			elementalDamage: [{ element: "Cold", min: 2, max: 4 }],
+			physicalDamage: { min: 9, max: 12 },
+			elementalDamage: [],
 		},
 		xpReward: 6,
 		allowedRarities: ["normal"],
@@ -112,8 +115,8 @@ export const MONSTERS = {
 		baseStats: {
 			hp: 36,
 			attackSpeed: 0.8,
-			physicalDamage: { min: 9, max: 15 },
-			elementalDamage: [{ element: "Void", min: 2, max: 4 }],
+			physicalDamage: { min: 7, max: 12 },
+			elementalDamage: [],
 		},
 		xpReward: 7,
 		allowedRarities: ["normal"],

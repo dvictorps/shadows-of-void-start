@@ -5,7 +5,7 @@
 
 ## Context
 
-Barrier is the caster-aligned defensive layer — a pool that sits over life, blue ring around the HP globe. Silk armor and the tome provide flat barrier; jewelry provides smaller flat barrier rolls; `+% Barrier` increases on silk pieces and jewelry scale the flat pool; INT contributes a per-point `+0.2% Barrier Increased`. Endgame mage builds can stack `+5 000` barrier on top of `~1 500` life — barrier is roughly the *majority* of the mage's effective HP pool.
+Barrier is the caster-aligned defensive layer — a pool that sits over life, blue ring around the HP globe. Silk armor and the tome provide flat barrier; jewelry provides smaller flat barrier rolls; `+% Barrier` increases on silk pieces and jewelry scale the flat pool; INT contributes a per-point `+1% Barrier Increased`. Endgame mage builds can stack `+5 000` barrier on top of `~1 500` life — barrier is roughly the *majority* of the mage's effective HP pool.
 
 The original recovery mechanic was binary: when current barrier hit zero, a 6-second timer started; when the timer expired, barrier refilled to **100% instantly** in a single tick. Damage during the recovery window passed through to life directly; the timer did not reset on subsequent hits.
 
@@ -78,6 +78,14 @@ The failure mode that motivated the original move-away-from-binary ("mage immort
 The full "double HP every cycle" loop returns vs sustained-damage profiles, accepted as the price of paridade with armor/evasão as continuous defensive layers.
 
 **API rename.** `BARRIER_REGEN_FRACTION_PER_SECOND` removed; `BARRIER_COOLDOWN_SECONDS` → `BARRIER_REFILL_DELAY_SECONDS`; new `BARRIER_DAMAGE_MULTIPLIER = 1.5`. `BarrierState.cooldownRemaining` → `BarrierState.refillRemaining`. Function signatures unchanged.
+
+## Update (2026-05-28, later) — drop the +50% absorption multiplier
+
+The `BARRIER_DAMAGE_MULTIPLIER = 1.5` introduced in the earlier 2026-05-28 update is removed. Damage now drains barrier 1:1. The "first-burst absorption is meaningfully weaker" reasoning from that update was a balance instinct, not a play-tested need — once the 10s vulnerability window + lack-of-regen were in place, the additional multiplier nerf compressed mage durability past the design intent (a 1500-barrier mage absorbing only 1000 raw damage didn't feel like barrier was load-bearing). 1:1 absorption restores the mental model "barrier is the displayed number of damage you ignore".
+
+The other two pillars of the rework (no passive regen; 10s refill cooldown then instant snap) keep the original failure mode — "mage immortal to anything but continuous DPS over 10s" — bounded. Build pressure on life remains: the cooldown window is real, and barrier still doesn't save the player from sustained pressure across multiple fights.
+
+`BARRIER_DAMAGE_MULTIPLIER` constant deleted from `src/game/combat/constants.ts`. `damageBarrier` simplified to a straight subtraction; symmetric for monster barriers.
 
 ## Related
 

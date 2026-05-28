@@ -1,5 +1,6 @@
 import { motion, useAnimationControls } from "framer-motion";
 import { useEffect } from "react";
+import { BARRIER_REFILL_DELAY_SECONDS } from "#/game/combat/constants";
 
 type Props = {
 	hp: number;
@@ -7,6 +8,12 @@ type Props = {
 	/** Current barrier. Renders the blue overlay; omit / 0 hides it. */
 	barrier?: number;
 	maxBarrier?: number;
+	/**
+	 * Seconds remaining on the post-break refill cooldown. When > 0, a sky
+	 * ring sweeps around the globe — empty at break, full at snap. Driven
+	 * by the BarrierState's `refillRemaining` field.
+	 */
+	barrierRefillRemaining?: number;
 	size?: "sm" | "md" | "lg" | "xl";
 	/**
 	 * Opaque token that changes whenever the player takes damage. The globe
@@ -28,6 +35,7 @@ export default function HealthGlobe({
 	maxHp,
 	barrier = 0,
 	maxBarrier = 0,
+	barrierRefillRemaining = 0,
 	size = "sm",
 	hitToken = null,
 }: Props) {
@@ -38,6 +46,16 @@ export default function HealthGlobe({
 			? Math.max(0, Math.min(100, (barrier / maxBarrier) * 100))
 			: 0;
 	const showBarrier = maxBarrier > 0;
+	const showRefill = maxBarrier > 0 && barrierRefillRemaining > 0;
+	const refillProgress = showRefill
+		? Math.max(
+				0,
+				Math.min(
+					1,
+					1 - barrierRefillRemaining / BARRIER_REFILL_DELAY_SECONDS,
+				),
+			)
+		: 0;
 
 	const controls = useAnimationControls();
 	useEffect(() => {
@@ -74,6 +92,31 @@ export default function HealthGlobe({
 					}}
 					aria-hidden
 				/>
+			)}
+
+			{/* Refill cooldown ring — empty at break, full at snap. -rotate-90 starts it at 12 o'clock. */}
+			{showRefill && (
+				<svg
+					className="-rotate-90 pointer-events-none absolute inset-0 h-full w-full"
+					viewBox="0 0 100 100"
+					aria-hidden
+				>
+					<circle
+						cx="50"
+						cy="50"
+						r="48"
+						fill="none"
+						stroke="#7dd3fc"
+						strokeWidth="3"
+						strokeLinecap="round"
+						pathLength={100}
+						strokeDasharray={`${refillProgress * 100} 100`}
+						style={{
+							filter: "drop-shadow(0 0 4px rgba(125, 211, 252, 0.85))",
+							transition: "stroke-dasharray 100ms linear",
+						}}
+					/>
+				</svg>
 			)}
 
 			<span className="relative z-10 font-bold leading-tight text-white">

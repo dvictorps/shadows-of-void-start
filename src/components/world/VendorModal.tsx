@@ -22,7 +22,7 @@ type Props = {
 	potions: number;
 	teleportStones: number;
 	inventoryItems: Doc<"items">[];
-	onBuy: (productId: VendorProductId) => Promise<void>;
+	onBuy: (productId: VendorProductId, quantity: number) => Promise<void>;
 	onSellMany: (itemIds: Id<"items">[]) => Promise<void>;
 };
 
@@ -43,13 +43,8 @@ export default function VendorModal({
 	const [tab, setTab] = useState<Tab>("buy");
 	const [selected, setSelected] = useState<Set<string>>(new Set());
 	const [rubyDeltas, setRubyDeltas] = useState<RubyDelta[]>([]);
-	// Per-product in-flight tracking so spamming buy on the same product
-	// only fires one request at a time. The button-disabled state is the
-	// actual guard; the early-return in handleBuy is belt-and-suspenders
-	// for the render-cycle window where a click arrives before React
-	// commits the disabled state. Real abuse hardening (e.g. someone
-	// hitting the Convex endpoint directly) needs server-side rate
-	// limiting — deferred, see docs/security/threat-model.md.
+	// Per-product spam-click guard. Server-side rate limiting is the real
+	// hardening — see docs/security/threat-model.md.
 	const [pendingBuys, setPendingBuys] = useState<Set<VendorProductId>>(
 		new Set(),
 	);
@@ -79,20 +74,21 @@ export default function VendorModal({
 		});
 	};
 
-	const handleBuy = async (productId: VendorProductId) => {
+	const handleBuy = async (productId: VendorProductId, quantity: number) => {
 		if (pendingBuys.has(productId)) return;
 		const product = VENDOR_PRODUCTS[productId];
+		const totalCost = product.priceRubys * quantity;
 		setPendingBuys((prev) => {
 			const next = new Set(prev);
 			next.add(productId);
 			return next;
 		});
-		pushRubyDelta(product.priceRubys, "-");
+		pushRubyDelta(totalCost, "-");
 		try {
-			await onBuy(productId);
+			await onBuy(productId, quantity);
 		} catch (err) {
 			// Reverse the optimistic delta so the visual matches the reverted balance.
-			pushRubyDelta(product.priceRubys, "+");
+			pushRubyDelta(totalCost, "+");
 			toast.error(err instanceof Error ? err.message : m.vendor_buy_failed());
 		} finally {
 			setPendingBuys((prev) => {
@@ -263,71 +259,148 @@ function BuyTab({
 	rubys: number;
 	potions: number;
 	teleportStones: number;
-	onBuy: (productId: VendorProductId) => Promise<void>;
+	onBuy: (productId: VendorProductId, quantity: number) => Promise<void>;
 	pendingBuys: Set<VendorProductId>;
 }) {
 	const products = Object.values(VENDOR_PRODUCTS);
-	// Map a product's counterField to the corresponding live count from props.
-	// Lets `isAtCap` walk the same metadata the server uses, without a switch.
+	// Counter-field lookup so cap math walks the same field the server keys on.
 	const counts: Record<string, number> = {
 		potions,
 		teleportStones,
 	};
-	const isAtCap = (p: (typeof products)[number]): boolean =>
-		p.cap !== undefined && (counts[p.counterField] ?? 0) >= p.cap;
 	return (
-		<div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
-			{products.map((p) => {
-				const atCap = isAtCap(p);
-				const canAfford = rubys >= p.priceRubys;
-				const pending = pendingBuys.has(p.id);
-				const disabled = !canAfford || atCap || pending;
-				const buttonLabel = atCap
-					? m.vendor_buy_at_cap()
-					: m.vendor_buy_action();
-				return (
-					<div
-						key={p.id}
-						className="flex flex-col items-center gap-3 rounded-md border border-white/20 bg-black p-4"
-					>
-						<div className="flex h-16 w-16 items-center justify-center text-5xl">
-							{p.icon ? (
-								<img
-									src={p.icon}
-									alt=""
-									draggable={false}
-									className="pointer-events-none h-14 w-14 select-none object-contain"
-								/>
-							) : (
-								p.emoji
-							)}
-						</div>
-						<div className="display-title text-center text-sm uppercase tracking-[0.15em] text-white">
-							{productLabel(p.id)}
-						</div>
-						<div className="display-title flex items-center gap-1 text-base tabular-nums tracking-wider text-yellow-300">
-							<img
-								src="/assets/sprites/ui/moedaRubi.png"
-								alt=""
-								draggable={false}
-								className="pointer-events-none h-5 w-5 select-none object-contain"
-							/>
-							{p.priceRubys}
-						</div>
-						<Button
-							type="button"
-							variant="starkMuted"
-							size="lg"
-							onClick={() => onBuy(p.id)}
-							disabled={disabled}
-							className="w-full text-base uppercase tracking-wider"
-						>
-							{buttonLabel}
-						</Button>
-					</div>
-				);
-			})}
+		<div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
+			{products.map((p) => (
+				<BuyCard
+					key={p.id}
+					product={p}
+					rubys={rubys}
+					currentCount={counts[p.counterField] ?? 0}
+					pending={pendingBuys.has(p.id)}
+					onBuy={onBuy}
+				/>
+			))}
 		</div>
+	);
+}
+
+function BuyCard({
+	product,
+	rubys,
+	currentCount,
+	pending,
+	onBuy,
+}: {
+	product: (typeof VENDOR_PRODUCTS)[VendorProductId];
+	rubys: number;
+	currentCount: number;
+	pending: boolean;
+	onBuy: (productId: VendorProductId, quantity: number) => Promise<void>;
+}) {
+	const STEPPER_MAX = 99;
+	const capRemaining =
+		product.cap !== undefined ? Math.max(0, product.cap - currentCount) : STEPPER_MAX;
+	const maxAfford =
+		product.priceRubys > 0 ? Math.floor(rubys / product.priceRubys) : STEPPER_MAX;
+	const maxQty = Math.min(STEPPER_MAX, capRemaining, maxAfford);
+	const atCap = capRemaining === 0;
+	const [qty, setQty] = useState(1);
+	// Clamp when live affordability/cap shrinks below the user's chosen qty.
+	useEffect(() => {
+		if (maxQty <= 0) {
+			if (qty !== 1) setQty(1);
+			return;
+		}
+		if (qty > maxQty) setQty(maxQty);
+	}, [qty, maxQty]);
+	const totalCost = product.priceRubys * qty;
+	const disabled = pending || atCap || maxQty < qty || rubys < totalCost;
+	let buttonLabel: string;
+	if (atCap) buttonLabel = m.vendor_buy_at_cap();
+	else if (qty > 1) buttonLabel = `${m.vendor_buy_action()} x${qty}`;
+	else buttonLabel = m.vendor_buy_action();
+	const decDisabled = qty <= 1 || pending;
+	const incDisabled = qty >= maxQty || pending;
+	return (
+		<div className="flex flex-col items-center gap-3 rounded-md border border-white/20 bg-black p-4">
+			<div className="flex h-16 w-16 items-center justify-center text-5xl">
+				{product.icon ? (
+					<img
+						src={product.icon}
+						alt=""
+						draggable={false}
+						className="pointer-events-none h-14 w-14 select-none object-contain"
+					/>
+				) : (
+					product.emoji
+				)}
+			</div>
+			<div className="display-title text-center text-sm uppercase tracking-[0.15em] text-white">
+				{productLabel(product.id)}
+			</div>
+			<div className="display-title flex items-center gap-1 text-base tabular-nums tracking-wider text-yellow-300">
+				<img
+					src="/assets/sprites/ui/moedaRubi.png"
+					alt=""
+					draggable={false}
+					className="pointer-events-none h-5 w-5 select-none object-contain"
+				/>
+				{totalCost}
+			</div>
+			<div className="flex w-full items-center justify-center gap-2">
+				<StepperButton
+					onClick={() => setQty((q) => Math.max(1, q - 1))}
+					disabled={decDisabled}
+					ariaLabel={m.vendor_buy_decrement()}
+				>
+					−
+				</StepperButton>
+				<span className="display-title min-w-[2.5rem] text-center text-base tabular-nums tracking-wider text-white">
+					{qty}
+				</span>
+				<StepperButton
+					onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+					disabled={incDisabled}
+					ariaLabel={m.vendor_buy_increment()}
+				>
+					+
+				</StepperButton>
+			</div>
+			<Button
+				type="button"
+				variant="starkMuted"
+				size="lg"
+				onClick={() => onBuy(product.id, qty)}
+				disabled={disabled}
+				className="w-full text-base uppercase tracking-wider"
+			>
+				{buttonLabel}
+			</Button>
+		</div>
+	);
+}
+
+function StepperButton({
+	onClick,
+	disabled,
+	ariaLabel,
+	children,
+}: {
+	onClick: () => void;
+	disabled: boolean;
+	ariaLabel: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			disabled={disabled}
+			aria-label={ariaLabel}
+			className="display-title flex h-8 w-8 items-center justify-center rounded border border-white/25 bg-black/40 text-lg text-white transition hover:border-white/60 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/25 disabled:hover:bg-black/40"
+		>
+			{children}
+		</button>
 	);
 }
 

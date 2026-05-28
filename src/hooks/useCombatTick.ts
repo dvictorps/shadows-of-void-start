@@ -19,7 +19,6 @@ import {
 	type BarrierState,
 	damageBarrier,
 	makeBarrierState,
-	rescaleBarrier,
 	tickBarrier,
 } from "#/game/combat/barrier";
 import { POTION_HEAL_FRACTION } from "#/game/combat/constants";
@@ -36,6 +35,7 @@ import { applyCharacterDelta, applyCombatStateDelta, findCharacter } from "#/lib
 import { playPlayerSwingSfx, playSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import type { BarrierApi } from "./useBarrier";
 import type { DamageEvent } from "./useDamageEvents";
 import { useSessionToken } from "./useSessionToken";
 import { useTicker } from "./useTicker";
@@ -58,8 +58,8 @@ type Params = {
 	enemy: Enemy | null;
 	stats: ComputedCharacterStats;
 	initialHp: number;
-	initialBarrier?: number;
 	potions: number;
+	barrierApi: BarrierApi;
 	onPlayerDeath: () => void;
 	// Reset to "victory" by resolveKill before this returns — used by the
 	// tick to fall through after a player-swing kill or thorns-reflect kill.
@@ -77,8 +77,8 @@ export function useCombatTick({
 	enemy,
 	stats,
 	initialHp,
-	initialBarrier,
 	potions,
+	barrierApi,
 	onPlayerDeath,
 	resolveKill,
 	pushEvent,
@@ -87,27 +87,14 @@ export function useCombatTick({
 	const maxHp = stats.maxLife;
 
 	const [playerHp, setPlayerHp] = useState(initialHp);
-	const [barrier, setBarrier] = useState(() => {
-		if (initialBarrier !== undefined && initialBarrier < stats.maxBarrier) {
-			const s = makeBarrierState(stats.maxBarrier);
-			s.current = initialBarrier;
-			return s;
-		}
-		return makeBarrierState(stats.maxBarrier);
-	});
 
 	const playerHpRef = useRef(playerHp);
 	playerHpRef.current = playerHp;
 	const initialHpRef = useRef(initialHp);
 	initialHpRef.current = initialHp;
-	const initialBarrierRef = useRef(initialBarrier);
-	initialBarrierRef.current = initialBarrier;
-	const maxBarrierRef = useRef(stats.maxBarrier);
-	maxBarrierRef.current = stats.maxBarrier;
 	const lastSyncedHpRef = useRef(initialHp);
-	const lastSyncedBarrierRef = useRef(initialBarrier ?? stats.maxBarrier);
-	const barrierRef = useRef(barrier);
-	barrierRef.current = barrier;
+	const lastSyncedBarrierRef = useRef(barrierApi.barrierRef.current.current);
+	const { barrierRef } = barrierApi;
 	// Live barrier state for the engaged monster. Max comes from
 	// `enemy.scaled.barrier` (0 unless `monsterAdditionalBarrier` rolled).
 	// Reset on every fresh enemy spawn so the previous fight's cooldown
@@ -117,6 +104,10 @@ export function useCombatTick({
 	const leechHealAccRef = useRef(0);
 	const lastLeechEventRef = useRef(0);
 	const deadRef = useRef(false);
+	// Fractional regen carry — lets sub-1 HP/s rates accumulate over multiple
+	// ticks instead of being floored away. e.g. 0.5 HP/s + 100ms tick = 1 HP
+	// every 2 seconds.
+	const regenAccRef = useRef(0);
 
 	// Mirror the `enemy` prop into a ref so the tick reads the live value
 	// even if React hasn't committed a re-render between two consecutive
@@ -160,12 +151,6 @@ export function useCombatTick({
 		},
 	);
 
-	// Keep barrier max in sync with the stat engine. Gear swaps mid-combat
-	// rescale rather than reset to full.
-	useEffect(() => {
-		setBarrier((prev) => rescaleBarrier(prev, stats.maxBarrier));
-	}, [stats.maxBarrier]);
-
 	// Fresh spawn → reset progress refs so the first swing fires at the same
 	// cadence as a from-zero fight. `scaled` identity is stable through a
 	// single fight (damage swaps `currentHp` but keeps `scaled` by reference)
@@ -185,8 +170,8 @@ export function useCombatTick({
 		}
 	}, [enemyScaled]);
 
-	// Activation: reset vitals on zone entry. Deactivation: flush HP sync if
-	// the player is alive (graceful retreat / view change).
+	// Activation resets HP + transient combat refs. Barrier lives in
+	// useBarrier and persists across views — not reset here.
 	const activeRef = useRef(active);
 	useEffect(() => {
 		const wasActive = activeRef.current;
@@ -194,17 +179,13 @@ export function useCombatTick({
 			playerHpRef.current = initialHpRef.current;
 			setPlayerHp(initialHpRef.current);
 			lastSyncedHpRef.current = initialHpRef.current;
-			const ib = initialBarrierRef.current ?? maxBarrierRef.current;
-			const freshBarrier = makeBarrierState(maxBarrierRef.current);
-			freshBarrier.current = Math.min(ib, maxBarrierRef.current);
-			barrierRef.current = freshBarrier;
-			setBarrier(freshBarrier);
-			lastSyncedBarrierRef.current = freshBarrier.current;
+			lastSyncedBarrierRef.current = barrierRef.current.current;
 			deadRef.current = false;
 			leechRef.current = [];
 			leechHealAccRef.current = 0;
 			lastLeechEventRef.current = 0;
 			nextSwingIndexRef.current = 0;
+			regenAccRef.current = 0;
 		} else if (!active && wasActive && !deadRef.current) {
 			syncHp(
 				withSession({
@@ -217,7 +198,7 @@ export function useCombatTick({
 			lastSyncedBarrierRef.current = barrierRef.current.current;
 		}
 		activeRef.current = active;
-	}, [active, characterId, syncHp, withSession]);
+	}, [active, characterId, syncHp, withSession, barrierRef]);
 
 	const enemyAttackSpeed = enemy?.scaled.attackSpeed ?? 1;
 	const tickRate = stats.tickRate || 1;
@@ -234,14 +215,23 @@ export function useCombatTick({
 		}
 	};
 
-	// Barrier ticks independently of combat — refill countdown runs during
-	// calmaria too. tickBarrier is a no-op when refillRemaining === 0, so
-	// idle-and-full-barrier costs nothing.
-	useTicker(active && !isEngaged, 100, () => {
-		const next = tickBarrier(barrierRef.current, 0.1);
-		if (next !== barrierRef.current) {
-			barrierRef.current = next;
-			setBarrier(next);
+	// Passive life regen — fires whenever the player is alive in combat
+	// zones, in or out of engagement. Silent (no floating popup): regen is
+	// the slow-fill bar pattern, not a damage event. Resets the fractional
+	// accumulator when full or dead so a refill doesn't cash in stale credit.
+	useTicker(active && stats.lifeRegen > 0, 100, () => {
+		if (deadRef.current || playerHpRef.current >= maxHp) {
+			regenAccRef.current = 0;
+			return;
+		}
+		regenAccRef.current += stats.lifeRegen * 0.1;
+		if (regenAccRef.current < 1) return;
+		const whole = Math.floor(regenAccRef.current);
+		regenAccRef.current -= whole;
+		const next = Math.min(maxHp, playerHpRef.current + whole);
+		if (next > playerHpRef.current) {
+			playerHpRef.current = next;
+			setPlayerHp(next);
 		}
 	});
 
@@ -282,15 +272,6 @@ export function useCombatTick({
 					lastLeechEventRef.current = now;
 				}
 			}
-		}
-
-		// Barrier ticks every frame: purely the refill countdown after a
-		// break (10s → instant refill). No passive regen between hits. See
-		// ADR 0005.
-		const nextBarrier = tickBarrier(barrierRef.current, dt);
-		if (nextBarrier !== barrierRef.current) {
-			barrierRef.current = nextBarrier;
-			setBarrier(nextBarrier);
 		}
 
 		// Same mechanic on the enemy side when the monster has a barrier pool
@@ -449,14 +430,7 @@ export function useCombatTick({
 					exclusive: true,
 				});
 			} else if (attack.amount > 0) {
-				// Apply to barrier first, then life.
-				const { state: nextBarrier, lifeOverflow } = damageBarrier(
-					barrierRef.current,
-					attack.amount,
-				);
-				barrierRef.current = nextBarrier;
-				setBarrier(nextBarrier);
-
+				const { lifeOverflow } = barrierApi.applyDamage(attack.amount);
 				const result = applyDamageToBarrierThenLife(
 					lifeOverflow,
 					0,
@@ -552,26 +526,21 @@ export function useCombatTick({
 		}
 	}, [potions, maxHp, characterId, consumePotion, withSession]);
 
-	// Overrides let callers pass fresh maxHp/maxBarrier — useful when the
-	// post-level-up reactive query hasn't yet rendered into this hook's closure.
+	// `overrideMaxHp` wins the level-up reactive-query race. Barrier is the
+	// caller's job (barrierApi.restoreToFull).
 	const restoreToFull = useCallback(
-		(overrideMaxHp?: number, overrideMaxBarrier?: number) => {
+		(overrideMaxHp?: number) => {
 			const hp = overrideMaxHp ?? maxHp;
-			const bar = overrideMaxBarrier ?? stats.maxBarrier;
 			playerHpRef.current = hp;
 			setPlayerHp(hp);
 			lastSyncedHpRef.current = hp;
-			const full = makeBarrierState(bar);
-			barrierRef.current = full;
-			setBarrier(full);
-			lastSyncedBarrierRef.current = bar;
+			lastSyncedBarrierRef.current = barrierRef.current.current;
 		},
-		[maxHp, stats.maxBarrier],
+		[maxHp, barrierRef],
 	);
 
 	return {
 		playerHp,
-		barrier,
 		usePotion,
 		restoreToFull,
 	};

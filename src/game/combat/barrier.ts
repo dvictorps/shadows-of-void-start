@@ -1,7 +1,4 @@
-import {
-	BARRIER_DAMAGE_MULTIPLIER,
-	BARRIER_REFILL_DELAY_SECONDS,
-} from "./constants";
+import { BARRIER_REFILL_DELAY_SECONDS } from "./constants";
 
 export interface BarrierState {
 	current: number;
@@ -40,18 +37,19 @@ export function rescaleBarrier(
 	newMax: number,
 ): BarrierState {
 	if (newMax <= 0) {
+		if (state.current === 0 && state.max === 0) return state;
 		return { current: 0, max: 0, refillRemaining: state.refillRemaining };
 	}
 	const seedAtFull = state.current === 0 && state.refillRemaining === 0;
 	const current = seedAtFull ? newMax : Math.min(state.current, newMax);
+	if (current === state.current && newMax === state.max) return state;
 	return { current, max: newMax, refillRemaining: state.refillRemaining };
 }
 
 /**
- * Apply incoming damage to the barrier pool with the +50% multiplier:
- * every 1 raw damage drains 1.5 barrier. When the pool empties, the refill
- * timer starts; subsequent hits during the timer bypass barrier entirely
- * (current === 0 → all damage carries to life). See ADR 0005.
+ * Apply incoming damage to the barrier pool 1:1. When the pool empties, the
+ * refill timer starts; subsequent hits during the timer bypass barrier
+ * entirely (current === 0 → all damage carries to life). See ADR 0005.
  */
 export function damageBarrier(
 	state: BarrierState,
@@ -59,13 +57,10 @@ export function damageBarrier(
 ): { state: BarrierState; lifeOverflow: number } {
 	if (rawDamage <= 0) return { state, lifeOverflow: 0 };
 	if (state.current <= 0) return { state, lifeOverflow: rawDamage };
-	const effective = rawDamage * BARRIER_DAMAGE_MULTIPLIER;
-	const absorbed = Math.min(state.current, effective);
+	const absorbed = Math.min(state.current, rawDamage);
 	const newCurrent = state.current - absorbed;
 	const justEmptied = newCurrent === 0;
-	// lifeOverflow = the raw-damage equivalent of the un-absorbed portion.
-	// `absorbed/effective` is the fraction of raw damage the barrier ate.
-	const lifeOverflow = rawDamage * (1 - absorbed / effective);
+	const lifeOverflow = rawDamage - absorbed;
 	return {
 		state: {
 			current: newCurrent,

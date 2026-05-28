@@ -6,11 +6,9 @@ import type { GeneratedItem } from "./types";
 // through the random generator. IDs are namespaced with the "starter:" prefix
 // so equipped-item references can distinguish them from rolled items later.
 
-// Starter weapons sit just below their T1 dropped equivalents — sword has a
-// full point cut (3-7 → 2-6), dagger and wand keep the same min and lose 1
-// off the top. The bigger upgrade incentive is the T1 implicit (accuracy /
-// crit multi / spell damage), which starters never roll. Early pacing aims
-// for ~5 hits/kill in forest_starter vs ~4 hits/kill once a T1 weapon lands.
+// Starter weapons sit slightly above their T1 dropped equivalents so fresh
+// lvl 1 characters aren't gated by base damage. T1+ implicits (accuracy /
+// crit multi / spell damage) and the first rolled mods remain the upgrade driver.
 
 const rustySword: GeneratedItem = {
 	id: "starter:rusty_sword",
@@ -23,15 +21,15 @@ const rustySword: GeneratedItem = {
 	itemLevel: 1,
 	icon: "/assets/sprites/armas/pesadas/espadaCurta.png",
 	baseStats: {
-		minDamage: 2,
-		maxDamage: 6,
+		minDamage: 4,
+		maxDamage: 9,
 		attackSpeed: 1.5,
 		criticalChance: 5,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 2, max: 6 },
+		physicalDamage: { min: 4, max: 9 },
 		elementalDamage: [],
 		attackSpeed: 1.5,
 		criticalChance: 5,
@@ -51,15 +49,15 @@ const rustyDagger: GeneratedItem = {
 	// at the moment (gap also affects all dropped dagger tiers). Falls back to
 	// the emoji override. Add a sprite + populate this field when art lands.
 	baseStats: {
-		minDamage: 3,
-		maxDamage: 5,
+		minDamage: 5,
+		maxDamage: 8,
 		attackSpeed: 1.7,
 		criticalChance: 6.5,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 3, max: 5 },
+		physicalDamage: { min: 5, max: 8 },
 		elementalDamage: [],
 		attackSpeed: 1.7,
 		criticalChance: 6.5,
@@ -77,15 +75,15 @@ const crackedWand: GeneratedItem = {
 	itemLevel: 1,
 	icon: "/assets/sprites/armas/caster/varinha.png",
 	baseStats: {
-		minDamage: 2,
-		maxDamage: 5,
+		minDamage: 4,
+		maxDamage: 8,
 		attackSpeed: 1.4,
 		criticalChance: 7,
 	},
 	implicits: [],
 	explicits: [],
 	computedStats: {
-		physicalDamage: { min: 2, max: 5 },
+		physicalDamage: { min: 4, max: 8 },
 		elementalDamage: [],
 		attackSpeed: 1.4,
 		criticalChance: 7,

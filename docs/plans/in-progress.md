@@ -18,7 +18,7 @@ Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #4
 
 Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastructure debt is empty. What remains splits into:
 - **Deferred, scoped**: camp cinematic biome ambience.
-- **Pure refactor (queued)**: extract `useBarrier(maxBarrier)` as a shared hook owning the cross-view `BarrierState`. Today `useCombatTick` and `world.tsx` each carry their own ref (`barrierRef` + `outOfCombatBarrierRef`) synced via view-change useEffects + a manual `barrierSyncMutation` on combat entry. A quick fix on `feat/caster-block-barrier-rogue` made the out-of-combat init read `combat.barrier.refillRemaining` to preserve the refill cycle across the retreat transition — but the dual-ref smell remains. Goal: single source of truth that both layers consume; remove the sync mutation. ~100-150 line refactor.
+- **Pre-public-beta hardening (queued)**: chunk the `recomputeSpellWeaponStats` migration in `convex/items.ts`. Today it `.collect()`s the full items table inside one mutation, which exceeds Convex's ~1s / 8MB per-mutation budget once the table grows past friends-beta scale. Recommended shape: an action that drives a paginated internal mutation (`paginate({ numItems: 500 })`) and loops until the cursor returns null. Re-run via `npx convex run items:recomputeSpellWeaponStats`.
 - **Low-priority polish**: native PT review of `lexicon/pt.ts`, `TemplateBaseId` codegen, hash extraction to `src/lib/rng.ts`, rare-name bestiary, admin-dashboard cold-cache latency.
 - **Next big feature**: passive tree (per CONTEXT.md → Classes ordering: MVP combat ✅ → passive tree → active skills). Design work needed first — no stub plan yet.
 
@@ -27,6 +27,8 @@ Pick by appetite: feature work = passive tree design pass; cleanup pass = lexico
 ### world.tsx size — closed decision
 
 PR #52 landed world.tsx at 740 lines (down from 774, the original monolith was 900). Further extraction (e.g. `useExitFlow`, `useTravelHandlers`) was considered and rejected — the file no longer mixes concerns (composition / handlers / derivations / JSX are contiguous sections), so further splitting would hide flow that today reads linearly. The trigger for revisiting is concerns getting *re-mixed* (business logic inside JSX, mutation hooks called outside the composition block, fetch in a handler) — NOT raw line growth. The styleguide rule in `.gemini/styleguide.md` was updated to reflect this distinction. Orchestrator routes at this app's scale have a natural floor around 700-750 lines.
+
+**Update (2026-05-28)**: world.tsx is now 886 lines after the `useBarrier` hook extraction landed alongside the post-PR #64 QoL/balance bundle. The hook owns the BarrierState continuously across all views (map / combat / city / travel) — the prior dual-ref scaffolding (out-of-combat barrier ref + ticker + sync mutation) is gone. world.tsx is still above the 740 line floor PR #52 closed on, but the residual ~140-line gap is in flat composition / handlers / JSX (no concerns re-mixed). The closed decision still holds: the trigger for revisiting is *concerns re-mixing inside JSX/handlers*, not raw line growth.
 
 ---
 

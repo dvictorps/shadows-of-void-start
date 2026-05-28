@@ -57,6 +57,7 @@ vi.mock("#/game/combat/damage", async () => {
 
 // Imported AFTER mocks so the hook closure picks up the mocked deps.
 const { useCombatTick } = await import("./useCombatTick");
+const { useBarrier } = await import("./useBarrier");
 
 // ── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -217,22 +218,29 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 		const pushEvent = vi.fn();
 
 		renderHook(
-			() =>
-				useCombatTick({
+			() => {
+				const stats = makeStats({ thorns: THORNS });
+				const barrierApi = useBarrier({
+					maxBarrier: stats.maxBarrier,
+					active: true,
+				});
+				return useCombatTick({
 					characterId: "test-char" as unknown as Parameters<
 						typeof useCombatTick
 					>[0]["characterId"],
 					active: true,
 					isEngaged: true,
 					enemy: latestEnemy,
-					stats: makeStats({ thorns: THORNS }),
+					stats,
 					initialHp: 100,
 					potions: 0,
+					barrierApi,
 					onPlayerDeath,
 					resolveKill,
 					pushEvent,
 					updateEnemy,
-				}),
+				});
+			},
 			{
 				wrapper: ({ children }) =>
 					createElement(SessionTokenProvider, null, children),
@@ -259,5 +267,102 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 		expect(updateEnemy.mock.calls[1][0].currentHp).toBe(
 			INITIAL_HP - PLAYER_DAMAGE - THORNS,
 		);
+	});
+});
+
+function renderRegenHook({
+	lifeRegen,
+	maxLife,
+	initialHp,
+}: {
+	lifeRegen: number;
+	maxLife: number;
+	initialHp: number;
+}) {
+	return renderHook(
+		() => {
+			const stats = makeStats({ lifeRegen, maxLife });
+			const barrierApi = useBarrier({
+				maxBarrier: stats.maxBarrier,
+				active: true,
+			});
+			return useCombatTick({
+				characterId: "test-char" as unknown as Parameters<
+					typeof useCombatTick
+				>[0]["characterId"],
+				active: true,
+				isEngaged: false,
+				enemy: null,
+				stats,
+				initialHp,
+				potions: 0,
+				barrierApi,
+				onPlayerDeath: vi.fn(),
+				resolveKill: vi.fn(),
+				pushEvent: vi.fn(),
+				updateEnemy: vi.fn(),
+			});
+		},
+		{
+			wrapper: ({ children }) =>
+				createElement(SessionTokenProvider, null, children),
+		},
+	);
+}
+
+describe("useCombatTick — life regen modifier", () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		rollPlayerSwingMock.mockReset();
+		rollEnemyAttackMock.mockReset();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("applies stats.lifeRegen as continuous HP recovery (out-of-engagement)", () => {
+		const { result } = renderRegenHook({
+			lifeRegen: 10,
+			maxLife: 100,
+			initialHp: 50,
+		});
+		expect(result.current.playerHp).toBe(50);
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		// 10 HP/s × 1s = +10 HP.
+		expect(result.current.playerHp).toBe(60);
+	});
+
+	it("caps at maxLife and resets the fractional accumulator on overfill", () => {
+		const { result } = renderRegenHook({
+			lifeRegen: 5,
+			maxLife: 100,
+			initialHp: 98,
+		});
+		act(() => {
+			vi.advanceTimersByTime(2000);
+		});
+		// 5 HP/s × 2s = +10 raw, but capped at maxLife 100.
+		expect(result.current.playerHp).toBe(100);
+	});
+
+	it("does not regen at fractional rates below 1 HP/s until the accumulator carries", () => {
+		const { result } = renderRegenHook({
+			lifeRegen: 0.5,
+			maxLife: 100,
+			initialHp: 50,
+		});
+		act(() => {
+			vi.advanceTimersByTime(1000);
+		});
+		// 0.5 HP/s × 1s = 0.5 accumulated, still <1 → no heal yet.
+		expect(result.current.playerHp).toBe(50);
+		act(() => {
+			vi.advanceTimersByTime(1100);
+		});
+		// After 2.1s total, accumulator ≥ 1 → +1 HP.
+		expect(result.current.playerHp).toBe(51);
 	});
 });

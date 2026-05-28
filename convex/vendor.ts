@@ -10,6 +10,7 @@ export const vendorBuy = mutation({
 		characterId: v.id("characters"),
 		sessionToken: v.string(),
 		productId: v.string(),
+		quantity: v.number(),
 	},
 	handler: async (ctx, args) => {
 		const authUser = await authComponent.getAuthUser(ctx)
@@ -17,33 +18,38 @@ export const vendorBuy = mutation({
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 		assertInCity(char)
 
+		if (!Number.isInteger(args.quantity) || args.quantity <= 0)
+			throw new ConvexError("Quantity must be a positive integer")
+
 		const product = findVendorProduct(args.productId)
 		if (!product) throw new ConvexError(`Unknown product: ${args.productId}`)
 
+		const totalCost = product.priceRubys * args.quantity
 		const rubys = char.rubys ?? 0
-		if (rubys < product.priceRubys)
-			throw new ConvexError("Not enough rubys")
+		if (rubys < totalCost) throw new ConvexError("Not enough rubys")
 
-		const newRubys = rubys - product.priceRubys
+		const newRubys = rubys - totalCost
 
 		if (product.counterField === "potions") {
 			const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 			const currentCount = cs.potions
-			if (product.cap !== undefined && currentCount >= product.cap)
+			const newCount = currentCount + args.quantity
+			if (product.cap !== undefined && newCount > product.cap)
 				throw new ConvexError(`${product.id} cap reached`)
-			await ctx.db.patch(cs._id, { potions: currentCount + 1 })
+			await ctx.db.patch(cs._id, { potions: newCount })
 			await ctx.db.patch(args.characterId, { rubys: newRubys })
-			return { rubys: newRubys, [product.counterField]: currentCount + 1 }
+			return { rubys: newRubys, [product.counterField]: newCount }
 		}
 
 		const currentCount = char[product.counterField] ?? 0
-		if (product.cap !== undefined && currentCount >= product.cap)
+		const newCount = currentCount + args.quantity
+		if (product.cap !== undefined && newCount > product.cap)
 			throw new ConvexError(`${product.id} cap reached`)
 		await ctx.db.patch(args.characterId, {
 			rubys: newRubys,
-			[product.counterField]: currentCount + 1,
+			[product.counterField]: newCount,
 		})
-		return { rubys: newRubys, [product.counterField]: currentCount + 1 }
+		return { rubys: newRubys, [product.counterField]: newCount }
 	},
 })
 

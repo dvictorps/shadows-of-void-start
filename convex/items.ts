@@ -24,7 +24,8 @@ import {
 	computeBagKeepCap,
 } from "../src/game/combat/constants"
 import { INVENTORY_MAX_SLOTS } from "../src/game/inventory/constants"
-import { isBow, isQuiver, isWeapon, planEquip } from "../src/game/items/equipment"
+import { isBow, isQuiver, isWeapon, planEquip, weaponArchetype } from "../src/game/items/equipment"
+import { computeWeaponStats } from "../src/game/items/generator"
 import { computeCharacterStats } from "../src/game/stats/compute"
 import { type EquippedItem, type EquippedSlot, narrowEquippedSlot } from "../src/game/stats/types"
 import {
@@ -35,7 +36,7 @@ import {
 	loadOrCreateCombatState,
 	loadOwnedCharacterWithSession,
 } from "./_shared/character"
-import { mutation, query } from "./_generated/server"
+import { internalMutation, mutation, query } from "./_generated/server"
 import { authComponent } from "./auth"
 
 // Server-authoritative phase derivation — bag mutations consult
@@ -551,5 +552,36 @@ export const stash = query({
 			if (sa !== sb) return sa - sb
 			return b.droppedAt - a.droppedAt
 		})
+	},
+})
+
+// One-shot backfill: rebuilds computedStats for wands/staves persisted
+// before spell-flat explicits routed into elementalDamage. Idempotent —
+// skips items whose stored computedStats already matches the rebuild.
+// Trigger via: npx convex run items:recomputeSpellWeaponStats
+export const recomputeSpellWeaponStats = internalMutation({
+	args: {},
+	handler: async (ctx) => {
+		const items = await ctx.db.query("items").collect()
+		let updated = 0
+		let skipped = 0
+		for (const item of items) {
+			const data = item.data
+			if (weaponArchetype(data) !== "caster") {
+				skipped++
+				continue
+			}
+			const next = computeWeaponStats(data.baseStats ?? {}, data.explicits ?? [])
+			if (
+				data.computedStats &&
+				JSON.stringify(data.computedStats) === JSON.stringify(next)
+			) {
+				skipped++
+				continue
+			}
+			await ctx.db.patch(item._id, { data: { ...data, computedStats: next } })
+			updated++
+		}
+		return { updated, skipped }
 	},
 })

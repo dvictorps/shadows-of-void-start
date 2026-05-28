@@ -11,8 +11,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 1,
 		requirements: { level: 1, int: 10 },
 		baseStats: {
-			minDamage: 2,
-			maxDamage: 6,
+			minDamage: 3,
+			maxDamage: 9,
 			attackSpeed: 1.4,
 			criticalChance: 7,
 		},
@@ -35,8 +35,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 4,
 		requirements: { level: 4, int: 14 },
 		baseStats: {
-			minDamage: 4,
-			maxDamage: 8,
+			minDamage: 6,
+			maxDamage: 11,
 			attackSpeed: 1.4,
 			criticalChance: 7,
 		},
@@ -59,8 +59,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 7,
 		requirements: { level: 7, int: 18 },
 		baseStats: {
-			minDamage: 5,
-			maxDamage: 11,
+			minDamage: 6,
+			maxDamage: 14,
 			attackSpeed: 1.4,
 			criticalChance: 7,
 		},
@@ -83,8 +83,8 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 10,
 		requirements: { level: 10, int: 22 },
 		baseStats: {
-			minDamage: 8,
-			maxDamage: 16,
+			minDamage: 9,
+			maxDamage: 19,
 			attackSpeed: 1.4,
 			criticalChance: 7,
 		},
@@ -108,7 +108,7 @@ export const WAND_TEMPLATES: EquipmentTemplate[] = [
 		requirements: { level: 14, int: 28 },
 		baseStats: {
 			minDamage: 12,
-			maxDamage: 25,
+			maxDamage: 26,
 			attackSpeed: 1.4,
 			criticalChance: 7,
 		},

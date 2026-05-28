@@ -1,6 +1,6 @@
 import type { EquipmentTemplate } from "./types";
 
-// Greatswords (2H, str) — AtkSpd: 1.10, Crit: 5.0, No implicit
+// Greatswords (2H, str) — AtkSpd: 1.10, Crit: 5.0, No implicit. Base damage ~2.3× sword (CONTEXT.md → Weapons).
 export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "greatsword_t1",
@@ -11,8 +11,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 1,
 		requirements: { level: 1, str: 12 },
 		baseStats: {
-			minDamage: 7,
-			maxDamage: 13,
+			minDamage: 12,
+			maxDamage: 24,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -28,8 +28,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 4,
 		requirements: { level: 4, str: 18 },
 		baseStats: {
-			minDamage: 9,
-			maxDamage: 19,
+			minDamage: 15,
+			maxDamage: 32,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -45,8 +45,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 7,
 		requirements: { level: 7, str: 22 },
 		baseStats: {
-			minDamage: 13,
-			maxDamage: 27,
+			minDamage: 21,
+			maxDamage: 41,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -62,8 +62,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 10,
 		requirements: { level: 10, str: 28 },
 		baseStats: {
-			minDamage: 20,
-			maxDamage: 40,
+			minDamage: 28,
+			maxDamage: 57,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -79,8 +79,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 14,
 		requirements: { level: 14, str: 34 },
 		baseStats: {
-			minDamage: 30,
-			maxDamage: 62,
+			minDamage: 37,
+			maxDamage: 77,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -96,8 +96,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 24,
 		requirements: { level: 24, str: 58 },
 		baseStats: {
-			minDamage: 60,
-			maxDamage: 132,
+			minDamage: 72,
+			maxDamage: 158,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -113,8 +113,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 28,
 		requirements: { level: 28, str: 66 },
 		baseStats: {
-			minDamage: 68,
-			maxDamage: 148,
+			minDamage: 82,
+			maxDamage: 178,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -130,8 +130,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 32,
 		requirements: { level: 32, str: 74 },
 		baseStats: {
-			minDamage: 76,
-			maxDamage: 166,
+			minDamage: 91,
+			maxDamage: 199,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -147,8 +147,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 36,
 		requirements: { level: 36, str: 82 },
 		baseStats: {
-			minDamage: 84,
-			maxDamage: 184,
+			minDamage: 101,
+			maxDamage: 221,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -164,8 +164,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 40,
 		requirements: { level: 40, str: 90 },
 		baseStats: {
-			minDamage: 93,
-			maxDamage: 200,
+			minDamage: 112,
+			maxDamage: 240,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -181,8 +181,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 44,
 		requirements: { level: 44, str: 98 },
 		baseStats: {
-			minDamage: 102,
-			maxDamage: 218,
+			minDamage: 122,
+			maxDamage: 262,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -198,8 +198,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 48,
 		requirements: { level: 48, str: 106 },
 		baseStats: {
-			minDamage: 110,
-			maxDamage: 238,
+			minDamage: 132,
+			maxDamage: 286,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -215,8 +215,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 52,
 		requirements: { level: 52, str: 114 },
 		baseStats: {
-			minDamage: 120,
-			maxDamage: 258,
+			minDamage: 144,
+			maxDamage: 310,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -232,8 +232,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 56,
 		requirements: { level: 56, str: 122 },
 		baseStats: {
-			minDamage: 130,
-			maxDamage: 278,
+			minDamage: 156,
+			maxDamage: 334,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -249,8 +249,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 60,
 		requirements: { level: 60, str: 130 },
 		baseStats: {
-			minDamage: 140,
-			maxDamage: 298,
+			minDamage: 168,
+			maxDamage: 358,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -266,8 +266,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 64,
 		requirements: { level: 64, str: 138 },
 		baseStats: {
-			minDamage: 148,
-			maxDamage: 315,
+			minDamage: 178,
+			maxDamage: 378,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -283,8 +283,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 68,
 		requirements: { level: 68, str: 146 },
 		baseStats: {
-			minDamage: 156,
-			maxDamage: 330,
+			minDamage: 187,
+			maxDamage: 396,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -300,8 +300,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 72,
 		requirements: { level: 72, str: 154 },
 		baseStats: {
-			minDamage: 165,
-			maxDamage: 348,
+			minDamage: 198,
+			maxDamage: 418,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -317,8 +317,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 76,
 		requirements: { level: 76, str: 162 },
 		baseStats: {
-			minDamage: 174,
-			maxDamage: 365,
+			minDamage: 209,
+			maxDamage: 438,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -334,8 +334,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 80,
 		requirements: { level: 80, str: 170 },
 		baseStats: {
-			minDamage: 183,
-			maxDamage: 382,
+			minDamage: 220,
+			maxDamage: 458,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},
@@ -351,8 +351,8 @@ export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 		dropLevel: 83,
 		requirements: { level: 83, str: 176 },
 		baseStats: {
-			minDamage: 190,
-			maxDamage: 395,
+			minDamage: 228,
+			maxDamage: 474,
 			attackSpeed: 1.1,
 			criticalChance: 5,
 		},

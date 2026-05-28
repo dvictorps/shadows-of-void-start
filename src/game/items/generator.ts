@@ -579,7 +579,7 @@ function rollExplicits(
 
 // ── Compute weapon stats (base + local mods via statEffect) ──
 
-function computeWeaponStats(
+export function computeWeaponStats(
 	baseStats: Partial<Record<BaseStatKey, number>>,
 	explicits: RolledMod[],
 ): ComputedWeaponStats {

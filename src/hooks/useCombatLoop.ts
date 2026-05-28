@@ -36,6 +36,7 @@ import { pickRandom } from "#/lib/rng";
 import { playKillSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import type { BarrierApi } from "./useBarrier";
 import { useCombatTick } from "./useCombatTick";
 import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
 import { useDelay } from "./useDelay";
@@ -62,7 +63,7 @@ type Params = {
 	characterLevel: number;
 	stats: ComputedCharacterStats;
 	initialHp: number;
-	initialBarrier?: number;
+	barrierApi: BarrierApi;
 	// Live potion count from the character query. The hook does NOT keep a
 	// local copy — drink + drop are both server-driven, and tracking the
 	// number in two places lets concurrent mutations race ("drink ghost"
@@ -98,7 +99,7 @@ export function useCombatLoop({
 	characterLevel,
 	stats,
 	initialHp,
-	initialBarrier,
+	barrierApi,
 	potions,
 	incense,
 	monsterPool,
@@ -219,9 +220,7 @@ export function useCombatLoop({
 	const statsRef = useRef(stats);
 	statsRef.current = stats;
 
-	const restoreToFullRef = useRef<
-		(overrideMaxHp?: number, overrideMaxBarrier?: number) => void
-	>(() => {});
+	const restoreToFullRef = useRef<(overrideMaxHp?: number) => void>(() => {});
 
 	const resolveKill = useCallback(
 		(killed: Enemy) => {
@@ -253,10 +252,8 @@ export function useCombatLoop({
 					if (result.levelsGained > 0) {
 						// Read from statsRef, not the closed-over `stats` — the
 						// closure was captured before the level-up bumped maxLife.
-						restoreToFullRef.current(
-							statsRef.current.maxLife,
-							statsRef.current.maxBarrier,
-						);
+						restoreToFullRef.current(statsRef.current.maxLife);
+						barrierApi.restoreToFull(statsRef.current.maxBarrier);
 					}
 					if (result.potionDropped) {
 						setLastKill({ xp: xpGained, potion: true });
@@ -270,18 +267,19 @@ export function useCombatLoop({
 			recordKill,
 			schedule.resetForMiniboss,
 			withSession,
+			barrierApi,
 		],
 	);
 
-	const { playerHp, barrier, usePotion, restoreToFull } = useCombatTick({
+	const { playerHp, usePotion, restoreToFull } = useCombatTick({
 		characterId,
 		active,
 		isEngaged: state === "engaged",
 		enemy,
 		stats,
 		initialHp,
-		initialBarrier,
 		potions,
+		barrierApi,
 		onPlayerDeath,
 		resolveKill,
 		pushEvent,
@@ -583,11 +581,6 @@ export function useCombatLoop({
 		bossIntroStage,
 		enemy,
 		playerHp,
-		barrier: {
-			current: barrier.current,
-			max: barrier.max,
-			refillRemaining: barrier.refillRemaining,
-		},
 		potions,
 		incense,
 		campSource: schedule.campSource,
