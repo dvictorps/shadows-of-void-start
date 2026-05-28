@@ -269,13 +269,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			onEnterNewArea: () => setDeathLog(null),
 		});
 
-	// Inventory: skip during combat — player can't interact with it mid-fight,
-	// and each recordKill insert would otherwise cascade a full re-read of all
-	// ~60 inventory docs. useCachedQuery provides last-known data for any UI
-	// that renders the count badge outside combat.
+	// Inventory: subscribe out-of-combat OR whenever the modal is open. The
+	// modal is the only path that mutates inventory (equip/unequip/discard);
+	// without a live subscription during in-combat modal sessions, optimistic
+	// updates bail (localStore.getQuery returns undefined) and the UI shows
+	// stale items until combat ends. Cost of the in-combat subscription is
+	// bounded by how long the user keeps the modal open.
 	const liveInventory = useQuery(
 		api.items.inventory,
-		view !== "combat" ? { characterId: character._id } : "skip",
+		view !== "combat" || inventoryModal.isOpen
+			? { characterId: character._id }
+			: "skip",
 	);
 	const inventoryItems = useCachedQuery(
 		`inventory:${character._id}`,
