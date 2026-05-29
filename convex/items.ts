@@ -36,7 +36,13 @@ import {
 	loadOrCreateCombatState,
 	loadOwnedCharacterWithSession,
 } from "./_shared/character"
-import { internalMutation, mutation, query } from "./_generated/server"
+import { internal } from "./_generated/api"
+import {
+	internalAction,
+	internalMutation,
+	mutation,
+	query,
+} from "./_generated/server"
 import { authComponent } from "./auth"
 
 // Server-authoritative phase derivation — bag mutations consult
@@ -596,14 +602,31 @@ export const stash = query({
 // One-shot backfill: rebuilds computedStats for wands/staves persisted
 // before spell-flat explicits routed into elementalDamage. Idempotent —
 // skips items whose stored computedStats already matches the rebuild.
+//
+// Chunked: a single mutation that `.collect()`s the whole items table blows
+// past Convex's ~1s / 8MB per-mutation budget once the table grows past
+// friends-beta scale. The page mutation below processes one bounded page; the
+// action drives it cursor-by-cursor until the table is exhausted, so no single
+// transaction reads or patches more than RECOMPUTE_PAGE_SIZE rows.
 // Trigger via: npx convex run items:recomputeSpellWeaponStats
-export const recomputeSpellWeaponStats = internalMutation({
-	args: {},
-	handler: async (ctx) => {
-		const items = await ctx.db.query("items").collect()
+const RECOMPUTE_PAGE_SIZE = 500
+
+type RecomputePageResult = {
+	updated: number
+	skipped: number
+	isDone: boolean
+	cursor: string | null
+}
+
+export const recomputeSpellWeaponStatsPage = internalMutation({
+	args: { cursor: v.union(v.string(), v.null()) },
+	handler: async (ctx, args): Promise<RecomputePageResult> => {
+		const result = await ctx.db
+			.query("items")
+			.paginate({ numItems: RECOMPUTE_PAGE_SIZE, cursor: args.cursor })
 		let updated = 0
 		let skipped = 0
-		for (const item of items) {
+		for (const item of result.page) {
 			const data = item.data
 			if (weaponArchetype(data) !== "caster") {
 				skipped++
@@ -620,6 +643,28 @@ export const recomputeSpellWeaponStats = internalMutation({
 			await ctx.db.patch(item._id, { data: { ...data, computedStats: next } })
 			updated++
 		}
-		return { updated, skipped }
+		return { updated, skipped, isDone: result.isDone, cursor: result.continueCursor }
+	},
+})
+
+export const recomputeSpellWeaponStats = internalAction({
+	args: {},
+	handler: async (ctx) => {
+		let cursor: string | null = null
+		let updated = 0
+		let skipped = 0
+		let pages = 0
+		for (;;) {
+			const page: RecomputePageResult = await ctx.runMutation(
+				internal.items.recomputeSpellWeaponStatsPage,
+				{ cursor },
+			)
+			updated += page.updated
+			skipped += page.skipped
+			pages++
+			if (page.isDone) break
+			cursor = page.cursor
+		}
+		return { updated, skipped, pages }
 	},
 })
