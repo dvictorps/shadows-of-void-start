@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyKill, tallyBossKill } from "./kill";
+import { classifyKill, resolveZoneProgress, tallyBossKill } from "./kill";
 
 describe("classifyKill", () => {
 	it("normal mob in a combat zone: no camp, standard drops", () => {
@@ -65,6 +65,70 @@ describe("classifyKill", () => {
 
 	it("rare in a city node is a miniboss, not a gauntlet rare", () => {
 		expect(classifyKill("rare", "city").isMinibossKill).toBe(true);
+	});
+});
+
+describe("resolveZoneProgress", () => {
+	it("a normal kill increments the zone counter and leaves camp untouched", () => {
+		expect(
+			resolveZoneProgress({
+				grantsCampTier: false,
+				zoneKind: "combat",
+				prevZoneKills: 3,
+				prevInCamp: false,
+			}),
+		).toEqual({
+			currentZoneKills: 4,
+			inCamp: undefined,
+			resetCampSchedule: false,
+		});
+	});
+
+	it("a non-granting kill while in camp clears the lingering camp flag", () => {
+		// Camp was set; the next regular kill (player chose to keep fighting)
+		// flips inCamp back to false.
+		expect(
+			resolveZoneProgress({
+				grantsCampTier: false,
+				zoneKind: "combat",
+				prevZoneKills: 0,
+				prevInCamp: true,
+			}),
+		).toEqual({
+			currentZoneKills: 1,
+			inCamp: false,
+			resetCampSchedule: false,
+		});
+	});
+
+	it("a miniboss kill in a combat zone grants camp and arms a fresh schedule", () => {
+		expect(
+			resolveZoneProgress({
+				grantsCampTier: true,
+				zoneKind: "combat",
+				prevZoneKills: 9,
+				prevInCamp: false,
+			}),
+		).toEqual({
+			currentZoneKills: 0,
+			inCamp: true,
+			resetCampSchedule: true,
+		});
+	});
+
+	it("a boss kill grants camp but does NOT arm a schedule (boss nodes have no camps)", () => {
+		expect(
+			resolveZoneProgress({
+				grantsCampTier: true,
+				zoneKind: "boss",
+				prevZoneKills: 2,
+				prevInCamp: false,
+			}),
+		).toEqual({
+			currentZoneKills: 0,
+			inCamp: true,
+			resetCampSchedule: false,
+		});
 	});
 });
 
