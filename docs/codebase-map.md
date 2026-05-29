@@ -42,7 +42,7 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 |---|---|---|
 | `bosses/` | Act-boss configs (handcrafted, `rarity: "unique"`) — parallel registry to `monsters/`. See ADR 0008 for the rationale. | `data.ts` (BOSSES, findBoss), `types.ts` (BossConfig, BossTemplate, BossCinematicConfig), `gralfor.ts` (act-1 boss config) |
 | `classes/` | Character class definitions (Warrior/Rogue/Mage) | `data.ts` (CLASS_DEFINITIONS), `types.ts`, `i18n.ts` (`getClassDisplayName`) |
-| `combat/` | Damage/defense math, constants, per-weapon FX map, intro-stage types | `damage.ts`, `barrier.ts`, `leech.ts`, `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
+| `combat/` | Damage/defense math, constants, per-weapon FX map, intro-stage types, kill-resolution decisions | `damage.ts`, `barrier.ts`, `leech.ts`, `kill.ts` (`classifyKill` / `tallyBossKill` — pure decisions extracted from `recordKill`), `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
 | `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `pickGendered`) |
 | `inventory/` | Inventory + stash constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, STASH_MAX_SLOTS, slot-finding helpers) |
 | `items/` | Item generator, modifier data, equip helpers, lexicon | See below — the biggest subdir |
