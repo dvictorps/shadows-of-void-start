@@ -40,9 +40,9 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 
 | Directory | What lives there | Key files |
 |---|---|---|
-| `bosses/` | Act-boss configs (handcrafted, `rarity: "unique"`) — parallel registry to `monsters/`. See ADR 0004 for the rationale. | `data.ts` (BOSSES, findBoss), `types.ts` (BossConfig, BossTemplate, BossCinematicConfig), `gralfor.ts` (act-1 boss config) |
+| `bosses/` | Act-boss configs (handcrafted, `rarity: "unique"`) — parallel registry to `monsters/`. See ADR 0008 for the rationale. | `data.ts` (BOSSES, findBoss), `types.ts` (BossConfig, BossTemplate, BossCinematicConfig), `gralfor.ts` (act-1 boss config) |
 | `classes/` | Character class definitions (Warrior/Rogue/Mage) | `data.ts` (CLASS_DEFINITIONS), `types.ts`, `i18n.ts` (`getClassDisplayName`) |
-| `combat/` | Damage/defense math, constants, per-weapon FX map, intro-stage types | `damage.ts`, `barrier.ts`, `leech.ts`, `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
+| `combat/` | Damage/defense math, constants, per-weapon FX map, intro-stage types, kill-resolution decisions | `damage.ts`, `barrier.ts`, `leech.ts`, `kill.ts` (`classifyKill` / `tallyBossKill` — pure decisions extracted from `recordKill`), `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
 | `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `pickGendered`) |
 | `inventory/` | Inventory + stash constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, STASH_MAX_SLOTS, slot-finding helpers) |
 | `items/` | Item generator, modifier data, equip helpers, lexicon | See below — the biggest subdir |
@@ -58,7 +58,7 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 ```
 items/
 ├── generator.ts             # generateItem({ rarity, ilvl, type, weaponType }) — public API
-├── generator.test.ts        # 101 tests covering rarity/tier/mod rules
+├── generator.test.ts        # 136 tests covering rarity/tier/mod rules
 ├── equipment.ts             # planEquip, canSwapHands, validSlotsForItem, isTwoHanded, weaponArchetype — shared client+server
 ├── equipment.test.ts        # planEquip + canSwapHands rules (2H displacement, archetype, hand-swap eligibility)
 ├── starter-gear.ts          # Hand-crafted starter weapons (rusty_sword, rusty_dagger, cracked_wand)
@@ -126,7 +126,7 @@ Single source of truth for the "if all hits land" damage-per-second number rende
 
 | File | Concern |
 |---|---|
-| `schema.ts` | Database tables: `characters`, `items`, `userRoles`, `leaderboardSnapshot`. Indexes by `authUserId`, `characterId+locationKind`, `zoneSession`, `stash`, `category+mode`. `characters` carries `activeSessionToken` / `activeSessionAt` — see `_shared/character.ts → loadOwnedCharacterWithSession` |
+| `schema.ts` | Six tables: `userRoles`, `characters`, `items`, `characterProgression` (append-only `unlockedNodes` / `completedZones` / `bossKillCounts`, split off `characters` — see `_shared/character.ts → loadOrCreateProgression`), `combatState` (per-character HP / barrier / xp / potions / zone-session snapshot — see `loadOrCreateCombatState`), `leaderboardSnapshot`. Stash items are NOT a separate table — they live in `items` keyed by the `by_stash` index. Indexes by `authUserId`, `characterId+locationKind`, `zoneSession`, `stash`, `category+mode`. `characters` carries `activeSessionToken` / `activeSessionAt` — see `loadOwnedCharacterWithSession` |
 | `characters.ts` | Character CRUD only — `list`, `create`, `remove`, `byId`, `claimCharacterSession` (stamps the active-session UUID; called by `/character-select` Play and by `/world`'s reconciliation effect). Normalizes legacy docs with defaults on read |
 | `combat.ts` | Combat + travel mutations: `recordKill`, `usePotion`, `useEtherealIncense`, `syncHp`, `respawnDead`, `enterZone`, `enterCity`, `startTravel`, `arriveAtTravel`, `useTeleportStone`, `switchElement`. Every state-mutating mutation accepts a `sessionToken` arg threaded through `loadOwnedCharacterWithSession`. Largest convex file (~800 lines) |
 | `items.ts` | Item lifecycle mutations: `exitZone`, `pickFromBag` / `discardFromBag` / `discardFromInventory`, `equipItem` / `unequipItem`, `reorderInventory`, and the `zoneBag` / `inventory` / `equipped` queries. Mutations carry `sessionToken`; the read-only queries deliberately do not — a stale tab can still observe its character coherently |
@@ -141,6 +141,8 @@ Single source of truth for the "if all hits land" damage-per-second number rende
 | `http.ts` | Auth callback routes |
 
 Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not the `#/` alias — that's a Convex bundler quirk. Don't mix.
+
+**Convention — testing a new server-authoritative mutation.** Mutations can't be unit-tested directly: every one opens with `authComponent.getAuthUser(ctx)`, a better-auth component read that `convex-test`'s `withIdentity()` doesn't satisfy (no harness wired yet — see in-progress.md → agent-ergonomics track). So when you add or change decision logic in a mutation, **extract the deterministic part into a pure `src/game/` function and unit-test that**, leaving the mutation a thin auth/IO/randomness wrapper. `recordKill` → `src/game/combat/kill.ts` (`classifyKill` / `tallyBossKill`) is the reference example.
 
 ---
 
@@ -198,7 +200,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | `index.tsx` | Splash screen ("Shadows of Void" title) |
 | `sign-in.tsx` | better-auth UI |
 | `character-select.tsx` | Roster + create modal + play button + delete confirm |
-| `world.tsx` | **Orchestrator** — wires `useBarrier` + `useCombatLoop` + `useWorldMutations` + `useViewMode` + `WorldModals` together and resolves the priority TextLog. 886 lines (was 929 before `useBarrier` extraction; was 740 after PR #45 + #52 split the original 900-line monolith) |
+| `world.tsx` | **Orchestrator** — wires `useBarrier` + `useCombatLoop` + `useWorldMutations` + `useViewMode` + `WorldModals` together and resolves the priority TextLog. ~937 lines (was 740 after PR #45 + #52 split the original 900-line monolith; grew back with `useBarrier` and post-#64 QoL/balance work — see the in-progress "world.tsx size" note) |
 | `admin.tsx`, `admin/items.tsx` | Admin dashboard (only admins see) |
 | `api/auth/$.ts` | better-auth fallback route |
 
@@ -208,9 +210,9 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 
 | Hook | Purpose |
 |---|---|
-| `useCombatLoop.ts` | State-machine orchestrator (search → engaged → victory). Owns the spawn loop + zone-bag side effects. 570 lines (split shipped in PR #47 into the three hooks below; `useBarrier` extracted after that) |
-| `useCombatTick.ts` | Engaged-state combat tick (50ms): leech heal → life regen → player swing → enemy swing → thorns. Owns player vitals (HP, leech, dead) + the 10s `syncHp` + the potion mutation. Barrier writes route through `useBarrier`'s shared `applyDamage`. 524 lines |
-| `useBarrier.ts` | Player `BarrierState` owner across all views (map / combat / city / travel). 100ms refill ticker, `applyDamage` (wraps `damageBarrier` with the +50% multiplier), `restoreToFull` for city entry + level-up. Single source of truth — replaces the prior dual-ref pattern. 102 lines |
+| `useCombatLoop.ts` | State-machine orchestrator (search → engaged → victory). Owns the spawn loop + zone-bag side effects. ~600 lines (split shipped in PR #47 into the three hooks below; `useBarrier` extracted after that) |
+| `useCombatTick.ts` | Engaged-state combat tick (50ms): leech heal → life regen → player swing → enemy swing → thorns. Owns player vitals (HP, leech, dead) + the 10s `syncHp` + the potion mutation. Barrier writes route through `useBarrier`'s shared `applyDamage`. ~550 lines |
+| `useBarrier.ts` | Player `BarrierState` owner across all views (map / combat / city / travel). 100ms refill ticker, `applyDamage` (wraps `damageBarrier` with the +50% multiplier), `restoreToFull` for city entry + level-up. Single source of truth — replaces the prior dual-ref pattern. ~100 lines |
 | `useEncounterSchedule.ts` | Per-activation encounter pacing — calmaria time bar, camp threshold rolls, ambush packs, gap rolls, next-spawn rarity decision. 218 lines |
 | `useWorldMutations.ts` | Optimistic mutation bundle for the `/world` route (enterZone, exitZone, pickFromBag, equipItem, etc). See [ADR 0001](./adr/0001-optimistic-mutations.md) |
 | `useCompactViewport.ts` | `matchMedia("(max-height: 800px)")` hook — returns `true` on short viewports (1366×768). Used by world layout, EquipmentPanel, StatusCard, StashModal |

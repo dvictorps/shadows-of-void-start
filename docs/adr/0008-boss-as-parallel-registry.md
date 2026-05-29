@@ -1,4 +1,4 @@
-# 0004 — Bosses as a parallel registry, not extensions of `MonsterDefinition`
+# 0008 — Bosses as a parallel registry, not extensions of `MonsterDefinition`
 
 **Status**: Accepted
 **Date**: 2026-05-25

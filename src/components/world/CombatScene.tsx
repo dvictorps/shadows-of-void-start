@@ -1,3 +1,10 @@
+// ⚠ SIZE TRIPWIRE (~990 lines) — this is one of the repo's largest single
+// files (see docs/plans/in-progress.md → agent-ergonomics track). It's untested
+// and reads linearly, so the tax is navigation, not tangle. DON'T grow the
+// monolith: if your feature adds a NEW concern here (a new overlay, a new
+// inline sub-component, a new state machine), extract it into its own file
+// instead of appending. Mirrors the world.tsx "closed decision" trigger —
+// concerns re-mixing is the signal to split, not raw line count.
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import {

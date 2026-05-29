@@ -29,6 +29,7 @@ import {
 	POTION_HEAL_FRACTION,
 	teleportStoneTravelSeconds,
 } from "../src/game/combat/constants"
+import { classifyKill, tallyBossKill } from "../src/game/combat/kill"
 import {
 	rollBossDrops,
 	rollDrop,
@@ -144,12 +145,10 @@ export const recordKill = mutation({
 
 		const currentLocation = char.currentLocation ?? "city"
 		const zone = findNode(ACT_1, currentLocation)
-		const isBossNodeRareKill =
-			args.monsterRarity === "rare" && zone?.kind === "boss"
-		const isMinibossKill =
-			args.monsterRarity === "rare" && !isBossNodeRareKill
-		const isBossKill = args.monsterRarity === "unique"
-		const grantsCampTier = isMinibossKill || isBossKill
+		const { isBossKill, grantsCampTier, dropTable } = classifyKill(
+			args.monsterRarity,
+			zone?.kind,
+		)
 
 		// Regular kills (the vast majority) never touch progression — skip the
 		// index hit entirely. Miniboss / boss kills load it once and apply both
@@ -176,24 +175,17 @@ export const recordKill = mutation({
 			}
 
 			if (isBossKill) {
-				const counts =
+				// totalBossKills stays on characters — it's the leaderboard index
+				// key. The legacy pre-backfill fallback lives in tallyBossKill.
+				const tally = tallyBossKill(
+					args.monsterId,
 					(progression.bossKillCounts as
 						| Record<string, number>
-						| undefined) ?? {}
-				const nextCounts = {
-					...counts,
-					[args.monsterId]: (counts[args.monsterId] ?? 0) + 1,
-				}
-				progressionUpdates.bossKillCounts = nextCounts
-				// totalBossKills stays on characters — it's the leaderboard index key.
-				// Legacy chars (pre-backfill) have totalBossKills === undefined but
-				// may already have a populated bossKillCounts on the progression doc.
-				// Falling back to `0 + 1` here would reset their tally to 1 and lose
-				// their leaderboard standing during the deploy → backfill window.
-				charUpdates.totalBossKills =
-					char.totalBossKills !== undefined
-						? char.totalBossKills + 1
-						: Object.values(nextCounts).reduce((sum, n) => sum + n, 0)
+						| undefined) ?? {},
+					char.totalBossKills,
+				)
+				progressionUpdates.bossKillCounts = tally.bossKillCounts
+				charUpdates.totalBossKills = tally.totalBossKills
 			}
 		} else {
 			csUpdates.currentZoneKills = cs.currentZoneKills + 1
@@ -221,19 +213,19 @@ export const recordKill = mutation({
 
 		const zoneSession = cs.currentZoneSession
 		if (zoneSession) {
-			const isAnyRareKill = isMinibossKill || isBossNodeRareKill
 			const mf = magicFind
-			const rolledDrops = isBossKill
-				? rollBossDrops({ monsterLevel, magicFind: mf })
-				: isAnyRareKill
-					? rollMinibossDrops({ monsterLevel, magicFind: mf })
-					: [
-							rollDrop({
-								monsterRarity: args.monsterRarity,
-								monsterLevel,
-								magicFind: mf,
-							}),
-						].filter((d): d is NonNullable<typeof d> => d !== null)
+			const rolledDrops =
+				dropTable === "boss"
+					? rollBossDrops({ monsterLevel, magicFind: mf })
+					: dropTable === "miniboss"
+						? rollMinibossDrops({ monsterLevel, magicFind: mf })
+						: [
+								rollDrop({
+									monsterRarity: args.monsterRarity,
+									monsterLevel,
+									magicFind: mf,
+								}),
+							].filter((d): d is NonNullable<typeof d> => d !== null)
 			for (const drop of rolledDrops) {
 				await ctx.db.insert("items", {
 					authUserId: authUser._id,

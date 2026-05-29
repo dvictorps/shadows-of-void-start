@@ -1,3 +1,8 @@
+// ⚠ SIZE TRIPWIRE (~920 lines) — one of the repo's largest single files (see
+// docs/plans/in-progress.md → agent-ergonomics track). Untested. DON'T grow the
+// monolith: a NEW concern (another transfer mode, another grid, equip-preview
+// logic) should be extracted into its own file rather than appended here. The
+// trigger to split is a new concern landing, not raw line count.
 import {
 	closestCenter,
 	DndContext,

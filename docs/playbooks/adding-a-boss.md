@@ -1,6 +1,6 @@
 # Adding a boss
 
-A boss is a handcrafted single-identity enemy with `rarity: "unique"`. Bosses live in their own registry under `src/game/bosses/`, parallel to `MONSTERS` — they don't roll affixes, they declare their stat sheet on the template, and each one has its own configurable cinematic. See [ADR 0004](../adr/0004-boss-as-parallel-registry.md) for the rationale and [CONTEXT.md → Boss](../../CONTEXT.md) for the design rules.
+A boss is a handcrafted single-identity enemy with `rarity: "unique"`. Bosses live in their own registry under `src/game/bosses/`, parallel to `MONSTERS` — they don't roll affixes, they declare their stat sheet on the template, and each one has its own configurable cinematic. See [ADR 0008](../adr/0008-boss-as-parallel-registry.md) for the rationale and [CONTEXT.md → Boss](../../CONTEXT.md) for the design rules.
 
 ## Step 1 — Declare the BossConfig
 
@@ -102,8 +102,10 @@ Open the relevant act file (e.g. `src/game/world/act-1.ts`). Add a `kind: "boss"
     connections: [{ id: "previous_zone", distance: 5 }],
     level: 28,                                  // gauntlet rares scale against this; boss uses its own level
     gatedBy: ["previous_zone"],
+    monsterPool: ["enemy_a", "enemy_b"],        // optional — see note below
     bossNode: {
         bossId: "shade_of_the_first",
+        warmupSeconds: 30,                      // optional — calmaria/time-bar budget before the gauntlet
         gauntlet: {
             fights: 3,                          // 3 rares before the boss spawns
             monsterPool: ["enemy_a", "enemy_b"],
@@ -114,7 +116,7 @@ Open the relevant act file (e.g. `src/game/world/act-1.ts`). Add a `kind: "boss"
 
 Add the zone name + description keys to both locale files (`zone_shade_lair`, `zone_shade_lair_description`).
 
-**The boss node has no `encounterPlan` and no `monsterPool` of its own** — the gauntlet drives spawns. The calmaria time bar is gated off automatically inside boss nodes (no camps, and the bar UI hides via the existing `state` checks in `CombatScene`).
+**Which fields drive what (this trips people up):** spawns come from `bossNode.gauntlet.monsterPool` — that's the required one. The **node-level** `monsterPool` is *optional* and does NOT drive boss-node spawns; it feeds sprite preloading (`world.tsx` reads `currentNode.monsterPool`), so mirror the gauntlet pool there to avoid a sprite pop-in on the first rare. `warmupSeconds` (optional) becomes the calmaria/time-bar budget during the pre-gauntlet warmup; omit it and the boss node uses the default plan. There is no `encounterPlan` on a boss node — camps and ambushes are gated off automatically inside `kind: "boss"` nodes. (The real `gralfor` node in `act-1.ts` carries both `monsterPool` and `warmupSeconds`, so don't be surprised when you see them.)
 
 ## Step 5 — Drop in the assets
 
