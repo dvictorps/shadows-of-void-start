@@ -42,7 +42,7 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 |---|---|---|
 | `bosses/` | Act-boss configs (handcrafted, `rarity: "unique"`) — parallel registry to `monsters/`. See ADR 0008 for the rationale. | `data.ts` (BOSSES, findBoss), `types.ts` (BossConfig, BossTemplate, BossCinematicConfig), `gralfor.ts` (act-1 boss config) |
 | `classes/` | Character class definitions (Warrior/Rogue/Mage) | `data.ts` (CLASS_DEFINITIONS), `types.ts`, `i18n.ts` (`getClassDisplayName`) |
-| `combat/` | Damage/defense math, constants, per-weapon FX map, intro-stage types, kill-resolution decisions | `damage.ts`, `barrier.ts`, `leech.ts`, `kill.ts` (`classifyKill` / `tallyBossKill` — pure decisions extracted from `recordKill`), `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
+| `combat/` | Damage/defense math, constants, per-weapon FX map, intro-stage types, pure mutation-decision helpers | `damage.ts`, `barrier.ts`, `leech.ts`, `kill.ts` (`classifyKill` / `resolveZoneProgress` / `tallyBossKill` — pure decisions extracted from `recordKill`), `potion.ts` (`resolvePotionUse` — extracted from `usePotion`), `vitals.ts` (`clampVital` / `resolveVitalSync` — extracted from `syncHp`), `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
 | `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `pickGendered`) |
 | `inventory/` | Inventory + stash constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, STASH_MAX_SLOTS, slot-finding helpers) |
 | `items/` | Item generator, modifier data, equip helpers, lexicon | See below — the biggest subdir |
@@ -142,7 +142,7 @@ Single source of truth for the "if all hits land" damage-per-second number rende
 
 Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not the `#/` alias — that's a Convex bundler quirk. Don't mix.
 
-**Convention — testing a new server-authoritative mutation.** Mutations can't be unit-tested directly: every one opens with `authComponent.getAuthUser(ctx)`, a better-auth component read that `convex-test`'s `withIdentity()` doesn't satisfy (no harness wired yet — see in-progress.md → agent-ergonomics track). So when you add or change decision logic in a mutation, **extract the deterministic part into a pure `src/game/` function and unit-test that**, leaving the mutation a thin auth/IO/randomness wrapper. `recordKill` → `src/game/combat/kill.ts` (`classifyKill` / `tallyBossKill`) is the reference example.
+**Convention — testing a new server-authoritative mutation.** Mutations can't be unit-tested directly: every one opens with `authComponent.getAuthUser(ctx)`, a better-auth component read that `convex-test`'s `withIdentity()` doesn't satisfy (no harness wired yet — see in-progress.md → agent-ergonomics track). So when you add or change decision logic in a mutation, **extract the deterministic part into a pure `src/game/` function and unit-test that**, leaving the mutation a thin auth/IO/randomness wrapper. Reference examples, all under `src/game/combat/`: `recordKill` → `kill.ts` (`classifyKill` / `resolveZoneProgress` / `tallyBossKill`), `usePotion` → `potion.ts` (`resolvePotionUse`), `syncHp` → `vitals.ts` (`clampVital` / `resolveVitalSync`).
 
 ---
 

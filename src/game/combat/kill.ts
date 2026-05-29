@@ -55,6 +55,47 @@ export function classifyKill(
 	};
 }
 
+export interface ZoneProgressDecision {
+	/** New `currentZoneKills` value — reset to 0 on a camp-granting kill (the
+	 * zone is over), otherwise incremented by one. */
+	currentZoneKills: number;
+	/** `inCamp` transition: `true` on a camp-granting kill, `false` when a
+	 * non-granting kill clears a lingering camp, and `undefined` to leave the
+	 * stored value untouched (no write). */
+	inCamp: boolean | undefined;
+	/** Roll a fresh camp schedule (campThresholds + zoneStartedAt reset). Only
+	 * on a camp-granting kill inside a `combat` zone — boss nodes have no camps,
+	 * so a `unique` kill grants the camp tier without arming a schedule. */
+	resetCampSchedule: boolean;
+}
+
+/**
+ * Resolve the zone-session bookkeeping a kill triggers, given its
+ * camp-granting classification (from {@link classifyKill}) and the kind of node
+ * it happened in. The completedZones append is left to the caller because it
+ * needs the loaded progression doc — everything else about "what does this kill
+ * do to the zone session" is decided here.
+ */
+export function resolveZoneProgress(params: {
+	grantsCampTier: boolean;
+	zoneKind: NodeKind | undefined;
+	prevZoneKills: number;
+	prevInCamp: boolean;
+}): ZoneProgressDecision {
+	if (params.grantsCampTier) {
+		return {
+			currentZoneKills: 0,
+			inCamp: true,
+			resetCampSchedule: params.zoneKind === "combat",
+		};
+	}
+	return {
+		currentZoneKills: params.prevZoneKills + 1,
+		inCamp: params.prevInCamp ? false : undefined,
+		resetCampSchedule: false,
+	};
+}
+
 export interface BossKillTally {
 	/** Per-boss kill counts, with this kill applied. */
 	bossKillCounts: Record<string, number>;

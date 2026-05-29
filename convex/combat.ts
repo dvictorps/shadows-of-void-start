@@ -26,10 +26,15 @@ import {
 	ETHEREAL_INCENSE_DROP_CHANCE,
 	MAX_POTIONS,
 	POTION_DROP_CHANCE,
-	POTION_HEAL_FRACTION,
 	teleportStoneTravelSeconds,
 } from "../src/game/combat/constants"
-import { classifyKill, tallyBossKill } from "../src/game/combat/kill"
+import {
+	classifyKill,
+	resolveZoneProgress,
+	tallyBossKill,
+} from "../src/game/combat/kill"
+import { resolvePotionUse } from "../src/game/combat/potion"
+import { resolveVitalSync } from "../src/game/combat/vitals"
 import {
 	rollBossDrops,
 	rollDrop,
@@ -150,6 +155,15 @@ export const recordKill = mutation({
 			zone?.kind,
 		)
 
+		const progress = resolveZoneProgress({
+			grantsCampTier,
+			zoneKind: zone?.kind,
+			prevZoneKills: cs.currentZoneKills,
+			prevInCamp: cs.inCamp,
+		})
+		csUpdates.currentZoneKills = progress.currentZoneKills
+		if (progress.inCamp !== undefined) csUpdates.inCamp = progress.inCamp
+
 		// Regular kills (the vast majority) never touch progression — skip the
 		// index hit entirely. Miniboss / boss kills load it once and apply both
 		// the completedZones append and the bossKillCounts bump against the
@@ -159,15 +173,14 @@ export const recordKill = mutation({
 		if (grantsCampTier) {
 			progression = await loadOrCreateProgression(ctx, args.characterId, char)
 
-			csUpdates.currentZoneKills = 0
-			if (!progression.completedZones.includes(currentLocation)) {
-				progressionUpdates.completedZones = [
-					...progression.completedZones,
-					currentLocation,
-				]
+			const nextCompleted = appendUnique(
+				progression.completedZones,
+				currentLocation,
+			)
+			if (nextCompleted !== progression.completedZones) {
+				progressionUpdates.completedZones = nextCompleted
 			}
-			csUpdates.inCamp = true
-			if (zone && zone.kind === "combat") {
+			if (progress.resetCampSchedule && zone) {
 				const plan = zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN
 				csUpdates.campThresholdsMs = rollCampThresholdsMs(plan)
 				csUpdates.zoneStartedAt = Date.now()
@@ -187,9 +200,6 @@ export const recordKill = mutation({
 				progressionUpdates.bossKillCounts = tally.bossKillCounts
 				charUpdates.totalBossKills = tally.totalBossKills
 			}
-		} else {
-			csUpdates.currentZoneKills = cs.currentZoneKills + 1
-			if (cs.inCamp) csUpdates.inCamp = false
 		}
 
 		const potionDropped =
@@ -265,24 +275,26 @@ export const usePotion = mutation({
 		const char = await loadOwnedCharacterWithSession(ctx, authUser._id, args.characterId, args.sessionToken)
 		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
-		if (cs.potions <= 0) throw new ConvexError("No potions to use")
-
 		const { maxLife } = await getCachedStats(ctx, args.characterId, char)
-		const maxHp = maxLife
-		const currentHp = args.clientHp !== undefined
-			? Math.max(0, Math.min(maxHp, Math.floor(args.clientHp)))
-			: cs.hpCurrent
-		if (currentHp >= maxHp) throw new ConvexError("Already at full HP")
-
-		const healed = Math.min(
-			maxHp,
-			currentHp + Math.floor(maxHp * POTION_HEAL_FRACTION),
-		)
-		await ctx.db.patch(cs._id, {
-			hpCurrent: healed,
-			potions: cs.potions - 1,
+		const result = resolvePotionUse({
+			potions: cs.potions,
+			maxLife,
+			prevHp: cs.hpCurrent,
+			clientHp: args.clientHp,
 		})
-		return { hpCurrent: healed, potions: cs.potions - 1 }
+		if (!result.ok) {
+			throw new ConvexError(
+				result.reason === "no-potions"
+					? "No potions to use"
+					: "Already at full HP",
+			)
+		}
+
+		await ctx.db.patch(cs._id, {
+			hpCurrent: result.hpCurrent,
+			potions: result.potions,
+		})
+		return { hpCurrent: result.hpCurrent, potions: result.potions }
 	},
 })
 
@@ -350,22 +362,19 @@ export const syncHp = mutation({
 		const cs = await loadOrCreateCombatState(ctx, args.characterId, char)
 
 		const { maxLife, maxBarrier } = await getCachedStats(ctx, args.characterId, char)
-		const clamped = Math.max(0, Math.min(maxLife, Math.floor(args.hpCurrent)))
+		const { hpCurrent, patch } = resolveVitalSync({
+			maxLife,
+			maxBarrier,
+			prevHp: cs.hpCurrent,
+			prevBarrier: cs.barrierCurrent,
+			clientHp: args.hpCurrent,
+			clientBarrier: args.barrierCurrent,
+		})
 
-		const clampedBarrier = args.barrierCurrent !== undefined
-			? Math.max(0, Math.min(maxBarrier, Math.floor(args.barrierCurrent)))
-			: undefined
-
-		const hpSame = clamped === cs.hpCurrent
-		const barrierSame = clampedBarrier === undefined || clampedBarrier === cs.barrierCurrent
-		if (hpSame && barrierSame) return { hpCurrent: clamped }
-
-		const patch: Record<string, unknown> = {}
-		if (!hpSame) patch.hpCurrent = clamped
-		if (!barrierSame) patch.barrierCurrent = clampedBarrier
+		if (Object.keys(patch).length === 0) return { hpCurrent }
 
 		await ctx.db.patch(cs._id, patch)
-		return { hpCurrent: clamped }
+		return { hpCurrent }
 	},
 })
 
