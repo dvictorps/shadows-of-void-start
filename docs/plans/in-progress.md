@@ -17,11 +17,16 @@ Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #4
 **Boss system shipped on `feat/boss-system`** — first act-boss (Gralfor, O Persistente) plus the full configurable infrastructure: `src/game/bosses/` registry, `unique` rarity tier, `kind: "boss"` node with gauntlet (N rares → boss), 4-beat boss cinematic (sprite → impact sfx + screenshake → name → hp), per-boss nameplate color, declared stat sheets with negative resistances, gauntlet/boss drop routing, and the supersession of Model B. Adding a second boss is one file under `src/game/bosses/` + one paraglide key per locale + a boss node — see [playbook](../playbooks/adding-a-boss.md) and [ADR 0008](../adr/0008-boss-as-parallel-registry.md).
 
 Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastructure debt is empty. Pre-public-beta hardening backlog is empty — the `recomputeSpellWeaponStats` migration is now chunked (an `internalAction` drives a paginated `recomputeSpellWeaponStatsPage` internal mutation at 500 rows/page until the cursor is exhausted), so it no longer `.collect()`s the full items table inside one mutation. Re-run via `npx convex run items:recomputeSpellWeaponStats`. What remains splits into:
+- **Agent-ergonomics hardening — track open, not blocking (started in PR #68)**: PR #68 shipped the doc de-drift + the first server-authoritative test extraction (`recordKill` → `src/game/combat/kill.ts`, 14 tests). This is the highest-leverage *risk-reduction* track (the testing cliff outside `src/game/` is the project's #1 navigability risk), but nothing forces it next — it competes by appetite with the passive-tree feature. Documented continuation, in priority order:
+  1. **Keep extracting** deterministic decisions from the remaining server-authoritative mutations into pure `src/game/` functions + tests — `usePotion`, `syncHp`, `respawnDead`, and the camp-tier/zone-completion branch of `recordKill`. Cheapest step now that the pattern exists.
+  2. **Stand up a `convex-test` harness** wired to the better-auth component, to integration-test the mutations end-to-end. The extractions in (1) are the stopgap until this lands; `getAuthUser` reads the better-auth component tables, so `withIdentity()` alone won't satisfy it — the component has to be registered in the test setup.
+  3. **`useCombatLoop` isolation tests** — needs a mock harness for the Convex queries + child hooks it composes. Do after (1)/(2) establish the patterns.
+  4. **Split `CombatScene` (~990) / `InventoryModal` (~920)** into sub-components — ONLY after (1)–(3) give a safety net. Never refactor untested 900-line UI first; that's the wrong order.
 - **Deferred, scoped**: camp cinematic biome ambience.
 - **Low-priority polish**: native PT review of `lexicon/pt.ts`, `TemplateBaseId` codegen, hash extraction to `src/lib/rng.ts`, rare-name bestiary, admin-dashboard cold-cache latency.
 - **Next big feature**: passive tree (per CONTEXT.md → Classes ordering: MVP combat ✅ → passive tree → active skills). Design work needed first — no stub plan yet.
 
-Pick by appetite: feature work = passive tree design pass; cleanup pass = lexicon/codegen/rng triple; content polish = camp cinematic art + audio.
+Pick by appetite: risk-reduction = continue the agent-ergonomics hardening (extraction → convex-test → component split, in that order); feature work = passive tree design pass; cleanup pass = lexicon/codegen/rng triple; content polish = camp cinematic art + audio.
 
 ### world.tsx size — closed decision
 
