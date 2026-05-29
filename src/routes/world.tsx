@@ -647,6 +647,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		setIsUsingIncense(false);
 	}, [combat.incense]);
 
+	const handleLeaveWorld = async () => {
+		const ok = await confirm({
+			title: m.leave_world_title(),
+			message: m.leave_world_message(),
+			confirmLabel: m.leave_world_confirm(),
+			cancelLabel: m.cancel(),
+		});
+		if (!ok) return;
+		void navigate({ to: "/character-select" });
+	};
+
 	// TextLog priority: death > consumable hover (combat) > low-HP warning >
 	// hovered node description (map view) > map idle (act label) > current
 	// zone (combat/city) > generic fallback. XP gains now surface as a
@@ -696,17 +707,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		(view === "combat" || view === "map") && !isUsingPotion
 			? handleUsePotion
 			: undefined;
-
-	const handleLeaveWorld = async () => {
-		const ok = await confirm({
-			title: m.leave_world_title(),
-			message: m.leave_world_message(),
-			confirmLabel: m.leave_world_confirm(),
-			cancelLabel: m.cancel(),
-		});
-		if (!ok) return;
-		void navigate({ to: "/character-select" });
-	};
 
 	// Pre-compute the travel overlay so the JSX stays readable. Renders only
 	// when both source + destination nodes resolve (defensive — they should

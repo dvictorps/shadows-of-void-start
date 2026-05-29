@@ -84,7 +84,7 @@ src/game/items/
 │   └── templates/       # Equipment base templates — one file per weapon type + per armor slot + per jewelry slot
 ├── lexicon/             # Per-locale display-name data (en.ts, pt.ts, types.ts, template-ids.ts)
 ├── generator.ts         # Item generation logic (public API: generateItem())
-├── generator.test.ts    # 93 tests
+├── generator.test.ts    # generator unit tests (rarity/tier/mod rules)
 ├── item-name.ts         # Display-time renderer (locale × rarity × seed)
 ├── mod-i18n.ts          # Explicit/implicit mod-line formatters
 ├── equipment.ts         # planEquip, weaponArchetype, isTwoHanded — shared client+server
