@@ -142,6 +142,8 @@ Single source of truth for the "if all hits land" damage-per-second number rende
 
 Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not the `#/` alias — that's a Convex bundler quirk. Don't mix.
 
+**Convention — testing a new server-authoritative mutation.** Mutations can't be unit-tested directly: every one opens with `authComponent.getAuthUser(ctx)`, a better-auth component read that `convex-test`'s `withIdentity()` doesn't satisfy (no harness wired yet — see in-progress.md → agent-ergonomics track). So when you add or change decision logic in a mutation, **extract the deterministic part into a pure `src/game/` function and unit-test that**, leaving the mutation a thin auth/IO/randomness wrapper. `recordKill` → `src/game/combat/kill.ts` (`classifyKill` / `tallyBossKill`) is the reference example.
+
 ---
 
 ## `src/components/` — UI

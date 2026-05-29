@@ -1,7 +1,14 @@
 import { v } from "convex/values"
 
 // Convex validator mirroring the GeneratedItem TypeScript type. Kept in sync
-// with src/game/items/types/item.ts by hand — Convex can't infer from TS.
+// with src/game/items/types/item.ts BY HAND — Convex can't infer from TS.
+//
+// ⚠ SYNC TRIPWIRE — these two files must move together. Adding a rarity, an
+// equipment type, an armor type, or a BaseStatKey to types/item.ts (or base.ts)
+// without mirroring it HERE makes Convex silently reject the new shape at the
+// persistence boundary — a rolled drop just vanishes, no error. There is no
+// automated guard (ADR 0003: Convex validators can't express literal unions).
+// Changed one side? Change this side too.
 //
 // Used by the `items.data` field. Server is the only writer (rolled drops),
 // so this validator catches developer mistakes more than untrusted input.

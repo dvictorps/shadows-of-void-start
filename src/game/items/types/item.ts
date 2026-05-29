@@ -1,6 +1,11 @@
 import type { ArmorType, BaseStatKey, EquipmentType, WeaponType } from "./base";
 import type { AffixType } from "./mods";
 
+// ⚠ SYNC TRIPWIRE — the shapes below are hand-mirrored by convex/itemValidator.ts
+// (Convex can't infer validators from TS). Adding/changing a rarity, equipment
+// type, armor type, or BaseStatKey here without updating that file makes Convex
+// silently drop the new shape on persist. Change one side → change the other.
+
 // ── Rarity ──
 
 // `unique` is the PoE-style tier for handcrafted single-identity entities:
