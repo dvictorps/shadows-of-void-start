@@ -1,9 +1,8 @@
-// ⚠ SIZE TRIPWIRE (~750 lines; the mutations live in useInventoryMutations) — one of the repo's largest single files (see
-// docs/plans/in-progress.md → agent-ergonomics track). Pinned by
-// InventoryModal.test.tsx; the split is next. DON'T grow the
-// monolith: a NEW concern (another transfer mode, another grid, equip-preview
-// logic) should be extracted into its own file rather than appended here. The
-// trigger to split is a new concern landing, not raw line count.
+// The inventory modal: the paper doll and the bag side by side, equip /
+// unequip / swap / reorder by drag or through the click menu, discard behind a
+// confirmation. This file composes `inventory-modal/*` and owns what spans
+// them: the drag and menu state and the server calls. The drag decisions live
+// in `inventory-modal/drag.ts`. Pinned by InventoryModal.test.tsx.
 import {
 	closestCenter,
 	DndContext,
@@ -11,17 +10,15 @@ import {
 	DragOverlay,
 	type DragStartEvent,
 	PointerSensor,
-	useDraggable,
-	useDroppable,
 	useSensor,
 	useSensors,
 } from "@dnd-kit/core";
-import { ArrowLeftRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
+import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
+import { Button } from "#/components/ui/button";
 import ItemContextMenu, {
 	type MenuAction,
 } from "#/components/world/ItemContextMenu";
@@ -33,45 +30,21 @@ import {
 } from "#/game/items/equipment";
 import { translateItemName } from "#/game/items/item-name";
 import type { GeneratedItem } from "#/game/items/types";
-import { describeBrokenReasons } from "#/game/stats/compute";
-import {
-	type ComputedCharacterStats,
-	type EquippedSlot,
-	narrowEquippedSlot,
-} from "#/game/stats/types";
+import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import type { useInventoryMutations } from "#/hooks/useInventoryMutations";
 import type { ItemRow } from "#/lib/api-types";
 import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
 
-const EQUIPMENT_SLOT_LAYOUT: Array<{
-	slot: EquippedSlot;
-	label: () => string;
-}> = [
-	{ slot: "helmet", label: m.slot_label_helmet },
-	{ slot: "amulet", label: m.slot_label_amulet },
-	{ slot: "weapon", label: m.slot_label_weapon },
-	{ slot: "offhand", label: m.slot_label_offhand },
-	{ slot: "chestplate", label: m.slot_label_chestplate },
-	{ slot: "belt", label: m.slot_label_belt },
-	{ slot: "gloves", label: m.slot_label_gloves },
-	{ slot: "boots", label: m.slot_label_boots },
-	{ slot: "ring1", label: m.slot_label_ring },
-	{ slot: "ring2", label: m.slot_label_ring },
-];
-
-const EQUIPMENT_SLOT_SIZE = 96;
-const INVENTORY_SLOT_SIZE = 112;
-const INVENTORY_COLUMNS = 8;
-
-type DropTargetData =
-	| { kind: "inventory"; slot: number }
-	| { kind: "equipment"; slot: EquippedSlot };
-
-type DragSourceData =
-	| { kind: "inventory"; itemId: number }
-	| { kind: "equipped"; slot: EquippedSlot; itemId: number };
+import BagGrid, { INVENTORY_SLOT_SIZE } from "./inventory-modal/BagGrid";
+import {
+	type DragSourceData,
+	isDragSource,
+	isDropTarget,
+	resolveDrop,
+} from "./inventory-modal/drag";
+import PaperDoll from "./inventory-modal/PaperDoll";
 
 type InventoryMutations = ReturnType<typeof useInventoryMutations>;
 type ArgsOf<Name extends keyof InventoryMutations> = Parameters<
@@ -107,7 +80,7 @@ export default function InventoryModal({
 	stats,
 	characterLevel,
 	equippedItems,
-	inventoryItems,
+	inventoryItems: inventory,
 	server,
 }: Props) {
 	const {
@@ -131,6 +104,8 @@ export default function InventoryModal({
 	} | null>(null);
 
 	const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
+	const openMenu = (source: DragSourceData, anchor: DOMRect) =>
+		setMenu({ source, anchor });
 
 	const equippedBySlot = useMemo(() => {
 		const map = new Map<EquippedSlot, ItemRow>();
@@ -140,8 +115,6 @@ export default function InventoryModal({
 		return map;
 	}, [equippedItems]);
 
-	const mainHandWeaponType = equippedBySlot.get("weapon")?.data.weaponType;
-
 	const handsSwappable = useMemo(
 		() =>
 			canSwapHands(
@@ -150,19 +123,6 @@ export default function InventoryModal({
 			),
 		[equippedBySlot],
 	);
-
-	const inventory = inventoryItems;
-
-	const inventoryBySlot = useMemo(() => {
-		const map = new Map<number, ItemRow>();
-		for (const item of inventory) {
-			if (item.inventorySlot !== null) map.set(item.inventorySlot, item);
-		}
-		return map;
-	}, [inventory]);
-
-	const usedSlots = inventory.length;
-	const freeSlots = Math.max(0, INVENTORY_MAX_SLOTS - usedSlots);
 
 	const activeItem = useMemo<GeneratedItem | null>(() => {
 		if (!active) return null;
@@ -192,57 +152,25 @@ export default function InventoryModal({
 		const target = event.over?.data.current;
 		setActive(null);
 		if (!isDragSource(source) || !isDropTarget(target)) return;
-
-		// Inventory item → inventory slot: reorder.
-		if (source.kind === "inventory" && target.kind === "inventory") {
-			const sourceDoc = inventory.find((it) => it.id === source.itemId);
-			if (!sourceDoc || sourceDoc.inventorySlot === target.slot) return;
-			const occupant = inventory.find(
-				(it) => it.inventorySlot === target.slot && it.id !== source.itemId,
-			);
-			void reorder({
-				characterId,
-				itemId: source.itemId,
-				targetSlot: target.slot,
-				swapWithItemId: occupant?.id,
-			});
-			return;
-		}
-
-		// Inventory item → equipment slot: equip.
-		if (source.kind === "inventory" && target.kind === "equipment") {
-			const sourceDoc = inventory.find((it) => it.id === source.itemId);
-			if (!sourceDoc) return;
-			if (!validSlotsForItem(sourceDoc.data).includes(target.slot)) return;
-			try {
-				await equipItem({
+		const action = resolveDrop(source, target, inventory, handsSwappable);
+		if (!action) return;
+		switch (action.kind) {
+			case "reorder":
+				void reorder({
 					characterId,
-					itemId: source.itemId,
-					targetSlot: target.slot,
+					itemId: action.itemId,
+					targetSlot: action.targetSlot,
+					swapWithItemId: action.swapWithItemId,
 				});
-			} catch (err) {
-				toast.error(serverErrorMessage(err, m.error_equip_failed()));
-			}
-			return;
-		}
-
-		// Equipped item → inventory slot: unequip (slot is just a hint; server
-		// places it in the first free slot).
-		if (source.kind === "equipped" && target.kind === "inventory") {
-			try {
-				await unequipItem({ characterId, slot: source.slot });
-			} catch (err) {
-				toast.error(serverErrorMessage(err, m.error_unequip_failed()));
-			}
-			return;
-		}
-
-		if (source.kind === "equipped" && target.kind === "equipment") {
-			const isHandPair =
-				(source.slot === "weapon" && target.slot === "offhand") ||
-				(source.slot === "offhand" && target.slot === "weapon");
-			if (!isHandPair || !handsSwappable) return;
-			await triggerSwapHands();
+				return;
+			case "equip":
+				await triggerEquip(action.itemId, action.targetSlot);
+				return;
+			case "unequip":
+				await triggerUnequip(action.slot);
+				return;
+			case "swapHands":
+				await triggerSwapHands();
 		}
 	};
 
@@ -329,20 +257,16 @@ export default function InventoryModal({
 			isOpen={isOpen}
 			onClose={onClose}
 			title={m.inventory_title({
-				used: usedSlots,
+				used: inventory.length,
 				total: INVENTORY_MAX_SLOTS,
 			})}
 			className="max-w-7xl"
 			hideHeaderClose
 			footer={
 				<div className="flex justify-center">
-					<button
-						type="button"
-						onClick={onClose}
-						className="border-2 border-white/40 bg-black px-6 py-2 font-medium text-sm text-white/80 uppercase tracking-[0.25em] transition hover:border-white hover:bg-white/10 hover:text-white"
-					>
+					<Button variant="hud" size="hud-lg" caps onClick={onClose}>
 						{m.modal_close_label()}
-					</button>
+					</Button>
 				</div>
 			}
 		>
@@ -354,109 +278,26 @@ export default function InventoryModal({
 				onDragCancel={handleDragCancel}
 			>
 				<div className="flex gap-6">
-					<section className="shrink-0">
-						<h3 className="mb-2 text-[10px] uppercase tracking-[0.2em] text-white/40">
-							{m.inventory_equipped_header()}
-						</h3>
-						<div className="grid grid-cols-2 gap-2">
-							{EQUIPMENT_SLOT_LAYOUT.map(({ slot, label }) => {
-								const item = equippedBySlot.get(slot);
-								const broken = item
-									? stats.brokenItemIds.has(item.data.id)
-									: false;
-								const reasons =
-									broken && item
-										? describeBrokenReasons(
-												item.data,
-												stats,
-												characterLevel,
-												mainHandWeaponType,
-											)
-										: undefined;
-								return (
-									<EquipmentDroppable
-										key={slot}
-										slot={slot}
-										label={label()}
-										item={item ?? null}
-										eligible={validEquipSlots.has(slot)}
-										dragging={active}
-										handsSwappable={handsSwappable}
-										broken={broken}
-										brokenReasons={reasons}
-										avoidRect={menuRect}
-										onItemClick={(rect) => {
-											if (!item) return;
-											setMenu({
-												source: { kind: "equipped", slot, itemId: item.id },
-												anchor: rect,
-											});
-										}}
-									/>
-								);
-							})}
-						</div>
-						<button
-							type="button"
-							onClick={() => {
-								if (!handsSwappable) return;
-								void triggerSwapHands();
-							}}
-							disabled={!handsSwappable}
-							title={
-								handsSwappable
-									? undefined
-									: m.inventory_swap_hands_tooltip_disabled()
-							}
-							className="mt-3 flex w-full items-center justify-center gap-2 border border-white/30 bg-black px-3 py-2 font-medium text-[10px] text-white/70 uppercase tracking-[0.2em] transition hover:border-white hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-white/30 disabled:hover:bg-black disabled:hover:text-white/70"
-						>
-							<ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
-							{m.inventory_swap_hands()}
-						</button>
-					</section>
+					<PaperDoll
+						equippedBySlot={equippedBySlot}
+						stats={stats}
+						characterLevel={characterLevel}
+						eligibleSlots={validEquipSlots}
+						dragging={active}
+						handsSwappable={handsSwappable}
+						avoidRect={menuRect}
+						onItemClick={openMenu}
+						onSwapHands={() => void triggerSwapHands()}
+					/>
 
 					<div className="w-px bg-white/15" aria-hidden />
 
-					<section className="min-w-0 flex-1">
-						<div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-white/40">
-							<h3>{m.inventory_bag_header()}</h3>
-							<span>
-								{freeSlots === 1
-									? m.inventory_free_slot_one({ count: freeSlots })
-									: m.inventory_free_slot_other({ count: freeSlots })}
-							</span>
-						</div>
-						<div className="fancy-scroll max-h-[60vh] overflow-y-auto pr-3">
-							<div
-								className="grid gap-2"
-								style={{
-									gridTemplateColumns: `repeat(${INVENTORY_COLUMNS}, ${INVENTORY_SLOT_SIZE}px)`,
-								}}
-							>
-								{Array.from({ length: INVENTORY_MAX_SLOTS }, (_, slot) => {
-									const item = inventoryBySlot.get(slot) ?? null;
-									return (
-										<InventoryDroppable
-											key={`slot-${slot}`}
-											slot={slot}
-											item={item}
-											isDraggingThis={
-												active?.kind === "inventory" &&
-												item?.id === active.itemId
-											}
-											avoidRect={menuRect}
-											onItemClick={(itemId, rect) =>
-												setMenu({
-													source: { kind: "inventory", itemId },
-													anchor: rect,
-												})
-											}
-										/>
-									);
-								})}
-							</div>
-						</div>
-					</section>
+					<BagGrid
+						inventory={inventory}
+						dragging={active}
+						avoidRect={menuRect}
+						onItemClick={openMenu}
+					/>
 				</div>
 				<DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
 					{activeItem ? (
@@ -493,258 +334,4 @@ function equipActionLabel(slot: EquippedSlot, item: GeneratedItem): string {
 		default:
 			return m.equip_generic();
 	}
-}
-
-function InventoryDroppable({
-	slot,
-	item,
-	isDraggingThis,
-	avoidRect,
-	onItemClick,
-}: {
-	slot: number;
-	item: ItemRow | null;
-	isDraggingThis: boolean;
-	avoidRect: DOMRect | null;
-	onItemClick: (itemId: number, rect: DOMRect) => void;
-}) {
-	const { setNodeRef, isOver } = useDroppable({
-		id: `slot-${slot}`,
-		data: { kind: "inventory", slot } satisfies DropTargetData,
-	});
-	const highlight = isOver ? "ring-2 ring-yellow-300/80" : "";
-	return (
-		<div
-			ref={setNodeRef}
-			style={{ width: INVENTORY_SLOT_SIZE, height: INVENTORY_SLOT_SIZE }}
-			className={`relative rounded-md transition-shadow ${highlight}`}
-		>
-			<div className={`absolute inset-0 rounded-md ${SLOT_EMPTY}`} />
-			{item && (
-				<DraggableInventoryItem
-					item={item}
-					hidden={isDraggingThis}
-					avoidRect={avoidRect}
-					onClick={onItemClick}
-				/>
-			)}
-		</div>
-	);
-}
-
-type DraggableHandle = Pick<
-	ReturnType<typeof useDraggable>,
-	"attributes" | "listeners" | "setNodeRef"
->;
-
-function DragSlot({
-	handle: { attributes, listeners, setNodeRef },
-	hidden,
-	children,
-}: {
-	handle: DraggableHandle;
-	hidden: boolean;
-	children: React.ReactNode;
-}) {
-	return (
-		<div
-			ref={setNodeRef}
-			className="absolute inset-0"
-			style={{
-				opacity: hidden ? 0 : 1,
-				cursor: hidden ? "grabbing" : "grab",
-			}}
-			{...listeners}
-			{...attributes}
-		>
-			{children}
-		</div>
-	);
-}
-
-function DraggableInventoryItem({
-	item,
-	hidden,
-	avoidRect,
-	onClick,
-}: {
-	item: ItemRow;
-	hidden: boolean;
-	avoidRect: DOMRect | null;
-	onClick: (itemId: number, rect: DOMRect) => void;
-}) {
-	const handle = useDraggable({
-		id: item.id,
-		data: { kind: "inventory", itemId: item.id } satisfies DragSourceData,
-	});
-	return (
-		<DragSlot handle={handle} hidden={hidden}>
-			<ItemCard
-				item={item.data}
-				size={INVENTORY_SLOT_SIZE}
-				suppressTooltip={hidden}
-				avoidRect={avoidRect}
-				onClick={hidden ? undefined : (rect) => onClick(item.id, rect)}
-			/>
-		</DragSlot>
-	);
-}
-
-function EquipmentDroppable({
-	slot,
-	label,
-	item,
-	eligible,
-	dragging,
-	handsSwappable,
-	broken,
-	brokenReasons,
-	avoidRect,
-	onItemClick,
-}: {
-	slot: EquippedSlot;
-	label: string;
-	item: ItemRow | null;
-	eligible: boolean;
-	dragging: DragSourceData | null;
-	handsSwappable: boolean;
-	broken: boolean;
-	brokenReasons: string[] | undefined;
-	avoidRect: DOMRect | null;
-	onItemClick: (rect: DOMRect) => void;
-}) {
-	const { setNodeRef, isOver } = useDroppable({
-		id: `equip-${slot}`,
-		data: { kind: "equipment", slot } satisfies DropTargetData,
-	});
-	const isDraggingThis =
-		dragging?.kind === "equipped" && dragging.slot === slot;
-	// Three highlight tiers, decreasing intensity as we move away from a direct
-	// hover: full ring under the cursor, soft glow on every eligible slot while
-	// dragging, red ring when hovering an incompatible slot.
-	let highlight = "";
-	if (dragging?.kind === "inventory") {
-		if (isOver) {
-			highlight = eligible
-				? "ring-2 ring-yellow-300/90 shadow-[0_0_14px_rgba(253,224,71,0.55)]"
-				: "ring-2 ring-red-500/70";
-		} else if (eligible) {
-			highlight =
-				"ring-2 ring-yellow-300/40 shadow-[0_0_8px_rgba(253,224,71,0.25)]";
-		}
-	} else if (
-		dragging?.kind === "equipped" &&
-		(dragging.slot === "weapon" || dragging.slot === "offhand")
-	) {
-		const isOppositeHand =
-			(dragging.slot === "weapon" && slot === "offhand") ||
-			(dragging.slot === "offhand" && slot === "weapon");
-		if (isOppositeHand) {
-			if (isOver) {
-				highlight = handsSwappable
-					? "ring-2 ring-yellow-300/90 shadow-[0_0_14px_rgba(253,224,71,0.55)]"
-					: "ring-2 ring-red-500/70";
-			} else if (handsSwappable) {
-				highlight =
-					"ring-2 ring-yellow-300/40 shadow-[0_0_8px_rgba(253,224,71,0.25)]";
-			}
-		}
-	}
-	return (
-		<div
-			ref={setNodeRef}
-			style={{ width: EQUIPMENT_SLOT_SIZE, height: EQUIPMENT_SLOT_SIZE }}
-			className={`relative flex items-center justify-center rounded-md transition-shadow ${highlight}`}
-		>
-			<div
-				className={`absolute inset-0 flex items-center justify-center rounded-md text-[10px] uppercase tracking-wider text-white/30 ${SLOT_EMPTY}`}
-			>
-				{!item && label}
-			</div>
-			{item && (
-				<DraggableEquipped
-					item={item}
-					slot={slot}
-					hidden={isDraggingThis}
-					broken={broken}
-					brokenReasons={brokenReasons}
-					avoidRect={avoidRect}
-					onClick={onItemClick}
-				/>
-			)}
-		</div>
-	);
-}
-
-function DraggableEquipped({
-	item,
-	slot,
-	hidden,
-	broken,
-	brokenReasons,
-	avoidRect,
-	onClick,
-}: {
-	item: ItemRow;
-	slot: EquippedSlot;
-	hidden: boolean;
-	broken: boolean;
-	brokenReasons: string[] | undefined;
-	avoidRect: DOMRect | null;
-	onClick: (rect: DOMRect) => void;
-}) {
-	const handle = useDraggable({
-		id: `equipped-${slot}`,
-		data: {
-			kind: "equipped",
-			slot,
-			itemId: item.id,
-		} satisfies DragSourceData,
-	});
-	return (
-		<DragSlot handle={handle} hidden={hidden}>
-			<ItemCard
-				item={item.data}
-				size={EQUIPMENT_SLOT_SIZE}
-				suppressTooltip={hidden}
-				avoidRect={avoidRect}
-				broken={broken}
-				brokenReasons={brokenReasons}
-				onClick={hidden ? undefined : onClick}
-			/>
-		</DragSlot>
-	);
-}
-
-// ── DnD payload narrowers ─────────────────────────────────────────────────
-// @dnd-kit types `data.current` as Record<string, unknown> | undefined. We
-// validate the shape here so a misregistered draggable in the future can't
-// silently coerce into a DragSourceData and crash a handler.
-
-// Type guards (not parsers) so the `unknown` boundary is explicit. `itemId`
-// is only checked to be a number: every draggable here registers a real
-// item id.
-
-function isDragSource(d: unknown): d is DragSourceData {
-	if (typeof d !== "object" || d === null) return false;
-	if (!("kind" in d) || !("itemId" in d)) return false;
-	if (typeof d.itemId !== "number") return false;
-	if (d.kind === "inventory") return true;
-	return (
-		d.kind === "equipped" &&
-		"slot" in d &&
-		typeof d.slot === "string" &&
-		narrowEquippedSlot(d.slot) !== undefined
-	);
-}
-
-function isDropTarget(d: unknown): d is DropTargetData {
-	if (typeof d !== "object" || d === null) return false;
-	if (!("kind" in d) || !("slot" in d)) return false;
-	if (d.kind === "inventory") return typeof d.slot === "number";
-	return (
-		d.kind === "equipment" &&
-		typeof d.slot === "string" &&
-		narrowEquippedSlot(d.slot) !== undefined
-	);
 }
