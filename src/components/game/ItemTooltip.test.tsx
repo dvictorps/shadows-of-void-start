@@ -292,10 +292,19 @@ describe("ItemTooltip — requirements and footer", () => {
 		).toBeNull();
 	});
 
-	it("hides a level-only requirement", () => {
-		// Pinned oddity: with no attribute requirement the line is skipped, so
-		// a level-20 item with no Str / Dex / Int shows no requirement at all.
+	it("shows a level-only requirement", () => {
 		show({ ...sword(), requirements: { level: 20 } });
+		const line = narrow(
+			screen.getByText(m.tooltip_requires(), { exact: false }).parentElement,
+			HTMLElement,
+		);
+		expect(line.textContent).toBe(
+			`${m.tooltip_requires()} ${m.tooltip_level_value({ value: 20 })}`,
+		);
+	});
+
+	it("shows nothing for a level-1 item with no attribute requirement", () => {
+		show({ ...sword(), requirements: { level: 1 } });
 		expect(
 			screen.queryByText(m.tooltip_requires(), { exact: false }),
 		).toBeNull();
