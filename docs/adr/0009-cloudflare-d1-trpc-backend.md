@@ -1,6 +1,6 @@
 # 0009 — Leave Convex: Cloudflare Workers + D1 + Drizzle + tRPC
 
-**Status**: Accepted (phases 1–3 shipped; phase 4, the production cutover, pending — see [in-progress.md](../plans/in-progress.md) → "Convex → Cloudflare migration")
+**Status**: Accepted (shipped — production cutover 2026-11-16, see "Update (phase 4)")
 **Date**: 2026-11-15
 
 ## Context
@@ -104,3 +104,12 @@ The frontend runs on tRPC and `convex/`, its packages and its env vars are delet
 - **Request quota first.** Queries don't refetch on window focus by default (the cache is kept current by the mutations); only `characters.byId` on `/world` opts back in, for takeover detection. The `/world` loader prefetches the character, equipped and inventory together (one batched request, or in-process during SSR).
 - **Optimistic bodies call the server's decisions** (`resolveEquip` / `resolveUnequip`, `resolvePurchase`, `resolveTravelStart` / `resolveTeleport`, `resolvePotionUse`) instead of re-implementing them, so a move the server would refuse is never painted. `CLEARED_VISIT` (`src/game/world/zone-actions.ts`) is the visit reset both sides spread. `consumeTeleportStone` returns everything it wrote.
 - **Measured on staging (Workers Free), scripted HTTP play:** `recordKill` median 5 ms CPU, max 9 ms (with the vitals merge, drops and a level-up in the sample); `exitZone` 12 ms; `pickFromBag` 25 ms; `arriveAtTravel` 25 ms; `enterCity` 32 ms; reads 1–5 ms; SSR `/world` 29 ms, `/character-select` 44 ms; sign-up 105 ms. Nothing was rejected. Re-measure with real browser play before cutover.
+
+## Update (2026-11-16, phase 4 — production cutover)
+
+Production runs on the Worker `shadows-of-void-production` at `https://shadows-of-void-production.dvictorps.workers.dev`, with an empty D1 (`shadows-of-void-production`) migrated from `drizzle/` and a fresh `BETTER_AUTH_SECRET`. The Vercel project and the Convex deployments are retired and their data discarded, as decided above. No custom domain: the `workers.dev` URL is the production URL (`BETTER_AUTH_URL` in `wrangler.jsonc`), so a domain later means changing that var and redeploying.
+
+- **Release flow:** feature PRs merge into `dev`; a release is `dev` → `master`, then `pnpm db:migrate:production` (when `drizzle/` changed) and `pnpm deploy:production` from `master`. Nothing deploys on push (no Vercel build, no `npx convex deploy`).
+- **Smoke test:** a full click-through in a browser on staging (sign-up, character, travel, zone, kills, camp, exit with loot, vendor, stash, leaderboard, admin with an account promoted by SQL) found no functional bug. Production was smoke-tested over HTTP after the deploy (SSR pages 200, auth session endpoint, tRPC rejecting an anonymous call with 401); the owner accepted the staging click-through for production, since the build and the plan are the same.
+- **Measured CPU with real browser play (staging, Workers Free, 107 requests, none rejected):** `recordKill` median 3 ms, p90 6 ms, max 9 ms over 31 kills (phase 3's scripted median was 5 ms, same max); `consumePotion` 3 ms; `exitZone` 5 ms; `equipItem` 7 ms; `characters.create` 10 ms; the hourly leaderboard cron 9 ms; SSR `/` 44 ms and `/character-select` 23–61 ms; sign-up 128 ms. Only SSR and password hashing exceed the nominal 10 ms, as in earlier phases.
+- **Still to watch:** the D1 rows-written counter for the first week of real play, against the envelope in [in-progress.md](../plans/in-progress.md) → "Beta readiness — D1 quota envelope".

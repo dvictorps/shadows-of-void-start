@@ -8,35 +8,6 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ---
 
-## Convex → Cloudflare migration (active track, started 2026-11-15)
-
-Decision and rationale: [ADR 0009](../adr/0009-cloudflare-d1-trpc-backend.md) and its "Update" notes per phase. One Worker running TanStack Start + tRPC (`/api/trpc/$`) + Better Auth (`/api/auth/$`) on D1 via Drizzle. **Workers Free plan. No data migration** — the production D1 starts empty and the old Convex data is discarded.
-
-Phases 1–3 shipped (`feat/cloudflare-phase-1`, `-2`, `-3`): the Worker, schema and auth; every procedure on tRPC; the frontend on `@trpc/tanstack-react-query`, with `convex/`, its deps and its env vars deleted from the repo. Staging (`https://shadows-of-void-staging.dvictorps.workers.dev`) runs the full game. `dev` still **can't be released to `master`** until phase 4: `master` deploys to Vercel + Convex, and `dev` no longer builds for either.
-
-**Phase 4 — production cutover (needs the owner's go-ahead at each step):**
-
-1. `pnpm db:migrate:production` (applies `drizzle/` to the empty `shadows-of-void-production` D1), then `wrangler secret put BETTER_AUTH_SECRET --env production`.
-2. `pnpm deploy:production`, smoke-test the production URL (sign-up → character → zone → kills → exit → vendor → stash → leaderboard), and promote the first admin with SQL (`UPDATE user SET role = 'admin' WHERE email = …`).
-3. Point the production domain at the Worker and retire the Vercel project + the Convex deployments (dashboard env vars `BETTER_AUTH_SECRET` / `SITE_URL`, billing). Production Convex data is discarded (ADR 0009).
-4. Merge `dev` → `master`. The release flow becomes `pnpm deploy:production` from `master` (no Vercel build, no `npx convex deploy`); update the branching memory/notes accordingly.
-5. Re-measure CPU on production with real play in a browser (staging numbers are in the ADR 0009 phase 3 note) and watch the D1 rows-written counter for the first week against the envelope below.
-
-**Left open after phase 3 (not blocking the cutover):**
-
-- **Browser smoke test on staging.** Phase 3 was smoke-tested over HTTP against staging (the same tRPC and SSR endpoints the browser uses); a click-through in a real browser, including the admin dashboard with a promoted account, is still owed before phase 4.
-- **The `useCombatTick` HP flush on deactivation stays an effect** (with its disable). It is a sync with an external system on `active` flipping from several paths, so the effect is the right tool; the Convex-specific wording was removed. The `useViewMode` auto-enter effect is gone: the view now follows `arriveAtTravel`'s answer.
-- **Optimistic rollback refetches.** `rollbackOnError` restores the snapshot and then refetches the keys it touched, since other writes may have landed meanwhile. Rejections are rare, so the extra request is cheap; revisit only if the request quota gets tight.
-
-**Risks carried into phase 4:**
-
-- **D1 free write quota is the real ceiling, not CPU** (see the envelope below). A capped quota makes writes fail until the daily reset (outage, not a bill).
-- **Open threats #1 / #2 (`recordKill` spam, `syncHp` god mode) are availability threats** on the Free plan: a spam script burns the shared daily quotas. Threat-model Layer 1 (per-action rate limit + zone precondition, ~1–2h) is the cheap guard.
-- **Concurrent read-modify-write** (threat #6): accepted while the game is solo-tested; escalation is a per-character Durable Object.
-- **Password hashing CPU.** Sign-up costs ~105 ms CPU on staging against the Free plan's nominal 10 ms. Nothing has been rejected; if Cloudflare starts to, lower the scrypt cost in `src/server/password.ts`.
-
----
-
 ## Next session — pick up here
 
 Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation (PR #48), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), the phase-arg dead-weight cleanup (PR #51), the `useInFlight` extraction (PR #52), and the single-active-session lock (`feat/single-active-session`) all shipped. The leaderboard hard-blocker is now cleared.
@@ -59,7 +30,7 @@ Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastruct
   - _Combat state-machine activation resets_ (`useCombatLoop`, `useEncounterSchedule` ×2): effects that reset refs and state together on `active` flipping. The proper fix moves the reset to the event that activates combat (zone entry). Do it together with the combat-hook tests (post-migration priority item 3), never untested.
   - _Kept for good:_ the 2 framer-motion imperative-controls effects (`CombatScene` victory fade, `HealthGlobe` hit shake), the `world.tsx` session claim on route arrival, and the `Object.keys` SAFETY cast centralized in `src/game/typed-object.ts`.
     Warnings left (163 as of phase 3): `complexity` and the `shadcn/*` / `react/forbid-elements` design-system rules on app-shell UI (admin, generic modals, `src/components/ui` itself); sign-in and character-select are clean since phase 3 (new theme tokens `tracking-label` / `text-2xs` / `leading-display` / `void`, and the `caps` / `tall` / `inline` options on `<Button>`). The game-art directories turn the `shadcn/*` rules off. Fix them in any file you touch.
-- **PRIORITY right after the Convex → Cloudflare migration: encode architecture as lint (decided 2026-11-15).** The project is fully AI-driven, and a deterministic lint error is the guard-rail an agent can't skip; a convention that only lives in a doc can be. In order:
+- **PRIORITY now that the Cloudflare backend is in production (ADR 0009): encode architecture as lint (decided 2026-11-15).** The project is fully AI-driven, and a deterministic lint error is the guard-rail an agent can't skip; a convention that only lives in a doc can be. In order:
   1. **Local `oxlint` plugin with project rules** under `tools/oxlint/shadows/` (same shape as app-licitei-next's `licitei` plugin). Candidates: `src/game/**` must not import React, the backend, or call `Date.now()` / `Math.random()` directly (keeps the engine pure and testable); every tRPC procedure that mutates character state must go through the session middleware (closes threat #5 structurally); no unvalidated `JSON.parse` at the D1 boundary. Write them against the real tRPC/D1 code after phase 1, not before.
   2. **Type-aware linting** (`no-floating-promises`, `no-misused-promises`, …) for the new async backend. Verify oxlint's type-aware mode works alongside the JS plugins first.
   3. **Tests for the combat hooks** (`useCombatLoop`, `useCombatTick`, `useEncounterSchedule`). This is the remaining blind spot, and the first oxlint run showed it's where most of the React-rule violations were. With the tests in place, move the 3 activation-reset effects to the zone-entry event and delete their disables.
@@ -129,7 +100,7 @@ If you're picking up where we left off:
 
 ## Beta readiness — D1 quota envelope (snapshot, refine with real telemetry)
 
-Reference material, not planned work. Rewritten after the Cloudflare migration (phase 3, 2026-11-16) from the old Convex cost envelope. The Workers Free plan has no bill: hitting a quota fails requests until the daily reset (00:00 UTC), for every player. Verify the current limits at the Cloudflare docs; as understood today: **100k Worker requests/day**, **D1: 5M rows read/day, 100k rows written/day**, 10 ms CPU per request (not enforced per request so far, see ADR 0009).
+Reference material, not planned work. Rewritten for the Cloudflare backend (2026-11-16) from the old Convex cost envelope; measured CPU per procedure is in the [ADR 0009](../adr/0009-cloudflare-d1-trpc-backend.md) update notes. The Workers Free plan has no bill: hitting a quota fails requests until the daily reset (00:00 UTC), for every player. Verify the current limits at the Cloudflare docs; as understood today: **100k Worker requests/day**, **D1: 5M rows read/day, 100k rows written/day**, 10 ms CPU per request (not enforced per request so far, see ADR 0009).
 
 ### Per-active-hour rates (estimated)
 
@@ -159,6 +130,12 @@ Solo testing fits with a wide margin. A 10-friend beta at ~3 h/day each (~30 act
 - **New indexes on hot columns**: every index a kill's UPDATE touches is one more row written per kill (game-schema.ts header).
 - **Invalidating instead of writing results into the cache**: each invalidation is a refetch request. The hooks write results; keep it that way.
 - **Spam scripts** (threats #1 / #2): one client can burn the shared quota. Layer 1 rate limits are the cap.
+- **Optimistic rollback refetches**: `rollbackOnError` restores the snapshot and then refetches the keys it touched, since other writes may have landed meanwhile. Rejections are rare, so this is cheap; revisit only if the request quota gets tight.
+
+### Other Free-plan risks
+
+- **Concurrent read-modify-write** (threat #6): accepted while the game is solo-tested; escalation is a per-character Durable Object.
+- **Password hashing CPU**: sign-up costs ~105–130 ms CPU against the Free plan's nominal 10 ms. Nothing has been rejected; if Cloudflare starts to, lower the scrypt cost in `src/server/password.ts`, don't buy a plan.
 
 ### Action items before opening a public beta
 

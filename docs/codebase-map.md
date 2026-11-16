@@ -156,6 +156,8 @@ The whole backend ([ADR 0009](./adr/0009-cloudflare-d1-trpc-backend.md)): schema
 
 **Environments:** `wrangler.jsonc` has a top level (local `pnpm dev`, local D1 under `.wrangler/`) plus `staging` and `production`. The Cloudflare Vite plugin picks the environment at build time from `CLOUDFLARE_ENV` in `.env.staging` / `.env.production`, so deploy with `pnpm deploy:staging` / `pnpm deploy:production`, not `wrangler deploy --env`. Local secrets live in `.dev.vars` (template: `.dev.vars.example`).
 
+**Release flow:** feature PRs merge into `dev`; staging is deployed by hand from any branch. A release is `dev` → `master`, then `pnpm db:migrate:production` (if `drizzle/` changed) and `pnpm deploy:production` from `master`. Nothing deploys on push; production deploys need the owner's go-ahead. Production runs at `https://shadows-of-void-production.dvictorps.workers.dev`, staging at `https://shadows-of-void-staging.dvictorps.workers.dev`.
+
 ---
 
 **Convention — testing a new server-authoritative mutation.** Extract the deterministic decision into a pure `src/game/` function and unit-test it; keep the procedure a thin auth/IO/randomness wrapper. The tRPC procedures (`src/server/`) are also covered end to end by integration tests against a local D1 (see the `src/server/` section and [playbooks/adding-a-procedure.md](./playbooks/adding-a-procedure.md)). Reference examples, all under `src/game/combat/`: `recordKill` → `kill.ts` / `record-kill.ts`, `consumePotion` → `potion.ts` (`resolvePotionUse`), `syncHp` → `vitals.ts` (`clampVital` / `resolveVitalSync`).
