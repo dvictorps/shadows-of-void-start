@@ -166,22 +166,24 @@ The whole backend ([ADR 0009](./adr/0009-cloudflare-d1-trpc-backend.md)): schema
 
 ## `src/components/` — UI
 
-| File / dir                 | Role                                                                                                                                                                     |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Modal.tsx`                | Generic modal shell (dismissible flag; an Escape layer while open, see `useEscapeLayer`). Tested in `Modal.test.tsx`                                                     |
-| `Toaster.tsx`              | Sonner wrapper — styled with Jersey 25 + uppercase tracking                                                                                                              |
-| `dom-test-utils.ts`        | Shared component-test helper: `narrow` (queried node → typed element)                                                                                                    |
-| `trpc-test-utils.ts`       | Shared test helper: `ruleError` (a tRPC rule violation as the client receives it)                                                                                        |
-| `Footer.tsx`, `Header.tsx` | Page chrome (only on splash)                                                                                                                                             |
-| `CreateCharacterModal.tsx` | Used by character-select                                                                                                                                                 |
-| `ConfirmationModal.tsx`    | Generic confirm dialog (used via `useConfirmationModal`)                                                                                                                 |
-| `game/ItemCard.tsx`        | Shared item visual — rarity glow, broken state badge, tooltip portal                                                                                                     |
-| `game/DragSlot.tsx`        | The draggable card wrapper (hidden while its item is dragged; optional `onClick`), shared by the inventory and stash modals                                              |
-| `game/DropCell.tsx`        | A grid slot that takes a drop: the empty-slot frame, yellow ring while hovered, an optional idle ring (the stash's selection). Shared by the inventory bag and the stash |
-| `game/RubyIcon.tsx`        | The ruby coin image (vendor prices and balance, `RubyCounter`)                                                                                                           |
-| `game/ItemTooltip.tsx`     | The big tooltip — name, header stats, defenses, implicits, explicits. Pinned by `ItemTooltip.test.tsx`                                                                   |
-| `world/`                   | Everything inside the `/world` route                                                                                                                                     |
-| `ui/`                      | Radix-ui-based primitives (Button, Input, Label, Select, etc)                                                                                                            |
+| File / dir                       | Role                                                                                                                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Modal.tsx`                      | Generic modal shell (dismissible flag; an Escape layer while open, see `useEscapeLayer`). Tested in `Modal.test.tsx`                                                     |
+| `Toaster.tsx`                    | Sonner wrapper — styled with Jersey 25 + uppercase tracking                                                                                                              |
+| `dom-test-utils.ts`              | Shared component-test helper: `narrow` (queried node → typed element)                                                                                                    |
+| `trpc-test-utils.ts`             | Shared test helper: `ruleError` (a tRPC rule violation as the client receives it)                                                                                        |
+| `Footer.tsx`, `Header.tsx`       | Page chrome (only on splash)                                                                                                                                             |
+| `CreateCharacterModal.tsx`       | Used by character-select                                                                                                                                                 |
+| `ConfirmationModal.tsx`          | Generic confirm dialog (used via `useConfirmationModal`)                                                                                                                 |
+| `game/ItemCard.tsx`              | Shared item visual — rarity glow, broken state badge, tooltip portal                                                                                                     |
+| `game/DragSlot.tsx`              | The draggable card wrapper (hidden while its item is dragged; optional `onClick`), shared by the inventory and stash modals                                              |
+| `game/DropCell.tsx`              | A grid slot that takes a drop: the empty-slot frame, yellow ring while hovered, an optional idle ring (the stash's selection). Shared by the inventory bag and the stash |
+| `game/RubyIcon.tsx`              | The ruby coin image (vendor prices and balance, `RubyCounter`)                                                                                                           |
+| `game/ItemTooltip.tsx`           | The big tooltip: composes `item-tooltip/*` (header, stat blocks, mods, requirements, item level). Pinned by `ItemTooltip.test.tsx`                                       |
+| `game/item-tooltip/stat-rows.ts` | Pure stat lines as data (`attackWeaponRows`, `spellWeaponRows`, `defenseRows`: label, value, modified-by-a-local-mod). Tested in `stat-rows.test.ts`                     |
+| `game/item-tooltip/*.tsx`        | `ItemHeader` (ornaments, name, hand line), `StatBlock` (renders rows), `ModLines` (implicits, explicits, (Local) tag), `Requirements`                                    |
+| `world/`                         | Everything inside the `/world` route                                                                                                                                     |
+| `ui/`                            | Radix-ui-based primitives (Button, Input, Label, Select, etc)                                                                                                            |
 
 ### `src/components/world/` — world view internals
 
