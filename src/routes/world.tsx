@@ -10,6 +10,7 @@ import CityScene from "#/components/world/CityScene";
 import { CombatPane } from "#/components/world/CombatPane";
 import type { ConsumableKey } from "#/components/world/CombatScene";
 import LeaderboardModal from "#/components/world/LeaderboardModal";
+import SessionClaimFailedModal from "#/components/world/SessionClaimFailedModal";
 import SessionLostModal from "#/components/world/SessionLostModal";
 import ShowStatsModal from "#/components/world/ShowStatsModal";
 import TextLog from "#/components/world/TextLog";
@@ -155,7 +156,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 				cache.patchCharacter({ activeSessionToken: claimed }),
 		}),
 	);
-	const { sessionLost } = useSessionClaim({
+	const { sessionLost, claimFailure, retryClaim } = useSessionClaim({
 		tokenMatches,
 		characterId: character.id,
 		sessionToken,
@@ -651,6 +652,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 				/>
 			)}
 			<SessionLostModal open={sessionLost} />
+			<SessionClaimFailedModal failure={claimFailure} onRetry={retryClaim} />
 		</main>
 	);
 }
