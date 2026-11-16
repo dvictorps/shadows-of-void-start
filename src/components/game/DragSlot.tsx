@@ -5,14 +5,20 @@ type DraggableHandle = Pick<
 	"attributes" | "listeners" | "setNodeRef"
 >;
 
-/** A draggable card's wrapper: invisible while its item is being dragged. */
+/**
+ * A draggable card's wrapper, shared by the inventory and stash modals:
+ * invisible while its item is being dragged. `onClick` is dropped while
+ * hidden.
+ */
 export default function DragSlot({
 	handle: { attributes, listeners, setNodeRef },
 	hidden,
+	onClick,
 	children,
 }: {
 	handle: DraggableHandle;
 	hidden: boolean;
+	onClick?: (event: React.MouseEvent) => void;
 	children: React.ReactNode;
 }) {
 	return (
@@ -23,6 +29,7 @@ export default function DragSlot({
 				opacity: hidden ? 0 : 1,
 				cursor: hidden ? "grabbing" : "grab",
 			}}
+			onClick={hidden ? undefined : onClick}
 			{...listeners}
 			{...attributes}
 		>

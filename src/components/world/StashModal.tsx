@@ -1,3 +1,9 @@
+// The stash modal: the character's bag and the account stash side by side.
+// Items move by drag (reorder inside a side, transfer across), by shift-click
+// (transfer one), or by selecting and using the bulk Deposit / Withdraw. This
+// file composes `stash-modal/*` and owns what spans the two sides: the drag
+// and selection state and the transfer calls. The drop decision lives in
+// `stash-modal/drag.ts`. Pinned by StashModal.test.tsx.
 import {
 	closestCenter,
 	DndContext,
@@ -5,15 +11,13 @@ import {
 	DragOverlay,
 	type DragStartEvent,
 	PointerSensor,
-	useDraggable,
-	useDroppable,
 	useSensor,
 	useSensors,
 } from "@dnd-kit/core";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
+import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
 import {
@@ -27,17 +31,19 @@ import { useOpenedEdge } from "#/hooks/useOpenedEdge";
 import type { ItemRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
 
+import {
+	type DragSourceData,
+	isDragSource,
+	isDropTarget,
+	resolveStashDrop,
+	type StashMove,
+	type StashSide,
+} from "./stash-modal/drag";
+import { toggleAll, toggleId } from "./stash-modal/selection";
+import StashPanel from "./stash-modal/StashPanel";
+
 const SLOT_SIZE_DEFAULT = 76;
 const SLOT_SIZE_COMPACT = 64;
-const COLUMNS = 8;
-
-type DropTargetData =
-	| { kind: "inventory"; slot: number }
-	| { kind: "stash"; slot: number };
-
-type DragSourceData =
-	| { kind: "inventory"; itemId: number }
-	| { kind: "stash"; itemId: number };
 
 type Props = {
 	isOpen: boolean;
@@ -50,17 +56,20 @@ type Props = {
 	onWithdraw: (
 		itemIds: number[],
 	) => Promise<{ withdrawn: number; failed: number }>;
-	onReorderInventory: (args: {
-		itemId: number;
-		targetSlot: number;
-		swapWithItemId?: number;
-	}) => void;
-	onReorderStash: (args: {
-		itemId: number;
-		targetSlot: number;
-		swapWithItemId?: number;
-	}) => void;
+	onReorderInventory: (move: StashMove) => void;
+	onReorderStash: (move: StashMove) => void;
 };
+
+/** A transfer is named after the side it leaves: the bag deposits. */
+type Transfer = "deposit" | "withdraw";
+
+/** The toast when the receiving side has no room. */
+const FULL_MESSAGE = {
+	deposit: () => m.stash_full_error(),
+	withdraw: () => m.inventory_full_error(),
+} satisfies Record<Transfer, () => string>;
+
+const emptySelection = () => new Set<number>();
 
 export default function StashModal({
 	isOpen,
@@ -76,8 +85,8 @@ export default function StashModal({
 	const slotSize = compact ? SLOT_SIZE_COMPACT : SLOT_SIZE_DEFAULT;
 
 	const [active, setActive] = useState<DragSourceData | null>(null);
-	const [invSelected, setInvSelected] = useState<Set<number>>(new Set());
-	const [stashSelected, setStashSelected] = useState<Set<number>>(new Set());
+	const [invSelected, setInvSelected] = useState(emptySelection);
+	const [stashSelected, setStashSelected] = useState(emptySelection);
 	const [isDepositing, runDeposit] = useInFlight(isOpen);
 	const [isWithdrawing, runWithdraw] = useInFlight(isOpen);
 
@@ -87,208 +96,117 @@ export default function StashModal({
 
 	// Clear both selections on the closed → open edge, during render ("adjust
 	// state when a prop changes") so the first open frame is already clean.
-	const justOpened = useOpenedEdge(isOpen);
-	if (justOpened) {
-		setInvSelected(new Set());
-		setStashSelected(new Set());
+	if (useOpenedEdge(isOpen)) {
+		setInvSelected(emptySelection());
+		setStashSelected(emptySelection());
 	}
 
-	const inventoryBySlot = useMemo(() => {
-		const map = new Map<number, ItemRow>();
-		for (const item of inventoryItems) {
-			if (item.inventorySlot !== null) map.set(item.inventorySlot, item);
-		}
-		return map;
-	}, [inventoryItems]);
-
-	const stashBySlot = useMemo(() => {
-		const map = new Map<number, ItemRow>();
-		for (const item of stashItems) {
-			if (item.stashSlot !== null) map.set(item.stashSlot, item);
-		}
-		return map;
-	}, [stashItems]);
-
-	const invFree = Math.max(0, INVENTORY_MAX_SLOTS - inventoryItems.length);
-	const stashFree = Math.max(0, STASH_MAX_SLOTS - stashItems.length);
+	// Per side: its items, its selection, and the transfer that leaves it.
+	const sides = {
+		inventory: {
+			direction: "deposit",
+			items: inventoryItems,
+			selected: invSelected,
+			setSelected: setInvSelected,
+			run: runDeposit,
+		},
+		stash: {
+			direction: "withdraw",
+			items: stashItems,
+			selected: stashSelected,
+			setSelected: setStashSelected,
+			run: runWithdraw,
+		},
+	} as const;
 
 	const activeItem = useMemo<GeneratedItem | null>(() => {
 		if (!active) return null;
-		if (active.kind === "inventory") {
-			return inventoryItems.find((it) => it.id === active.itemId)?.data ?? null;
-		}
-		return stashItems.find((it) => it.id === active.itemId)?.data ?? null;
+		const items = active.kind === "inventory" ? inventoryItems : stashItems;
+		return items.find((it) => it.id === active.itemId)?.data ?? null;
 	}, [active, inventoryItems, stashItems]);
+
+	/** Moves one item across (shift-click, drag); toasts a refusal. */
+	const transferOne = async (direction: Transfer, itemId: number) => {
+		try {
+			const { failed } = await (direction === "deposit"
+				? onDeposit([itemId])
+				: onWithdraw([itemId]));
+			if (failed > 0) toast.error(FULL_MESSAGE[direction]());
+		} catch (err) {
+			// The error's own text, or the "full" message when it carries none.
+			toast.error(
+				err instanceof Error ? err.message : FULL_MESSAGE[direction](),
+			);
+		}
+	};
+
+	/** Moves `ids` across; the partial-result line, or null when all fit. */
+	const transferMany = async (
+		direction: Transfer,
+		ids: number[],
+	): Promise<string | null> => {
+		if (direction === "deposit") {
+			const { deposited, failed } = await onDeposit(ids);
+			return failed > 0 ? m.stash_deposit_result({ deposited, failed }) : null;
+		}
+		const { withdrawn, failed } = await onWithdraw(ids);
+		return failed > 0 ? m.stash_withdraw_result({ withdrawn, failed }) : null;
+	};
+
+	/** The bulk button: moves the selection, restoring it on a failure. */
+	const transferSelected = async (side: StashSide) => {
+		const { direction, items, selected, setSelected, run } = sides[side];
+		const ids = items.filter((it) => selected.has(it.id)).map((it) => it.id);
+		if (ids.length === 0) return;
+		const previous = new Set(selected);
+		await run(async () => {
+			setSelected(emptySelection());
+			try {
+				const partial = await transferMany(direction, ids);
+				if (partial) toast(partial);
+			} catch (err) {
+				setSelected(previous);
+				toast.error(
+					err instanceof Error ? err.message : FULL_MESSAGE[direction](),
+				);
+			}
+		});
+	};
+
+	const handleItemClick =
+		(side: StashSide) => (itemId: number, shiftKey: boolean) => {
+			const { direction, setSelected } = sides[side];
+			if (shiftKey) void transferOne(direction, itemId);
+			else setSelected((prev) => toggleId(prev, itemId));
+		};
+
+	const handleToggleAll = (side: StashSide) => () => {
+		const { items, setSelected } = sides[side];
+		setSelected((prev) => toggleAll(prev, items));
+	};
 
 	const handleDragStart = (event: DragStartEvent) => {
 		const data = event.active.data.current;
 		if (isDragSource(data)) setActive(data);
 	};
 
-	const handleDragCancel = () => setActive(null);
-
 	const handleDragEnd = async (event: DragEndEvent) => {
 		const source = event.active.data.current;
 		const target = event.over?.data.current;
 		setActive(null);
 		if (!isDragSource(source) || !isDropTarget(target)) return;
-
-		// Same panel reorder
-		if (source.kind === "inventory" && target.kind === "inventory") {
-			const doc = inventoryItems.find((it) => it.id === source.itemId);
-			if (!doc || doc.inventorySlot === target.slot) return;
-			const occupant = inventoryItems.find(
-				(it) => it.inventorySlot === target.slot && it.id !== source.itemId,
-			);
-			onReorderInventory({
-				itemId: source.itemId,
-				targetSlot: target.slot,
-				swapWithItemId: occupant?.id,
-			});
-			return;
-		}
-		if (source.kind === "stash" && target.kind === "stash") {
-			const doc = stashItems.find((it) => it.id === source.itemId);
-			if (!doc || doc.stashSlot === target.slot) return;
-			const stashOccupant = stashItems.find(
-				(it) => it.stashSlot === target.slot && it.id !== source.itemId,
-			);
-			onReorderStash({
-				itemId: source.itemId,
-				targetSlot: target.slot,
-				swapWithItemId: stashOccupant?.id,
-			});
-			return;
-		}
-
-		// Cross-panel transfer
-		if (source.kind === "inventory" && target.kind === "stash") {
-			try {
-				const result = await onDeposit([source.itemId]);
-				if (result.failed > 0) toast.error(m.stash_full_error());
-			} catch (err) {
-				toast.error(err instanceof Error ? err.message : m.stash_full_error());
-			}
-			return;
-		}
-		if (source.kind === "stash" && target.kind === "inventory") {
-			try {
-				const result = await onWithdraw([source.itemId]);
-				if (result.failed > 0) toast.error(m.inventory_full_error());
-			} catch (err) {
-				toast.error(
-					err instanceof Error ? err.message : m.inventory_full_error(),
-				);
-			}
-		}
-	};
-
-	const handleShiftClickInv = async (itemId: number) => {
-		try {
-			const result = await onDeposit([itemId]);
-			if (result.failed > 0) toast.error(m.stash_full_error());
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : m.stash_full_error());
-		}
-	};
-
-	const handleShiftClickStash = async (itemId: number) => {
-		try {
-			const result = await onWithdraw([itemId]);
-			if (result.failed > 0) toast.error(m.inventory_full_error());
-		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : m.inventory_full_error(),
-			);
-		}
-	};
-
-	const handleDepositSelected = async () => {
-		const ids = inventoryItems
-			.filter((it) => invSelected.has(it.id))
-			.map((it) => it.id);
-		if (ids.length === 0) return;
-		const prev = new Set(invSelected);
-		await runDeposit(async () => {
-			setInvSelected(new Set());
-			try {
-				const result = await onDeposit(ids);
-				if (result.failed > 0) {
-					toast(
-						m.stash_deposit_result({
-							deposited: result.deposited,
-							failed: result.failed,
-						}),
-					);
-				}
-			} catch (err) {
-				setInvSelected(prev);
-				toast.error(err instanceof Error ? err.message : m.stash_full_error());
-			}
-		});
-	};
-
-	const handleWithdrawSelected = async () => {
-		const ids = stashItems
-			.filter((it) => stashSelected.has(it.id))
-			.map((it) => it.id);
-		if (ids.length === 0) return;
-		const prev = new Set(stashSelected);
-		await runWithdraw(async () => {
-			setStashSelected(new Set());
-			try {
-				const result = await onWithdraw(ids);
-				if (result.failed > 0) {
-					toast(
-						m.stash_withdraw_result({
-							withdrawn: result.withdrawn,
-							failed: result.failed,
-						}),
-					);
-				}
-			} catch (err) {
-				setStashSelected(prev);
-				toast.error(
-					err instanceof Error ? err.message : m.inventory_full_error(),
-				);
-			}
-		});
-	};
-
-	const toggleInv = (id: number) => {
-		setInvSelected((prev) => {
-			const next = new Set(prev);
-			if (next.has(id)) next.delete(id);
-			else next.add(id);
-			return next;
-		});
-	};
-
-	const toggleStash = (id: number) => {
-		setStashSelected((prev) => {
-			const next = new Set(prev);
-			if (next.has(id)) next.delete(id);
-			else next.add(id);
-			return next;
-		});
-	};
-
-	const toggleAllInv = () => {
-		if (
-			invSelected.size === inventoryItems.length &&
-			inventoryItems.length > 0
-		) {
-			setInvSelected(new Set());
-		} else {
-			setInvSelected(new Set(inventoryItems.map((it) => it.id)));
-		}
-	};
-
-	const toggleAllStash = () => {
-		if (stashSelected.size === stashItems.length && stashItems.length > 0) {
-			setStashSelected(new Set());
-		} else {
-			setStashSelected(new Set(stashItems.map((it) => it.id)));
+		const action = resolveStashDrop(source, target, inventoryItems, stashItems);
+		if (!action) return;
+		switch (action.kind) {
+			case "reorderInventory":
+				onReorderInventory(action.move);
+				return;
+			case "reorderStash":
+				onReorderStash(action.move);
+				return;
+			case "deposit":
+			case "withdraw":
+				await transferOne(action.kind, action.itemId);
 		}
 	};
 
@@ -307,7 +225,7 @@ export default function StashModal({
 								type="button"
 								variant="starkMuted"
 								size="lg"
-								onClick={handleDepositSelected}
+								onClick={() => transferSelected("inventory")}
 								disabled={isDepositing}
 								className="text-sm uppercase tracking-wider"
 							>
@@ -319,7 +237,7 @@ export default function StashModal({
 								type="button"
 								variant="starkMuted"
 								size="lg"
-								onClick={handleWithdrawSelected}
+								onClick={() => transferSelected("stash")}
 								disabled={isWithdrawing}
 								className="text-sm uppercase tracking-wider"
 							>
@@ -327,13 +245,9 @@ export default function StashModal({
 							</Button>
 						)}
 					</div>
-					<button
-						type="button"
-						onClick={onClose}
-						className="border-2 border-white/40 bg-black px-6 py-2 font-medium text-sm text-white/80 uppercase tracking-[0.25em] transition hover:border-white hover:bg-white/10 hover:text-white"
-					>
+					<Button variant="hud" size="hud-lg" caps onClick={onClose}>
 						{m.modal_close_label()}
-					</button>
+					</Button>
 				</div>
 			}
 		>
@@ -342,136 +256,45 @@ export default function StashModal({
 				collisionDetection={closestCenter}
 				onDragStart={handleDragStart}
 				onDragEnd={handleDragEnd}
-				onDragCancel={handleDragCancel}
+				onDragCancel={() => setActive(null)}
 			>
 				<div className="flex gap-4">
-					{/* Inventory panel */}
-					<section className="min-w-0 flex-1">
-						<div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-white/40">
-							<h3>{m.stash_inventory_header()}</h3>
-							<div className="flex items-center gap-3">
-								{inventoryItems.length > 0 && (
-									<button
-										type="button"
-										onClick={toggleAllInv}
-										className="text-white/60 transition hover:text-white"
-									>
-										{invSelected.size === inventoryItems.length
-											? m.stash_deselect_all()
-											: m.stash_select_all()}
-									</button>
-								)}
-								<span>
-									{invFree === 1
-										? m.inventory_free_slot_one({ count: invFree })
-										: m.inventory_free_slot_other({ count: invFree })}
-								</span>
-							</div>
-						</div>
-						<div className="fancy-scroll max-h-[60vh] overflow-y-auto pr-2">
-							<div
-								className="grid gap-1"
-								style={{
-									gridTemplateColumns: `repeat(${COLUMNS}, ${slotSize}px)`,
-								}}
-							>
-								{Array.from({ length: INVENTORY_MAX_SLOTS }, (_, slot) => {
-									const item = inventoryBySlot.get(slot) ?? null;
-									return (
-										<StashSlotDroppable
-											key={`inv-${slot}`}
-											droppableId={`inv-${slot}`}
-											kind="inventory"
-											slot={slot}
-											item={item}
-											dragKind="inventory"
-											isDraggingThis={
-												active?.kind === "inventory" &&
-												item?.id === active.itemId
-											}
-											isSelected={item ? invSelected.has(item.id) : false}
-											onItemClick={(itemId, shiftKey) => {
-												if (shiftKey) {
-													void handleShiftClickInv(itemId);
-												} else {
-													toggleInv(itemId);
-												}
-											}}
-											slotSize={slotSize}
-										/>
-									);
-								})}
-							</div>
-						</div>
-					</section>
+					<StashPanel
+						side="inventory"
+						header={m.stash_inventory_header()}
+						freeLabel={(count) =>
+							count === 1
+								? m.inventory_free_slot_one({ count })
+								: m.inventory_free_slot_other({ count })
+						}
+						items={inventoryItems}
+						maxSlots={INVENTORY_MAX_SLOTS}
+						selected={invSelected}
+						dragging={active}
+						slotSize={slotSize}
+						onToggleAll={handleToggleAll("inventory")}
+						onItemClick={handleItemClick("inventory")}
+					/>
 
-					{/* Divider */}
 					<div className="w-px bg-white/15" aria-hidden />
 
-					{/* Stash panel */}
-					<section className="min-w-0 flex-1">
-						<div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-white/40">
-							<h3>{m.stash_header()}</h3>
-							<div className="flex items-center gap-3">
-								{stashItems.length > 0 && (
-									<button
-										type="button"
-										onClick={toggleAllStash}
-										className="text-white/60 transition hover:text-white"
-									>
-										{stashSelected.size === stashItems.length
-											? m.stash_deselect_all()
-											: m.stash_select_all()}
-									</button>
-								)}
-								<span>
-									{stashFree === 1
-										? m.stash_free_slot_one({ count: stashFree })
-										: m.stash_free_slot_other({ count: stashFree })}
-								</span>
-							</div>
-						</div>
-						<div className="fancy-scroll max-h-[60vh] overflow-y-auto pr-2">
-							{stashItems.length === 0 && !active ? (
-								<p className="py-12 text-center text-sm text-white/40">
-									{m.stash_empty()}
-								</p>
-							) : (
-								<div
-									className="grid gap-1"
-									style={{
-										gridTemplateColumns: `repeat(${COLUMNS}, ${slotSize}px)`,
-									}}
-								>
-									{Array.from({ length: STASH_MAX_SLOTS }, (_, slot) => {
-										const item = stashBySlot.get(slot) ?? null;
-										return (
-											<StashSlotDroppable
-												key={`stash-${slot}`}
-												droppableId={`stash-${slot}`}
-												kind="stash"
-												slot={slot}
-												item={item}
-												dragKind="stash"
-												isDraggingThis={
-													active?.kind === "stash" && item?.id === active.itemId
-												}
-												isSelected={item ? stashSelected.has(item.id) : false}
-												onItemClick={(itemId, shiftKey) => {
-													if (shiftKey) {
-														void handleShiftClickStash(itemId);
-													} else {
-														toggleStash(itemId);
-													}
-												}}
-												slotSize={slotSize}
-											/>
-										);
-									})}
-								</div>
-							)}
-						</div>
-					</section>
+					<StashPanel
+						side="stash"
+						header={m.stash_header()}
+						freeLabel={(count) =>
+							count === 1
+								? m.stash_free_slot_one({ count })
+								: m.stash_free_slot_other({ count })
+						}
+						emptyLabel={m.stash_empty()}
+						items={stashItems}
+						maxSlots={STASH_MAX_SLOTS}
+						selected={stashSelected}
+						dragging={active}
+						slotSize={slotSize}
+						onToggleAll={handleToggleAll("stash")}
+						onItemClick={handleItemClick("stash")}
+					/>
 				</div>
 
 				<DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
@@ -481,115 +304,5 @@ export default function StashModal({
 				</DragOverlay>
 			</DndContext>
 		</Modal>
-	);
-}
-
-function StashSlotDroppable({
-	droppableId,
-	kind,
-	slot,
-	item,
-	dragKind,
-	isDraggingThis,
-	isSelected,
-	onItemClick,
-	slotSize,
-}: {
-	droppableId: string;
-	kind: "inventory" | "stash";
-	slot: number;
-	item: ItemRow | null;
-	dragKind: "inventory" | "stash";
-	isDraggingThis: boolean;
-	isSelected: boolean;
-	onItemClick: (itemId: number, shiftKey: boolean) => void;
-	slotSize: number;
-}) {
-	const { setNodeRef: dropRef, isOver } = useDroppable({
-		id: droppableId,
-		data: { kind, slot } satisfies DropTargetData,
-	});
-	const highlight = isOver ? "ring-2 ring-yellow-300/80" : "";
-	const selectedRing =
-		isSelected && !isDraggingThis ? "ring-2 ring-sky-400/80" : "";
-	return (
-		<div
-			ref={dropRef}
-			style={{ width: slotSize, height: slotSize }}
-			className={`relative rounded-md transition-shadow ${highlight || selectedRing}`}
-		>
-			<div className={`absolute inset-0 rounded-md ${SLOT_EMPTY}`} />
-			{item && (
-				<DraggableStashItem
-					item={item}
-					dragKind={dragKind}
-					hidden={isDraggingThis}
-					onClick={(itemId, shiftKey) => onItemClick(itemId, shiftKey)}
-					slotSize={slotSize}
-				/>
-			)}
-		</div>
-	);
-}
-
-function DraggableStashItem({
-	item,
-	dragKind,
-	hidden,
-	onClick,
-	slotSize,
-}: {
-	item: ItemRow;
-	dragKind: "inventory" | "stash";
-	hidden: boolean;
-	onClick: (itemId: number, shiftKey: boolean) => void;
-	slotSize: number;
-}) {
-	const { attributes, listeners, setNodeRef } = useDraggable({
-		id: `${dragKind}-${item.id}`,
-		data: { kind: dragKind, itemId: item.id } satisfies DragSourceData,
-	});
-	return (
-		<div
-			ref={setNodeRef}
-			className="absolute inset-0"
-			style={{
-				opacity: hidden ? 0 : 1,
-				cursor: hidden ? "grabbing" : "grab",
-			}}
-			onClick={
-				hidden
-					? undefined
-					: (e) => {
-							e.stopPropagation();
-							onClick(item.id, e.shiftKey);
-						}
-			}
-			{...listeners}
-			{...attributes}
-		>
-			<ItemCard item={item.data} size={slotSize} suppressTooltip={hidden} />
-		</div>
-	);
-}
-
-// @dnd-kit types `data.current` as an open record; these guards are the
-// `unknown` boundary. `itemId` is only checked to be a number: every
-// draggable here registers a real item id.
-
-function isDragSource(d: unknown): d is DragSourceData {
-	if (typeof d !== "object" || d === null) return false;
-	if (!("kind" in d) || !("itemId" in d)) return false;
-	return (
-		(d.kind === "inventory" || d.kind === "stash") &&
-		typeof d.itemId === "number"
-	);
-}
-
-function isDropTarget(d: unknown): d is DropTargetData {
-	if (typeof d !== "object" || d === null) return false;
-	if (!("kind" in d) || !("slot" in d)) return false;
-	return (
-		(d.kind === "inventory" || d.kind === "stash") && typeof d.slot === "number"
 	);
 }

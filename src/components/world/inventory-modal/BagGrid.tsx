@@ -1,13 +1,14 @@
-import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { useDraggable } from "@dnd-kit/core";
 import { useMemo } from "react";
 
-import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
+import DragSlot from "#/components/game/DragSlot";
+import DropCell from "#/components/game/DropCell";
+import ItemCard from "#/components/game/ItemCard";
 import { INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import type { ItemRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
 
 import type { DragSourceData, DropTargetData } from "./drag";
-import DragSlot from "./DragSlot";
 
 export const INVENTORY_SLOT_SIZE = 112;
 const INVENTORY_COLUMNS = 8;
@@ -85,18 +86,12 @@ function InventoryDroppable({
 	avoidRect: DOMRect | null;
 	onItemClick: (source: DragSourceData, rect: DOMRect) => void;
 }) {
-	const { setNodeRef, isOver } = useDroppable({
-		id: `slot-${slot}`,
-		data: { kind: "inventory", slot } satisfies DropTargetData,
-	});
-	const highlight = isOver ? "ring-2 ring-yellow-300/80" : "";
 	return (
-		<div
-			ref={setNodeRef}
-			style={{ width: INVENTORY_SLOT_SIZE, height: INVENTORY_SLOT_SIZE }}
-			className={`relative rounded-md transition-shadow ${highlight}`}
+		<DropCell
+			id={`slot-${slot}`}
+			data={{ kind: "inventory", slot } satisfies DropTargetData}
+			size={INVENTORY_SLOT_SIZE}
 		>
-			<div className={`absolute inset-0 rounded-md ${SLOT_EMPTY}`} />
 			{item && (
 				<DraggableInventoryItem
 					item={item}
@@ -105,7 +100,7 @@ function InventoryDroppable({
 					onClick={onItemClick}
 				/>
 			)}
-		</div>
+		</DropCell>
 	);
 }
 
