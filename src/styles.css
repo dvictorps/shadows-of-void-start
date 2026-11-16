@@ -127,6 +127,16 @@
   --color-selection: rgba(168, 85, 247, 0.32);
   /* The void purple of the title glow, for links and accents. */
   --color-void: #c084fc;
+  /* The red of the stark destructive buttons (destructive confirms, delete). */
+  --color-danger: var(--color-red-400);
+  --color-danger-foreground: var(--color-red-100);
+  --color-danger-muted: var(--color-red-950);
+  /* The /world layout: scene column + fixed sidebar, scene + text log. */
+  --grid-template-columns-world: 1fr 640px;
+  --grid-template-columns-world-compact: 1fr 520px;
+  --grid-template-rows-world-scene: 1fr 160px;
+  --grid-template-rows-world-scene-compact: 1fr 100px;
+  --grid-template-rows-world-sidebar: 1fr auto;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

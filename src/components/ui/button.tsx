@@ -5,7 +5,7 @@ import type * as React from "react";
 import { cn } from "#/lib/utils";
 
 const buttonVariants = cva(
-	"inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+	"inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
 	{
 		variants: {
 			variant: {
@@ -21,12 +21,15 @@ const buttonVariants = cva(
 				link: "text-primary underline-offset-4 hover:underline",
 				stark: "border border-white bg-black text-white hover:bg-white/10",
 				starkDestructive:
-					"border border-red-400 bg-black text-red-100 hover:bg-red-950/40 hover:text-red-100",
+					"border border-danger bg-black text-danger-foreground hover:bg-danger-muted/40 hover:text-danger-foreground",
 				starkMuted:
 					"border border-white/40 bg-black text-white/80 hover:bg-white/10 hover:text-white",
 				"ghost-purple": "bg-transparent text-white hover:text-void",
 				// Inline text link in the void purple (pair with size="inline").
 				voidLink: "text-void underline hover:text-void/80",
+				// Square-cornered control floating over the game art (the world
+				// map's back button). Pair with size="hud" and `caps`.
+				hud: "rounded-none border border-white/40 bg-black text-white/80 hover:border-white hover:bg-white/10 hover:text-white",
 			},
 			size: {
 				default: "h-9 px-4 py-2 has-[>svg]:px-3",
@@ -41,6 +44,8 @@ const buttonVariants = cva(
 				tall: "h-auto px-3 py-2.5",
 				// Sits inside running text.
 				inline: "h-auto p-0",
+				// The small label of the HUD controls over the game art.
+				hud: "h-auto gap-1.5 px-3 py-1.5 text-2xs",
 			},
 			// The uppercase, tracked label of the stark app-shell buttons.
 			caps: {

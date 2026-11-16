@@ -28,6 +28,10 @@ export type CampSource = "baked" | "incense";
 
 export type NodeKind = "city" | "combat" | "boss";
 
+// What the /world route shows: the act map, or the area of the node the
+// character stands on.
+export type WorldViewMode = "map" | "city" | "combat";
+
 export interface NodeConnection {
 	// Target node id. Edges are undirected; list each connection on at least
 	// one side (renderer dedupes).

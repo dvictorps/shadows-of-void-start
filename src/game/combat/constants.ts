@@ -13,7 +13,7 @@ export type CombatPhase = (typeof COMBAT_PHASES)[number];
 // Bag retention: non-camp exits cap kept items at this fraction of bag
 // size (floor, min 1 when ≥1 item, 0 when empty). Camp keeps everything.
 // Server (`items.exitZone`) enforces it authoritatively; client
-// (world.tsx) mirrors for UX. Both call `computeBagKeepCap` so a rebalance
+// (`planZoneExit`, used by `useExitFlow`) mirrors for UX. Both call `computeBagKeepCap` so a rebalance
 // here can't desync them.
 export const RETENTION_CAP_FRACTION = 0.3;
 

@@ -33,5 +33,6 @@ export type {
 	CampSource,
 	NodeKind,
 	WorldNode,
+	WorldViewMode,
 } from "./types";
 export { ACT_1 };

@@ -28,11 +28,9 @@ import {
 	useState,
 } from "react";
 
-import { ACT_1, findNode } from "#/game/world";
+import { ACT_1, findNode, type WorldViewMode } from "#/game/world";
 
 import type { useWorldMutations } from "./useWorldMutations";
-
-type ViewMode = "map" | "city" | "combat";
 
 // The session-wrapped mutations this hook drives; typing them from their
 // owner keeps the server shape honest.
@@ -61,7 +59,7 @@ export function useViewMode({
 	// and to start the combat loop's new visit (`useCombatLoop.startVisit`).
 	onEnterNewArea?: (nodeId: string) => void;
 }) {
-	const [view, setView] = useState<ViewMode>("map");
+	const [view, setView] = useState<WorldViewMode>("map");
 	// Set when the player clicks a node that requires travel — the auto-arrival
 	// effect transitions the view to this node's area when travel completes.
 	// Also reseeded from `travelDestination` on mount so a refresh mid-travel
@@ -143,7 +141,7 @@ export function useViewMode({
 	};
 }
 
-function viewForNode(nodeId: string): ViewMode | null {
+function viewForNode(nodeId: string): WorldViewMode | null {
 	const node = findNode(ACT_1, nodeId);
 	if (!node) return null;
 	if (node.kind === "city") return "city";

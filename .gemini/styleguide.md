@@ -105,8 +105,13 @@ them is a real finding, not a stylistic preference.
   or state-of-truth derivation in a handler). Do NOT flag growth that
   stays inside the right section — adding a new handler in the handlers
   block or new JSX in the render block is fine, even if it bumps line
-  count. The current floor for an orchestrator route at this app's scale
-  is ~700-750 lines.
+  count. Since `refactor/world-split` the measured gate is the lint's
+  `complexity` (max 20): `WorldLayout` sits at 18, with its decisions in
+  `src/game` (text log, node click, zone context, incense, zone exit), the
+  exit flow / session claim / incense guard in tested hooks, and the view
+  blocks in `CombatPane` / `WorldMapPane` / `WorldSidebar`. Flag a PR that
+  puts a decision back into `WorldLayout` (it shows up as a `complexity`
+  warning) instead of extending one of those. The file is ~660 lines.
 - **Pre-rendering display strings.** Item / monster names are rendered at
   display time on purpose so locale switching retranslates everything. If a
   PR caches a rendered name on a row, in localStorage, or anywhere
