@@ -1,6 +1,8 @@
 import BagPreviewModal from "#/components/world/BagPreviewModal";
 import ExitZoneModal from "#/components/world/ExitZoneModal";
-import InventoryModal from "#/components/world/InventoryModal";
+import InventoryModal, {
+	type InventoryServer,
+} from "#/components/world/InventoryModal";
 import SettingsModal from "#/components/world/SettingsModal";
 import StashModal from "#/components/world/StashModal";
 import VendorModal from "#/components/world/VendorModal";
@@ -38,6 +40,7 @@ export function WorldModals({
 	onStashWithdraw,
 	onReorderInventory,
 	onReorderStash,
+	inventoryServer,
 }: {
 	bagModal: ModalHandle;
 	exitModal: ModalHandle;
@@ -80,6 +83,7 @@ export function WorldModals({
 		targetSlot: number;
 		swapWithItemId?: number;
 	}) => void;
+	inventoryServer: InventoryServer;
 }) {
 	const bag = zoneBag ?? [];
 	const inventory = inventoryItems ?? [];
@@ -108,6 +112,7 @@ export function WorldModals({
 				characterLevel={characterLevel}
 				equippedItems={equippedItems ?? []}
 				inventoryItems={inventory}
+				server={inventoryServer}
 			/>
 			<VendorModal
 				isOpen={vendorModal.isOpen}

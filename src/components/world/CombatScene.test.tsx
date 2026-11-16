@@ -34,6 +34,7 @@ import {
 	vi,
 } from "vitest";
 
+import { narrow } from "#/components/dom-test-utils";
 import { GRALFOR } from "#/game/bosses/gralfor";
 import { ELEMENT_SWITCH_COOLDOWN_MS } from "#/game/combat/constants";
 import type { Enemy } from "#/game/combat/types";
@@ -52,19 +53,6 @@ import CombatScene, { type ConsumableKey } from "./CombatScene";
 
 type Props = ComponentProps<typeof CombatScene>;
 type SwitchElement = NonNullable<Props["onSwitchElement"]>;
-
-/** Narrows a queried node to `type`, failing the test when the DOM moved. */
-function narrow<T extends Element>(
-	node: Element | null | undefined,
-	type: abstract new (...args: never[]) => T,
-): T {
-	if (!(node instanceof type)) {
-		throw new Error(
-			`expected a ${type.name}, got ${node?.tagName ?? "nothing"}`,
-		);
-	}
-	return node;
-}
 
 const ZONE_ID = "forest_starter";
 
