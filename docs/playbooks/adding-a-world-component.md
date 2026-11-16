@@ -11,7 +11,7 @@ Living examples: `src/components/world/InventoryModal.tsx` + `inventory-modal/`,
    - data as props;
    - calls as a `server` prop typed by an interface the component declares, with `Promise<object>` returns (`InventoryServer` in `InventoryModal.tsx`, `ExitFlowServer` in `useExitFlow.ts`). `import type` from the hook is fine to derive the argument types.
 
-   The lint sees direct imports only. A hook that wraps `useQuery` or the tRPC client (say a future `useLeaderboard`) is a server call too: call it in the route, not in the component.
+   The lint sees direct imports only. A hook that wraps `useQuery` or the tRPC client (`useLeaderboardSnapshot`) is a server call too: call it in the route and pass its data down, as `world.tsx` does for `LeaderboardModal`.
 
 3. **Handlers dispatch; they don't decide.** A choice with more than two branches over game data goes into a pure function with its own test:
    - a game rule → `src/game/<domain>/` (the engine; see `shadows/game-imports`);
@@ -34,7 +34,7 @@ Living examples: `src/components/world/InventoryModal.tsx` + `inventory-modal/`,
 
 ## Debt lists
 
-`oxlint.config.ts` holds two shrink-only lists, `COMPLEXITY_DEBT` and `SERVER_CALLS_IN_COMPONENTS_DEBT`: files that still break a rule and are held at `warn` until their refactor lands. A refactor PR removes its file from the list. Never add one: new code meets the rules.
+`oxlint.config.ts` holds one shrink-only list, `COMPLEXITY_DEBT`: files that still break the complexity rule and are held at `warn` until their refactor lands. A refactor PR removes its file from the list. Never add one: new code meets the rules. Its sibling for server calls emptied (REFACTOR GATE item 8), so `shadows/no-server-calls-in-components` has no exceptions.
 
 ## Validation
 

@@ -1,4 +1,4 @@
-import type { inferRouterOutputs } from "@trpc/server";
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 
 import type { AppRouter } from "#/server/trpc/router";
 
@@ -6,6 +6,7 @@ import type { AppRouter } from "#/server/trpc/router";
 // stays the single source (ADR 0009). Type-only: nothing here reaches the
 // client bundle.
 type RouterOutputs = inferRouterOutputs<AppRouter>;
+type RouterInputs = inferRouterInputs<AppRouter>;
 
 /** A character as `characters.byId` returns it: every column but the bag. */
 export type CharacterRow = NonNullable<RouterOutputs["characters"]["byId"]>;
@@ -15,3 +16,9 @@ export type ItemRow = RouterOutputs["items"]["inventory"][number];
 export type BagEntry = RouterOutputs["items"]["zoneBag"][number];
 /** The admin dashboard's queries. */
 export type AdminOutputs = RouterOutputs["admin"];
+/** One leaderboard snapshot (category × mode), as the hourly cron wrote it. */
+export type LeaderboardSnapshot = NonNullable<
+	RouterOutputs["leaderboard"]["getSnapshot"]
+>;
+/** Which snapshot to read: the leaderboard's two tab rows (category × mode). */
+export type LeaderboardQuery = RouterInputs["leaderboard"]["getSnapshot"];

@@ -1,4 +1,3 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -9,7 +8,6 @@ import { Label } from "#/components/ui/label";
 import { CLASS_DEFINITIONS } from "#/game/classes/data";
 import { getClassDisplayName } from "#/game/classes/i18n";
 import type { CharacterClassId } from "#/game/classes/types";
-import { useTRPC } from "#/integrations/trpc/client";
 import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
 
@@ -29,29 +27,31 @@ const ATTRIBUTE_LABEL = {
 	intelligence: m.attribute_intelligence,
 } satisfies Record<"strength" | "dexterity" | "intelligence", () => string>;
 
+export type NewCharacter = {
+	name: string;
+	classId: CharacterClassId;
+	hardcore: boolean;
+};
+
+/** The server call the modal makes; the route passes the real mutation. */
+export interface CreateCharacterServer {
+	/** Resolves with the new character's id. */
+	create: (input: NewCharacter) => Promise<number>;
+}
+
 type Props = {
 	isOpen: boolean;
 	onClose: () => void;
 	onCreated: (id: number) => void;
+	server: CreateCharacterServer;
 };
 
 export default function CreateCharacterModal({
 	isOpen,
 	onClose,
 	onCreated,
+	server,
 }: Props) {
-	const trpc = useTRPC();
-	const queryClient = useQueryClient();
-	// The new row (with its starter stats) comes from the server, so the list
-	// is refetched rather than predicted.
-	const { mutateAsync: createCharacter } = useMutation(
-		trpc.characters.create.mutationOptions({
-			onSuccess: () =>
-				queryClient.invalidateQueries({
-					queryKey: trpc.characters.list.queryKey(),
-				}),
-		}),
-	);
 	const [name, setName] = useState("");
 	const [classId, setClassId] = useState<CharacterClassId>("warrior");
 	const [hardcore, setHardcore] = useState(false);
@@ -79,7 +79,7 @@ export default function CreateCharacterModal({
 		}
 		setSubmitting(true);
 		try {
-			const id = await createCharacter({ name: trimmed, classId, hardcore });
+			const id = await server.create({ name: trimmed, classId, hardcore });
 			toast.success(m.character_created({ name: trimmed }));
 			reset();
 			onCreated(id);

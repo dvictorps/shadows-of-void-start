@@ -55,6 +55,13 @@ function CharacterSelectPage() {
 				),
 		}),
 	);
+	// The new row (with its starter stats) comes from the server, so the list
+	// is refetched rather than predicted.
+	const { mutateAsync: createCharacter } = useMutation(
+		trpc.characters.create.mutationOptions({
+			onSuccess: () => queryClient.invalidateQueries({ queryKey: listKey }),
+		}),
+	);
 	const { mutateAsync: claimSession } = useMutation(
 		trpc.characters.claimCharacterSession.mutationOptions(),
 	);
@@ -205,6 +212,7 @@ function CharacterSelectPage() {
 				isOpen={createModal.isOpen}
 				onClose={createModal.close}
 				onCreated={handleCreated}
+				server={{ create: createCharacter }}
 			/>
 		</main>
 	);

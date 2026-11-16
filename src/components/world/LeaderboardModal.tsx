@@ -1,16 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
 import { Skull } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { useTRPC } from "#/integrations/trpc/client";
+import type { LeaderboardQuery, LeaderboardSnapshot } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
 
 import Modal from "../Modal";
-
-const LEADERBOARD_REFETCH_MS = 5 * 60_000;
-
-type Category = "level" | "bossKills";
-type Mode = "softcore" | "hardcore";
 
 // Keyed by the leaderboard row's open `classId: string`; a Map keeps unknown
 // ids on the raw-id fallback. Insertion order drives the filter buttons.
@@ -20,28 +14,31 @@ const CLASS_LABELS = new Map<string, () => string>([
 	["mage", () => m.class_mage_name()],
 ]);
 
+/**
+ * The leaderboard: level or boss kills, softcore or hardcore, a class filter
+ * and the hardcore fallen. The route fetches the snapshot for the tabs
+ * picked (`useLeaderboardSnapshot`); `snapshot` is undefined while loading.
+ */
 export default function LeaderboardModal({
 	isOpen,
 	onClose,
+	snapshot,
+	query,
+	onQueryChange,
 }: {
 	isOpen: boolean;
 	onClose: () => void;
+	snapshot: LeaderboardSnapshot | null | undefined;
+	query: LeaderboardQuery;
+	onQueryChange: (query: LeaderboardQuery) => void;
 }) {
-	const [category, setCategory] = useState<Category>("level");
-	const [mode, setMode] = useState<Mode>("softcore");
+	const { category, mode } = query;
+	const setCategory = (next: LeaderboardQuery["category"]) =>
+		onQueryChange({ ...query, category: next });
+	const setMode = (next: LeaderboardQuery["mode"]) =>
+		onQueryChange({ ...query, mode: next });
 	const [classFilter, setClassFilter] = useState<string>("all");
 	const [showFallen, setShowFallen] = useState(false);
-
-	// No subscription (ADR 0009): the hourly cron rewrites the snapshot, so a
-	// 5-minute freshness window (reopens and tab switches within it read the
-	// cache) and the same polling interval while open are plenty.
-	const trpc = useTRPC();
-	const { data: snapshot } = useQuery({
-		...trpc.leaderboard.getSnapshot.queryOptions({ category, mode }),
-		enabled: isOpen,
-		staleTime: LEADERBOARD_REFETCH_MS,
-		refetchInterval: LEADERBOARD_REFETCH_MS,
-	});
 
 	const entries = useMemo(() => {
 		if (!snapshot?.entries) return [];
