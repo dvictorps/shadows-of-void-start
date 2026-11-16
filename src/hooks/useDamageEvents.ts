@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-
 import type { WeaponType } from "#/game/items/types/base";
+
+import { useExpiringList } from "./useExpiringList";
 
 export type DamageEvent = {
 	id: string;
@@ -18,33 +18,11 @@ export type DamageEvent = {
 const EVENT_LIFETIME_MS = 900;
 
 /**
- * Manages a queue of short-lived floating-damage events. Consumers call
- * `push()` and render `events` directly; cleanup happens on a timer so old
- * popups disappear automatically. Pending timers are cleared on unmount so
- * we don't setState on an unmounted component when the player retreats
- * mid-combat.
+ * The floating-damage popups: consumers call `push()` and render `events`;
+ * each popup drops itself after EVENT_LIFETIME_MS.
  */
 export function useDamageEvents() {
-	const [events, setEvents] = useState<DamageEvent[]>([]);
-	const pendingTimers = useRef<Set<number>>(new Set());
-
-	useEffect(() => {
-		const timers = pendingTimers.current;
-		return () => {
-			for (const id of timers) window.clearTimeout(id);
-			timers.clear();
-		};
-	}, []);
-
-	const push = useCallback((event: Omit<DamageEvent, "id">) => {
-		const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-		setEvents((prev) => [...prev, { ...event, id }]);
-		const timerId = window.setTimeout(() => {
-			setEvents((prev) => prev.filter((e) => e.id !== id));
-			pendingTimers.current.delete(timerId);
-		}, EVENT_LIFETIME_MS);
-		pendingTimers.current.add(timerId);
-	}, []);
-
+	const { items: events, push } =
+		useExpiringList<Omit<DamageEvent, "id">>(EVENT_LIFETIME_MS);
 	return { events, push };
 }

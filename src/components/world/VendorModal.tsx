@@ -9,6 +9,7 @@ import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
 import { computeSellPrice } from "#/game/items/sell-price";
 import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
+import { useExpiringList } from "#/hooks/useExpiringList";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
 import type { ItemRow } from "#/lib/api-types";
@@ -47,7 +48,11 @@ export default function VendorModal({
 }: Props) {
 	const [tab, setTab] = useState<Tab>("buy");
 	const [selected, setSelected] = useState(() => new Set<number>());
-	const [rubyDeltas, setRubyDeltas] = useState<RubyDelta[]>([]);
+	const {
+		items: rubyDeltas,
+		push: pushRubyDelta,
+		clear: clearRubyDeltas,
+	} = useExpiringList<Omit<RubyDelta, "id">>(RUBY_DELTA_LIFETIME_MS);
 	// Per-product spam-click guard. Server-side rate limiting is the real
 	// hardening — see docs/security/threat-model.md.
 	const [pendingBuys, setPendingBuys] = useState(
@@ -60,28 +65,20 @@ export default function VendorModal({
 	const justOpened = useOpenedEdge(isOpen);
 	if (justOpened) {
 		setSelected(new Set());
-		setRubyDeltas([]);
+		clearRubyDeltas();
 		setPendingBuys(new Set());
 	}
-
-	const pushRubyDelta = (amount: number, sign: "+" | "-") => {
-		const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-		setRubyDeltas((prev) => [...prev, { id, amount, sign }]);
-		window.setTimeout(() => {
-			setRubyDeltas((prev) => prev.filter((d) => d.id !== id));
-		}, RUBY_DELTA_LIFETIME_MS);
-	};
 
 	const handleBuy = async (productId: VendorProductId, quantity: number) => {
 		if (pendingBuys.has(productId)) return;
 		const totalCost = VENDOR_PRODUCTS[productId].priceRubys * quantity;
 		setPendingBuys((prev) => new Set([...prev, productId]));
-		pushRubyDelta(totalCost, "-");
+		pushRubyDelta({ amount: totalCost, sign: "-" });
 		try {
 			await onBuy(productId, quantity);
 		} catch (err) {
 			// Reverse the optimistic delta so the visual matches the reverted balance.
-			pushRubyDelta(totalCost, "+");
+			pushRubyDelta({ amount: totalCost, sign: "+" });
 			toast.error(serverErrorMessage(err, m.vendor_buy_failed()));
 		} finally {
 			setPendingBuys((prev) => {
@@ -117,13 +114,13 @@ export default function VendorModal({
 		const itemIds = selectedItems.map((it) => it.id);
 		const previousSelection = new Set(selected);
 		await runSell(async () => {
-			pushRubyDelta(total, "+");
+			pushRubyDelta({ amount: total, sign: "+" });
 			setSelected(new Set());
 			try {
 				await onSellMany(itemIds);
 			} catch (err) {
 				// Reverse the optimistic delta + restore the selection so the user can retry.
-				pushRubyDelta(total, "-");
+				pushRubyDelta({ amount: total, sign: "-" });
 				setSelected(previousSelection);
 				toast.error(serverErrorMessage(err, m.vendor_sell_failed()));
 			}
