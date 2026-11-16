@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	DEFAULT_ENCOUNTER_PLAN,
+	encounterPlanForNode,
 	rollAmbushSchedule,
 	rollCampThresholdsMs,
 	rollSpawnGapMs,
@@ -141,5 +143,35 @@ describe("rollAmbushSchedule", () => {
 				);
 			}
 		}
+	});
+});
+
+describe("encounterPlanForNode", () => {
+	const zonePlan: ZoneEncounterPlan = {
+		calmariaBudgetSeconds: 40,
+		gapBetweenSpawns: { min: 2, max: 4 },
+		campFractions: [0.33, 0.66],
+	};
+
+	it("uses the zone's declared plan", () => {
+		expect(encounterPlanForNode({ encounterPlan: zonePlan })).toBe(zonePlan);
+	});
+
+	it("turns a boss node's warmup into the calmaria budget, with no camps or ambushes", () => {
+		const plan = encounterPlanForNode({
+			bossNode: {
+				bossId: "gralfor",
+				warmupSeconds: 30,
+				gauntlet: { fights: 3, monsterPool: ["goblin"] },
+			},
+		});
+		expect(plan.calmariaBudgetSeconds).toBe(30);
+		expect(plan.campFractions).toEqual([]);
+		expect(plan.ambushes).toBeUndefined();
+	});
+
+	it("falls back to the default plan without a node or a declared plan", () => {
+		expect(encounterPlanForNode(null)).toBe(DEFAULT_ENCOUNTER_PLAN);
+		expect(encounterPlanForNode({})).toBe(DEFAULT_ENCOUNTER_PLAN);
 	});
 });

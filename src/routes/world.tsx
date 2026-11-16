@@ -26,10 +26,7 @@ import { xpToNextLevel } from "#/game/progression/levels";
 import { computeCharacterStats } from "#/game/stats/compute";
 import { type EquippedItem, type EquippedSlot } from "#/game/stats/types";
 import { ACT_1, findNode } from "#/game/world";
-import {
-	DEFAULT_ENCOUNTER_PLAN,
-	type ZoneEncounterPlan,
-} from "#/game/world/encounter-schedule";
+import { encounterPlanForNode } from "#/game/world/encounter-schedule";
 import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
 import { useBarrier } from "#/hooks/useBarrier";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
@@ -287,7 +284,13 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 			enterCity,
 			enterZone,
 			arriveAtTravel,
-			onEnterNewArea: () => setDeathLog(null),
+			onEnterNewArea: (nodeId) => {
+				setDeathLog(null);
+				// A new zone visit starts clean. `combat` is declared below (it
+				// needs `view`); this runs on the entry event, after render.
+				const node = findNode(ACT_1, nodeId);
+				combat.startVisit(encounterPlanForNode(node), node?.bossNode ?? null);
+			},
 		});
 
 	// Always loaded: the optimistic equip / unequip / discard updates need a
@@ -333,21 +336,12 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		[currentNode],
 	);
 	const zoneLevel = currentNode?.level ?? character.level;
-	// Boss nodes use the warmup seconds as the calmaria budget so the time
-	// bar fills during the warmup phase. No camps, no ambushes — the bar
-	// just marks progress toward the gauntlet. Regular zones use their own
-	// declared plan or the default.
-	const encounterPlan = useMemo((): ZoneEncounterPlan => {
-		const warmup = currentNode?.bossNode?.warmupSeconds;
-		if (warmup) {
-			return {
-				calmariaBudgetSeconds: warmup,
-				gapBetweenSpawns: { min: 1.5, max: 3 },
-				campFractions: [],
-			};
-		}
-		return currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
-	}, [currentNode?.bossNode?.warmupSeconds, currentNode?.encounterPlan]);
+	// Memoized so the schedule's plan-bound callbacks (recordSpawn,
+	// cancelAmbush) stay stable: a boss node's plan is built fresh on each call.
+	const encounterPlan = useMemo(
+		() => encounterPlanForNode(currentNode),
+		[currentNode],
+	);
 
 	const handlePlayerDeath = useCallback(async () => {
 		try {

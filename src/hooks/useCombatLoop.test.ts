@@ -120,13 +120,22 @@ function setup(overrides: Partial<Props> = {}) {
 		onPlayerDeath,
 		...overrides,
 	};
-	// Mounted inactive, then activated, as in the app: `/world` opens on the
-	// map and entering a zone flips `active`.
+	// As in the app: `/world` opens on the map (inactive), and entering a zone
+	// starts the visit and flips `active`.
 	const hook = renderHook((p: Props) => useHarness(p), {
 		initialProps: { ...props, active: false },
 	});
-	hook.rerender(props);
-	return { ...hook, props, server, onPlayerDeath };
+	const enterZone = (next: Props = props) => {
+		act(() =>
+			hook.result.current.startVisit(next.encounterPlan, next.bossNode ?? null),
+		);
+		hook.rerender({ ...next, active: true });
+	};
+	const leaveZone = (next: Props = props) => {
+		hook.rerender({ ...next, active: false });
+	};
+	enterZone();
+	return { ...hook, props, server, onPlayerDeath, enterZone, leaveZone };
 }
 
 // One `act` per step: React flushes effects (and arms the next timers) at the
@@ -381,16 +390,16 @@ describe("useCombatLoop — boss node", () => {
 	});
 });
 
-describe("useCombatLoop — activation reset", () => {
+describe("useCombatLoop — a new zone visit (startVisit)", () => {
 	it("leaving and re-entering mid-fight starts clean", () => {
-		const { result, rerender, props } = setup({
+		const { result, enterZone, leaveZone } = setup({
 			stats: makeStats({ maxLife: MAX_LIFE }),
 		});
 		advance(SPAWN_GAP_MS);
 		expect(result.current.state).toBe("engaged");
 
-		rerender({ ...props, active: false });
-		rerender({ ...props, active: true });
+		leaveZone();
+		enterZone();
 		expect(result.current.state).toBe("searching");
 		expect(result.current.enemy).toBeNull();
 		expect(result.current.lastKill).toBeNull();
@@ -398,14 +407,14 @@ describe("useCombatLoop — activation reset", () => {
 	});
 
 	it("drops a queued incense on re-entry", async () => {
-		const { result, rerender, props, server } = setup({
+		const { result, props, server, enterZone, leaveZone } = setup({
 			stats: makeStats({ maxLife: MAX_LIFE }),
 		});
 		advance(SPAWN_GAP_MS);
 		act(() => result.current.triggerIncense());
 
-		rerender({ ...props, active: false });
-		rerender({ ...props, active: true, stats: oneShotStats() });
+		leaveZone();
+		enterZone({ ...props, stats: oneShotStats() });
 		advance(SPAWN_GAP_MS + STEP_MS);
 		await flushServer();
 		advance(VICTORY_DELAY_MS);
@@ -413,7 +422,90 @@ describe("useCombatLoop — activation reset", () => {
 		expect(server.enterCampViaIncense).not.toHaveBeenCalled();
 	});
 
+	it("a miniboss kill left during the victory pause doesn't hold the next visit's bar", async () => {
+		const { result, props, enterZone, leaveZone } = setup({
+			encounterPlan: SHORT_BUDGET_PLAN,
+		});
+		advance(SPAWN_GAP_MS + RARE_INTRO_MS + STEP_MS);
+		expect(result.current.state).toBe("victory");
+		await flushServer();
+
+		// Leave before the 800 ms pause ends.
+		leaveZone();
+		enterZone({ ...props, encounterPlan: PLAN });
+		advance(500);
+		expect(result.current.calmariaElapsedMs).toBe(500);
+	});
+
 	it("rewinds the boss-node gauntlet to fight 1", async () => {
+		const { result, enterZone, leaveZone } = setup({
+			bossNode: {
+				...BOSS_NODE,
+				gauntlet: { ...BOSS_NODE.gauntlet, fights: 2 },
+			},
+		});
+		// Clear gauntlet fight 1 of 2.
+		advance(GAUNTLET_SPAWN_MS + RARE_INTRO_MS + STEP_MS);
+		await flushServer();
+		advance(VICTORY_DELAY_MS);
+
+		leaveZone();
+		enterZone();
+		// Two rares again before the boss, not one.
+		for (let fight = 0; fight < 2; fight++) {
+			advance(GAUNTLET_SPAWN_MS);
+			expect(result.current.enemy?.rarity).toBe("rare");
+			advance(RARE_INTRO_MS + STEP_MS);
+			await flushServer();
+			advance(VICTORY_DELAY_MS);
+		}
+		advance(GAUNTLET_SPAWN_MS);
+		expect(result.current.enemy?.rarity).toBe("unique");
+	});
+});
+
+// The exit modal drops `active` while it's open; its Cancel brings it back
+// without a new visit. CONTEXT.md → exit modal: "Cancel closes the modal and
+// returns the player to the engaged combat view".
+describe("useCombatLoop — pausing and resuming the same visit", () => {
+	it("resumes the fight with the same enemy", () => {
+		const { result, rerender, props } = setup({
+			stats: makeStats({ maxLife: MAX_LIFE }),
+		});
+		advance(SPAWN_GAP_MS);
+		const enemy = result.current.enemy;
+		expect(enemy).not.toBeNull();
+
+		rerender({ ...props, active: false });
+		advance(SPAWN_GAP_MS);
+		rerender({ ...props, active: true });
+		expect(result.current.state).toBe("engaged");
+		expect(result.current.enemy).toBe(enemy);
+	});
+
+	it("keeps the fight's HP instead of snapping back to the cached value", () => {
+		// A character that deals no damage, so the goblin lives to land hits.
+		const base = makeStats({ maxLife: MAX_LIFE });
+		const { result, rerender, props } = setup({
+			stats: {
+				...base,
+				swings: base.swings.map((swing) => ({
+					...swing,
+					physicalDamage: { min: 0, max: 0 },
+				})),
+			},
+		});
+		advance(SPAWN_GAP_MS + 3000);
+		const hurt = result.current.playerHp;
+		expect(hurt).toBeLessThan(MAX_LIFE);
+
+		// The deactivation sync hasn't landed: the cached HP is still full.
+		rerender({ ...props, active: false });
+		rerender({ ...props, active: true, initialHp: MAX_LIFE });
+		expect(result.current.playerHp).toBe(hurt);
+	});
+
+	it("keeps the time bar and the gauntlet progress", async () => {
 		const { result, rerender, props } = setup({
 			bossNode: {
 				...BOSS_NODE,
@@ -427,15 +519,12 @@ describe("useCombatLoop — activation reset", () => {
 
 		rerender({ ...props, active: false });
 		rerender({ ...props, active: true });
-		// Two rares again before the boss, not one.
-		for (let fight = 0; fight < 2; fight++) {
-			advance(GAUNTLET_SPAWN_MS);
-			expect(result.current.enemy?.rarity).toBe("rare");
-			advance(RARE_INTRO_MS + STEP_MS);
-			await flushServer();
-			advance(VICTORY_DELAY_MS);
-		}
+		// Fight 2 of 2, then the boss.
 		advance(GAUNTLET_SPAWN_MS);
+		expect(result.current.enemy?.rarity).toBe("rare");
+		advance(RARE_INTRO_MS + STEP_MS);
+		await flushServer();
+		advance(VICTORY_DELAY_MS + GAUNTLET_SPAWN_MS);
 		expect(result.current.enemy?.rarity).toBe("unique");
 	});
 });

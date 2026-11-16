@@ -57,8 +57,9 @@ export function useViewMode({
 	enterZone: EnterZone;
 	arriveAtTravel: ArriveAtTravel;
 	// Fires whenever the player enters a node (city or combat). Used by the
-	// route to clear the death-log message so it doesn't bleed across zones.
-	onEnterNewArea?: () => void;
+	// route to clear the death-log message so it doesn't bleed across zones,
+	// and to start the combat loop's new visit (`useCombatLoop.startVisit`).
+	onEnterNewArea?: (nodeId: string) => void;
 }) {
 	const [view, setView] = useState<ViewMode>("map");
 	// Set when the player clicks a node that requires travel — the auto-arrival
@@ -85,7 +86,7 @@ export function useViewMode({
 			if (!node) return;
 			const nextView = viewForNode(nodeId);
 			if (nextView) setView(nextView);
-			onEnterNewAreaRef.current?.();
+			onEnterNewAreaRef.current?.(nodeId);
 			if (node.kind === "city") {
 				void enterCity({ characterId });
 			} else if (node.kind === "combat" || node.kind === "boss") {

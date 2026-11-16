@@ -5,13 +5,7 @@
 //  live in `useCombatTick`; encounter scheduling in `useEncounterSchedule`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import {
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useRef,
-	useState,
-} from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 import { findBoss, getBossConfig } from "#/game/bosses";
 import type { CombatPhase } from "#/game/combat/constants";
@@ -119,6 +113,14 @@ type Params = {
 
 const VICTORY_DELAY_MS = 800;
 
+/** A boss node's progress at the start of a visit: warmup pending, gauntlet at fight 1. */
+function bossProgressFor(bossNode: BossNodeConfig | null | undefined) {
+	return {
+		warmupDone: !bossNode?.warmupSeconds,
+		gauntletFightIndex: bossNode && bossNode.gauntlet.fights > 0 ? 1 : null,
+	};
+}
+
 const NOOP_RESTORE = (_overrideMaxHp?: number) => {};
 const NO_VITALS = (): Vitals | null => null;
 const NOOP = () => {};
@@ -146,16 +148,18 @@ export function useCombatLoop({
 	// Boss-node warmup: regular mob spawns until the calmaria budget fills
 	// (budget = warmupSeconds). `false` during warmup, `true` once the
 	// schedule's calmaria fills. Always `true` when there's no warmup.
-	const [warmupDone, setWarmupDone] = useState(!bossNode?.warmupSeconds);
+	const [warmupDone, setWarmupDone] = useState(
+		() => bossProgressFor(bossNode).warmupDone,
+	);
 	// Boss-node gauntlet progress. 1..N = next gauntlet rare to spawn;
 	// `null` while not in a boss node or once the gauntlet is exhausted
-	// (boss next). Reset to 1 on every activation when bossNode is set.
+	// (boss next). Rewound to 1 by `startVisit`.
 	const [gauntletFightIndex, setGauntletFightIndex] = useState<number | null>(
-		null,
+		() => bossProgressFor(bossNode).gauntletFightIndex,
 	);
 	// Set true when the player triggers incenso during "engaged" — the
 	// post-victory transition reads this and routes to camp instead of
-	// the next spawn. Cleared on activation reset and on consumption.
+	// the next spawn. Cleared by `startVisit` and on consumption.
 	const pendingIncenseRef = useRef(false);
 	const [lastKill, setLastKill] = useState<{
 		xp: number;
@@ -193,11 +197,12 @@ export function useCombatLoop({
 
 	const {
 		resetForMiniboss,
+		startVisit: startScheduleVisit,
 		isAmbushPackActive,
 		cancelAmbush,
 		setCampSource,
 		rollSpawnRarity,
-		consumeAmbushSlot,
+		recordSpawn,
 		calmariaElapsedMs,
 		...schedule
 	} = useEncounterSchedule({
@@ -325,6 +330,7 @@ export function useCombatLoop({
 		restoreToFull,
 		vitalsForKill,
 		forgetSyncedVitals,
+		startVisit: startTickVisit,
 	} = useCombatTick({
 		active,
 		isEngaged: state === "engaged",
@@ -346,35 +352,31 @@ export function useCombatLoop({
 		forgetSyncedVitalsRef.current = forgetSyncedVitals;
 	});
 
-	// ── Activation transitions ──
-	// Stays an effect rather than a render-time adjustment: it resets refs
-	// (which can't be written during render) together with state, and it must
-	// land in the same post-commit flush as useEncounterSchedule's activation
-	// reset. Resetting `warmupDone` during render would let the warmup latch
-	// above re-fire against the previous visit's still-full calmaria bar.
-	const activeRef = useRef(active);
-	/* oxlint-disable you-might-not-need-an-effect/no-adjust-state-on-prop-change, you-might-not-need-an-effect/no-event-handler -- see the comment above: refs reset alongside state, and the flush must match the schedule's reset. */
-	useEffect(() => {
-		if (active && !activeRef.current) {
+	// ── Zone visit start ──
+	// Called by the route on zone entry; `active` only pauses and resumes a
+	// visit (the exit modal). The entered node's plan and boss config are
+	// arguments because this render's props can still be the previous node's.
+	const startVisit = useCallback(
+		(plan: ZoneEncounterPlan, nextBossNode: BossNodeConfig | null) => {
 			pendingIncenseRef.current = false;
+			// Left set by a miniboss kill mid-victory-pause, it would hold the
+			// next visit's time bar forever (the ticker skips while it's set).
+			lastKillWasMinibossRef.current = false;
 			enemyRef.current = null;
 			setEnemy(null);
 			setLastKill(null);
 			setRareIntroStage(null);
 			setBossIntroStage(null);
-			// Boss-node entry: reset warmup + gauntlet to fight 1.
-			// oxlint-disable-next-line you-might-not-need-an-effect/no-derived-state -- a reset of latched progress, not derived state; must share the flush with the schedule's bar reset (see above).
-			setWarmupDone(!bossNode?.warmupSeconds);
-			// oxlint-disable-next-line you-might-not-need-an-effect/no-derived-state -- gauntlet progress advances on kills, so it is not a function of `bossNode`; this only rewinds it on entry.
-			setGauntletFightIndex(
-				bossNode && bossNode.gauntlet.fights > 0 ? 1 : null,
-			);
+			const progress = bossProgressFor(nextBossNode);
+			setWarmupDone(progress.warmupDone);
+			setGauntletFightIndex(progress.gauntletFightIndex);
 			stateRef.current = "searching";
 			setState("searching");
-		}
-		activeRef.current = active;
-	}, [active, bossNode]);
-	/* oxlint-enable you-might-not-need-an-effect/no-adjust-state-on-prop-change, you-might-not-need-an-effect/no-event-handler */
+			startScheduleVisit(plan);
+			startTickVisit();
+		},
+		[startScheduleVisit, startTickVisit],
+	);
 
 	// Player chose "Seguir em frente" on the camp modal. Resume the loop.
 	// Server-side `inCamp` flips back to false via exitCamp so the bag-cap
@@ -488,7 +490,7 @@ export function useCombatLoop({
 			const e = spawnMob(monsterPool, rarity);
 			if (!e) return;
 			commitEnemy(e);
-			consumeAmbushSlot();
+			recordSpawn();
 			if (rarity === "rare") {
 				setRareIntroStage("sprite");
 				stateRef.current = "rare_intro";
@@ -664,6 +666,7 @@ export function useCombatLoop({
 		calmariaBudgetMs: schedule.calmariaBudgetMs,
 		campThresholdsMs: schedule.campThresholdsMs,
 		dismissMinibossModal,
+		startVisit,
 		dismissCamp,
 		phase: derivePhase(state),
 	};

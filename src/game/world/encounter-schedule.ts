@@ -13,6 +13,7 @@
 // from.
 
 import { randInt, randSymmetric } from "../../lib/rng";
+import type { WorldNode } from "./types";
 
 export interface ZoneEncounterPlan {
 	/**
@@ -62,6 +63,29 @@ export const DEFAULT_ENCOUNTER_PLAN: ZoneEncounterPlan = {
 	gapBetweenSpawns: { min: 1.5, max: 3 },
 	campFractions: [0.5],
 };
+
+// Spawn pacing during a boss node's warmup (regular mobs before the gauntlet).
+const BOSS_WARMUP_GAP_SECONDS = { min: 1.5, max: 3 };
+
+/**
+ * The pacing for a visit to `node`. Boss nodes with a warmup use the warmup
+ * seconds as the calmaria budget, so the time bar marks progress toward the
+ * gauntlet: no camps, no ambushes. Regular zones use their declared plan, and
+ * anything else (no node, city) the default.
+ */
+export function encounterPlanForNode(
+	node: Pick<WorldNode, "encounterPlan" | "bossNode"> | null | undefined,
+): ZoneEncounterPlan {
+	const warmup = node?.bossNode?.warmupSeconds;
+	if (warmup) {
+		return {
+			calmariaBudgetSeconds: warmup,
+			gapBetweenSpawns: BOSS_WARMUP_GAP_SECONDS,
+			campFractions: [],
+		};
+	}
+	return node?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
+}
 
 /** Roll a fresh calmaria duration (ms) for the next spawn. */
 export function rollSpawnGapMs(plan: ZoneEncounterPlan): number {

@@ -46,14 +46,23 @@ function setup(overrides: Partial<Props> = {}) {
 		onCampTriggered,
 		...overrides,
 	};
-	// Mounted inactive, then activated, as in the app: `/world` opens on the
-	// map and the combat view flips `active` on zone entry. The activation
-	// effect (false → true) is what rolls the visit's ambush schedule.
+	// As in the app: `/world` opens on the map (inactive); zone entry starts
+	// the visit (which rolls its ambush schedule) and flips `active`.
 	const hook = renderHook((props: Props) => useEncounterSchedule(props), {
 		initialProps: { ...initialProps, active: false },
 	});
-	hook.rerender(initialProps);
-	return { ...hook, initialProps, onCampTriggered, postMinibossPauseRef };
+	const enterZone = (next: Props = initialProps) => {
+		act(() => hook.result.current.startVisit(next.encounterPlan));
+		hook.rerender({ ...next, active: true });
+	};
+	enterZone();
+	return {
+		...hook,
+		initialProps,
+		onCampTriggered,
+		postMinibossPauseRef,
+		enterZone,
+	};
 }
 
 function advance(ms: number) {
@@ -99,14 +108,15 @@ describe("useEncounterSchedule — calmaria time bar", () => {
 		expect(result.current.calmariaElapsedMs).toBe(600);
 	});
 
-	it("resets the bar, the camp index and the camp source on re-activation", () => {
-		const { result, rerender, initialProps, onCampTriggered } = setup();
+	it("a new visit resets the bar, the camp index and the camp source", () => {
+		const { result, rerender, initialProps, onCampTriggered, enterZone } =
+			setup();
 		advance(5000);
 		expect(onCampTriggered).toHaveBeenCalledTimes(1);
 		act(() => result.current.setCampSource("incense"));
 
 		rerender({ ...initialProps, active: false });
-		rerender({ ...initialProps, active: true });
+		enterZone();
 		expect(result.current.calmariaElapsedMs).toBe(0);
 		expect(result.current.campSource).toBe("baked");
 
@@ -114,6 +124,36 @@ describe("useEncounterSchedule — calmaria time bar", () => {
 		advance(5000);
 		expect(onCampTriggered).toHaveBeenCalledTimes(2);
 		expect(onCampTriggered).toHaveBeenLastCalledWith(0);
+	});
+
+	it("pausing and resuming the same visit keeps the bar and the camps already fired", () => {
+		const { result, rerender, initialProps, onCampTriggered } = setup();
+		advance(5000);
+		rerender({ ...initialProps, active: false });
+		rerender({ ...initialProps, active: true });
+		expect(result.current.calmariaElapsedMs).toBe(5000);
+
+		advance(1000);
+		expect(result.current.calmariaElapsedMs).toBe(6000);
+		expect(onCampTriggered).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("useEncounterSchedule — startVisit", () => {
+	it("rolls the ambushes from the entered node's plan, not the one still in props", () => {
+		const { result, rerender, initialProps } = setup();
+		rerender({ ...initialProps, active: false });
+		// The arrival resolves before the route re-renders with the new node:
+		// startVisit gets the new plan while the props still hold the old one.
+		act(() => result.current.startVisit(AMBUSH_PLAN));
+		rerender({ ...initialProps, active: true });
+		rerender({
+			...initialProps,
+			encounterPlan: AMBUSH_PLAN,
+			serverCampThresholdsMs: [],
+		});
+		advance(3000);
+		expect(result.current.ambushActive).toBe(true);
 	});
 });
 
@@ -177,29 +217,26 @@ describe("useEncounterSchedule — spawn rarity and ambushes", () => {
 		expect(result.current.nextSpawnGapMs).toBe(200);
 		expect(result.current.rollSpawnRarity()).toBe("magic");
 
-		act(() => result.current.consumeAmbushSlot());
+		act(() => result.current.recordSpawn());
 		expect(result.current.ambushActive).toBe(true);
-		act(() => result.current.consumeAmbushSlot());
+		act(() => result.current.recordSpawn());
 		expect(result.current.ambushActive).toBe(false);
 		expect(result.current.isAmbushPackActive()).toBe(false);
 		expect(result.current.rollSpawnRarity()).toBe("normal");
 	});
 
 	it("keeps the in-pack gap across spawns and drops it once the pack drains", () => {
-		const { result, rerender, initialProps } = setup({
+		const { result } = setup({
 			encounterPlan: AMBUSH_PLAN,
 			serverCampThresholdsMs: [],
 		});
 		advance(3000);
-		act(() => result.current.consumeAmbushSlot());
-		// Back to searching mid-pack: the gap stays short.
-		rerender({ ...initialProps, isSearching: false });
-		rerender({ ...initialProps, isSearching: true });
+		// A spawn mid-pack: the search after this fight stays short.
+		act(() => result.current.recordSpawn());
 		expect(result.current.nextSpawnGapMs).toBe(200);
 
-		act(() => result.current.consumeAmbushSlot());
-		rerender({ ...initialProps, isSearching: false });
-		rerender({ ...initialProps, isSearching: true });
+		// The last mob of the pack: back to the plan's range.
+		act(() => result.current.recordSpawn());
 		expect(result.current.nextSpawnGapMs).toBe(1000);
 	});
 
@@ -209,9 +246,12 @@ describe("useEncounterSchedule — spawn rarity and ambushes", () => {
 			serverCampThresholdsMs: [],
 		});
 		advance(3000);
+		expect(result.current.nextSpawnGapMs).toBe(200);
 		act(() => result.current.cancelAmbush());
 		expect(result.current.ambushActive).toBe(false);
 		expect(result.current.isAmbushPackActive()).toBe(false);
+		// The short in-pack gap doesn't survive the cancel.
+		expect(result.current.nextSpawnGapMs).toBe(1000);
 	});
 
 	it("resetForMiniboss zeroes the bar and re-arms the ambushes", () => {
@@ -220,9 +260,15 @@ describe("useEncounterSchedule — spawn rarity and ambushes", () => {
 			serverCampThresholdsMs: [],
 		});
 		advance(3000);
+		// The bar filled mid-pack: the miniboss spawned with the short gap set.
+		act(() => result.current.recordSpawn());
+		expect(result.current.nextSpawnGapMs).toBe(200);
+
 		act(() => result.current.resetForMiniboss());
 		expect(result.current.calmariaElapsedMs).toBe(0);
 		expect(result.current.ambushActive).toBe(false);
+		// The search after the miniboss uses the plan's gap, not the pack's.
+		expect(result.current.nextSpawnGapMs).toBe(1000);
 
 		advance(3000);
 		expect(result.current.ambushActive).toBe(true);
