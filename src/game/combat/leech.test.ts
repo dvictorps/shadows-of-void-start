@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { createLeechInstance, tickLeechInstances } from "./leech";
 
 describe("leech", () => {

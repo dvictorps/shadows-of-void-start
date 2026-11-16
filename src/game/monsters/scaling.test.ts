@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import {
 	MONSTER_SCALING_BASE,
 	monsterScaleFactor,

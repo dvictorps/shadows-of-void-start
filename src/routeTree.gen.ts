@@ -9,30 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WorldRouteImport } from './routes/world'
-import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as CharacterSelectRouteImport } from './routes/character-select'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as CharacterSelectRouteImport } from './routes/character-select'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as WorldRouteImport } from './routes/world'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as AdminUsersRouteImport } from './routes/admin/users'
-import { Route as AdminItemsRouteImport } from './routes/admin/items'
 import { Route as AdminAdminsRouteImport } from './routes/admin/admins'
+import { Route as AdminItemsRouteImport } from './routes/admin/items'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
 
-const WorldRoute = WorldRouteImport.update({
-  id: '/world',
-  path: '/world',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CharacterSelectRoute = CharacterSelectRouteImport.update({
-  id: '/character-select',
-  path: '/character-select',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -40,9 +31,19 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const CharacterSelectRoute = CharacterSelectRouteImport.update({
+  id: '/character-select',
+  path: '/character-select',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorldRoute = WorldRouteImport.update({
+  id: '/world',
+  path: '/world',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -50,9 +51,9 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminUsersRoute = AdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
+const AdminAdminsRoute = AdminAdminsRouteImport.update({
+  id: '/admins',
+  path: '/admins',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminItemsRoute = AdminItemsRouteImport.update({
@@ -60,14 +61,19 @@ const AdminItemsRoute = AdminItemsRouteImport.update({
   path: '/items',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminAdminsRoute = AdminAdminsRouteImport.update({
-  id: '/admins',
-  path: '/admins',
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
+  id: '/api/trpc/$',
+  path: '/api/trpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/admin': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/trpc/$': typeof ApiTrpcSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/'
     | '/api/auth/$'
+    | '/api/trpc/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin'
     | '/api/auth/$'
+    | '/api/trpc/$'
   id:
     | '__root__'
     | '/'
@@ -143,6 +154,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/'
     | '/api/auth/$'
+    | '/api/trpc/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -152,29 +164,16 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   WorldRoute: typeof WorldRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/world': {
-      id: '/world'
-      path: '/world'
-      fullPath: '/world'
-      preLoaderRoute: typeof WorldRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/character-select': {
-      id: '/character-select'
-      path: '/character-select'
-      fullPath: '/character-select'
-      preLoaderRoute: typeof CharacterSelectRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -184,11 +183,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/character-select': {
+      id: '/character-select'
+      path: '/character-select'
+      fullPath: '/character-select'
+      preLoaderRoute: typeof CharacterSelectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/world': {
+      id: '/world'
+      path: '/world'
+      fullPath: '/world'
+      preLoaderRoute: typeof WorldRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -198,11 +211,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/users': {
-      id: '/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersRouteImport
+    '/admin/admins': {
+      id: '/admin/admins'
+      path: '/admins'
+      fullPath: '/admin/admins'
+      preLoaderRoute: typeof AdminAdminsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/items': {
@@ -212,11 +225,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminItemsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/admins': {
-      id: '/admin/admins'
-      path: '/admins'
-      fullPath: '/admin/admins'
-      preLoaderRoute: typeof AdminAdminsRouteImport
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/api/auth/$': {
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/trpc/$': {
+      id: '/api/trpc/$'
+      path: '/api/trpc/$'
+      fullPath: '/api/trpc/$'
+      preLoaderRoute: typeof ApiTrpcSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -252,6 +272,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   WorldRoute: WorldRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiTrpcSplatRoute: ApiTrpcSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

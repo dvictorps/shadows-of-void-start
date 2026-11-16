@@ -3,11 +3,11 @@ export const STASH_MAX_SLOTS = 60;
 
 /**
  * Comparator for arrays of inventory items / docs, ordering by ascending
- * `inventorySlot`. Items with an undefined slot sort to the end. Used in
+ * `inventorySlot`. Items without a slot sort to the end. Used in
  * every optimistic update that re-sorts the inventory query after a
  * placement.
  */
-export function bySlotAsc<T extends { inventorySlot?: number }>(
+export function bySlotAsc<T extends { inventorySlot?: number | null }>(
 	a: T,
 	b: T,
 ): number {
@@ -18,16 +18,16 @@ export function bySlotAsc<T extends { inventorySlot?: number }>(
 
 /**
  * Returns an allocator that hands out unoccupied inventory slots in ascending
- * order. Used by optimistic updates that need to place freshly-picked or
- * displaced docs without colliding with existing ones. Returns -1 when the
- * inventory is full (caller's responsibility to handle).
+ * order. Used by the server procedures and by the optimistic updates that
+ * place freshly-picked or displaced items, so both pick the same slots.
+ * Returns -1 when the inventory is full (caller's responsibility to handle).
  */
 export function createInventorySlotAllocator(
-	existing: ReadonlyArray<{ inventorySlot?: number }>,
+	existing: ReadonlyArray<{ inventorySlot?: number | null }>,
 ): () => number {
 	const occupied = new Set<number>();
 	for (const it of existing) {
-		if (typeof it.inventorySlot === "number") occupied.add(it.inventorySlot);
+		if (it.inventorySlot != null) occupied.add(it.inventorySlot);
 	}
 	let cursor = 0;
 	return () => {
@@ -39,7 +39,7 @@ export function createInventorySlotAllocator(
 	};
 }
 
-export function byStashSlotAsc<T extends { stashSlot?: number }>(
+export function byStashSlotAsc<T extends { stashSlot?: number | null }>(
 	a: T,
 	b: T,
 ): number {
@@ -49,11 +49,11 @@ export function byStashSlotAsc<T extends { stashSlot?: number }>(
 }
 
 export function createStashSlotAllocator(
-	existing: ReadonlyArray<{ stashSlot?: number }>,
+	existing: ReadonlyArray<{ stashSlot?: number | null }>,
 ): () => number {
 	const occupied = new Set<number>();
 	for (const it of existing) {
-		if (typeof it.stashSlot === "number") occupied.add(it.stashSlot);
+		if (it.stashSlot != null) occupied.add(it.stashSlot);
 	}
 	let cursor = 0;
 	return () => {

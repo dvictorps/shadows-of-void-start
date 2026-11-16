@@ -4,7 +4,7 @@ import type { ZoneEncounterPlan } from "./encounter-schedule";
 
 // Boss-node config — only set when `kind === "boss"`. Drives the warmup →
 // gauntlet → boss sequence that replaces the time-bar flow in regular zones.
-// See CONTEXT.md → Act Boss + ADR 0004.
+// See CONTEXT.md → Act Boss + ADR 0008.
 export interface BossNodeConfig {
 	bossId: BossId;
 	// Optional warmup phase — regular mob spawns for N seconds before the

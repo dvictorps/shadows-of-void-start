@@ -1,4 +1,3 @@
-import { convexQuery } from "@convex-dev/react-query";
 import {
 	createFileRoute,
 	Link,
@@ -6,29 +5,23 @@ import {
 	redirect,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+
 import { Button } from "#/components/ui/button";
 import { prefetchAdminTabs } from "#/lib/admin-prefetch";
+import { requireSession } from "#/lib/require-session";
 import { m } from "#/paraglide/messages";
-import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/admin")({
-	// Auth fence is sync — no server roundtrip on the navigation hot path.
-	// The actual security boundary is `assertAdmin(ctx)` on every admin
-	// Convex endpoint; this guard is UX only, so we resolve the admin check
-	// from the React Query cache instead of an HTTP server fn.
-	beforeLoad: ({ context }) => {
-		if (!context.isAuthenticated) {
-			throw redirect({ to: "/sign-in" });
-		}
-	},
-	loader: async ({ context }) => {
-		const role = await context.queryClient.ensureQueryData(
-			convexQuery(api.users.getUserRole, {}),
-		);
-		if (role?.role !== "admin") {
+	// UX guard only, read from the query cache (no request once cached). The
+	// security boundary is `adminProcedure` on every admin procedure.
+	beforeLoad: async ({ context }) => {
+		const me = await requireSession(context);
+		if (me.role !== "admin") {
 			throw redirect({ to: "/" });
 		}
-		prefetchAdminTabs(context.queryClient);
+	},
+	loader: ({ context }) => {
+		prefetchAdminTabs(context.queryClient, context.trpc);
 	},
 	component: AdminLayout,
 	pendingComponent: AdminLayoutPending,

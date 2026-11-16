@@ -1,3 +1,4 @@
+import { typedKeys } from "../typed-object";
 import { type ScaledMonsterStats, scaleRange } from "./scaling";
 import type { MonsterRarity } from "./types";
 
@@ -222,7 +223,8 @@ export const MONSTER_MODIFIERS = {
 
 export type MonsterModId = keyof typeof MONSTER_MODIFIERS;
 
-const ALL_MONSTER_MOD_IDS = Object.keys(MONSTER_MODIFIERS) as MonsterModId[];
+const ALL_MONSTER_MOD_IDS: readonly MonsterModId[] =
+	typedKeys(MONSTER_MODIFIERS);
 
 const MAGIC_SPAWN_CHANCE = 0.1;
 
@@ -266,12 +268,11 @@ export function rollMonsterMods(
 	while (picked.length < target && pool.length > 0) {
 		// Restrict eligibility once an affix hits its cap — the other affix is
 		// still drawable until the pool runs dry.
-		const eligible = pool.filter((id) => {
-			const affix = MONSTER_MODIFIERS[id].affixType;
-			return affix === "prefix"
-				? prefixCount < AFFIX_CAP
-				: suffixCount < AFFIX_CAP;
-		});
+		const prefixOpen = prefixCount < AFFIX_CAP;
+		const suffixOpen = suffixCount < AFFIX_CAP;
+		const eligible = pool.filter((id) =>
+			MONSTER_MODIFIERS[id].affixType === "prefix" ? prefixOpen : suffixOpen,
+		);
 		if (eligible.length === 0) break;
 		const idx = Math.floor(random() * eligible.length);
 		const id = eligible[idx];
@@ -287,11 +288,12 @@ export function applyMonsterMods(
 	scaled: ScaledMonsterStats,
 	modIds: readonly MonsterModId[],
 ): ScaledMonsterStats {
-	// Cast through MonsterModifier widens the literal narrow `satisfies` keeps
-	// — the `order` field is optional on the interface but not on the entries
-	// that omit it.
-	const isTrailing = (id: MonsterModId): boolean =>
-		(MONSTER_MODIFIERS[id] as MonsterModifier).order === "trailing";
+	// Read through the MonsterModifier contract: the literal union `satisfies`
+	// keeps has no `order` on the entries that omit it.
+	const isTrailing = (id: MonsterModId): boolean => {
+		const def: MonsterModifier = MONSTER_MODIFIERS[id];
+		return def.order === "trailing";
+	};
 	let out = scaled;
 	for (const id of modIds) {
 		if (!isTrailing(id)) out = MONSTER_MODIFIERS[id].apply(out);

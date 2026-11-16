@@ -46,6 +46,11 @@ export function rescaleBarrier(
 	return { current, max: newMax, refillRemaining: state.refillRemaining };
 }
 
+export interface BarrierDamageResult {
+	state: BarrierState;
+	lifeOverflow: number;
+}
+
 /**
  * Apply incoming damage to the barrier pool 1:1. When the pool empties, the
  * refill timer starts; subsequent hits during the timer bypass barrier
@@ -54,7 +59,7 @@ export function rescaleBarrier(
 export function damageBarrier(
 	state: BarrierState,
 	rawDamage: number,
-): { state: BarrierState; lifeOverflow: number } {
+): BarrierDamageResult {
 	if (rawDamage <= 0) return { state, lifeOverflow: 0 };
 	if (state.current <= 0) return { state, lifeOverflow: rawDamage };
 	const absorbed = Math.min(state.current, rawDamage);

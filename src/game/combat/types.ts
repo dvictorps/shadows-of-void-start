@@ -37,10 +37,7 @@ export function derivePhase(state: CombatState): CombatPhase {
 // pre-empt the build-up and the rare can't swing before its HP bar shows.
 export type RareIntroStage = "sprite" | "name" | "hp" | null;
 
-export const RARE_INTRO_STAGE_MS: Record<
-	Exclude<RareIntroStage, null>,
-	number
-> = {
+export const RARE_INTRO_STAGE_MS = {
 	// Each value is how long the stage holds BEFORE advancing — so it must be
 	// at least as long as the visual transition kicked off when the stage
 	// becomes active. Sprite enters with scale 1.2 → 1.0 over ~700 ms, then
@@ -48,7 +45,7 @@ export const RARE_INTRO_STAGE_MS: Record<
 	sprite: 750,
 	name: 500,
 	hp: 500,
-};
+} satisfies Record<Exclude<RareIntroStage, null>, number>;
 
 // Four-stage dramatic spawn for act bosses (`rarity: "unique"`). Adds an
 // `impact` beat between sprite and name where the entry sfx + screenshake
@@ -59,15 +56,12 @@ export type BossIntroStage = "sprite" | "impact" | "name" | "hp" | null;
 // Default timings for the boss intro. Per-boss overrides come from
 // BossConfig.cinematic.spriteFadeInMs and .sfxBeatMs — the name and hp
 // beats use these defaults across every boss for consistency.
-export const BOSS_INTRO_STAGE_MS_DEFAULT: Record<
-	Exclude<BossIntroStage, null>,
-	number
-> = {
+export const BOSS_INTRO_STAGE_MS_DEFAULT = {
 	sprite: 900,
 	impact: 600,
 	name: 500,
 	hp: 400,
-};
+} satisfies Record<Exclude<BossIntroStage, null>, number>;
 
 export type Enemy = {
 	def: MonsterDefinition;

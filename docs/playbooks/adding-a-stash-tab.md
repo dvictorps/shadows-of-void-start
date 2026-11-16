@@ -8,7 +8,7 @@
 > - One slot, one item (no grid-tetris).
 > - 60 slots per tab. Additional tabs purchased with Rubys.
 
-This playbook covers adding the *first* tab (default tab on character creation) — and any subsequent tabs unlocked via vendor purchase. The two flows share the same underlying `stash` table and slot vocabulary; they differ in how the tab is created.
+This playbook covers adding the _first_ tab (default tab on character creation) — and any subsequent tabs unlocked via vendor purchase. The two flows share the same underlying `stash` table and slot vocabulary; they differ in how the tab is created.
 
 ## Decide first
 
@@ -21,7 +21,7 @@ Before coding, resolve these:
 
 2. **Mode isolation enforcement**
    - The stash is **scoped by mode** (softcore stash vs hardcore stash never see each other). Every stash query needs the character's mode in the filter — and a mutation that moves an item from inventory → stash must reject if the character's mode and the target stash's mode disagree.
-   - The character schema today doesn't have a `mode` field (check `convex/schema.ts` before assuming). Adding mode is a prerequisite step for this playbook.
+   - The mode already exists: a character's stash is `stashModeOf(character)` (`src/game/inventory/stash-mode.ts`), and stash rows carry `stash_mode` (`src/server/db/game-schema.ts`).
 
 3. **Tab metadata**
    - A `stashTabs` table keyed by `(authUserId, mode, tabIndex)` with a `name` and `purchasedAt` row per tab. The default tab (index 0) is created on character creation; later tabs are inserted by `vendorBuyStashTab`.
@@ -37,8 +37,8 @@ Before coding, resolve these:
 
 ## Precedents to learn from
 
-- **`convex/schema.ts`** → `items` table — the location-kind tagged union pattern. Stash slots extend it with `stash` kind.
-- **`convex/characters.ts`** → `loadOwnedCharacter` + `assertInCity` helpers in `_shared/` — apply the same ownership + location guards.
+- **`src/server/db/game-schema.ts`** → `items` table — the `locationKind` pattern (`inventory` / `equipped` / `stash`). Tabs extend the stash rows.
+- **`src/server/trpc/routers/stash.ts`** → `characterSessionProcedure` + `assertInCity` (`src/server/city.ts`) — apply the same ownership + location guards.
 - **`src/components/world/InventoryModal.tsx`** — drag-drop grid that the stash UI should mirror. Stash should reuse `ItemCard` and the same drag handles.
 - **`src/game/vendor/products.ts`** — single source of truth for vendor catalog. Stash tab purchase is a product on this catalog (with the caveat in "Decide first" #4 above).
 
@@ -54,8 +54,8 @@ Before coding, resolve these:
 ```bash
 npx tsc --noEmit
 npx vitest run src/game/items/    # stash transitions must not break item identity
-npx biome check src/
-npx convex dev --once             # schema additions
+npx oxlint src/
+pnpm db:generate && pnpm db:migrate:local   # schema additions
 ```
 
 Then `npm run dev`: deposit an item, switch characters in the same mode → see the same item in their stash; switch to a hardcore character (if testing both modes) → should NOT see the softcore stash contents.

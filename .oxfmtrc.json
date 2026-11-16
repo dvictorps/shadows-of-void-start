@@ -1,0 +1,23 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"useTabs": true,
+	"printWidth": 80,
+	"trailingComma": "all",
+	"sortImports": true,
+	"ignorePatterns": [
+		".claude/**",
+		".output/**",
+		".nitro/**",
+		".tanstack/**",
+		".wrangler/**",
+		"dist/**",
+		"public/**",
+		"src/routeTree.gen.ts",
+		"worker-configuration.d.ts",
+		"drizzle/meta/**",
+		"src/paraglide/**",
+		"src/styles.css",
+		"tools/oxlint/anti-slop/**",
+		"package-lock.json"
+	]
+}

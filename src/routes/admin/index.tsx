@@ -1,18 +1,20 @@
-import { convexQuery } from "@convex-dev/react-query";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+
 import { AdminPageHeader } from "#/components/admin/AdminShared";
+import { useTRPC } from "#/integrations/trpc/client";
+import { adminTabQueries } from "#/lib/admin-prefetch";
 import { m } from "#/paraglide/messages";
-import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/admin/")({
 	loader: ({ context }) =>
-		context.queryClient.ensureQueryData(convexQuery(api.admin.pulse, {})),
+		context.queryClient.ensureQueryData(adminTabQueries(context.trpc).pulse),
 	component: AdminOverviewPage,
 });
 
 function AdminOverviewPage() {
-	const { data: pulse } = useSuspenseQuery(convexQuery(api.admin.pulse, {}));
+	const trpc = useTRPC();
+	const { data: pulse } = useSuspenseQuery(adminTabQueries(trpc).pulse);
 
 	return (
 		<div className="flex h-full flex-col gap-6">

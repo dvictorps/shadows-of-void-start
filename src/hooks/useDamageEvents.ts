@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import type { WeaponType } from "#/game/items/types/base";
 
 export type DamageEvent = {

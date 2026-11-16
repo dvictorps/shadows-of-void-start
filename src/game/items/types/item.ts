@@ -1,6 +1,10 @@
 import type { ArmorType, BaseStatKey, EquipmentType, WeaponType } from "./base";
 import type { AffixType } from "./mods";
 
+// The persisted item shape: `items.data` and the zone bag are JSON columns
+// typed with these interfaces (src/server/db/game-schema.ts), so this file is
+// the only definition. Item data is never accepted from the client.
+
 // ── Rarity ──
 
 // `unique` is the PoE-style tier for handcrafted single-identity entities:
@@ -22,14 +26,14 @@ export interface ModLimits {
 	maxSuffix: number;
 }
 
-export const MOD_LIMITS: Record<ItemRarity, ModLimits> = {
+export const MOD_LIMITS = {
 	normal: { totalMin: 0, totalMax: 0, maxPrefix: 0, maxSuffix: 0 },
 	magic: { totalMin: 1, totalMax: 2, maxPrefix: 2, maxSuffix: 2 },
 	rare: { totalMin: 3, totalMax: 4, maxPrefix: 2, maxSuffix: 2 },
 	legendary: { totalMin: 5, totalMax: 5, maxPrefix: 3, maxSuffix: 3 },
 	epic: { totalMin: 6, totalMax: 6, maxPrefix: 3, maxSuffix: 3 },
 	unique: { totalMin: 0, totalMax: 0, maxPrefix: 0, maxSuffix: 0 },
-};
+} satisfies Record<ItemRarity, ModLimits>;
 
 // ── Rolled results ──
 
@@ -89,9 +93,10 @@ export interface GeneratedItem {
 	templateId: string;
 	// Naming decomposition copied from the template so the renderer can
 	// compose the display name without re-loading the template. Typed as
-	// `string` here (not the narrow union) because the Convex validator
-	// stores them as plain strings — the literal-union enforcement lives in
-	// the lexicon/template files themselves. Optional because items rolled
+	// `string` here (not the narrow union): rows persisted under an older
+	// template set may carry ids the unions no longer list, and the renderer
+	// falls back for those. The literal-union enforcement lives in the
+	// lexicon/template files themselves. Optional because items rolled
 	// before the decomposition refactor don't carry these fields; the
 	// renderer falls back to the templateId string for those legacy rows.
 	nameBase?: string;

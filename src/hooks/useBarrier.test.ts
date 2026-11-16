@@ -2,20 +2,23 @@
 
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { useBarrier } from "./useBarrier";
+
+import { type BarrierApi, useBarrier } from "./useBarrier";
+
+type Props = { initialBarrier?: number };
 
 describe("useBarrier — initialBarrier cold-start race", () => {
 	it("syncs to initialBarrier when it transitions from undefined to a real value", () => {
 		// Reproduces the cold-start race: useBarrier mounts with
 		// initialBarrier=undefined (combatState still loading), defaults
-		// to full. Convex eventually serves the persisted value (e.g. 30
+		// to full. the character query eventually serves the persisted value (e.g. 30
 		// out of 100). Without the initialBarrier effect, useState would
 		// drop the late-arriving value and the next syncHp would overwrite
 		// the server with the local default of 100.
-		const { result, rerender } = renderHook(
-			({ initialBarrier }: { initialBarrier?: number }) =>
+		const { result, rerender } = renderHook<BarrierApi, Props>(
+			({ initialBarrier }: Props) =>
 				useBarrier({ maxBarrier: 100, initialBarrier, active: true }),
-			{ initialProps: { initialBarrier: undefined as number | undefined } },
+			{ initialProps: { initialBarrier: undefined } },
 		);
 
 		expect(result.current.barrier.current).toBe(100);
@@ -29,10 +32,10 @@ describe("useBarrier — initialBarrier cold-start race", () => {
 	});
 
 	it("clamps initialBarrier to the current max on prop arrival", () => {
-		const { result, rerender } = renderHook(
-			({ initialBarrier }: { initialBarrier?: number }) =>
+		const { result, rerender } = renderHook<BarrierApi, Props>(
+			({ initialBarrier }: Props) =>
 				useBarrier({ maxBarrier: 100, initialBarrier, active: true }),
-			{ initialProps: { initialBarrier: undefined as number | undefined } },
+			{ initialProps: { initialBarrier: undefined } },
 		);
 
 		act(() => {
@@ -44,12 +47,12 @@ describe("useBarrier — initialBarrier cold-start race", () => {
 
 	it("bails when initialBarrier matches the existing current — no extra render", () => {
 		let renderCount = 0;
-		const { result, rerender } = renderHook(
-			({ initialBarrier }: { initialBarrier?: number }) => {
+		const { result, rerender } = renderHook<BarrierApi, Props>(
+			({ initialBarrier }: Props) => {
 				renderCount++;
 				return useBarrier({ maxBarrier: 100, initialBarrier, active: true });
 			},
-			{ initialProps: { initialBarrier: 40 as number | undefined } },
+			{ initialProps: { initialBarrier: 40 } },
 		);
 
 		expect(result.current.barrier.current).toBe(40);

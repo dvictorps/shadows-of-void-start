@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+
 import { Button } from "#/components/ui/button";
 
 export interface MenuAction {
@@ -67,9 +68,9 @@ export default function ItemContextMenu({
 	// Estimate menu height as N actions × ~36px each + container padding; flip
 	// above if there's not enough room below.
 	const viewportHeight =
-		typeof window !== "undefined" ? window.innerHeight : 800;
+		globalThis.window === undefined ? 800 : window.innerHeight;
 	const viewportWidth =
-		typeof window !== "undefined" ? window.innerWidth : 1200;
+		globalThis.window === undefined ? 1200 : window.innerWidth;
 	const dividerCount = actions.filter((a) => a.dividerBefore).length;
 	const estimatedHeight =
 		12 + actions.length * 36 + dividerCount * DIVIDER_HEIGHT_PX;

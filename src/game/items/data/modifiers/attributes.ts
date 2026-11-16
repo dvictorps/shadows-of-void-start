@@ -1,7 +1,7 @@
 import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
-export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
+export const ATTRIBUTE_MODIFIERS = {
 	strengthFlat: {
 		id: "strengthFlat",
 		affixType: "suffix",
@@ -49,4 +49,4 @@ export const ATTRIBUTE_MODIFIERS: Record<string, Modifier> = {
 		tags: ["attribute"],
 		tiers: createStandardTiers(4, 6, 20, 25),
 	},
-};
+} satisfies Record<string, Modifier>;

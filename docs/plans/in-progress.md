@@ -14,20 +14,41 @@ Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #4
 
 **Monster crit + native monster barrier shipped together in PR #57** (`feat/monster-barrier-crit`), bundled with elemental-damage monster mods, rares bumped to 4 mods, and per-weapon hit FX. The PoE-style build-pressure loop is now live — both the highest-leverage gameplay debt and the mechanical follow-up are closed.
 
-**Boss system shipped on `feat/boss-system`** — first act-boss (Gralfor, O Persistente) plus the full configurable infrastructure: `src/game/bosses/` registry, `unique` rarity tier, `kind: "boss"` node with gauntlet (N rares → boss), 4-beat boss cinematic (sprite → impact sfx + screenshake → name → hp), per-boss nameplate color, declared stat sheets with negative resistances, gauntlet/boss drop routing, and the supersession of Model B. Adding a second boss is one file under `src/game/bosses/` + one paraglide key per locale + a boss node — see [playbook](../playbooks/adding-a-boss.md) and [ADR 0004](../adr/0004-boss-as-parallel-registry.md).
+**Boss system shipped on `feat/boss-system`** — first act-boss (Gralfor, O Persistente) plus the full configurable infrastructure: `src/game/bosses/` registry, `unique` rarity tier, `kind: "boss"` node with gauntlet (N rares → boss), 4-beat boss cinematic (sprite → impact sfx + screenshake → name → hp), per-boss nameplate color, declared stat sheets with negative resistances, gauntlet/boss drop routing, and the supersession of Model B. Adding a second boss is one file under `src/game/bosses/` + one paraglide key per locale + a boss node — see [playbook](../playbooks/adding-a-boss.md) and [ADR 0008](../adr/0008-boss-as-parallel-registry.md).
 
-Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastructure debt is empty. Pre-public-beta hardening backlog is empty — the `recomputeSpellWeaponStats` migration is now chunked (an `internalAction` drives a paginated `recomputeSpellWeaponStatsPage` internal mutation at 500 rows/page until the cursor is exhausted), so it no longer `.collect()`s the full items table inside one mutation. Re-run via `npx convex run items:recomputeSpellWeaponStats`. What remains splits into:
+Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastructure debt is empty. Pre-public-beta hardening backlog is empty. What remains splits into:
+
+- **Agent-ergonomics hardening — track open, not blocking (started in PR #68)**: PR #68 shipped the doc de-drift + the first server-authoritative test extraction (`recordKill` → `src/game/combat/kill.ts`, 14 tests). The follow-up extraction pass (`refactor/extract-mutation-decisions`) continued it: `usePotion` → `src/game/combat/potion.ts` (`resolvePotionUse`), `syncHp` → `src/game/combat/vitals.ts` (`clampVital` / `resolveVitalSync`), and the camp-tier/zone-completion branch of `recordKill` → `kill.ts` (`resolveZoneProgress`), with 21 new tests. This is the highest-leverage _risk-reduction_ track (the testing cliff outside `src/game/` is the project's #1 navigability risk), but nothing forces it next — it competes by appetite with the passive-tree feature. Documented continuation, in priority order:
+  1. **Extraction pass — largely done.** `usePotion`, `syncHp`, and the `recordKill` zone/camp branch are now pure + tested (see above). `respawnDead` was assessed and left as-is: its only deterministic logic is `applyDeathXpPenalty` (already a pure, tested `src/game/progression` helper) and the `char.hardcore` mode branch; the rest is irreducible IO (deleting owned items, clearing zone state, patching two docs). Manufacturing a pure wrapper there would add indirection without adding a testable decision. The remaining honest target is the **stat-cache-recompute branch of `recordKill`** (the level-up path that calls `computeCharacterStats`) — but that's already exercised through `computeCharacterStats` tests, so it's low-value. Treat the mutation-extraction backlog as effectively drained; the net win now comes from (2).
+  2. **Done (Cloudflare migration phase 2)** — the tRPC procedures have integration tests on `@cloudflare/vitest-plugin` + local D1 (`src/server/trpc/routers/*.integration.test.ts`).
+  3. **`useCombatLoop` isolation tests** — the server calls are now injectable (`useCombatTick` takes `syncVitals` / `consumePotion` as parameters; `useCombatLoop` gets them from `useCombatMutations`), so the harness needs a `TRPCProvider` + QueryClient, or the same parameter seam pushed up one level. Do after (1)/(2) establish the patterns.
+  4. **Split `CombatScene` (~990) / `InventoryModal` (~740)** into sub-components — ONLY after (1)–(3) give a safety net. Never refactor untested 900-line UI first; that's the wrong order.
 - **Deferred, scoped**: camp cinematic biome ambience.
-- **Low-priority polish**: native PT review of `lexicon/pt.ts`, `TemplateBaseId` codegen, hash extraction to `src/lib/rng.ts`, rare-name bestiary, admin-dashboard cold-cache latency.
+- **Low-priority polish**: native PT review of `lexicon/pt.ts`, `TemplateBaseId` codegen, rare-name bestiary, admin-dashboard cold-cache latency.
+- **oxlint: zero errors since `chore/oxlint-debt` (2026-11-15).** The first run reported 380 errors in `src/`. All were fixed, not silenced. The policy for inline disables: allowed only under a real external constraint, and the comment must say why the documented pattern doesn't apply. The migration's phase 3 removed the 3 `react/hooks` disables on the old `use*` function names, the `useViewMode` auto-enter effect, the `vi.mock` in `useCombatTick.test.ts` and the error-decoder disable. **Disables still in the tree, to revisit:**
+  - _`useCombatTick` HP flush on deactivation_: a sync with an external system on `active` flipping from several route paths; kept, with a reason that no longer mentions the old transport.
+  - _Combat state-machine activation resets_ (`useCombatLoop`, `useEncounterSchedule` ×2): effects that reset refs and state together on `active` flipping. The proper fix moves the reset to the event that activates combat (zone entry). Do it together with the combat-hook tests (post-migration priority item 3), never untested.
+  - _Kept for good:_ the 2 framer-motion imperative-controls effects (`CombatScene` victory fade, `HealthGlobe` hit shake), the `world.tsx` session claim on route arrival, and the `Object.keys` SAFETY cast centralized in `src/game/typed-object.ts`.
+    Warnings left (163 as of phase 3): `complexity` and the `shadcn/*` / `react/forbid-elements` design-system rules on app-shell UI (admin, generic modals, `src/components/ui` itself); sign-in and character-select are clean since phase 3 (new theme tokens `tracking-label` / `text-2xs` / `leading-display` / `void`, and the `caps` / `tall` / `inline` options on `<Button>`). The game-art directories turn the `shadcn/*` rules off. Fix them in any file you touch.
+- **PRIORITY now that the Cloudflare backend is in production (ADR 0009): encode architecture as lint (decided 2026-11-15).** The project is fully AI-driven, and a deterministic lint error is the guard-rail an agent can't skip; a convention that only lives in a doc can be. In order:
+  1. **Local `oxlint` plugin with project rules** under `tools/oxlint/shadows/` (same shape as app-licitei-next's `licitei` plugin). Candidates: `src/game/**` must not import React, the backend, or call `Date.now()` / `Math.random()` directly (keeps the engine pure and testable); every tRPC procedure that mutates character state must go through the session middleware (closes threat #5 structurally); no unvalidated `JSON.parse` at the D1 boundary. Write them against the real tRPC/D1 code after phase 1, not before.
+  2. **Type-aware linting** (`no-floating-promises`, `no-misused-promises`, …) for the new async backend. Verify oxlint's type-aware mode works alongside the JS plugins first.
+  3. **Tests for the combat hooks** (`useCombatLoop`, `useCombatTick`, `useEncounterSchedule`). This is the remaining blind spot, and the first oxlint run showed it's where most of the React-rule violations were. With the tests in place, move the 3 activation-reset effects to the zone-entry event and delete their disables.
+  4. **Clear the remaining oxlint warnings (227 as of 2026-11-15, 163 after phase 3)**, then promote the rules to `error` so the pre-push gate covers them:
+     - `react/forbid-elements` (43; 31 in `src/components/world`): game-art buttons. Decide between turning the rule off for `src/components/world/**` + `src/components/game/**` (same reasoning as the `shadcn/*` override) or adding game variants to `<Button>`.
+     - `shadcn/*` on app-shell UI: `src/routes/admin/**`, root `src/components/*` modals, and `src/components/ui` itself (sign-in and character-select done in phase 3).
+     - `complexity` (15; top: `src/game/stats/compute.ts` ×3, `InventoryModal` ×2, `src/game/items/generator.ts`). Pure refactors, and the `src/game` ones are covered by tests.
 - **Next big feature**: passive tree (per CONTEXT.md → Classes ordering: MVP combat ✅ → passive tree → active skills). Design work needed first — no stub plan yet.
 
-Pick by appetite: feature work = passive tree design pass; cleanup pass = lexicon/codegen/rng triple; content polish = camp cinematic art + audio.
+Pick by appetite: risk-reduction = the post-migration lint/test priority above, then the component split (agent-ergonomics item 4); feature work = passive tree design pass; cleanup pass = lexicon/codegen pair; content polish = camp cinematic art + audio.
 
 ### world.tsx size — closed decision
 
-PR #52 landed world.tsx at 740 lines (down from 774, the original monolith was 900). Further extraction (e.g. `useExitFlow`, `useTravelHandlers`) was considered and rejected — the file no longer mixes concerns (composition / handlers / derivations / JSX are contiguous sections), so further splitting would hide flow that today reads linearly. The trigger for revisiting is concerns getting *re-mixed* (business logic inside JSX, mutation hooks called outside the composition block, fetch in a handler) — NOT raw line growth. The styleguide rule in `.gemini/styleguide.md` was updated to reflect this distinction. Orchestrator routes at this app's scale have a natural floor around 700-750 lines.
+PR #52 landed world.tsx at 740 lines (down from 774, the original monolith was 900). Further extraction (e.g. `useExitFlow`, `useTravelHandlers`) was considered and rejected — the file no longer mixes concerns (composition / handlers / derivations / JSX are contiguous sections), so further splitting would hide flow that today reads linearly. The trigger for revisiting is concerns getting _re-mixed_ (business logic inside JSX, mutation hooks called outside the composition block, fetch in a handler) — NOT raw line growth. The styleguide rule in `.gemini/styleguide.md` was updated to reflect this distinction. Orchestrator routes at this app's scale have a natural floor around 700-750 lines.
 
-**Update (2026-05-28)**: world.tsx is now 886 lines after the `useBarrier` hook extraction landed alongside the post-PR #64 QoL/balance bundle. The hook owns the BarrierState continuously across all views (map / combat / city / travel) — the prior dual-ref scaffolding (out-of-combat barrier ref + ticker + sync mutation) is gone. world.tsx is still above the 740 line floor PR #52 closed on, but the residual ~140-line gap is in flat composition / handlers / JSX (no concerns re-mixed). The closed decision still holds: the trigger for revisiting is *concerns re-mixing inside JSX/handlers*, not raw line growth.
+**Update (2026-05-28)**: world.tsx is now ~937 lines after the `useBarrier` hook extraction landed alongside the post-PR #64 QoL/balance bundle. The hook owns the BarrierState continuously across all views (map / combat / city / travel) — the prior dual-ref scaffolding (out-of-combat barrier ref + ticker + sync mutation) is gone. world.tsx is still above the 740 line floor PR #52 closed on, but the residual gap is in flat composition / handlers / JSX (no concerns re-mixed). The closed decision still holds: the trigger for revisiting is _concerns re-mixing inside JSX/handlers_, not raw line growth.
+
+**Update (2026-05-29, agent-ergonomics pass)**: honesty check on the above — an audit found one `handleLeaveWorld` handler that had drifted _into_ the derivations block, so the "contiguous sections" claim was no longer literally true. It was moved back up with the other `handle*` functions, restoring the composition → handlers → derivations → JSX ordering the closed decision relies on. Lesson: "contiguous sections" is the actual invariant this decision protects, so a handler landing in the wrong section IS the re-mixing trigger — even when no business logic moved into JSX. Watch for it on every world.tsx edit, not just big ones.
 
 ---
 
@@ -39,31 +60,33 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 
 ### Why A (criteria that earned the current grade)
 
-- **Architecture: A-** — render-at-display-time naming + literal-union enforcement is the correct choice for a multi-locale ARPG (codified now in [ADR 0003](../adr/0003-render-at-display-names.md)). Lexicon pattern is battle-tested across two domains (monsters + items). Convex/TanStack split is coherent. Remaining hole: drift risk between lexicon and `mod-i18n.ts` (same modifier id in two independent tables) — flagged in the lexicon follow-ups below.
-- **Code quality: A** — `src/game/` is pure + tested. 288 vitest cases. Comments are WHY-focused. One remaining stain: residual `as TemplateBaseId` casts at the Convex boundary (Convex validators can't express literal unions — captured in [ADR 0003](../adr/0003-render-at-display-names.md)). The world.tsx orchestrator dropped from 900 → 740 lines via PR #45 + PR #52.
+- **Architecture: A-** — render-at-display-time naming + literal-union enforcement is the correct choice for a multi-locale ARPG (codified now in [ADR 0003](../adr/0003-render-at-display-names.md)). Lexicon pattern is battle-tested across two domains (monsters + items). tRPC + react-query over one Worker is coherent. Remaining hole: drift risk between lexicon and `mod-i18n.ts` (same modifier id in two independent tables) — flagged in the lexicon follow-ups below.
+- **Code quality: A** — `src/game/` is pure + tested (622 vitest cases across 25 files). Comments are WHY-focused. The coverage is concentrated in `src/game/`, though — the React hooks and large world components are largely untested (see agent-ergonomics caveat below). (The `as TemplateBaseId` casts at the old persistence boundary went away with the migration; see the ADR 0003 update.) The world.tsx orchestrator dropped from 900 → 740 lines via PR #45 + PR #52.
 - **Docs: A** — `CONTEXT.md` is best-in-class for a solo-dev project (976 lines of single-source-of-truth game rules). Three ADRs codify the load-bearing architectural decisions (optimistic mutations, three-system i18n, render-at-display naming). Playbooks accurate and link to type-checked sentinel examples; new system stubs let an agent picking up skills / passives / stash know which questions need answering before coding.
 - **Scalability: A** — adding a new locale = 1 new lexicon file per domain + matching paraglide JSON. Adding a new template = 1 entry + 0 lexicon changes if base/modifier already exist. Decomposition cut lexicon size by 88% (562 → 135). Literal-union enforcement makes "forgot a translation" a compile error.
 - **Translation quality: B-** — 130 PT lexicon entries were AI-bulk-translated. Four hand-revised (Espada Bastarda, Estrela da Manhã, Maculado pelo Vazio, Gume) caught real awkwardness, so the rest probably has 5–10 similar issues. Fine for indie pre-release, not for a paid Brazilian release.
 - **Agent ergonomics for ONBOARDING: A+** — `CONTEXT.md` + `CLAUDE.md` + `codebase-map.md` get an agent productive in ~30 minutes.
-- **Agent ergonomics for MODIFYING existing things: A+** — strong TS catches mistakes. Both monolith refactors have shipped: world.tsx from 900 → 740 lines (PR #45 + PR #52), `useCombatLoop.ts` from 916 → 411 lines split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule` (PR #47). No remaining single-file navigation tax above ~750 lines, and the styleguide now distinguishes "concerns re-mixing" (real debt) from "line growth" (not debt).
+- **Agent ergonomics for MODIFYING existing things: A-** — strong TS catches mistakes, and the styleguide distinguishes "concerns re-mixing" (real debt) from "line growth" (not debt). Honest caveat (was overstated as A+): the "no navigation tax above ~750 lines" claim no longer holds — `CombatScene.tsx` (~990), `world.tsx` (~937), and `InventoryModal.tsx` (~920) are all sizeable single-file orchestrators. They read linearly so the tax is navigation, not tangle, but an agent does pay it.
+- **TESTING as a refactor/bugfix safety net: BIMODAL (A inside `src/game/`, C+ outside)** — 622 vitest cases blanket the pure domain (`damage`, `stats/compute`, `generator`, `drops`, `scaling`, `levels`, `combat/{kill,potion,vitals}`, …), so a bug or refactor in `src/game/` has a real net. But the React hooks (12 of 16 untested, including the `useCombatLoop` state machine), and the big world components (zero tests) are blind spots. The procedures themselves now have integration tests on a local D1 (`src/server/trpc/routers/*.integration.test.ts`), and the decisions they call are pure + tested in `src/game/` (`combat/{kill,record-kill,potion,vitals}`, `loot/bag`, `world/zone-actions`, …). The remaining gap is the React layer: the combat hooks and the world components.
+- **~~Validator manual-sync hazard~~** — gone with the migration: items are a JSON column typed by `GeneratedItem` itself (ADR 0003 update), so there is no second shape to keep in sync.
 - **Agent ergonomics for ADDING NEW systems (skills, passive tree, stash): B** — stub playbooks now exist for each queued Future domain, listing the decisions to resolve + the ADRs the agent will need to write. The systems themselves aren't built, but the orientation infrastructure is. The grade returns to A once the first new system ships against its stub without an emergency refactor.
 
 ### What raises the grade
 
-| Move | Outcome |
-|---|---|
-| Native PT review of `lexicon/pt.ts` | Translation quality B- → A. Composite **A → A+**. |
+| Move                                                                                                  | Outcome                                                                                   |
+| ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Native PT review of `lexicon/pt.ts`                                                                   | Translation quality B- → A. Composite **A → A+**.                                         |
 | 3+ months of system additions (skills / passive / stash) WITHOUT emergency refactor against the stubs | **A+** — architecture proven at scale, not just at theory. Until then A+ is hypothetical. |
 
 ### What lowers the grade
 
-| Risk | Drop |
-|---|---|
-| Next major refactor ships without updating relevant playbooks (drift recurs) | A → B+. The type-check sentinels under `docs/playbooks/_examples/` cover the playbook code blocks via `tsc --noEmit` — but a refactor that *also* changes the surrounding prose without updating it is still possible, and there is no CI workflow that enforces `tsc` on push (no `.github/workflows/` yet — local discipline is the only guard). |
-| New domain shipped that ignores its stub playbook (and doesn't write the ADRs it flagged) | Scalability slips A → B+. The first system to do this sets a precedent that's hard to walk back. |
-| `world.tsx` grows further (or another orchestrator route hits the same shape) | Modifying existing → B+. Agent navigation tax compounds. |
-| Someone "optimizes" render-at-display by pre-rendering names | Locale switching silently breaks. Now explicitly forbidden by [ADR 0003](../adr/0003-render-at-display-names.md). |
-| `mod.description` (legacy field) becomes load-bearing again in any consumer | Defeats the render-at-display invariant. Tooltips diverge by locale. |
+| Risk                                                                                      | Drop                                                                                                                                                                                                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next major refactor ships without updating relevant playbooks (drift recurs)              | A → B+. The type-check sentinels under `docs/playbooks/_examples/` cover the playbook code blocks via `tsc --noEmit` — but a refactor that _also_ changes the surrounding prose without updating it is still possible, and there is no CI workflow that enforces `tsc` on push (no `.github/workflows/` yet — local discipline is the only guard). |
+| New domain shipped that ignores its stub playbook (and doesn't write the ADRs it flagged) | Scalability slips A → B+. The first system to do this sets a precedent that's hard to walk back.                                                                                                                                                                                                                                                   |
+| `world.tsx` grows further (or another orchestrator route hits the same shape)             | Modifying existing → B+. Agent navigation tax compounds.                                                                                                                                                                                                                                                                                           |
+| Someone "optimizes" render-at-display by pre-rendering names                              | Locale switching silently breaks. Now explicitly forbidden by [ADR 0003](../adr/0003-render-at-display-names.md).                                                                                                                                                                                                                                  |
+| `mod.description` (legacy field) becomes load-bearing again in any consumer               | Defeats the render-at-display invariant. Tooltips diverge by locale.                                                                                                                                                                                                                                                                               |
 
 ### Reading this from a fresh session
 
@@ -75,61 +98,52 @@ If you're picking up where we left off:
 
 ---
 
-## Beta readiness — Convex cost envelope (snapshot, refine with real telemetry)
+## Beta readiness — D1 quota envelope (snapshot, refine with real telemetry)
 
-Reference material, not planned work. Snapshot taken 2026-05-23 in response to the deployment / scaling question. Update this section when real call-rate observations diverge from the model below.
+Reference material, not planned work. Rewritten for the Cloudflare backend (2026-11-16) from the old Convex cost envelope; measured CPU per procedure is in the [ADR 0009](../adr/0009-cloudflare-d1-trpc-backend.md) update notes. The Workers Free plan has no bill: hitting a quota fails requests until the daily reset (00:00 UTC), for every player. Verify the current limits at the Cloudflare docs; as understood today: **100k Worker requests/day**, **D1: 5M rows read/day, 100k rows written/day**, 10 ms CPU per request (not enforced per request so far, see ADR 0009).
 
-### Per-active-hour call rate (estimated)
+### Per-active-hour rates (estimated)
 
-Combat-tick mutations driven by `useCombatLoop` against `convex/combat.ts`:
+Combat (`useCombatLoop`):
 
-- `recordKill` — 1 per monster kill. At ~6s/kill cycle (spawn gap + ~3s fight typical) that's ~600/hour. Endgame burst rates (heavy dual-wield + ambush packs) approach ~1200/hour.
-- `syncHp` — gated on `hp !== lastSyncedHpRef` + 10s ticker → ceiling 360/hour, but most idle players hit far less because HP only changes during active combat.
-- `usePotion` / `useEtherealIncense` — ~10-30/hour.
+- `recordKill` — 1 per kill. ~600/hour at a ~6 s kill cycle, ~1200/hour at endgame burst. **~1 row written** (the character UPDATE; drops ride on it as JSON) plus nothing else, and since phase 3 it also carries the HP sync.
+- `syncHp` — only when 10 s pass after the last write with HP changed, so steady fighting makes almost none; idle players make zero. Ceiling 360/hour, realistic far below.
+- `consumePotion` / `consumeEtherealIncense` — ~10–30/hour, 1 row each.
 
-Out-of-combat mutations driven by `useWorldMutations`:
+Out of combat (`useWorldMutations`, `useInventoryMutations`): zone enter / exit / pick / discard ~20–40/hour; travel ~10–20/hour; equip / reorder ~10–50/hour; vendor / stash ~5–20/hour. A kept item costs its `items` insert plus index entries (~2 rows); a move costs 1–2 rows per item.
 
-- `enterZone` / `exitZone` / `pickFromBag` / `discardFromBag` — ~20-40/hour. Zone changes are deliberate, not spammed.
-- `startTravel` / `arriveAtTravel` — pair on each node transition. ~10-20/hour.
-- `equipItem` / `unequipItem` / `reorderInventory` — ~10-50/hour during active loot sessions.
-- `vendorBuy` / `vendorSellMany` — bursty around vendor visits. ~5-20/hour averaged.
+**Rows written per active hour: ~1.2–1.7k** (≈1.2–1.7 per kill on average, dominated by kills). **Requests per active hour: ~700–1500 mutations + a handful of queries** — the client reads from its cache and mutations write their results into it (no refetch per mutation); queries don't refetch on focus except the character on `/world` (after 30 s), and the leaderboard / admin views poll (5 min / 30 s) only while open.
 
-**Total mutations per active hour: ~700-1500.**
+### Projection against the daily quotas
 
-### Reactive query updates also bill
+| Quota                      | Per active hour | Active hours/day it supports (all players combined) |
+| -------------------------- | --------------- | --------------------------------------------------- |
+| D1 rows written (100k/day) | ~1.2–1.7k       | ~60–80                                              |
+| Worker requests (100k/day) | ~0.8–1.6k       | ~60–120 (static assets count too; keep them cached) |
+| D1 rows read (5M/day)      | small           | not the constraint                                  |
 
-Convex meters function calls, which includes query re-runs triggered by mutations on watched tables. Every `recordKill` invalidates `api.characters.list` (level/xp/potions/incense) and `api.items.zoneBag` (the new drop). Every `equipItem` invalidates `api.items.inventory` + `api.items.equipped`. Multiplier from reactive reads is roughly **2-3× the mutation count**.
-
-**Estimated chargeable function calls per active hour: ~2000-4000.**
-
-### Projection against tiers
-
-Verify exact numbers at [convex.dev/pricing](https://www.convex.dev/pricing) — Convex adjusts plans periodically. Approximations as understood today:
-
-| Tier | Included calls / month | Active hours / month it supports | Reads as |
-|---|---|---|---|
-| Free (Starter) | ~1M | ~250-500 | Friends beta (10 friends × ~10h each = 100h) fits with headroom |
-| Pro ($25 base) | ~25M | ~6000-12000 | ~100 daily-active players × ~2h/day fits inside the included quota |
-| Above Pro | Usage-based overage | — | Depends on per-call overage rate |
+Solo testing fits with a wide margin. A 10-friend beta at ~3 h/day each (~30 active hours) fits; ~20 regular players doesn't, and the first quota to go is the write quota.
 
 ### What inflates this estimate
 
-- **Layer 2 of the threat-model fix** (per-hit mutation instead of per-kill): 5-10× the call rate. Defer until ranking ships and the cost is justified.
-- **Frequent leaderboard subscriptions**: a "live top 100" view re-runs the leaderboard query for every subscriber whenever any one of the top 100 levels up.
-- **Multi-tab abuse** was the worst offender here, multiplying a single user's call rate by tab count. Closed in `feat/single-active-session` (see Threat #5 in `docs/security/threat-model.md`) — every state-mutating mutation now rejects stale tabs.
+- **Layer 2 of the threat model** (per-hit server calls instead of per-kill): 5–10× the request and write rates. Defer until ranking ships and the cost is justified.
+- **New indexes on hot columns**: every index a kill's UPDATE touches is one more row written per kill (game-schema.ts header).
+- **Invalidating instead of writing results into the cache**: each invalidation is a refetch request. The hooks write results; keep it that way.
+- **Spam scripts** (threats #1 / #2): one client can burn the shared quota. Layer 1 rate limits are the cap.
+- **Optimistic rollback refetches**: `rollbackOnError` restores the snapshot and then refetches the keys it touched, since other writes may have landed meanwhile. Rejections are rare, so this is cheap; revisit only if the request quota gets tight.
 
-### What does NOT matter for Convex cost
+### Other Free-plan risks
 
-Bandwidth. Convex bandwidth allowances are generous and SPA payloads are tiny (character doc + inventory + zone bag is well under 100KB even at endgame). Bandwidth is the **frontend host's** concern (Vercel / Cloudflare Pages), not Convex's.
+- **Concurrent read-modify-write** (threat #6): accepted while the game is solo-tested; escalation is a per-character Durable Object.
+- **Password hashing CPU**: sign-up costs ~105–130 ms CPU against the Free plan's nominal 10 ms. Nothing has been rejected; if Cloudflare starts to, lower the scrypt cost in `src/server/password.ts`, don't buy a plan.
 
 ### Action items before opening a public beta
 
-- Watch the Convex dashboard's function-call counter after the first week of real play. Compare actual rate to the ~2000-4000/hour model above; refine the projection.
-- Ship Layer 1 rate limits (threat-model). They serve double duty: anti-cheat **and** cost ceiling against scripted spam.
-- ~~Ship the single-active-session lock.~~ ✅ Done in `feat/single-active-session`.
+- Watch the Cloudflare dashboard (Workers requests, D1 rows written) after the first week of real play; compare with the model above.
+- Ship Layer 1 rate limits (threat model): anti-cheat **and** quota ceiling against scripted spam.
+- If the write quota binds before the player count justifies a paid plan, the levers are fewer rows per kill (already 1) and fewer kept items, not more caching.
 
 ---
-
 
 ## Camp cinematic biome ambience (deferred)
 
@@ -187,18 +201,6 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 **Why deferred**: the hand-maintained file works for now. Codegen is the right call if/when there's a sustained pace of adding new bases.
 
-### 3. Hash function → `src/lib/rng.ts`
-
-**Risk**: `hashItemId` in `item-name.ts` is FNV-1a; `CombatScene.tsx` has a separate `*31`-walk hash. Both are deterministic string→[0, 1) hashes. Two implementations, same purpose, will drift.
-
-**Fix**: extract to `src/lib/rng.ts` as `hashStringToUnit(s, salt?)` (or two-output variant). Both callers consume from there. Was flagged in the first simplify pass and deferred — the second caller (CombatScene) uses a weaker hash that probably should upgrade to match.
-
-**Why deferred**: not load-bearing, both implementations currently work. Worth doing when next touching `CombatScene`'s hash.
-
-### 4. Convex validator can't enforce literal unions
-
-**Constraint, not a bug**. `nameBase` / `nameModifier` are stored as `v.optional(v.string())` because Convex validators don't have ergonomic literal-union support. The in-process `GeneratedItem` type widens to `string` at the persistence boundary — the lexicon files themselves keep the union enforcement. If Convex ever ships a `v.unionLiteral([...])` helper, swap in.
-
 ---
 
 ## Future: rare-name bestiary (low priority)
@@ -209,7 +211,7 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 ### Scope sketch
 
-- New Convex table `rareEncounters` keyed by characterId, storing: spawn seed, monster id, level, mods, killed-at timestamp, zone id. (Seed lets the renderer reproduce the same name later — the displayed string isn't stored, so locale-switch reads the right language out of the bestiary too.)
+- New D1 table `rare_encounters` keyed by characterId (mind the write quota: one more row per rare kill), storing: spawn seed, monster id, level, mods, killed-at timestamp, zone id. (Seed lets the renderer reproduce the same name later — the displayed string isn't stored, so locale-switch reads the right language out of the bestiary too.)
 - `recordKill` mutation grows a branch: when `monsterRarity === "rare"`, also insert into `rareEncounters`.
 - New world view (`/world` view mode `"bestiary"`, or a modal opened from the status card) lists past rares chronologically or by zone. Each entry renders via `translateEnemyName({ def, mods, rarity: "rare", nameSeed })`.
 - Optional: count how many times the same `(monsterId, mod combo)` has been killed — repeat-kill stats add a collector dimension.
@@ -220,7 +222,7 @@ Combat-feel work pays off the moment the player fights; persistence pays off lat
 
 ### Validation when picked up
 
-- Add the table in `convex/schema.ts`, then in `convex/combat.ts:recordKill` upsert the encounter on rare kills.
+- Add the table in `src/server/db/game-schema.ts` (`pnpm db:generate`), then have `combat.recordKill` insert the encounter on rare kills in the same batch.
 - Manual: kill a rare, open the bestiary, see the same name. Switch locale — the bestiary entry renders in the new language. Kill a rare with the same monsterId, see a different name.
 
 ---
@@ -236,6 +238,7 @@ Combat-feel work pays off the moment the player fights; persistence pays off lat
 Spell damage currently only matters for INT-stacking caster builds (staff/wand + tome). Warrior and Rogue have no access to spell scaling, which makes hybrid builds impossible and limits build diversity. Goal: open spell damage as a secondary scaling avenue for non-mage classes without eroding the mage's identity as the primary caster.
 
 Open questions:
+
 - Should non-mages access spell damage through gear (e.g. a "spell damage" suffix on melee weapons), through a passive tree node, or through active skills that scale off spell power?
 - How much spell scaling is "enough to feel hybrid" without making pure-melee builds feel inferior?
 - Mage identity lever: mages should still be the best at pure spell DPS. Possible lever: mage-exclusive "more spell damage" passives, or a mage-only mechanic (e.g. spell echo, spell penetration) that non-mages can't access.
@@ -245,6 +248,7 @@ Open questions:
 Both classes currently play as "stack physical damage, swing weapon." There's no mechanical reason to pick Warrior over Rogue beyond base stats. Each class needs a signature mechanic that changes HOW they deal damage, not just how much.
 
 Ideas to explore:
+
 - **Warrior**: Fortify (damage reduction that stacks per hit landed), Rage (damage ramp-up over sustained combat), or a block/counter mechanic that rewards facetanking.
 - **Rogue**: Critical strike synergy (guaranteed crit after evading, or crit multiplier scaling with evasion), Poison/Bleed DoTs that reward hit-and-run, or a combo system where consecutive hits accelerate.
 
@@ -253,6 +257,7 @@ Ideas to explore:
 Bows currently have two-handed weapon stat budgets while allowing a quiver in the offhand, giving them strictly more total stats than any other weapon setup. DPS is competitive with dual-wield but without the accuracy/survivability tradeoffs.
 
 Proposed direction: make bow DPS competitive but with a **different damage application feel** — fewer, harder-hitting shots rather than a stream of fast hits. Ideas:
+
 - **Accuracy penalty on bows**: lower base accuracy forces bow users to invest in accuracy gear or accept more misses. Thematic — bows are harder to aim than melee.
 - **Slower base attack speed**: push bows toward "sniper" feeling (big hits, slow cadence) vs. dual-wield "blender" (many small hits, fast cadence). DPS stays comparable but moment-to-moment combat feels distinct.
 - **Remove quiver or nerf quiver stat budget**: if the quiver is the problem, reduce what it gives rather than nerfing the bow itself.
@@ -276,9 +281,9 @@ When a session starts working on this, expect to add a third combat path (alongs
 
 ## Stash — shipped, vendor — existing
 
-**Stash shipped** on `feat/shared-stash`. Account-scoped, mode-isolated (softcore/hardcore), 60 slots, accessible from city. Drag-and-drop, shift-click, bulk select/deposit/withdraw. Backend: `convex/stash.ts`. Frontend: `StashModal.tsx`. Purchasable tabs are deferred.
+**Stash shipped** on `feat/shared-stash`. Account-scoped, mode-isolated (softcore/hardcore), 60 slots, accessible from city. Drag-and-drop, shift-click, bulk select/deposit/withdraw. Backend: `src/server/trpc/routers/stash.ts`. Frontend: `StashModal.tsx`. Purchasable tabs are deferred.
 
-**Vendor** already exists (`convex/vendor.ts`, `VendorModal.tsx`) — sells potions for Rubys, buys gear.
+**Vendor** already exists (`src/server/trpc/routers/vendor.ts`, `VendorModal.tsx`) — sells potions for Rubys, buys gear.
 
 ---
 
@@ -309,29 +314,14 @@ When a session starts on this, read the threat-model doc first — it has the sc
 
 **Status**: Planned, not started. User-flagged on PR #46 — current state ("muito melhor mas não como eu quero") accepted as a stopping point; remaining latency tracked here.
 
-**Why**: even after the PR #46 polishing pass (loader-based prefetch in `character-select`, `preload="render"` on the `/admin` Link + sidebar Links, indexed `listUsers`/`listAdmins`, TanStack Query cache shared via `convexQuery`), the **first** `/character-select` → `/admin` navigation in a session is still perceptibly non-instant. Subsequent tab switches inside `/admin` are usually fine because the data sits in cache.
+**Why**: even after the PR #46 polishing pass (loader-based prefetch in `character-select`, `preload="render"` on the `/admin` Link + sidebar Links), the **first** `/character-select` → `/admin` navigation in a session was perceptibly non-instant on Convex.
 
-The root cause is structural, not a missed knob:
-
-- Every Convex query is a **WebSocket subscription**, not a one-shot fetch. The first read of a given `queryKey` needs the subscribe-and-first-response handshake (~50–100ms). TanStack Query can amortise this with prefetch, but it can't make the handshake itself synchronous.
-- Code-split chunks for `/admin`, `/admin/users`, `/admin/admins`, `/admin/items` are downloaded on demand. `preload="render"` covers the common path but a fast click before the link mounts (which depends on the role query resolving) still races the chunk fetch.
+**Update (Cloudflare migration phase 3)**: the WebSocket subscribe handshake that was the root cause is gone. Admin queries are one-shot tRPC queries, batched into a single request, and SSR runs them in-process (`localLink`) with the result dehydrated into the page (`setupRouterSsrQueryIntegration`), so a hard reload of an `/admin/*` page arrives with its data. What can still cost is the client-side code-split chunk fetch and one HTTP round trip on the first in-app navigation. **Re-measure before doing anything**; if it's still noticeable, the remaining direction is a persistent query cache (`@tanstack/query-persist-client-core` + IndexedDB) so the first visit per session hits the cache.
 
 ### What has already been tried (don't redo)
 
-- `loader: async ({ context }) => { await ensureQueryData(getUserRole); if (admin) prefetchQuery(...) × 3 }` in `character-select`. Fires before render — verified via task list on PR #46.
-- `<Link to="/admin" preload="render">` on the character-select admin button + every sidebar Link in `AdminShell`. Loads chunks + runs loaders at link-mount time.
-- `defaultPreloadDelay: 0` in `src/router.tsx`. Hover-intent fires instantly when it fires.
-- `pendingComponent: AdminLayoutPending` + `pendingMs: 0` on the `/admin` route so the shell flips in synchronously even when the loader has work to do.
-
-The remaining gap is the **first** subscribe roundtrip itself — there's no client-side trick that beats it.
-
-### Directions worth exploring
-
-Pick whichever fits the next pass; do NOT do all three.
-
-1. **SSR-inline the first admin payload** (matches the Convex `preloadQuery` pattern from `convex/nextjs`). TanStack Start's loaders run server-side on initial page loads — if `/character-select`'s loader fetches the admin queries via HTTP on the server when the user is admin, the values can be inlined into the HTML and hydrated into the TanStack Query cache before any client-side WebSocket connects. The subsequent live subscription takes over with zero perceived latency. This is the canonical Convex answer for "no first-paint roundtrip". Cost: SSR-only queries don't get reactivity until the websocket subscribes, but for admin metrics that's fine.
-2. **Persistent client cache** via `@tanstack/query-persist-client-core` + IndexedDB. After the user has hit admin once, the cached payload survives reload and even a fresh tab, so the "first visit per session" handshake collapses into "first visit ever" for that browser. Cheaper to implement than SSR; doesn't help the very first time. Note: we deliberately dropped the bespoke `useCachedQuery` localStorage layer when migrating to TanStack Query — this is the proper persistence path, not a regression to the old pattern.
-3. **Split admin queries off the realtime substrate**. The admin dashboard genuinely doesn't need WebSocket reactivity — admins refresh deliberately, not continuously. A Convex HTTP action (or even a thin Convex `query` consumed via `ConvexHttpClient` with `serverHttpClient`) gives one-shot fetch semantics with the same auth pipeline. Lose live updates; gain HTTP-style request/response and a faster cold path. The architectural step the user asked about ("usar um banco relacional comum") doesn't need a new database — just a different transport on the same Convex backend.
+- Loader prefetch of the admin tabs in `character-select` (now through `prefetchAdminTabs(queryClient, trpc)`), `<Link preload="render">`, `defaultPreloadDelay: 0`, and the `/admin` pending shell.
+- SSR of the admin payload (in place since phase 3 via the route loaders' `ensureQueryData`).
 
 ### Why deferred
 

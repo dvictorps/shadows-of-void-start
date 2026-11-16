@@ -1,7 +1,7 @@
 import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
-export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
+export const GLOBAL_DAMAGE_MODIFIERS = {
 	// ── Global damage % (prefixes) ──
 	globalPhysicalDamageIncrease: {
 		id: "globalPhysicalDamageIncrease",
@@ -152,4 +152,4 @@ export const GLOBAL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tags: ["critical"],
 		tiers: createStandardTiers(10, 15, 40, 55),
 	},
-};
+} satisfies Record<string, Modifier>;

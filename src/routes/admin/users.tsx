@@ -1,31 +1,32 @@
-import { convexQuery } from "@convex-dev/react-query";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
 import { AdminPageHeader, EmptyTableRow } from "#/components/admin/AdminShared";
 import { Button } from "#/components/ui/button";
 import { getClassDisplayName } from "#/game/classes/i18n";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
-import { convexErrorMessage } from "#/lib/convex-errors";
+import { useTRPC } from "#/integrations/trpc/client";
+import { adminTabQueries, useSetUserRole } from "#/lib/admin-prefetch";
+import type { AdminOutputs } from "#/lib/api-types";
 import { formatDate } from "#/lib/format";
+import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
-import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/admin/users")({
 	loader: ({ context }) =>
-		context.queryClient.ensureQueryData(convexQuery(api.admin.listUsers, {})),
+		context.queryClient.ensureQueryData(
+			adminTabQueries(context.trpc).listUsers,
+		),
 	component: AdminUsersPage,
 });
 
-type UserRow = FunctionReturnType<typeof api.admin.listUsers>[number];
+type UserRow = AdminOutputs["listUsers"][number];
 
 function AdminUsersPage() {
-	const { data: users } = useSuspenseQuery(
-		convexQuery(api.admin.listUsers, {}),
-	);
+	const trpc = useTRPC();
+	const { data: users } = useSuspenseQuery(adminTabQueries(trpc).listUsers);
 
 	const [search, setSearch] = useState("");
 	const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -42,7 +43,7 @@ function AdminUsersPage() {
 		);
 	}, [users, search]);
 
-	const setUserRole = useMutation(api.users.setUserRole);
+	const setUserRole = useSetUserRole();
 	const confirm = useConfirmationModal();
 	const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -59,7 +60,7 @@ function AdminUsersPage() {
 			await setUserRole({ authUserId: row.authUserId, role: "admin" });
 			toast.success(m.admin_promote_success({ email: row.email }));
 		} catch (err) {
-			toast.error(convexErrorMessage(err, m.admin_promote_failed()));
+			toast.error(serverErrorMessage(err, m.admin_promote_failed()));
 		} finally {
 			setPendingId(null);
 		}
@@ -239,8 +240,9 @@ function RoleBadge({ role }: { role: "user" | "admin" }) {
 }
 
 function UserCharacters({ authUserId }: { authUserId: string }) {
+	const trpc = useTRPC();
 	const { data: characters } = useQuery(
-		convexQuery(api.admin.listCharactersForUser, { authUserId }),
+		trpc.admin.listCharactersForUser.queryOptions({ authUserId }),
 	);
 
 	if (characters === undefined) {
@@ -286,7 +288,7 @@ function UserCharacters({ authUserId }: { authUserId: string }) {
 				</thead>
 				<tbody>
 					{characters.map((c) => (
-						<tr key={c._id} className="border-b border-white/5 last:border-b-0">
+						<tr key={c.id} className="border-b border-white/5 last:border-b-0">
 							<td className="px-3 py-1.5 text-white">{c.name}</td>
 							<td className="px-3 py-1.5 text-white/70">
 								{getClassDisplayName(c.classId)}

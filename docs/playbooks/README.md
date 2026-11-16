@@ -16,6 +16,7 @@ Use these when the task matches an existing pattern. For one-off architectural c
 - [Adding an i18n key](./adding-an-i18n-key.md) — new user-facing string (paraglide)
 - [Which i18n system to use](./i18n-which-system.md) — decision tree: paraglide vs lexicon vs `mod-i18n.ts`
 - [Touching combat](./touching-combat.md) — read this before editing `useCombatLoop.ts`
+- [Adding a procedure](./adding-a-procedure.md) — new tRPC endpoint on D1 (auth → load → decide → one write)
 
 ### Stubs (orientation docs for systems not yet built)
 
@@ -30,13 +31,14 @@ Every playbook ends with the same validation sequence — you should always run 
 ```bash
 npx tsc --noEmit       # type-check
 npx vitest run         # all tests
-npx biome check src/   # lint + format
+npx oxlint src/        # lint (oxfmt formats)
 ```
 
-If your change touched convex code, also verify the dev server doesn't reject the schema:
+If your change touched `src/server/db/*-schema.ts`, generate the migration and apply it locally (the integration tests run the real migrations):
 
 ```bash
-npx convex dev --once  # one-shot deploy check
+pnpm db:generate
+pnpm db:migrate:local
 ```
 
 Don't bypass these. If a check fails, fix it before adding more changes.
@@ -45,6 +47,6 @@ Don't bypass these. If a check fails, fix it before adding more changes.
 
 The playbooks for adding a modifier / template / monster / zone / class each link to a sentinel file under [`_examples/`](./_examples/) that mirrors the exact compile-checked shape. The sentinels are included in `tsconfig.json` (via `**/*.ts`) so `npx tsc --noEmit` fails on the sentinel when a domain type changes incompatibly — the playbook must then be updated in the same PR.
 
-**Caveat — this is a local-only gate, not CI.** There is no `.github/workflows/` in the repo today, so nothing automatically runs `tsc --noEmit` on push. The sentinel only fires when *you* (or a reviewing agent) run the validation sequence above before merging. If a PR lands without that run, a stale sentinel can ship undetected. Treat the discipline as load-bearing until a CI workflow gets wired up.
+**Caveat — this is a local-only gate, not CI.** There is no `.github/workflows/` in the repo today, so nothing automatically runs `tsc --noEmit` on push. The sentinel only fires when _you_ (or a reviewing agent) run the validation sequence above before merging. If a PR lands without that run, a stale sentinel can ship undetected. Treat the discipline as load-bearing until a CI workflow gets wired up.
 
 When you change a domain shape **or** when you change a playbook example, update both. The sentinels exist to make that coupling hard to forget.

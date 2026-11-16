@@ -1,5 +1,3 @@
-import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
-import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -8,29 +6,28 @@ import {
 	Outlet,
 	Scripts,
 	useLocation,
-	useRouteContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { createServerFn } from "@tanstack/react-start";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useEffect } from "react";
+
 import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
 import { SessionTokenProvider } from "#/hooks/useSessionToken";
-import { authClient } from "#/lib/auth-client";
-import { getToken } from "#/lib/auth-server";
 import { consumeFlashToast } from "#/lib/flash-toast";
 import { getLocale } from "#/paraglide/runtime";
+
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Toaster from "../components/Toaster";
 import PostHogProvider from "../integrations/posthog/provider";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
-import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
+import type { TRPC } from "../integrations/trpc/client";
+
 import appCss from "../styles.css?url";
 
 interface MyRouterContext {
 	queryClient: QueryClient;
-	convexQueryClient: ConvexQueryClient;
+	trpc: TRPC;
 }
 
 const CHROMELESS_ROUTES = new Set([
@@ -40,25 +37,13 @@ const CHROMELESS_ROUTES = new Set([
 	"/world",
 ]);
 
-const getAuth = createServerFn({ method: "GET" }).handler(async () => {
-	return await getToken();
-});
-
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-	beforeLoad: async (ctx) => {
-		if (typeof document !== "undefined") {
+	// The session is checked by the routes that need it (`requireSession` in
+	// world / admin), from the query cache, not on every navigation here.
+	beforeLoad: () => {
+		if (globalThis.document !== undefined) {
 			document.documentElement.setAttribute("lang", getLocale());
 		}
-
-		const token = await getAuth();
-		if (token) {
-			ctx.context.convexQueryClient.serverHttpClient?.setAuth(token);
-		}
-
-		return {
-			isAuthenticated: !!token,
-			token,
-		};
 	},
 
 	head: () => ({
@@ -89,7 +74,7 @@ function NotFoundComponent() {
 	return (
 		<main className="flex h-screen items-center justify-center bg-black text-white">
 			<div className="text-center">
-				<h1 className="display-title text-4xl uppercase tracking-[0.3em]">
+				<h1 className="display-title text-4xl uppercase tracking-display">
 					404
 				</h1>
 				<p className="mt-3 text-sm uppercase tracking-wider text-white/60">
@@ -101,18 +86,10 @@ function NotFoundComponent() {
 }
 
 function RootComponent() {
-	const context = useRouteContext({ from: Route.id });
-
 	return (
-		<ConvexBetterAuthProvider
-			client={context.convexQueryClient.convexClient}
-			authClient={authClient}
-			initialToken={context.token}
-		>
-			<RootDocument>
-				<Outlet />
-			</RootDocument>
-		</ConvexBetterAuthProvider>
+		<RootDocument>
+			<Outlet />
+		</RootDocument>
 	);
 }
 
@@ -131,32 +108,30 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<head>
 				<HeadContent />
 			</head>
-			<body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(168,85,247,0.32)]">
+			<body className="font-sans antialiased wrap-anywhere selection:bg-selection">
 				<PostHogProvider>
-					<TanStackQueryProvider>
-						<ConfirmationProvider>
-							<SessionTokenProvider>
-								<TooltipPrimitive.Provider delayDuration={150}>
-									{!chromeless && <Header />}
-									{children}
-									{showFooter && <Footer />}
-								</TooltipPrimitive.Provider>
-							</SessionTokenProvider>
-						</ConfirmationProvider>
-						<Toaster />
-						<TanStackDevtools
-							config={{
-								position: "bottom-right",
-							}}
-							plugins={[
-								{
-									name: "Tanstack Router",
-									render: <TanStackRouterDevtoolsPanel />,
-								},
-								TanStackQueryDevtools,
-							]}
-						/>
-					</TanStackQueryProvider>
+					<ConfirmationProvider>
+						<SessionTokenProvider>
+							<TooltipPrimitive.Provider delayDuration={150}>
+								{!chromeless && <Header />}
+								{children}
+								{showFooter && <Footer />}
+							</TooltipPrimitive.Provider>
+						</SessionTokenProvider>
+					</ConfirmationProvider>
+					<Toaster />
+					<TanStackDevtools
+						config={{
+							position: "bottom-right",
+						}}
+						plugins={[
+							{
+								name: "Tanstack Router",
+								render: <TanStackRouterDevtoolsPanel />,
+							},
+							TanStackQueryDevtools,
+						]}
+					/>
 				</PostHogProvider>
 				<Scripts />
 			</body>

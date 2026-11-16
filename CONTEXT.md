@@ -7,27 +7,33 @@ Canonical glossary for the game domain. Defines what each term **means** in the 
 ## World Progression
 
 ### Act
+
 A chapter of the game. Contains a directed acyclic graph (DAG) of **zones** that the player progresses through. **Act 1** is the only built act today; the system is designed to host more.
 
 ### Hub
+
 A central screen that lets the player switch between unlocked acts to farm them in any order. Acts are unlocked **linearly** (you finish act N to unlock act N+1), but past acts remain re-enterable through the hub.
 
 ### Node
+
 A point in the act's DAG. Two kinds exist today:
 
 - **Zone node** — a combat location. The player enters, fights enemies (see Time Bar / Zone Miniboss), leaves, returns later. May be a regular zone, the act-boss node, or future variants.
 - **City node** — a safe location with no mobs. Houses the act's **vendor** and gives access to the **stash**. Always one city per act, unlocked at act entry (the player starts the act with both the city node and the first zone node visible on the map).
 
 ### Zone
+
 Synonym for a Zone node. Used in the rest of this document when the distinction from a city is contextual.
 
 A zone has persistent states per character:
+
 - **Incomplete** — never finished. Time bar resets every time the player leaves.
 - **Complete** — the player killed the zone miniboss at least once. Stays this way forever. Re-entering the zone is allowed for farming; the miniboss can be summoned again by completing the encounter schedule.
 
 A future **Boss pending** state is planned (see "Boss Deferral" below) but not implemented yet — today the bar filling spawns the miniboss immediately, no pause modal.
 
 ### Time Bar
+
 The progress bar shown over the zone view that represents the player's transit through the zone. The bar advances only during **exploração** (gaps between encounters); it pauses during **combate** and during **acampamento**. When the bar fills (the zone's encounter schedule completes), the **next spawn is the zone miniboss** (or, in a future iteration, becomes summonable — see "Boss Deferral").
 
 The fill resets to 0 every time the player leaves the zone with the miniboss unsummoned, and resets to 0 immediately after a miniboss kill so the farming loop can refill on the next entry.
@@ -35,6 +41,7 @@ The fill resets to 0 every time the player leaves the zone with the miniboss uns
 The bar UI displays the player's progress through the schedule (cumulative exploration time over total scheduled exploration time). The exact remaining time is hidden; only the bar is visible.
 
 ### Combat Phases
+
 Three distinct phases a player can be in inside a zone. They determine the bag retention rules on exit (see Loot Pipeline → Bag retention tiers):
 
 - **Combate** — an enemy is active and the combat tick is running. Player swings, enemy swings, damage is applied.
@@ -42,6 +49,7 @@ Three distinct phases a player can be in inside a zone. They determine the bag r
 - **Acampamento** — bar paused, cinematic + modal active. The player is at a safe rest point (either baked into the zone schedule, or summoned via Incenso Etéreo).
 
 ### Encounter Schedule
+
 Each zone declares how many encounters its bar contains and how those encounters are paced. The schedule is generated per entry — every visit rolls a new variation:
 
 - **Encounter count** scales with the zone's position in the act: ~15 in entry zones (forest_starter), ramping up to ~30 in zones adjacent to the boss node.
@@ -55,12 +63,14 @@ Each zone declares how many encounters its bar contains and how those encounters
 The schedule lives as data per zone (`src/game/world/act-1.ts`). The combat engine reads and dispatches events; spawn mechanics use an abstract `spawn event` shape (e.g., `{ size: 1, kind, ... }`) so future multi-enemy combat (NvN) can plug `size: N` ambush events without changing the engine surface.
 
 ### Acampamento
+
 A guaranteed rest point inside the zone. When the schedule reaches a camp slot, in place of the next spawn, the engine triggers a **camp cinematic**: the combat HUD fades out, ambient text fades in (zone-themed: e.g., "Sons da natureza calma...", "Um vento corre...", "O ar fica mais leve."), and finally a modal opens with two options:
 
 - **Retornar à cidade com 100% do loot** — exits the zone via the standard `ExitZoneModal` with the full bag selectable. Player picks freely; nothing is capped or random.
 - **Seguir em frente** — closes the modal; the bar resumes from where it was, the next scheduled encounter spawns. Zone progress is preserved.
 
 Mechanical side effects during the camp:
+
 - Bar is paused.
 - Passive HP regen and barrier recovery tick naturally during the cinematic and modal time (no special "rest" UI — it's a side effect of being out of combat).
 - The bag is preserved as-is until the player commits to either option.
@@ -70,14 +80,17 @@ Camps are the **only** path to retreating with 100% of the bag outside of a boss
 A future audio layer will play biome-specific ambient sounds during the cinematic (the project already has hit-sound infra to build on). Until that layer ships, the cinematic is text + fade only.
 
 ### Boss Deferral (planned, not implemented)
+
 When the time bar fills, a pause modal will ask if the player wants to fight the boss now. If they decline, a persistent **"Invoke Boss"** button will appear in the zone UI. This button will survive leaving and re-entering the zone — the boss stays "pending" until killed. Until this lands, the bar-fill spawn happens automatically on the next mob roll.
 
 ### Zone Miniboss
+
 A **rare-rarity** monster that spawns when the time bar fills in a normal zone. Picked uniformly from the zone's `monsterPool` and promoted to rare with 3 random modifiers (see Monster Modifier Pool). Drops better loot than mobs — see drop table. Respawns every time the bar is filled again, including after the zone is complete (so completed zones remain meaningful for loot farming).
 
 After a miniboss kill the combat scene shows an inline "Zone Complete" panel where the enemy was: **continue farming** (combat resumes, the bar resets to 0 and the schedule is rerolled) or **retreat** (standard exit-zone flow with the loot picker).
 
 ### Act Boss
+
 A distinct, more powerful enemy that gates progression to the next act. Lives in the **final node** of the act (a dedicated `kind: "boss"` node, not a regular zone). The boss node runs a **fixed gauntlet** — a configured sequence of rare-rarity fights ending in the act boss — instead of the time bar that regular zones use:
 
 1. **Gauntlet fights**: N back-to-back rare-rarity miniboss fights (count + monster pool declared per boss node — Act 1 / Gralfor: 3 fights). Each gauntlet fight is a single rare monster picked from the pool and rolled with 4 mods (identical to the standard zone miniboss flow). Each one plays its own rare intro cascade (sprite → name → hp).
@@ -93,6 +106,7 @@ The act boss is **farmable** — it does not despawn permanently after the first
 Each boss node declares the gauntlet length and pool. Future acts can configure 5-fight gauntlets, multi-boss sequences, or gauntlet-less direct-fight nodes by adjusting the boss-node config — no per-act code path. The legacy "Model B" (Bar 1 → miniboss → Bar 2 → boss) is **superseded** by this and won't ship.
 
 ### Boss
+
 A handcrafted enemy that headlines an Act Boss node. Distinct from a rare miniboss: bosses have **declared stats and resistances** on their template (not rolled from the modifier pool), their own sprite + entry/death sfx, and a **Boss Cinematic** that gates engagement.
 
 Bosses use **`rarity: "unique"`** — a dedicated `MonsterRarity` tier parallel to `normal | magic | rare`. This is the same convention as PoE: `unique` means "single fixed identity, handcrafted". The runtime `Enemy.rarity` carries `"unique"` for bosses so downstream code (drop tables, UI paths, tooltip renderer) can branch on rarity directly. Boss-specific data (cinematic, custom nameplate color, sprite path, declared resistances) lives in `BossConfig` under `src/game/bosses/`.
@@ -104,6 +118,7 @@ Bosses do **not** roll from the `MonsterModId[]` pool — their `MonsterTooltip`
 This convention will extend to **unique items** when introduced (Act 2+) — same paraglide path, same proper-noun-stays/epithet-translates rule.
 
 ### Boss Cinematic
+
 The configurable intro sequence each boss plays before engagement. Extends the rare miniboss intro (sprite → name → hp) with two extra beats:
 
 1. **Sprite fade-in** (boss-configurable duration).
@@ -129,6 +144,7 @@ This is component-state inside `/world`, not three different routes. Entering a 
 ## Stash and Vendor
 
 ### Stash
+
 Persistent item storage. **Shared across all characters in the account, scoped by mode.**
 
 - The **softcore stash** is shared across all softcore characters on the account.
@@ -136,11 +152,13 @@ Persistent item storage. **Shared across all characters in the account, scoped b
 - The two stashes are **isolated** from each other — a hardcore character's drops cannot reach softcore via the stash, preserving the integrity of hardcore risk.
 
 Storage model:
+
 - **One slot, one item.** No grid-tetris sizing — every item occupies exactly one slot, regardless of type or rarity.
 - Default capacity: **60 slots** in a single tab.
 - Additional **tabs are purchasable with Rubys** (see below). No fixed cap on tab count.
 
 ### Inventory
+
 The character's personal carry capacity. Distinct from the stash — what travels with the character.
 
 - **60 slots**, same one-item-per-slot rule as the stash.
@@ -153,6 +171,7 @@ The character's personal carry capacity. Distinct from the stash — what travel
 - **Discard requires confirmation.** A confirmation modal naming the specific item must be acknowledged before the delete commits.
 
 ### Vendor
+
 Per-act NPC inside the act's city. Uses **Rubys** in both directions.
 
 - **Sells**: initially **consumables only** (life potions today, more types in future). Does not sell gear in MVP.
@@ -161,6 +180,7 @@ Per-act NPC inside the act's city. Uses **Rubys** in both directions.
 Vendor stock and accepted goods are scoped to the act — Act 2's vendor doesn't share state with Act 1's vendor.
 
 ### Ruby (currency)
+
 The game's only currency. **Monsters never drop Rubys.** The full ruby loop is:
 
 1. Player kills monsters → drops items
@@ -176,16 +196,17 @@ This forces engagement with the vendor as the only ruby source and keeps drops a
 Loot is **staged server-side**, not instantly added to the inventory. The flow inside a zone:
 
 1. **Entering a zone** issues a `zoneSession` — a short-lived id that scopes the drops of this visit. The character document tracks the current session.
-2. As the player kills monsters in a zone, the server rolls drops and stores each item in the **items table** with `location = { kind: "zoneBag", characterId, zoneSession }`. The mutation that records a kill also returns the rolled items so the UI can show them immediately. Capacity is unlimited — filtering happens on exit.
+2. As the player kills monsters in a zone, the server rolls drops and stages each one in the character's **zone bag**: a JSON column on the character row (`characters.zone_bag`), each entry carrying a server-issued `bagId`. The kill writes the bag in the same row update it already makes, so an unclaimed drop costs nothing in the D1 write quota. The procedure that records a kill also returns the staged entries so the UI can show them immediately. Capacity is unlimited — filtering happens on exit.
 3. A notification button in the combat view (top-right, next to Retreat) shows the bag's running count and lets the player open a **preview modal** at any time to see what dropped so far.
 4. When the player chooses to **leave the zone** (Retreat, return to map, enter the city via map, etc.) a modal appears listing every item in the bag. The player picks which items to **keep** (transfer to inventory) or hits **"Get all"** to take everything. Discarded items are deleted permanently.
 5. If the player **dies in the zone**, the server deletes every item with the current `zoneSession`. No preview, no recovery.
 
-Server-authoritative storage means the client can never inflate drops, replay kills, or fabricate items at commit time — critical groundwork for leaderboards and the future trade system. The "items table" lifecycle (`zoneBag → inventory → equipped → stash → traded`) is the single source of truth for ownership. Equipped items live in the same table; the character document stores **only the item id** (`equippedWeaponId: Id<"items">`) as a cached pointer. Item IDs are stable across every transition — essential for audit trails, trade history, and leaderboards.
+Server-authoritative storage means the client can never inflate drops, replay kills, or fabricate items at commit time — critical groundwork for leaderboards and the future trade system. The client only ever sends `bagId`s back; keeping an item copies its data from the stored bag entry into the **items table** in SQL, and an entry already taken (a replayed or concurrent pick / exit) inserts nothing. The items table lifecycle (`inventory → equipped → stash → traded`) is the single source of truth for ownership from pick-up on. Item IDs are born at pick-up and stay stable across every later transition — essential for audit trails, trade history, and leaderboards.
 
 The zone-bag-then-pick model rewards exploration (see everything before committing), penalizes greed (dying late loses the haul), and lets the player walk out with only what fits the build.
 
 ### Drop pool (per kill)
+
 When a mob is killed, server rolls drops using:
 
 1. **Drop probability** — per CONTEXT.md drop rate table (e.g., Normal mob = 30% chance to drop 1 item).
@@ -196,23 +217,26 @@ When a mob is killed, server rolls drops using:
 6. **Mods** — generated by the existing `generateItem({ rarity, itemLevel, equipmentType, weaponType })` pipeline.
 
 ### Potion drops
+
 Independent of the equipment drop roll, every monster kill rolls a **20% chance to drop a life potion**. Potions are not entities in the items table — they are a count on the character doc — so the drop is **auto-collected**: the server increments `char.potions` directly and notifies the client. If the character is already at the 10-potion cap, the roll is **wasted silently** (no drop event, no overflow, no replacement). This gives runs a sustain stream without committing potions to the bag/inventory pipeline.
 
 ### Bag retention tiers
+
 On exit, the share of the bag the player can keep depends on which **combat phase** the exit was triggered in. Camps are the only path to 100% outside a boss kill:
 
-| Trigger | Phase | Bag retention |
-|---|---|---|
-| Boss kill | n/a | 100% (free pick) |
-| Camp (baked or via Incenso Etéreo) → Retornar | Acampamento | 100% (free pick) |
-| Retreat manual | Exploração | 30% (player picks which 30%) |
-| Retreat manual | Combate | 30% (player picks which 30%) |
-| Teleport Stone | mirrors phase above | 100% / 30% per phase |
-| Death | n/a | 0% (full wipe) |
+| Trigger                                       | Phase               | Bag retention                |
+| --------------------------------------------- | ------------------- | ---------------------------- |
+| Boss kill                                     | n/a                 | 100% (free pick)             |
+| Camp (baked or via Incenso Etéreo) → Retornar | Acampamento         | 100% (free pick)             |
+| Retreat manual                                | Exploração          | 30% (player picks which 30%) |
+| Retreat manual                                | Combate             | 30% (player picks which 30%) |
+| Teleport Stone                                | mirrors phase above | 100% / 30% per phase         |
+| Death                                         | n/a                 | 0% (full wipe)               |
 
-The **30% cap** (`floor(bag.length × 0.30)`, minimum 1 when bag has ≥1 item) is the punishment for unplanned exits: the player retains agency over *which* items survive, but loses the rest. The camp tier is the rewarded path — it's also the only spot where "Seguir em frente" preserves zone progress (any other exit ends the run).
+The **30% cap** (`floor(bag.length × 0.30)`, minimum 1 when bag has ≥1 item) is the punishment for unplanned exits: the player retains agency over _which_ items survive, but loses the rest. The camp tier is the rewarded path — it's also the only spot where "Seguir em frente" preserves zone progress (any other exit ends the run).
 
 ### Inventory overflow and exit-modal flow
+
 On exit from a zone (Retreat / Teleport Stone / Camp Retornar — death-respawn does NOT count, that's a wipe), the **exit modal** appears with every staged item.
 
 - **Default state**: all items marked "keep".
@@ -225,9 +249,11 @@ On exit from a zone (Retreat / Teleport Stone / Camp Retornar — death-respawn 
 - Inventory full check: if total kept > free slots, "Confirm" is disabled. Player must discard items either in the bag OR via the Inventory panel separately before committing.
 
 ### Loot button (combat HUD)
+
 A small button appears in the **top-right of the combat view, immediately to the left of "Retreat"**. It uses the lucide `Sparkles` icon and shows a badge with the current bag count. Click opens a **preview modal** — read-only listing of staged items (same item-card visuals as inventory), with a "Close" action that returns to combat. Distinct from the exit modal (which forces a confirm/discard decision); the preview lets the player peek without committing.
 
 ### Item card (shared visual)
+
 Every item rendered as a square card uses the same visual contract:
 
 - **Square**, rounded corners (`rounded-md`).
@@ -243,6 +269,7 @@ Every item rendered as a square card uses the same visual contract:
 - **Empty slots** (inventory only): same outline, dim border `border-white/15`, no glow, no emoji.
 
 ### Inventory modal
+
 Opened via the existing `InventoryButton` (backpack icon in `EquipmentPanel`). Wide modal split into two regions:
 
 - **Left** (~20%): equipment slots arranged as a compact grid (2 cols × 5 rows of squares — no paper-doll silhouette, just rounded-square slots to fit modal height without scroll). Shows currently equipped items; **no equip/unequip system in this iteration** — view-only.
@@ -255,11 +282,13 @@ Opened via the existing `InventoryButton` (backpack icon in `EquipmentPanel`). W
 Combat is automatic and **status-machine driven**: both sides have stats, attack rates, and mitigation, and damage is applied tick-by-tick by the formulas below. The player has no per-hit input in MVP combat; skills with cooldowns are a later layer that will plug into this same machine.
 
 ### Per-tick attack
+
 - Each side has an **attack rate** (attacks per second). Example: a 1.8 attack-speed weapon resolves 1.8 hits/sec. Dual-wielders use the **average** of both weapons' base speeds, alternating which weapon swings each tick (see "Dual-wielding").
 - The defending side mitigates with its **armor / evasion / barrier / resistances** before the hit lands. Whatever remains is subtracted from life (and barrier, where applicable).
 - Life leech, regen, on-hit, on-kill effects fire per their own triggers as part of the same machine.
 
 ### Damage formula (per hit)
+
 A hit is computed in this order:
 
 1. **Flat damage** — roll a random integer in `[min, max]` per damage type. Sources: the swinging weapon's `physicalDamage` + flat-to-attacks mods from gear (rings, gloves, amulet — never belt). For caster weapons: per-element flat-to-spells from the weapon itself (no other source rolls flat-to-spells).
@@ -273,24 +302,29 @@ A hit is computed in this order:
 ### Defenses
 
 **Armor** (physical mitigation, PoE-style):
+
 ```
 physicalReduction = armor / (armor + 10 × physicalHit)
 cap = 85%
 ```
+
 The denominator scales with the **size of the incoming hit**, not with the attacker's level. The same armor pool mitigates many small hits hard but barely dents one big hit — armor reads as a "tank against trash" stat, not a flat damage multiplier. Armor reduces only physical damage; elemental and void pass through untouched.
 
 Historical note: an earlier prototype used a Last-Epoch-style denominator (`armor + 10 × enemyLevel`), which made a single chestplate produce ~90% physical reduction in Act 1 and rendered the character effectively immortal against trash. The PoE-style pivot exists to force build diversification (armor + barrier + resistances + evasion) instead of one stat solving everything. The big-hit source the formula assumes is now live (monster crit — see the Damage formula's enemy-side note above and the monster modifier pool below), so armor stacks now have a real failure mode against crit-rolled magic / rare mobs.
 
 **Evasion + Accuracy** (hit-or-miss gate, applied before damage):
+
 ```
 hitChance = attackerAccuracy / (attackerAccuracy + defenderEvasion / 4)
 clamp [0.05, 0.95]
 ```
+
 Each incoming hit rolls against `hitChance`. A miss deals **zero** damage and triggers no on-hit effects (no leech, no life-on-hit). Symmetric — both sides roll. Default monster baseline: `accuracy = monsterLevel × 15`, `evasion = 0` (overridden by monster modifiers).
 
 **Resistances** (cold / fire / lightning / void) cap at 75%. Each elemental hit is multiplied by `(1 - resistance/100)`.
 
 **Barrier** (sits over life, blue ring around HP globe):
+
 - Functions as a spike absorber — incoming damage hits barrier **1:1** before reaching life. A 1500-max-barrier mage absorbs 1500 raw damage before breaking.
 - **No passive regen.** Once damaged, barrier stays at its current value indefinitely. There is no recovery between hits.
 - **Refill on break.** When current hits zero from damage, a **10-second cooldown** starts. At expiry, current **snaps instantly back to max** — no in-between regen. Subsequent damage during the cooldown carries entirely to life (current is 0 → nothing to absorb) and does NOT reset the timer.
@@ -305,6 +339,7 @@ Historical note: prior iterations used a 6-second instant-refill timer (deemed t
 **Block** — granted by **shields** (base + rolled mods) and by **attack dual-wielding** (flat +10% implicit). When a hit lands and is not evaded, roll once against `blockChance`. A blocked hit deals 0 damage to barrier/life but **does** trigger the attacker's on-hit (blocks are still "hits" for the attacker's purposes). Thorns still reflect to the attacker on block, regardless of whether the block came from a shield or from dual-wielding.
 
 ### Leech
+
 Per hit that lands and deals damage:
 
 ```
@@ -318,9 +353,11 @@ Each leeching hit spawns a **regen instance** that ticks for 5 seconds. Multiple
 Leech does not refill barrier — it is life-only (and the parallel rule for mana).
 
 ### Tick order
+
 The **player acts first** on each tick. Within a tick: player's hit resolves → effects trigger → enemy's hit resolves. This gives the player a slight advantage equivalent to one free swing per combat and keeps simulations deterministic.
 
 ### Stat caps
+
 Hard ceilings applied after all modifiers stack:
 
 - **Critical strike chance: 100%.** Excess crit chance from gear is wasted.
@@ -328,6 +365,7 @@ Hard ceilings applied after all modifiers stack:
 - **Attack speed and cast speed: no cap.** These scale freely. Used as primary scaling vectors in the late game.
 
 ### Monster rarities
+
 Mobs use the same rarity ladder as items, with reduced reach:
 
 - **Normal mob** — baseline stats, no modifiers.
@@ -336,6 +374,7 @@ Mobs use the same rarity ladder as items, with reduced reach:
 - **Legendary / Epic mobs do not exist** — those tiers are reserved for items.
 
 ### Between-zone state
+
 HP **persists across zones**. Leaving a zone at low HP means re-entering at low HP — there is no automatic full-heal between fights. Recovery options:
 
 - **Passive HP regen** ticks out of combat in real time, governed by the same regen stats used in combat. The map is "on the clock" — standing still in the map view actually heals.
@@ -345,9 +384,11 @@ HP **persists across zones**. Leaving a zone at low HP means re-entering at low 
 When the player leaves a zone, all **damage-over-time (DoT) effects are removed**. The player doesn't bleed out on the map.
 
 ### Equipment swap during combat
+
 Allowed. The player can re-equip gear inside a zone — useful for swapping in resist-heavy gear before a hard fight, or weapon variations. There is no equip cooldown in the MVP.
 
 ### Equipment requirements and broken state
+
 Items carry `requirements: { level, str?, dex?, int? }` (already baked into base templates). Two distinct checks govern equip behaviour:
 
 **Equip-time check (strict)**
@@ -357,6 +398,7 @@ At the moment of equip, the character's totals are computed **without the item b
 If a previously equipped item's requirements become unmet (e.g., the player unequips a ring that was supplying +STR), the item enters **broken state**. It stays in the slot but contributes **zero stats** — broken weapons swing for damage 1, broken armor adds no defense, broken jewelry stops conferring its mods.
 
 Broken detection runs as a fixed-point iteration in the stat engine:
+
 1. Start with all equipped items "live", compute totals (class base + level scaling + all equipped contributions).
 2. For each equipped item, check requirements against current totals.
 3. Mark unmet items as broken; subtract their contribution from totals.
@@ -367,6 +409,7 @@ This naturally produces the PoE "self-sustaining gear" behaviour: a helmet that 
 **Visual signal** — broken items render with a red border (overriding the rarity color), a red `AlertTriangle` icon overlay, and a red warning line at the top of their tooltip: "Falta {N} de {Atributo}", one line per unmet requirement.
 
 ### Active player input
+
 Combat is otherwise automatic, but the player has **three active controls today**: using a **life potion**, using a **teleport stone**, and using an **incenso etéreo**.
 
 - **Life Potion**: heals **20% of maximum HP**. Cap 10 carried. Obtained from the city vendor (10 rubys) or as a 20% monster drop (see Loot Pipeline → Potion drops). Potion button lives on the bottom-right of the combat view (next to the health globe) and on the map's status card.
@@ -394,7 +437,7 @@ Future skills will plug in as additional active controls; these three are the on
 
 - The level cap is **100**.
 - **Geometric XP curve**: `xpToNextLevel(L) = 100 × 1.08^(L-1)`. L1→L2 costs 100 XP; L50→L51 costs ~4 342; L99→L100 costs ~203 681. Anchored at 100 to preserve the early-game pace. The 1.08 growth rate is **steeper than the monster XP scaling rate of 1.06** (see "Monster stat scaling"), so kills-per-level rises as the character climbs. Concretely, a Warrior killing only Goblins (baseXp 5) needs roughly **20 kills at L1, ~50 at L50, ~127 at L100**.
-- The geometric cost curve is intentional: a linear curve combined with geometric monster XP rewards would make endgame leveling trivial (kills-per-level *falling* toward the cap), which is the inverse of the desired "leveling feels like real progress" pacing. The growth gap (1.08 / 1.06 = ~1.019 per level, ~6× over 99 levels) is calibrated to feel like an ARPG-lite — challenging without becoming a PoE-style hundreds-of-hours grind, which we lack the per-zone mob density to support.
+- The geometric cost curve is intentional: a linear curve combined with geometric monster XP rewards would make endgame leveling trivial (kills-per-level _falling_ toward the cap), which is the inverse of the desired "leveling feels like real progress" pacing. The growth gap (1.08 / 1.06 = ~1.019 per level, ~6× over 99 levels) is calibrated to feel like an ARPG-lite — challenging without becoming a PoE-style hundreds-of-hours grind, which we lack the per-zone mob density to support.
 - **Act 1 carries the character to roughly level 15.** Balance will be refined as later acts come online.
 - See **Death** for the XP-loss-on-death rule.
 
@@ -450,11 +493,11 @@ The three core attributes — **Strength**, **Dexterity**, **Intelligence** — 
 
 ### What each point gives
 
-| Attribute | Effect per point | Notes |
-|---|---|---|
-| **Strength** | `+1% Melee Damage Increased` and `+5 Maximum Life` | Two effects from one stat — STR is the warrior identity (damage AND survivability). Mage with low STR still gets a small life floor; rogue with mid STR sits between the two. |
-| **Dexterity** | `+2 Accuracy Rating` and `+1% Evasion Increased` | Multiplicative on flat evasion sources, so DEX only converts into real evasion if the player is wearing leather pieces or has flat evasion mods rolled. A mage with 100 DEX and zero leather gear gets the accuracy but no evasion (matches how INT works for silk). |
-| **Intelligence** | `+1% Barrier Increased` per point (= +10% per 10 points) | Multiplicative on flat barrier sources. Mana scaling is planned for INT in a future iteration but **mage-only** — for now INT is the defensive scaler of the caster. |
+| Attribute        | Effect per point                                         | Notes                                                                                                                                                                                                                                                                |
+| ---------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Strength**     | `+1% Melee Damage Increased` and `+5 Maximum Life`       | Two effects from one stat — STR is the warrior identity (damage AND survivability). Mage with low STR still gets a small life floor; rogue with mid STR sits between the two.                                                                                        |
+| **Dexterity**    | `+2 Accuracy Rating` and `+1% Evasion Increased`         | Multiplicative on flat evasion sources, so DEX only converts into real evasion if the player is wearing leather pieces or has flat evasion mods rolled. A mage with 100 DEX and zero leather gear gets the accuracy but no evasion (matches how INT works for silk). |
+| **Intelligence** | `+1% Barrier Increased` per point (= +10% per 10 points) | Multiplicative on flat barrier sources. Mana scaling is planned for INT in a future iteration but **mage-only** — for now INT is the defensive scaler of the caster.                                                                                                 |
 
 The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all funnel into the existing increased / global-defense pipelines — they don't bypass caps and they don't stack their own special multiplier. Same math as a gear roll, just sourced from the attribute instead of an explicit mod.
 
@@ -475,23 +518,23 @@ The multiplicative attributes (STR's melee%, DEX's evasion%, INT's barrier%) all
 
 ### Drop rates (Act 1 baseline)
 
-| Source | Drop chance | If drops |
-|---|---|---|
-| Normal mob | 30% | 70% Normal · 25% Magic · 5% Rare |
-| Magic mob | 60% | 40% Normal · 50% Magic · 10% Rare |
-| Miniboss (Rare) | 100% | **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare |
-| Gauntlet rare (inside a boss node) | 100% | Same as Miniboss — **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare |
-| Act boss | 100% | **2-3 items** · 1 **guaranteed Rare** · remaining slots: 75% Rare · 25% Magic (no Normals from boss) |
+| Source                             | Drop chance | If drops                                                                                                          |
+| ---------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| Normal mob                         | 30%         | 70% Normal · 25% Magic · 5% Rare                                                                                  |
+| Magic mob                          | 60%         | 40% Normal · 50% Magic · 10% Rare                                                                                 |
+| Miniboss (Rare)                    | 100%        | **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare                    |
+| Gauntlet rare (inside a boss node) | 100%        | Same as Miniboss — **2 items** · 1 **guaranteed Rare** · 1 additional rolled at 30% Normal · 55% Magic · 15% Rare |
+| Act boss                           | 100%        | **2-3 items** · 1 **guaranteed Rare** · remaining slots: 75% Rare · 25% Magic (no Normals from boss)              |
 
 ### Rarity promotion (Magic Find)
 
 After each item's base rarity is rolled (including guaranteed slots), the game attempts to promote it one tier at a time. Each step is an independent roll:
 
-| Promotion | Base chance | With 100% MF | With 200% MF |
-|---|---|---|---|
-| Normal → Magic | 10% | 20% | 30% |
-| Magic → Rare | 5% | 10% | 15% |
-| Rare → Legendary | 1% | 2% | 3% |
+| Promotion        | Base chance | With 100% MF | With 200% MF |
+| ---------------- | ----------- | ------------ | ------------ |
+| Normal → Magic   | 10%         | 20%          | 30%          |
+| Magic → Rare     | 5%          | 10%          | 15%          |
+| Rare → Legendary | 1%          | 2%           | 3%           |
 
 **Formula:** `chance = basePct × (1 + magicFind / 100)`
 
@@ -499,14 +542,14 @@ Promotions chain: a Normal can promote to Magic, then that result can promote to
 
 ### Vendor catalog (MVP)
 
-| Product | Price | Cap |
-|---|---|---|
-| Life Potion | 10 Rubys | 10 |
-| Teleport Stone | 40 Rubys | — |
+| Product        | Price    | Cap |
+| -------------- | -------- | --- |
+| Life Potion    | 10 Rubys | 10  |
+| Teleport Stone | 40 Rubys | —   |
 
 Potions are capped because they're the active heal control — supply matters for combat balance. Teleport Stone is uncapped (player can stockpile arbitrarily many); its gameplay weight comes from the ruby cost, not from rationing. **Incenso Etéreo is not sold** — it drops from monsters only (see Active player input → Incenso Etéreo).
 
-The catalog data lives in `src/game/vendor/products.ts`; adding a product means registering an id + price + emoji + (optionally) cap there. `convex/vendor.ts` → `vendorBuy` reads the metadata and walks one code path for all products.
+The catalog data lives in `src/game/vendor/products.ts`; adding a product means registering an id + price + emoji + (optionally) cap there. `vendor.vendorBuy` (`src/server/trpc/routers/vendor.ts`) reads the metadata and walks one code path for all products.
 
 ### Selling rules
 
@@ -529,6 +572,7 @@ price = base_rarity × (1 + ilvl / 10) × (1 + mod_quality_total / 10)
 - `mod_quality_total` — sum of `(11 - tier_index)` across all explicit mods on the item. T1 (best) contributes 10, T10 (worst) contributes 1. Items with no explicit mods (Normal items) contribute 0 here.
 
 Example: Rare item, `ilvl 80`, three mods rolled at tiers T3 / T4 / T2:
+
 ```
 80 × (1 + 80/10) × (1 + (8 + 7 + 9) / 10)
 = 80 × 9 × 3.4
@@ -601,6 +645,7 @@ The epithet is derived from the mods:
 Magic monsters keep the affix-based naming above ("Goblin Furioso da Velocidade"). Only rares get the proper-name treatment.
 
 ### Magic mob spawn rate
+
 10% of mid-zone spawns are magic; the rest are normal. The bar-fill spawn (miniboss) is always rare regardless. Mobs that are part of an **ambush event** override the 10% baseline with the ambush's own magic rate (~60% per `pack.magicChance` — see Encounter Schedule).
 
 ---
@@ -615,20 +660,25 @@ When a character's life reaches zero:
 Hardcore is a **per-character flag** chosen at creation and cannot be toggled afterward. A hardcore character's death is unrecoverable.
 
 ### Enemy classes
+
 - **Normal mobs** — baseline stats from game data. Equivalent to an item of `normal` rarity: no extra modifiers.
 - **Minibosses / Zone bosses** — carry **modifiers** drawn from a pool, just like rare/legendary items. Modifiers may increase attack speed, damage, defense, or grant on-hit effects. This is how difficulty scales without rewriting enemies.
 - **Act bosses** — handcrafted; their modifiers and behavior are specified per boss, not rolled.
 
 ### Mob configuration
+
 Mobs live in **game data**, not the database. Each zone declares a **pool of eligible mobs**; combat sessions roll spawns from that pool. Mob templates declare **level-1 base stats** (HP, attack speed, damage, defenses) and any flavor-specific behavior; the instance-level scaler (see "Monster stat scaling") inflates the power stats at spawn time, and modifiers are layered on top for minibosses.
 
 ### Monster damage types
+
 Monsters express damage with the **same shape as the player's swing**: `physicalDamage: {min, max}` (defaults to `{min: 0, max: 0}`) plus `elementalDamage: ElementContribution[]` (defaults to `[]`). The per-hit roll mirrors `rollPlayerSwing`: roll a flat amount per type, then mitigate physical via armor and each element via its resistance. A monster can be **single-element** (Lich = `{physicalDamage: {min: 0, max: 0}, elementalDamage: [{element: "Cold", min: 18, max: 24}]}`), or **hybrid** (most monsters combine `physicalDamage` with one or more `elementalDamage` entries — e.g. Goblin = `{physicalDamage: {min: 12, max: 18}, elementalDamage: [{element: "Fire", min: 2, max: 4}]}`). The combat engine handles all three without branching — the damage types just sum.
 
 ### Zone level and monster instance level
+
 Each combat **zone node** declares its `level: number`. When a mob spawns, the server rolls its **instance level** as `zoneLevel + random(-1, 0, +1)` — the same monster template scales slightly so the zone still feels varied. The instance level is what determines drop **item level** (ilvl) and gates equipment types that can drop (see Loot Pipeline → Drop pool). It is also the multiplier used by the stat scaler below.
 
 ### Monster stat scaling
+
 A monster's template stats are declared as **level-1 baselines**. At spawn time, a pure scaler multiplies the power stats by a **geometric factor** of the monster's instance level:
 
 ```
@@ -641,7 +691,7 @@ scaleFactor(L) = 1.06 ^ (L - 1)
 
 The scaler runs at spawn time on the client (combat sim reads the scaled stats) and at kill time on the server (XP credit, drop ilvl). The client passes the spawn level to the server in `recordKill` so both agree on the effective stats. Per-monster identity (tank, swarmer, caster) is expressed by the **shape of the level-1 baseline** (high HP / low damage / slow AS for a tank, low HP / high damage / fast AS for a glass cannon), not by per-monster scaling curves. A single `g = 1.06` keeps every monster's curve predictable.
 
-The curve is intentionally **geometric** because player power grows multiplicatively (gear stacks `% increased` pools, flat damage from rings, crit multipliers). A linear `× level` curve was prototyped but rejected: it would make endgame monsters trivial against gear-scaled player damage. Geometric scaling mirrors how PoE/Last Epoch/D3 handle area-level monster stats — they all use exponential curves with similar growth rates (~1.05–1.08 per level). XP scaling at 1.06 is paired with an even-steeper **1.08 XP cost curve** (see "Experience and Levels"), so kills-per-level *grows* with the character: ~20 Goblins at L1, ~50 at L50, ~127 at L100. The cost-vs-reward gap is the lever that makes leveling feel like real progress.
+The curve is intentionally **geometric** because player power grows multiplicatively (gear stacks `% increased` pools, flat damage from rings, crit multipliers). A linear `× level` curve was prototyped but rejected: it would make endgame monsters trivial against gear-scaled player damage. Geometric scaling mirrors how PoE/Last Epoch/D3 handle area-level monster stats — they all use exponential curves with similar growth rates (~1.05–1.08 per level). XP scaling at 1.06 is paired with an even-steeper **1.08 XP cost curve** (see "Experience and Levels"), so kills-per-level _grows_ with the character: ~20 Goblins at L1, ~50 at L50, ~127 at L100. The cost-vs-reward gap is the lever that makes leveling feel like real progress.
 
 ---
 
@@ -650,18 +700,21 @@ The curve is intentionally **geometric** because player power grows multiplicati
 Movement between nodes on the act map is **time-gated**. A character is always "at" a node (`currentLocation`). To get to a different node they must **travel** — the trip takes seconds in real time, during which the player can't enter zones but can still browse stats, inventory, settings, etc. When the trip completes, the player automatically arrives at the destination and (for zone / city nodes) the view transitions into that area.
 
 ### Travel time
+
 Each `NodeConnection` carries a **distance** in abstract units. The travel time formula lives in `src/game/world/travel.ts`:
 
 ```
 time_seconds = max(0.5, distance / (1 + 2 × movementSpeed/100))
 ```
 
-The 2× coefficient on movement speed is intentional — boots can roll up to ~30% MS in early game and we want the player to *feel* that gear choice on the world map, not see a barely-perceptible improvement. The 0.5s floor keeps travel always visible.
+The 2× coefficient on movement speed is intentional — boots can roll up to ~30% MS in early game and we want the player to _feel_ that gear choice on the world map, not see a barely-perceptible improvement. The 0.5s floor keeps travel always visible.
 
 ### Unlocked nodes
+
 Every time the player arrives at a node (via any travel mechanic) the destination is appended to the character's `unlockedNodes` set. The character starts with `["city"]` on creation. This set is **append-only** — respawn doesn't clear it, leaving the world a one-time discover-then-fast-travel-back. Teleport stones consume this list to validate jump targets; nodes outside the list are inaccessible to stones even if they're shown on the map.
 
 ### Progression gating
+
 A connected combat node is **only travel-eligible if the player has completed the upstream zone**. Concretely:
 
 - The graph imposes a partial order: the city's only outgoing edge is `forest_starter`, which is its own gate (no upstream); `forest_profunda` requires `forest_starter` complete; `pantano` requires `forest_profunda`; and so on through the linear chain.
@@ -672,6 +725,7 @@ A connected combat node is **only travel-eligible if the player has completed th
 A zone enters the **Complete** state by killing the miniboss at least once (see Zone states). The time-bar progress for the current visit lives on the character document; the Complete set is persistent and per-character.
 
 ### State on the character document
+
 Four fields capture the player's location on the act map:
 
 - `currentLocation` — the node id the character is at. Defaults to `"city"` on character creation and on respawn. **During travel it intentionally remains pointing at the source node** — that's what keeps the yellow "you are here" pin anchored to where the player departed from until arrival commits.
@@ -680,6 +734,7 @@ Four fields capture the player's location on the act map:
 - `travelArrivesAt` — Unix ms timestamp the trip completes. The client uses this to schedule the auto-arrival mutation. Server validates it (with a small grace window for clock skew) before allowing `arriveAtTravel` to complete.
 
 ### Behaviour rules
+
 - **Re-entering the same node is instant.** If the player retreats from a zone and clicks the same node again, no travel — they're already there.
 - **Disconnected nodes can't be travelled to directly** by walking. Teleport stones unlock that path — clicking an unconnected node on the map opens a stone-confirmation if the node is in `unlockedNodes` and not zone-locked. Without a stone, the toast is "no route".
 - **Travel survives refresh.** `travelArrivesAt` lives in the DB. On reload the client recomputes remaining time and schedules `arriveAtTravel` accordingly. Tab closed for longer than the travel? The next load arrives immediately.
@@ -687,6 +742,7 @@ Four fields capture the player's location on the act map:
 - **Death resets to the city** and clears any in-flight travel.
 
 ### UI
+
 The map view's nodes carry a yellow `MapPin` icon over the node matching `currentLocation`. During travel, a thin progress bar pins to the bottom of the world view (above the bottom of the section) showing the from/to and seconds remaining. The map's nodes are intentionally small (`h-7 w-7` ≈ 28px) so the icon overlay reads as a separate decoration rather than competing with the node itself.
 
 ---
@@ -694,15 +750,19 @@ The map view's nodes carry a yellow `MapPin` icon over the node matching `curren
 ## Navigation and Logout
 
 ### From character-select → world
+
 Picking a character routes to `/world`. The world view starts in **Map** mode for the character's current act.
 
 ### From world → character-select
+
 A back button in the top-left corner of the world view opens a **confirmation modal** ("Leave the world?"). Confirming returns the player to `/character-select`. There is no other way out of `/world` — chromeless routes don't render the Header.
 
 ### Sign-out
+
 Only reachable from `/character-select`. A dedicated sign-out control lives there so the player must consciously leave the character context before signing out.
 
 ### Hub
+
 A separate `/hub` route exists for switching between unlocked acts. It is **locked** until the player completes Act 1. Until then, character-select routes directly to `/world?act=1`. After completing Act 1, character-select routes to `/hub`, which lets the player pick which act to enter.
 
 ---
@@ -712,9 +772,11 @@ A separate `/hub` route exists for switching between unlocked acts. It is **lock
 The character has nine slots. Each slot has an **identity** — the kinds of modifiers it is allowed to receive.
 
 ### Ring (`ring`)
+
 Hybrid slot. The most flexible piece in the kit.
 
 Can roll:
+
 - Flat damage (physical, elemental)
 - Resistances
 - Life and mana (flat + regen)
@@ -727,11 +789,13 @@ Can roll:
 A ring can be fully defensive, fully offensive, or a mix — it's the catch-all.
 
 ### Amulet (`amulet`)
+
 Premium hybrid slot, identity built around **attribute bases** and high-impact mods. Behaves like a ring (any category) but pulls toward offensive/utility power. Always rolls a base attribute implicit.
 
 Can roll everything a ring can roll.
 
 ### Belt (`belt`)
+
 Hybrid slot, but with a **distinctive Shadows of Void identity**:
 
 > Belt rolls damage **%** but never damage **flat**.
@@ -741,7 +805,9 @@ This is the slot's signature. Belt is the place to get "+X% increased Fire Damag
 Otherwise: life, mana, regen, resistances, attributes, and life/mana on kill are fair game. No accuracy, no crit multi, no leech, no on-hit.
 
 ### Gloves (`gloves`)
+
 Hybrid offensive/defensive slot. Welcomes:
+
 - Local defense (resolves to armor/evasion/barrier per base)
 - Flat damage (global, attack mods)
 - Attack speed and cast speed (global)
@@ -753,7 +819,9 @@ Hybrid offensive/defensive slot. Welcomes:
 Gloves are the second "free slot" alongside rings — both offense and defense fit.
 
 ### Helmet (`helmet`), Chestplate (`chestplate`), Boots (`boots`)
+
 Defensive identity. Primarily roll:
+
 - Local defense (resolves to armor/evasion/barrier per base)
 - Life, mana, regen
 - Resistances
@@ -765,9 +833,11 @@ Defensive identity. Primarily roll:
 **Caster armor exception:** helmet and chestplate **with a silk base** can roll `+% Spell Damage`. This is the only offensive mod that armor receives. It mirrors PoE energy-shield gear and preserves the caster fantasy without giving martial armor offensive rolls. Boots are excluded — they are defense + utility (movement speed) and never offensive.
 
 ### Off-hand (`offhand` slot)
+
 A flexible slot. Four kinds of items can occupy it, each driving distinct behaviour:
 
 **Shield** (`equipmentType: "offhand"`) — defensive identity, light hybrid potential. Rolls:
+
 - Local defense (same resolution as armor — armorType determines armor/evasion/barrier)
 - Block chance (only off-hand kind that does)
 - Thorns
@@ -778,6 +848,7 @@ The shield does not swing — it adds its stats to the character's totals and th
 **Off-hand weapon (dual-wielding)** — see "Dual-wielding" below.
 
 **Tome** (`equipmentType: "tome"`) — caster off-hand. Silk-base only (contributes barrier). **The only off-hand without block chance**, by design. Mod pool focused on spell amplification:
+
 - Local barrier (flat + %), spell damage %, cast speed %, mana flat + regen
 - Resistances, intelligence, magic find, crit chance / multi
 - A **tome-exclusive** family: `+X% of Spell Damage as Extra Cold / Fire / Lightning / Void Damage` (see "Gain as Extra Elemental" below)
@@ -785,6 +856,7 @@ The shield does not swing — it adds its stats to the character's totals and th
 - Tome rolls **no life flat or regen** — barrier-only identity. Differentiates from silk armor (which rolls both).
 
 **Quiver** (`equipmentType: "quiver"`) — bow-bound off-hand. Mod pool focused on attack amplification:
+
 - Flat physical damage to attacks, flat elemental (per element) damage to attacks (global versions — see Modifier Categories)
 - Attack speed, crit chance, crit multi, accuracy
 - Life flat, life-on-hit, mana-on-hit, resistances, dexterity, magic find
@@ -793,9 +865,11 @@ The shield does not swing — it adds its stats to the character's totals and th
 - **Equip restriction**: the main hand must hold a `bow`. See "Bow + Quiver" rule below.
 
 ### Dual-wielding
+
 A second one-handed weapon may go in the off-hand slot. When both hands hold a weapon, the character is **dual-wielding** and the off-hand contributes its own swings on top of the main hand's.
 
 **Slot eligibility**:
+
 - One-handed attack weapons (`sword`, `dagger`, `axe`, `mace`) can occupy main hand **or** off-hand.
 - One-handed caster (`wand`) can occupy main hand **or** off-hand.
 - Two-handed weapons (`greatsword`, `twoHandedAxe`, `staff`) occupy main hand **and block the off-hand slot** — equipping a 2H weapon while an off-hand item is equipped auto-unequips the off-hand back to inventory.
@@ -808,6 +882,7 @@ A second one-handed weapon may go in the off-hand slot. When both hands hold a w
 **Same-archetype rule**: dual-wielding requires both weapons to share archetype. Attack 1H + attack 1H is allowed (sword + dagger, axe + sword, etc.). Caster 1H + caster 1H is allowed (wand + wand — the only caster combination). **Mixed archetype is rejected** (no sword + wand). This keeps the combat tick model coherent — one path (attack or spell) active at a time.
 
 **Combat behaviour**:
+
 - Combined tick rate = `average(mainHand.attackSpeed, offHand.attackSpeed)` (or `castSpeed` for caster pairs). Attack dual-wielding multiplies that average by an additional **+10% (more multiplier)** as an implicit style buff; wand+wand uses the plain average with no buff.
 - Ticks **alternate**: tick 1 = main hand swings, tick 2 = off-hand, tick 3 = main hand again. The swinging weapon's local stats (base damage, local mods, weapon-specific crit chance) source that tick's damage.
 - Global modifiers (`+X% Increased Physical`, `+X Strength`, global crit chance/multi, resistances, attributes) apply on **every** swing, regardless of which weapon is active.
@@ -818,6 +893,7 @@ A second one-handed weapon may go in the off-hand slot. When both hands hold a w
 The trade-off vs shield: shield offers higher block ceilings, thorns rolls, and defensive stats from a dedicated slot; attack dual-wielding offers a second weapon's local mods (flat damage, local AS/crit) plus the modest +10% AS / +10% block implicits.
 
 ### Bow + Quiver
+
 Bow is the only 2H weapon that **accepts a quiver in the off-hand**. The other 2H weapons (greatsword, twoHandedAxe, staff) keep the standard "2H blocks off-hand" rule. This mirrors PoE's bow + quiver pairing.
 
 Quiver is **bow-bound**: it can only contribute stats while a bow is in the main hand. The rule is enforced two ways:
@@ -836,6 +912,7 @@ Quiver is **bow-bound**: it can only contribute stats while a bow is in the main
 Weapons split into two **archetypes** by purpose, not by stat block. The archetype determines which modifier categories the weapon participates in.
 
 ### Attack weapons
+
 `sword`, `greatsword`, `dagger`, `bow`, `axe`, `mace`, `twoHandedAxe`.
 
 These compute header stats (min/max damage, attack speed, crit chance) and accept **local attack mods** — physical flat, physical %, elemental flat-to-attacks, attack speed %, crit chance %.
@@ -843,6 +920,7 @@ These compute header stats (min/max damage, attack speed, crit chance) and accep
 Grouped under `allAttackWeapons` for `applicableTo` purposes.
 
 ### Caster weapons
+
 `staff`, `wand`.
 
 The tooltip header shows **Spell Damage** (the weapon's base min–max range) and **Critical Strike Chance**. "Spell Damage" is a **path label**, not a damage type — the underlying damage is physical, converted to elemental by class mechanics (see Elemental Attunement) or dealt as physical if no conversion applies. The label distinguishes caster weapons from attack weapons visually and conceptually: `+% Spell Damage` mods scale this header. Cast Speed is **not shown** on the tooltip — it uses a fixed base of `1.00` for all caster weapons with no local mods to modify it (the per-template `attackSpeed` field is ignored on the spell path). Global `+% Cast Speed` mods from gear multiply this hidden base.
@@ -852,12 +930,14 @@ The tooltip header shows **Spell Damage** (the weapon's base min–max range) an
 Caster weapons never roll local attack mods (no physical flat, no attack-flat elemental, no attack speed, no melee-only).
 
 What they **do** roll exclusively:
+
 - **Flat spell damage** — `+X Cold Damage to Spells`, `+X Fire Damage to Spells`, etc. This is the caster equivalent of attack flat damage and rolls **only** on staff and wand.
 - **Cast speed** (global) — also rolls on jewelry and gloves; the asymmetry with attack speed (which never rolls on attack weapons) is intentional, because caster weapons have no local cast-speed analogue.
 
 Both archetypes share: global elemental damage %, global crit multi, global crit chance, attributes, resistances. Caster weapons additionally share spell damage %.
 
 ### Asymmetry: attack speed vs cast speed
+
 - **Attack speed %** rolls on jewelry and gloves — never on attack weapons. (Attack weapons get attack speed via their base/template, not as a rolled mod.)
 - **Cast speed %** rolls on staff/wand, jewelry, and gloves. Caster weapons need this slot to be available since they have no base attack speed analogue.
 
@@ -869,13 +949,14 @@ This is intentional design, not an oversight.
 
 Armor pieces (helmet, chestplate, boots, gloves) come in three bases. The base determines which **defense stat** the piece converts its local defense roll into.
 
-| Base | Defense stat | Caster-aligned |
-|---|---|---|
-| `plate` | Armor | No |
-| `leather` | Evasion | No |
-| `silk` | Barrier | Yes |
+| Base      | Defense stat | Caster-aligned |
+| --------- | ------------ | -------------- |
+| `plate`   | Armor        | No             |
+| `leather` | Evasion      | No             |
+| `silk`    | Barrier      | Yes            |
 
 ### Global defense % rolls are gated by base
+
 The global defense increase mods only roll on the matching base. This is an invariant:
 
 - `+% Armor` rolls only on **plate** pieces (jewelry exempt — always allowed)
@@ -885,6 +966,7 @@ The global defense increase mods only roll on the matching base. This is an inva
 A plate helmet will never roll `+% Evasion`. A leather chestplate will never roll `+% Armor`. The reasoning: a mod that boosts armor by % is meaningless on a piece that doesn't produce armor.
 
 ### Caster armor exception
+
 Silk **helmet** and **chestplate** additionally roll `+% Spell Damage`. This is the **only** offensive mod that any armor receives, and it is gated to silk. Plate and leather pieces never roll spell damage. Silk boots are excluded — boots are defensive + utility (movement speed), never offensive.
 
 This single exception keeps the rule simple: armor is defensive, **except silk helmet and chestplate also express caster identity**.
@@ -895,22 +977,22 @@ This single exception keeps the rule simple: armor is defensive, **except silk h
 
 A short reference for what each category contains, for grilling against the slot rules above.
 
-| Category | Examples | Typical slots |
-|---|---|---|
-| Local attack | physical flat/%, attack speed, crit chance | Attack weapons only |
-| Local defense | flat defense, % defense | Armor, shields, tomes |
-| Spell damage flat | `+X Fire Damage to Spells` | Caster weapons only |
-| Global damage % | `+% Fire Damage`, `+% Spell Damage` | Weapons, jewelry, gloves (some); silk helmet/chestplate + tomes for spell damage |
-| Global damage flat | `+X Physical Damage to Attacks` | Ring, amulet, gloves, quiver (never belt) |
-| Global elemental flat to attacks | `+X Fire Damage to Attacks` | Ring, amulet, quiver |
-| Gain as extra elemental | `+X% of Spell Damage as Extra Cold Damage` | Tomes only |
-| Accuracy | flat accuracy | Attack weapons, ring, amulet, gloves, helmet, quiver |
-| Crit multi (flat-additive %) | `+X% Critical Strike Multiplier` | Weapons, ring, amulet, gloves, tomes, quivers |
-| Life / mana | flat, regen | Armor, jewelry; mana also on caster weapons and tomes; quiver rolls life flat + life-on-hit + mana-on-hit |
-| Resistances | cold/fire/lightning/void | Armor, jewelry, tomes, quivers |
-| Attributes | str/dex/int | Armor, jewelry; tomes (int), quivers (dex) |
-| Utility | movement speed, stun duration, reduced attribute requirements | Boots, gloves, belt, armor (varies per mod) |
-| Magic find | item rarity (prefix + suffix) | Every slot except weapons (armor, jewelry, offhand kinds — shield, tome, quiver) |
+| Category                         | Examples                                                      | Typical slots                                                                                             |
+| -------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Local attack                     | physical flat/%, attack speed, crit chance                    | Attack weapons only                                                                                       |
+| Local defense                    | flat defense, % defense                                       | Armor, shields, tomes                                                                                     |
+| Spell damage flat                | `+X Fire Damage to Spells`                                    | Caster weapons only                                                                                       |
+| Global damage %                  | `+% Fire Damage`, `+% Spell Damage`                           | Weapons, jewelry, gloves (some); silk helmet/chestplate + tomes for spell damage                          |
+| Global damage flat               | `+X Physical Damage to Attacks`                               | Ring, amulet, gloves, quiver (never belt)                                                                 |
+| Global elemental flat to attacks | `+X Fire Damage to Attacks`                                   | Ring, amulet, quiver                                                                                      |
+| Gain as extra elemental          | `+X% of Spell Damage as Extra Cold Damage`                    | Tomes only                                                                                                |
+| Accuracy                         | flat accuracy                                                 | Attack weapons, ring, amulet, gloves, helmet, quiver                                                      |
+| Crit multi (flat-additive %)     | `+X% Critical Strike Multiplier`                              | Weapons, ring, amulet, gloves, tomes, quivers                                                             |
+| Life / mana                      | flat, regen                                                   | Armor, jewelry; mana also on caster weapons and tomes; quiver rolls life flat + life-on-hit + mana-on-hit |
+| Resistances                      | cold/fire/lightning/void                                      | Armor, jewelry, tomes, quivers                                                                            |
+| Attributes                       | str/dex/int                                                   | Armor, jewelry; tomes (int), quivers (dex)                                                                |
+| Utility                          | movement speed, stun duration, reduced attribute requirements | Boots, gloves, belt, armor (varies per mod)                                                               |
+| Magic find                       | item rarity (prefix + suffix)                                 | Every slot except weapons (armor, jewelry, offhand kinds — shield, tome, quiver)                          |
 
 ### Gain as Extra Elemental (tome-exclusive family)
 
@@ -928,11 +1010,11 @@ A new modifier family unique to tomes: `+X% of Spell Damage as Extra <Element> D
 
 A modifier's `id` ends in a suffix that signals its math. Knowing the suffix means you can predict how it stacks.
 
-| Suffix | Math | What it adds to | Stacking example |
-|---|---|---|---|
-| `Flat` | Additive | A raw running total (number OR percentage) | Two `criticalStrikeMultiplierFlat` rolls of +15% and +25% → +40% added to crit multi total |
-| `Increase` | Additive into an "increased %" pool, then one multiplier on the base | Multiplier applied to the base | Two `physicalDamageIncrease` rolls of 25% and 30% → base × (1 + 0.55) |
-| `More` | Multiplicative, applied in cascade (no pooling) | Distinct multiplicative factor | base × 1.2 × 1.15 (reserved for skills, not yet used in modifiers) |
+| Suffix     | Math                                                                 | What it adds to                            | Stacking example                                                                           |
+| ---------- | -------------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `Flat`     | Additive                                                             | A raw running total (number OR percentage) | Two `criticalStrikeMultiplierFlat` rolls of +15% and +25% → +40% added to crit multi total |
+| `Increase` | Additive into an "increased %" pool, then one multiplier on the base | Multiplier applied to the base             | Two `physicalDamageIncrease` rolls of 25% and 30% → base × (1 + 0.55)                      |
+| `More`     | Multiplicative, applied in cascade (no pooling)                      | Distinct multiplicative factor             | base × 1.2 × 1.15 (reserved for skills, not yet used in modifiers)                         |
 
 `Flat` is **honest about the math**, not about the unit. A "Flat" mod can be a flat number (`+10 Cold Damage`) or a flat percentage (`+15% Critical Strike Multiplier`) — what matters is that it stacks by addition, never via the `increased` pool.
 
@@ -944,23 +1026,23 @@ Don't rename a mod's suffix without changing its `modifierType` field — the su
 
 When tuning a modifier, three knobs do different jobs. Mixing them up leads to data that's hard to reason about (e.g., using slot lists as a balance lever instead of weight).
 
-| Knob | Question it answers | Use it for |
-|---|---|---|
-| `applicableTo` | **Where** can this mod appear? | Slot identity. A belt should never roll flat damage because flat damage isn't part of belt's identity. |
-| `weight` | **How often** does this mod appear in the eligible pool? | Fillerness. A high weight (1500–2000) means the mod crowds out premium mods on rare rolls. A low weight (400–600) means the mod is precious. |
-| Tier ranges (`tiers`) | **How strong** is this mod when it rolls? | Power ceiling. Flatten the top tier to keep a mod from competing with premium mods in the endgame. |
+| Knob                  | Question it answers                                      | Use it for                                                                                                                                   |
+| --------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `applicableTo`        | **Where** can this mod appear?                           | Slot identity. A belt should never roll flat damage because flat damage isn't part of belt's identity.                                       |
+| `weight`              | **How often** does this mod appear in the eligible pool? | Fillerness. A high weight (1500–2000) means the mod crowds out premium mods on rare rolls. A low weight (400–600) means the mod is precious. |
+| Tier ranges (`tiers`) | **How strong** is this mod when it rolls?                | Power ceiling. Flatten the top tier to keep a mod from competing with premium mods in the endgame.                                           |
 
-The mistake to avoid: narrowing `applicableTo` to make a mod feel rarer. That actually makes it *more* desirable when it does land, because the player has fewer options for that slot. If you want a mod to be filler, raise its weight — don't restrict its slots.
+The mistake to avoid: narrowing `applicableTo` to make a mod feel rarer. That actually makes it _more_ desirable when it does land, because the player has fewer options for that slot. If you want a mod to be filler, raise its weight — don't restrict its slots.
 
 ### Reference weights
 
-| Range | Role | Examples |
-|---|---|---|
-| 2000 | Vendor trash (no tags, no synergy pull) | (formerly Light Radius, removed) |
-| 1500–1800 | Common filler | Thorns, Stun Duration, on-kill mods, reduced attribute requirements |
-| 1000–1200 | Standard | Most damage rolls, on-hit mods |
-| 500–600 | Strong | Attack speed, crit chance, life flat |
-| 400 | Premium | Life Leech |
+| Range     | Role                                    | Examples                                                            |
+| --------- | --------------------------------------- | ------------------------------------------------------------------- |
+| 2000      | Vendor trash (no tags, no synergy pull) | (formerly Light Radius, removed)                                    |
+| 1500–1800 | Common filler                           | Thorns, Stun Duration, on-kill mods, reduced attribute requirements |
+| 1000–1200 | Standard                                | Most damage rolls, on-hit mods                                      |
+| 500–600   | Strong                                  | Attack speed, crit chance, life flat                                |
+| 400       | Premium                                 | Life Leech                                                          |
 
 ---
 
@@ -1010,15 +1092,17 @@ Output: `ComputedCharacterStats` — attributes (str/dex/int), life/mana max + r
 
 Derivations the engine does itself: armor mitigation %, evasion-vs-typical-enemy hit-avoid %, total DPS estimate (path-aware). The engine does **not** roll dice — it only computes the static numbers. Per-hit rolls live in the combat loop.
 
-The function is pure, deterministic, and dependency-free (no React, no Convex). Same inputs → same outputs. Recomputed wherever needed; not cached on the character document. The reactive Convex queries that feed it keep the UI in sync automatically.
+The function is pure, deterministic, and dependency-free (no React, no IO). Same inputs → same outputs. Recomputed wherever needed on the client; the server caches the totals it needs (max life / barrier, magic find, movement speed) on the character row on equip / unequip / level-up. The client's inputs (equipped items, level) live in the query cache, which every mutation keeps current.
 
 ## Equipment UX
 
 Two parallel ways to equip an inventory item, both validated by the same `planEquip()` helper and committed by the same `equipItem` mutation. The UX has to handle a fundamental tension: most items have one obvious target slot, but rings and dual-wieldable 1H weapons have two valid targets.
 
 ### Drag-and-drop (primary)
+
 The player drags an item out of the inventory grid and drops it onto a specific paper-doll slot. The target is explicit — the player aims at the slot they want. While dragging:
-- Every *structurally* compatible slot (per `validSlotsForItem`) gets a soft yellow glow.
+
+- Every _structurally_ compatible slot (per `validSlotsForItem`) gets a soft yellow glow.
 - The slot under the cursor brightens to a solid yellow ring.
 - Incompatible slots under the cursor go red.
 - Dropping on a yellow slot fires the mutation; dropping anywhere else cancels.
@@ -1026,7 +1110,9 @@ The player drags an item out of the inventory grid and drops it onto a specific 
 Drag-and-drop also works in reverse: dragging an equipped item back to the inventory grid unequips it.
 
 ### Click → dropdown menu (alternative)
+
 Clicking an inventory item opens a small context menu next to it. Each valid slot appears as a separate action:
+
 - Ring → "Equipar no Anel 1", "Equipar no Anel 2".
 - 1H attack weapon / wand → "Equipar como Mão Principal", "Equipar como Mão Secundária".
 - Anything with a single valid slot → "Equipar".
@@ -1035,16 +1121,19 @@ Inventory items also expose a final **"Descartar"** action, placed after every e
 
 While an inventory dropdown is open, item tooltips remain visible but **reposition to dodge the menu** instead of sliding behind it: the tooltip pushes past the menu's right edge (or, when flipped, past the menu's left edge). Tooltips and the dropdown coexist so the player can read item stats while choosing a slot.
 
-The dropdown exists to disambiguate the case where drag-and-drop ambiguous targets would force the player to aim. It's never *required*, but it's the natural path when the player knows exactly which ring slot they want without aiming.
+The dropdown exists to disambiguate the case where drag-and-drop ambiguous targets would force the player to aim. It's never _required_, but it's the natural path when the player knows exactly which ring slot they want without aiming.
 
 ### Same-archetype rule for dual-wield
+
 The off-hand slot accepts a weapon only if it matches the main-hand archetype. Attack 1H + attack 1H is allowed; wand + wand is allowed; sword + wand is rejected with a localized toast. This is enforced by `planEquip()` and surfaced to the player in three ways:
+
 - Drag-and-drop: incompatible slot pulses red.
 - Click dropdown: the off-hand entry doesn't appear at all when the archetype would conflict.
 - Server: the mutation rejects with `mixed-archetype`, translated to "Não pode misturar arquétipos no dual-wield".
 
 ### Reactive feedback contract
-All four equip-flow mutations (`equipItem`, `unequipItem`, `pickFromBag`, `discardFromBag`) carry `withOptimisticUpdate` — the UI must reflect the change *before* the server round-trips. The loot picker auto-closes the moment the bag goes to zero, regardless of whether that happened via "pegar tudo", "descartar tudo", or partial picks that incidentally emptied it. See ADR-0001 (Optimistic Mutations) for the architectural rationale.
+
+All four equip-flow mutations (`equipItem`, `unequipItem`, `pickFromBag`, `discardFromBag`) carry `withOptimisticUpdate` — the UI must reflect the change _before_ the server round-trips. The loot picker auto-closes the moment the bag goes to zero, regardless of whether that happened via "pegar tudo", "descartar tudo", or partial picks that incidentally emptied it. See ADR-0001 (Optimistic Mutations) for the architectural rationale.
 
 ## Show Stats panel
 
@@ -1083,7 +1172,7 @@ Two independent ranking tabs:
 
 ### Snapshot
 
-The leaderboard is **not real-time**. A **Convex cron job** runs every **5 minutes**, queries the top 50 characters per category per mode (softcore/hardcore), and writes the result to a `leaderboardSnapshot` table. The client subscribes reactively to the snapshot — since it only changes every 5 minutes, the ranking updates at that cadence.
+The leaderboard is **not real-time**. A **Workers Cron Trigger** runs **hourly**, queries the top 50 characters per category per mode (softcore/hardcore), and writes the result to the `leaderboard_snapshot` table. The leaderboard modal refetches the snapshot every 5 minutes while it's open, so the ranking updates at the cron's cadence.
 
 Each snapshot entry stores: character name, class, level, total boss kills, hardcore flag, alive/dead status.
 

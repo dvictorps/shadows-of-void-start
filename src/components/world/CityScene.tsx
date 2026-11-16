@@ -1,4 +1,5 @@
 import { Archive, ArrowLeft, Store } from "lucide-react";
+
 import { m } from "#/paraglide/messages";
 
 type Props = {

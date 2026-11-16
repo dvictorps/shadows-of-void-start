@@ -1,4 +1,7 @@
 allowBuilds:
   core-js: true
   esbuild: true
+  lefthook: true
+  lightningcss: true
   protobufjs: true
+  workerd: true

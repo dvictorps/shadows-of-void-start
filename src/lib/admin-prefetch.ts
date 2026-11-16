@@ -1,12 +1,52 @@
-import { convexQuery } from "@convex-dev/react-query";
-import type { QueryClient } from "@tanstack/react-query";
-import { api } from "../../convex/_generated/api";
+import {
+	type QueryClient,
+	useMutation,
+	useQueryClient,
+} from "@tanstack/react-query";
 
-// Fire-and-forget — by the time the user reaches a sidebar tab the
-// websocket has answered. Both `/character-select` and `/admin` call this
-// from their loaders so the second one dedupes via TanStack Query.
-export function prefetchAdminTabs(queryClient: QueryClient): void {
-	queryClient.prefetchQuery(convexQuery(api.admin.pulse, {}));
-	queryClient.prefetchQuery(convexQuery(api.admin.listUsers, {}));
-	queryClient.prefetchQuery(convexQuery(api.admin.listAdmins, {}));
+import { type TRPC, useTRPC } from "#/integrations/trpc/client";
+
+// The admin dashboard has no subscriptions (ADR 0009): its tabs poll while
+// they're on screen. 30 s keeps the counters fresh enough for a control
+// panel without spending the Workers request quota.
+export const ADMIN_REFETCH_MS = 30_000;
+
+/** Query options of the three tabs, with the polling interval. */
+export function adminTabQueries(trpc: TRPC) {
+	return {
+		pulse: {
+			...trpc.admin.pulse.queryOptions(),
+			refetchInterval: ADMIN_REFETCH_MS,
+		},
+		listUsers: {
+			...trpc.admin.listUsers.queryOptions(),
+			refetchInterval: ADMIN_REFETCH_MS,
+		},
+		listAdmins: {
+			...trpc.admin.listAdmins.queryOptions(),
+			refetchInterval: ADMIN_REFETCH_MS,
+		},
+	};
+}
+
+// Fire-and-forget: by the time the user reaches a sidebar tab the queries
+// have answered. Both `/character-select` and `/admin` call this from their
+// loaders, and the second call dedupes in the query cache.
+export function prefetchAdminTabs(queryClient: QueryClient, trpc: TRPC): void {
+	const tabs = adminTabQueries(trpc);
+	void queryClient.prefetchQuery(tabs.pulse);
+	void queryClient.prefetchQuery(tabs.listUsers);
+	void queryClient.prefetchQuery(tabs.listAdmins);
+}
+
+/** Role change from the Users / Admins tabs; every admin tab shows roles. */
+export function useSetUserRole() {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	return useMutation(
+		trpc.users.setUserRole.mutationOptions({
+			onSuccess: () =>
+				queryClient.invalidateQueries({ queryKey: trpc.admin.pathKey() }),
+		}),
+	).mutateAsync;
 }

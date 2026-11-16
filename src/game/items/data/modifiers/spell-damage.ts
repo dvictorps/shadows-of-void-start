@@ -1,7 +1,7 @@
 import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
-export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
+export const SPELL_DAMAGE_MODIFIERS = {
 	coldDamageFlat: {
 		id: "coldDamageFlat",
 		affixType: "prefix",
@@ -46,4 +46,4 @@ export const SPELL_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tags: ["void", "elemental", "spell"],
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
-};
+} satisfies Record<string, Modifier>;

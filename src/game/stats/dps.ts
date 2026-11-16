@@ -14,14 +14,14 @@ export function estimateDps(stats: ComputedCharacterStats): number {
 	const isSpell = stats.path === "spell";
 	const pathBonus = isSpell ? inc.spell : inc.melee;
 
-	const perElement: Record<string, number> = {
-		cold: inc.cold,
-		fire: inc.fire,
-		lightning: inc.lightning,
-		void: inc.void,
-	};
+	const perElement = new Map([
+		["cold", inc.cold],
+		["fire", inc.fire],
+		["lightning", inc.lightning],
+		["void", inc.void],
+	]);
 	const elemInc = (key: string) =>
-		(perElement[key] ?? 0) +
+		(perElement.get(key) ?? 0) +
 		inc.elementalGlobal +
 		(isSpell ? 0 : inc.elementalWithAttacks) +
 		pathBonus;

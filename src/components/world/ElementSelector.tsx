@@ -1,12 +1,13 @@
 import { Flame, Snowflake, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
-type Element = "fire" | "cold" | "lightning";
+import { ELEMENT_SWITCH_COOLDOWN_MS } from "#/game/combat/constants";
+import {
+	SELECTABLE_ELEMENTS,
+	type SelectableElement as Element,
+} from "#/game/stats/types";
 
-const ELEMENT_CONFIG: Record<
-	Element,
-	{ icon: typeof Flame; color: string; glowColor: string }
-> = {
+const ELEMENT_CONFIG = {
 	fire: {
 		icon: Flame,
 		color: "#ff6b35",
@@ -22,10 +23,12 @@ const ELEMENT_CONFIG: Record<
 		color: "#ffd54f",
 		glowColor: "rgba(255, 213, 79, 0.6)",
 	},
-};
+} satisfies Record<
+	Element,
+	{ icon: typeof Flame; color: string; glowColor: string }
+>;
 
-const COOLDOWN_MS = 5_000;
-const ELEMENTS: Element[] = ["fire", "cold", "lightning"];
+const ELEMENTS = SELECTABLE_ELEMENTS;
 
 type HoverKey = `element_${Element}`;
 
@@ -42,16 +45,12 @@ export default function ElementSelector({
 	disabled?: boolean;
 	lastSwitchAt?: number;
 }) {
-	const [cooldownEnd, setCooldownEnd] = useState(
-		lastSwitchAt ? lastSwitchAt + COOLDOWN_MS : 0,
-	);
-	const [now, setNow] = useState(Date.now());
-
-	useEffect(() => {
-		if (!lastSwitchAt) return;
-		const end = lastSwitchAt + COOLDOWN_MS;
-		if (end > Date.now()) setCooldownEnd(end);
-	}, [lastSwitchAt]);
+	// Derived from the server-stamped switch time; the ticking `now` below is
+	// the only state the countdown needs.
+	const cooldownEnd = lastSwitchAt
+		? lastSwitchAt + ELEMENT_SWITCH_COOLDOWN_MS
+		: 0;
+	const [now, setNow] = useState(() => Date.now());
 
 	const remaining = Math.max(0, cooldownEnd - now);
 	const onCooldown = remaining > 0;
@@ -100,7 +99,7 @@ export default function ElementSelector({
 							<div
 								className="absolute inset-0 bg-black/60"
 								style={{
-									clipPath: `inset(${((COOLDOWN_MS - remaining) / COOLDOWN_MS) * 100}% 0 0 0)`,
+									clipPath: `inset(${((ELEMENT_SWITCH_COOLDOWN_MS - remaining) / ELEMENT_SWITCH_COOLDOWN_MS) * 100}% 0 0 0)`,
 								}}
 							/>
 						)}

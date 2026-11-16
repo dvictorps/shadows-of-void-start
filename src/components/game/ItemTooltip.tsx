@@ -24,15 +24,17 @@ const MODIFIED_COLOR = RARITY_COLORS.magic;
 const LABEL_COLOR = "rgba(255, 255, 255, 0.45)";
 const DIM_COLOR = "rgba(255, 255, 255, 0.35)";
 
-const ELEMENT_NAME: Record<string, () => string> = {
-	Cold: m.element_cold,
-	Fire: m.element_fire,
-	Lightning: m.element_lightning,
-	Void: m.element_void,
-};
+// Keyed by the open `element: string` the computed item stats carry; a Map
+// keeps the lookup honest about unknown keys (falls back to the raw name).
+const ELEMENT_NAME = new Map<string, () => string>([
+	["Cold", m.element_cold],
+	["Fire", m.element_fire],
+	["Lightning", m.element_lightning],
+	["Void", m.element_void],
+]);
 
 function elementDamageLabel(element: string): string {
-	const name = ELEMENT_NAME[element]?.() ?? element;
+	const name = ELEMENT_NAME.get(element)?.() ?? element;
 	return m.tooltip_damage_line({ element: name });
 }
 

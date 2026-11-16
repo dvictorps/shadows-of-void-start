@@ -2,7 +2,7 @@ import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
 // Mage-flavor family: tomes, amulets, silk gloves, staves (ADR 0007).
-export const TOME_MODIFIERS: Record<string, Modifier> = {
+export const TOME_MODIFIERS = {
 	tomeGainAsExtraCold: {
 		id: "tomeGainAsExtraCold",
 		affixType: "prefix",
@@ -55,4 +55,4 @@ export const TOME_MODIFIERS: Record<string, Modifier> = {
 		tags: ["void", "elemental", "spell"],
 		tiers: createStandardTiers(6, 8, 12, 18),
 	},
-};
+} satisfies Record<string, Modifier>;

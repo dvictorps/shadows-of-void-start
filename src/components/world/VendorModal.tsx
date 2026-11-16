@@ -1,15 +1,21 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
 import { computeSellPrice } from "#/game/items/sell-price";
-import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
+import {
+	VENDOR_PRODUCTS,
+	type VendorCounterField,
+	type VendorProductId,
+} from "#/game/vendor/products";
 import { useInFlight } from "#/hooks/useInFlight";
+import { useOpenedEdge } from "#/hooks/useOpenedEdge";
+import type { ItemRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const ITEM_SLOT_SIZE = 88;
 
@@ -21,9 +27,9 @@ type Props = {
 	rubys: number;
 	potions: number;
 	teleportStones: number;
-	inventoryItems: Doc<"items">[];
+	inventoryItems: ItemRow[];
 	onBuy: (productId: VendorProductId, quantity: number) => Promise<void>;
-	onSellMany: (itemIds: Id<"items">[]) => Promise<void>;
+	onSellMany: (itemIds: number[]) => Promise<void>;
 };
 
 type RubyDelta = { id: string; amount: number; sign: "+" | "-" };
@@ -41,7 +47,7 @@ export default function VendorModal({
 	onSellMany,
 }: Props) {
 	const [tab, setTab] = useState<Tab>("buy");
-	const [selected, setSelected] = useState<Set<string>>(new Set());
+	const [selected, setSelected] = useState<Set<number>>(new Set());
 	const [rubyDeltas, setRubyDeltas] = useState<RubyDelta[]>([]);
 	// Per-product spam-click guard. Server-side rate limiting is the real
 	// hardening — see docs/security/threat-model.md.
@@ -50,12 +56,14 @@ export default function VendorModal({
 	);
 	const [isSelling, runSell] = useInFlight(isOpen);
 
-	useEffect(() => {
-		if (!isOpen) return;
+	// Fresh session state on the closed → open edge, adjusted during render
+	// ("adjust state when a prop changes") so the first open frame is clean.
+	const justOpened = useOpenedEdge(isOpen);
+	if (justOpened) {
 		setSelected(new Set());
 		setRubyDeltas([]);
 		setPendingBuys(new Set());
-	}, [isOpen]);
+	}
 
 	const pushRubyDelta = (amount: number, sign: "+" | "-") => {
 		const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -65,7 +73,7 @@ export default function VendorModal({
 		}, RUBY_DELTA_LIFETIME_MS);
 	};
 
-	const toggle = (id: string) => {
+	const toggle = (id: number) => {
 		setSelected((prev) => {
 			const next = new Set(prev);
 			if (next.has(id)) next.delete(id);
@@ -78,11 +86,7 @@ export default function VendorModal({
 		if (pendingBuys.has(productId)) return;
 		const product = VENDOR_PRODUCTS[productId];
 		const totalCost = product.priceRubys * quantity;
-		setPendingBuys((prev) => {
-			const next = new Set(prev);
-			next.add(productId);
-			return next;
-		});
+		setPendingBuys((prev) => new Set([...prev, productId]));
 		pushRubyDelta(totalCost, "-");
 		try {
 			await onBuy(productId, quantity);
@@ -103,9 +107,7 @@ export default function VendorModal({
 	// `now` ticker on the seconds-remaining counter elsewhere in the world
 	// view) doesn't re-walk the inventory + recompute every sell price.
 	const { selectedItems, selectedTotal } = useMemo(() => {
-		const items = inventoryItems.filter((it) =>
-			selected.has(it._id.toString()),
-		);
+		const items = inventoryItems.filter((it) => selected.has(it.id));
 		const total = items.reduce((sum, it) => sum + computeSellPrice(it.data), 0);
 		return { selectedItems: items, selectedTotal: total };
 	}, [inventoryItems, selected]);
@@ -113,7 +115,7 @@ export default function VendorModal({
 	const handleSellSelected = async () => {
 		if (selectedItems.length === 0) return;
 		const total = selectedTotal;
-		const itemIds = selectedItems.map((it) => it._id);
+		const itemIds = selectedItems.map((it) => it.id);
 		const previousSelection = new Set(selected);
 		await runSell(async () => {
 			pushRubyDelta(total, "+");
@@ -264,10 +266,10 @@ function BuyTab({
 }) {
 	const products = Object.values(VENDOR_PRODUCTS);
 	// Counter-field lookup so cap math walks the same field the server keys on.
-	const counts: Record<string, number> = {
+	const counts = {
 		potions,
 		teleportStones,
-	};
+	} satisfies Record<VendorCounterField, number>;
 	return (
 		<div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
 			{products.map((p) => (
@@ -299,20 +301,21 @@ function BuyCard({
 }) {
 	const STEPPER_MAX = 99;
 	const capRemaining =
-		product.cap !== undefined ? Math.max(0, product.cap - currentCount) : STEPPER_MAX;
+		product.cap !== undefined
+			? Math.max(0, product.cap - currentCount)
+			: STEPPER_MAX;
 	const maxAfford =
-		product.priceRubys > 0 ? Math.floor(rubys / product.priceRubys) : STEPPER_MAX;
+		product.priceRubys > 0
+			? Math.floor(rubys / product.priceRubys)
+			: STEPPER_MAX;
 	const maxQty = Math.min(STEPPER_MAX, capRemaining, maxAfford);
 	const atCap = capRemaining === 0;
 	const [qty, setQty] = useState(1);
 	// Clamp when live affordability/cap shrinks below the user's chosen qty.
-	useEffect(() => {
-		if (maxQty <= 0) {
-			if (qty !== 1) setQty(1);
-			return;
-		}
-		if (qty > maxQty) setQty(maxQty);
-	}, [qty, maxQty]);
+	// Adjusted during render (React's "adjust state when a prop changes"
+	// pattern); the guard makes the re-render converge in one pass.
+	const clampedQty = maxQty <= 0 ? 1 : Math.min(qty, maxQty);
+	if (clampedQty !== qty) setQty(clampedQty);
 	const totalCost = product.priceRubys * qty;
 	const disabled = pending || atCap || maxQty < qty || rubys < totalCost;
 	let buttonLabel: string;
@@ -414,10 +417,10 @@ function SellTab({
 	onSell,
 	isSelling,
 }: {
-	inventoryItems: Doc<"items">[];
-	selected: Set<string>;
-	setSelected: (next: Set<string>) => void;
-	toggle: (id: string) => void;
+	inventoryItems: ItemRow[];
+	selected: Set<number>;
+	setSelected: (next: Set<number>) => void;
+	toggle: (id: number) => void;
 	selectedCount: number;
 	selectedTotal: number;
 	onSell: () => Promise<void>;
@@ -437,7 +440,7 @@ function SellTab({
 		if (allSelected) {
 			setSelected(new Set());
 		} else {
-			setSelected(new Set(inventoryItems.map((it) => it._id.toString())));
+			setSelected(new Set(inventoryItems.map((it) => it.id)));
 		}
 	};
 
@@ -456,14 +459,14 @@ function SellTab({
 			</div>
 			<div className="fancy-scroll flex max-h-[50vh] min-h-[20vh] flex-1 flex-wrap content-start gap-3 overflow-y-auto pr-3">
 				{inventoryItems.map((item) => {
-					const isSelected = selected.has(item._id.toString());
+					const isSelected = selected.has(item.id);
 					return (
 						<ItemCard
-							key={item._id}
+							key={item.id}
 							item={item.data}
 							size={ITEM_SLOT_SIZE}
 							selected={isSelected}
-							onClick={() => toggle(item._id.toString())}
+							onClick={() => toggle(item.id)}
 						/>
 					);
 				})}

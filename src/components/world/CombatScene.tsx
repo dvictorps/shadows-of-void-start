@@ -1,3 +1,10 @@
+// ⚠ SIZE TRIPWIRE (~990 lines) — this is one of the repo's largest single
+// files (see docs/plans/in-progress.md → agent-ergonomics track). It's untested
+// and reads linearly, so the tax is navigation, not tangle. DON'T grow the
+// monolith: if your feature adds a NEW concern here (a new overlay, a new
+// inline sub-component, a new state machine), extract it into its own file
+// instead of appending. Mirrors the world.tsx "closed decision" trigger —
+// concerns re-mixing is the signal to split, not raw line count.
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import {
@@ -9,6 +16,7 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+
 import { getBossConfig } from "#/game/bosses";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateEnemyName } from "#/game/world/i18n";
@@ -19,8 +27,9 @@ import type {
 	Enemy,
 	RareIntroStage,
 } from "#/hooks/useCombatLoop";
-import { playSfx } from "#/lib/sfx";
+import { hashStringToUnit } from "#/lib/rng";
 import { m } from "#/paraglide/messages";
+
 import CampCinematic from "./CampCinematic";
 import ElementSelector from "./ElementSelector";
 import HealthGlobe from "./HealthGlobe";
@@ -31,22 +40,22 @@ import MonsterTooltip from "./MonsterTooltip";
 // player reads "blue = magic, yellow = rare" consistently across UI. The
 // `unique` entry is a fallback — bosses override per-instance via
 // BossConfig.nameplateColor.
-const RARITY_NAMEPLATE_COLOR: Record<MonsterRarity, string> = {
+const RARITY_NAMEPLATE_COLOR = {
 	normal: "#ffffff",
 	magic: "#8888ff",
 	rare: "#ffff77",
 	unique: "#af6025",
-};
+} satisfies Record<MonsterRarity, string>;
 
 // Glow reinforces rarity. Normal keeps only a readability shadow; magic/rare
 // add a color-matched halo. Rare's halo is stronger to preserve its drama
 // even though it shares the staging spotlight with the boss intro cascade.
-const RARITY_NAMEPLATE_SHADOW: Record<MonsterRarity, string> = {
+const RARITY_NAMEPLATE_SHADOW = {
 	normal: "0 2px 4px rgba(0, 0, 0, 0.9)",
 	magic: "0 0 14px rgba(136, 136, 255, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
 	rare: "0 0 18px rgba(255, 255, 119, 0.7), 0 2px 4px rgba(0, 0, 0, 0.9)",
 	unique: "0 0 22px rgba(175, 96, 37, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
-};
+} satisfies Record<MonsterRarity, string>;
 
 export type ConsumableKey =
 	| "potion"
@@ -209,11 +218,10 @@ export default function CombatScene({
 	}, [playerEvents]);
 	// Bosses get a per-instance nameplate color from BossConfig (rare yellow
 	// shouldn't double-duty as the boss color, and each boss can pick a hue
-	// that matches its theme — Gralfor: ember orange).
-	const bossConfig = useMemo(
-		() => (enemy ? getBossConfig(enemy) : null),
-		[enemy?.rarity, enemy?.def.id],
-	);
+	// that matches its theme — Gralfor: ember orange). No memo needed: the
+	// lookup returns the static BOSSES entry, so identity is already stable
+	// across renders for the effects keyed on it.
+	const bossConfig = enemy ? getBossConfig(enemy) : null;
 	const nameColor = bossConfig
 		? bossConfig.nameplateColor
 		: enemy
@@ -301,6 +309,7 @@ export default function CombatScene({
 	}, [lastDamagingHit, enemyControls, redFlashControls]);
 
 	useEffect(() => {
+		// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- the sprite's `animate` is bound to `enemyControls`, which the entrance (set+start on null→enemy) and hit shake also drive imperatively; framer-motion can't mix a controls object with a declarative target on one element, and the victory transition happens in useCombatLoop's tick, not a UI event here
 		if (state !== "victory" || !enemy) return;
 		enemyControls.start({
 			opacity: 0,
@@ -312,23 +321,22 @@ export default function CombatScene({
 		});
 	}, [state, enemy, enemyControls, isStagedEnemy]);
 
-	// Boss intro sfx — fires when the sprite stage begins so the entry roar
-	// plays WHILE the boss materializes. The screenshake fires later at the
-	// impact beat (after sprite is fully visible) for a two-phase buildup.
-	useEffect(() => {
-		if (state !== "boss_intro" || bossIntroStage !== "sprite") return;
-		if (!bossConfig) return;
-		playSfx(bossConfig.cinematic.entrySfx, { volume: 0.8 });
-	}, [state, bossIntroStage, bossConfig]);
-
 	// Boss intro screenshake — fires at the impact beat. Shakes the entire
 	// combat section (arena, HP globe, time bar) via a CSS keyframe class
 	// so the "ground trembles" while the meta UI (sidebar) stays stable.
 	const sectionRef = useRef<HTMLElement>(null);
-	const spriteGroupRef = useRef<HTMLDivElement>(null);
-	const [isHoveringSprite, setIsHoveringSprite] = useState(false);
-	const onSpriteEnter = useCallback(() => setIsHoveringSprite(true), []);
-	const onSpriteLeave = useCallback(() => setIsHoveringSprite(false), []);
+	// Hovered sprite element, kept in state (not a ref) so the tooltip can
+	// measure it on every render. The scene re-renders on each combat tick,
+	// so the tooltip follows the boss-intro shake and sprite size changes.
+	// Non-null doubles as the "hovering" flag.
+	const [hoveredSprite, setHoveredSprite] = useState<HTMLDivElement | null>(
+		null,
+	);
+	const onSpriteEnter = useCallback(
+		(e: React.MouseEvent<HTMLDivElement>) => setHoveredSprite(e.currentTarget),
+		[],
+	);
+	const onSpriteLeave = useCallback(() => setHoveredSprite(null), []);
 	useEffect(() => {
 		if (state !== "boss_intro" || bossIntroStage !== "impact") return;
 		if (!bossConfig || !sectionRef.current) return;
@@ -350,18 +358,16 @@ export default function CombatScene({
 	// below) the HUD fades back in alongside it — same "panel + HUD"
 	// presence as ZoneCompletePanel.
 	const [hudFading, setHudFading] = useState(false);
-	const [cinematicEnabled, setCinematicEnabled] = useState(false);
 	const [campSkipped, setCampSkipped] = useState(false);
-	useEffect(() => {
-		if (!inCamp) {
-			setHudFading(false);
-			setCinematicEnabled(false);
-			setCampSkipped(false);
-			return;
-		}
-		setHudFading(true);
-		setCinematicEnabled(true);
-	}, [inCamp]);
+	// Camp entry/exit resets the HUD fade and skip flag during render (React's
+	// "adjust state when a prop changes" pattern). Starts at `false` so a
+	// mount that is already in camp still runs the entry branch.
+	const [prevInCamp, setPrevInCamp] = useState(false);
+	if (inCamp !== prevInCamp) {
+		setPrevInCamp(inCamp);
+		setHudFading(inCamp);
+		if (!inCamp) setCampSkipped(false);
+	}
 
 	// Click anywhere on the combat section while a camp's text stages run
 	// jumps straight to the decision panel. Button clicks inside the panel
@@ -523,7 +529,7 @@ export default function CombatScene({
 							showContinue={!isBossNode}
 						/>
 					)}
-					{inCamp && cinematicEnabled && (
+					{inCamp && (
 						<CampCinematic
 							zoneId={zoneId}
 							source={campSource}
@@ -538,7 +544,6 @@ export default function CombatScene({
 						state !== "miniboss_victory" &&
 						state !== "acampamento" && (
 							<div
-								ref={spriteGroupRef}
 								className="group relative"
 								onMouseEnter={onSpriteEnter}
 								onMouseLeave={onSpriteLeave}
@@ -583,9 +588,9 @@ export default function CombatScene({
 										/>
 									)}
 								</AnimatePresence>
-								{enemy.rarity !== "normal" && isHoveringSprite && (
+								{enemy.rarity !== "normal" && hoveredSprite && (
 									<SpriteTooltipPortal
-										spriteRef={spriteGroupRef}
+										sprite={hoveredSprite}
 										enemy={enemy}
 										bossConfig={bossConfig}
 									/>
@@ -606,7 +611,7 @@ export default function CombatScene({
 					 * so AnimatePresence drives mount/exit instead of a manual queue. */}
 					<div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
 						<AnimatePresence>
-							{state === "victory" && typeof lastKillXp === "number" && (
+							{state === "victory" && lastKillXp !== undefined && (
 								<FloatingXp amount={lastKillXp} />
 							)}
 						</AnimatePresence>
@@ -820,17 +825,18 @@ function ZoneCompletePanel({
 }
 
 function SpriteTooltipPortal({
-	spriteRef,
+	sprite,
 	enemy,
 	bossConfig,
 }: {
-	spriteRef: React.RefObject<HTMLDivElement | null>;
+	sprite: HTMLDivElement;
 	enemy: Enemy;
 	bossConfig: import("#/game/bosses").BossConfig | null;
 }) {
-	const el = spriteRef.current;
-	if (!el) return null;
-	const rect = el.getBoundingClientRect();
+	// A sprite that unmounted between fights never fires mouseleave; a
+	// detached element measures as an empty box at the origin, so hide.
+	if (!sprite.isConnected) return null;
+	const rect = sprite.getBoundingClientRect();
 	return createPortal(
 		<div
 			className="pointer-events-none fixed z-[9999]"
@@ -912,16 +918,6 @@ function EnemyHpBar({
 	);
 }
 
-// Lightweight deterministic hash from the event id so popups stay put across
-// re-renders (otherwise Math.random() would jitter every frame).
-function hashSeed(id: string): number {
-	let h = 0;
-	for (let i = 0; i < id.length; i++) {
-		h = (h * 31 + id.charCodeAt(i)) | 0;
-	}
-	return (h >>> 0) / 0xffffffff;
-}
-
 function FloatingDamage({
 	event,
 	variant = "enemy",
@@ -929,7 +925,9 @@ function FloatingDamage({
 	event: DamageEvent;
 	variant?: "enemy" | "player";
 }) {
-	const seed = hashSeed(event.id);
+	// Deterministic from the event id so popups stay put across re-renders
+	// (Math.random() would jitter every frame).
+	const seed = hashStringToUnit(event.id);
 	const isCrit = event.isCrit && !event.isMiss;
 	const isBlocked = event.isBlocked && !event.isMiss;
 	const isThorns = event.isThorns;

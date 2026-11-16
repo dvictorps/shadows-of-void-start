@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+
 import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
 import { getClassDisplayName } from "#/game/classes/i18n";
@@ -13,12 +14,13 @@ import {
 import { estimateDps } from "#/game/stats/dps";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
+import type { CharacterRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
-import type { Doc } from "../../../convex/_generated/dataModel";
+
 import HealthGlobe from "./HealthGlobe";
 
 type Props = {
-	character: Doc<"characters">;
+	character: CharacterRow;
 	stats: ComputedCharacterStats;
 	hpOverride?: number;
 	barrierOverride?: number;

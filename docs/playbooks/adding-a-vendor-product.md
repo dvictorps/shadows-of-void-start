@@ -1,6 +1,6 @@
 # Adding a vendor product
 
-The vendor sells consumables (and only consumables — gear is sold *to* the vendor, not bought *from* it). Each product is one entry in `src/game/vendor/products.ts`, plus a counter field on the character document, plus optional sprite/i18n.
+The vendor sells consumables (and only consumables — gear is sold _to_ the vendor, not bought _from_ it). Each product is one entry in `src/game/vendor/products.ts`, plus a counter field on the character document, plus optional sprite/i18n.
 
 The catalog today: **Life Potion** (capped at 10) and **Teleport Stone** (uncapped). Adding a third product follows the pattern below.
 
@@ -27,7 +27,7 @@ Counters live on the character document. Existing fields: `potions`, `teleportSt
 
 **A new counter requires three updates:**
 
-1. `convex/schema.ts` — add the optional field to the `characters` table validator.
+1. `src/server/db/game-schema.ts` — add the column to `characters` (`integer().notNull().default(0)`), then `pnpm db:generate`.
 2. `src/game/vendor/products.ts` — add the field name to `VendorCounterField`:
 
 ```ts
@@ -51,16 +51,16 @@ wind_crystal: {
 },
 ```
 
-`vendorBuy` (in `convex/vendor.ts`) walks **one code path** for all products — it reads `product.counterField`, checks the cap (if any), patches the character doc. You don't touch `vendorBuy`.
+`vendorBuy` (in `src/server/trpc/routers/vendor.ts`) walks **one code path** for all products — it reads `product.counterField`, checks the cap (if any), patches the character doc. You don't touch `vendorBuy`.
 
 ## Step 4 — Wire the consumption mutation
 
 `vendorBuy` only handles the purchase side. The **usage** mutation (the thing that decrements the counter when the player consumes the product in combat or on the map) is product-specific:
 
-- `usePotion` in `convex/combat.ts` handles potions (heals HP).
-- `useTeleportStone` in `convex/combat.ts` handles teleport stones (moves the character to an unlocked node).
+- `consumePotion` in `src/server/trpc/routers/combat.ts` handles potions (heals HP).
+- `consumeTeleportStone` in the same file handles teleport stones (moves the character to an unlocked node).
 
-Follow the existing pattern: validate the character owns the counter, validate count > 0, patch the character doc to decrement, optionally trigger downstream side effects.
+Follow the existing pattern: validate the character owns the counter, validate count > 0, decrement in SQL with a `WHERE count > 0` guard (see [adding-a-procedure.md](./adding-a-procedure.md)), optionally trigger downstream side effects.
 
 Add an optimistic handler for the consumption mutation per [`adr/0001-optimistic-mutations.md`](../adr/0001-optimistic-mutations.md) — the consume click should feel instant.
 
@@ -78,8 +78,8 @@ Plus the EN equivalents. Reference them in `VendorModal.tsx` (per-product label)
 ```bash
 npx tsc --noEmit
 npx vitest run
-npx biome check src/
-npx convex dev --once
+npx oxlint src/
+pnpm db:migrate:local   # if you added a column
 ```
 
 Then `npm run dev`, enter the city, open the vendor:

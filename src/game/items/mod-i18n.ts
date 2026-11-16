@@ -1,5 +1,6 @@
 import { getLocale } from "#/paraglide/runtime";
-import { MODIFIERS, type ModifierId } from "./data/modifiers";
+
+import { findModifier, type ModifierId } from "./data/modifiers";
 import { type DEFENSE_LABELS, resolveDefenseFormat } from "./generator";
 import type { GeneratedItem, RolledImplicit, RolledMod } from "./types";
 
@@ -11,14 +12,14 @@ import type { GeneratedItem, RolledImplicit, RolledMod } from "./types";
 
 type ArmorBase = keyof typeof DEFENSE_LABELS;
 
-const PT_DEFENSE_WORDS: Record<ArmorBase, { flat: string; pct: string }> = {
+const PT_DEFENSE_WORDS = {
 	plate: { flat: "Armadura", pct: "Armadura" },
 	leather: { flat: "Evasão", pct: "Evasão" },
 	silk: { flat: "Barreira", pct: "Barreira" },
-};
+} satisfies Record<ArmorBase, { flat: string; pct: string }>;
 
 function ptDefenseWord(item: GeneratedItem, op: "flat" | "pct"): string {
-	const armorType = item.armorType as ArmorBase | undefined;
+	const armorType = item.armorType;
 	const words = armorType ? PT_DEFENSE_WORDS[armorType] : undefined;
 	return words ? words[op] : "Defesa";
 }
@@ -55,7 +56,7 @@ const ptTomeGainAsExtra =
 
 // Exported for the cross-coverage test in `translation-coverage.test.ts` —
 // catches drift between MODIFIERS and the PT formatter table at CI time.
-export const PT_EXPLICIT_FORMATTERS: Record<string, ModFormatter> = {
+export const PT_EXPLICIT_FORMATTERS = {
 	strengthFlat: (m) => `+${m.value} de Força`,
 	dexterityFlat: (m) => `+${m.value} de Destreza`,
 	intelligenceFlat: (m) => `+${m.value} de Inteligência`,
@@ -139,10 +140,16 @@ export const PT_EXPLICIT_FORMATTERS: Record<string, ModFormatter> = {
 
 	itemRarityIncreasePrefix: (m) => `+${m.value}% de Raridade de Itens`,
 	itemRarityIncreaseSuffix: (m) => `+${m.value}% de Raridade de Itens`,
-};
+} satisfies Partial<Record<ModifierId, ModFormatter>>;
+
+// String-keyed view for lookups by RolledMod.modifierId, which is a plain
+// string on persisted items.
+const PT_FORMATTER_BY_ID: ReadonlyMap<string, ModFormatter> = new Map(
+	Object.entries(PT_EXPLICIT_FORMATTERS),
+);
 
 function renderEn(mod: RolledMod, item: GeneratedItem): string {
-	const modDef = MODIFIERS[mod.modifierId as ModifierId];
+	const modDef = findModifier(mod.modifierId);
 	if (!modDef) return mod.description;
 	const displayFormat = resolveDefenseFormat(
 		mod.modifierId,
@@ -154,7 +161,7 @@ function renderEn(mod: RolledMod, item: GeneratedItem): string {
 
 export function localizeMod(mod: RolledMod, item: GeneratedItem): string {
 	if (getLocale() === "pt") {
-		const formatter = PT_EXPLICIT_FORMATTERS[mod.modifierId];
+		const formatter = PT_FORMATTER_BY_ID.get(mod.modifierId);
 		if (formatter) return formatter(mod, item);
 	}
 	return renderEn(mod, item);

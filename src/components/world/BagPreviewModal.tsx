@@ -1,15 +1,15 @@
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
+import type { BagEntry } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
-import type { Doc } from "../../../convex/_generated/dataModel";
 
 const ITEM_SLOT_SIZE = 96;
 
 type Props = {
 	isOpen: boolean;
 	onClose: () => void;
-	items: Doc<"items">[];
+	items: BagEntry[];
 };
 
 export default function BagPreviewModal({ isOpen, onClose, items }: Props) {
@@ -27,7 +27,7 @@ export default function BagPreviewModal({ isOpen, onClose, items }: Props) {
 			) : (
 				<div className="fancy-scroll flex max-h-[60vh] flex-wrap gap-3 overflow-y-auto pr-3">
 					{items.map((item) => (
-						<ItemCard key={item._id} item={item.data} size={ITEM_SLOT_SIZE} />
+						<ItemCard key={item.bagId} item={item.data} size={ITEM_SLOT_SIZE} />
 					))}
 				</div>
 			)}

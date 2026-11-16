@@ -5,6 +5,7 @@ import {
 	TooltipSeparator,
 } from "#/components/ui/rarity-card";
 import type { BossConfig } from "#/game/bosses";
+import type { MonsterElementDamage } from "#/game/monsters/types";
 import {
 	translateEnemyName,
 	translateMonsterModDescription,
@@ -23,17 +24,28 @@ import { m } from "#/paraglide/messages";
 
 type ElementKey = "fire" | "cold" | "lightning" | "void";
 
-const ELEMENT_LABEL: Record<ElementKey, () => string> = {
+const ELEMENT_LABEL = {
 	fire: m.element_fire,
 	cold: m.element_cold,
 	lightning: m.element_lightning,
 	void: m.element_void,
-};
+} satisfies Record<ElementKey, () => string>;
 
-function formatResistance(value: number): {
+// Damage lines carry the capitalized combat element; map it onto the
+// lowercase label key instead of asserting a `toLowerCase()` result.
+const DAMAGE_ELEMENT_KEY = {
+	Cold: "cold",
+	Fire: "fire",
+	Lightning: "lightning",
+	Void: "void",
+} as const satisfies Record<MonsterElementDamage["element"], ElementKey>;
+
+interface ResistanceDisplay {
 	text: string;
 	color: string;
-} {
+}
+
+function formatResistance(value: number): ResistanceDisplay {
 	if (value > 0)
 		return { text: `+${value}%`, color: "rgba(180, 220, 180, 0.95)" };
 	if (value < 0)
@@ -66,7 +78,7 @@ function BossStatSheet({ enemy }: { enemy: Enemy }) {
 			{elems.map((e) => (
 				<div key={e.element} style={{ color: "rgba(220, 220, 220, 0.95)" }}>
 					{m.stat_element_damage({
-						element: ELEMENT_LABEL[e.element.toLowerCase() as ElementKey](),
+						element: ELEMENT_LABEL[DAMAGE_ELEMENT_KEY[e.element]](),
 					})}
 					:{" "}
 					<span style={{ color: "#ffaa66" }}>

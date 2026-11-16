@@ -1,412 +1,435 @@
-// World-route mutations bundled into one hook. Each optimistic closure
-// mirrors the server's recipe so the UI repaints in <16ms instead of
-// waiting on the round-trip. See docs/adr/0001-optimistic-mutations.md.
+// World-route mutations bundled into one hook. There is no reactivity on D1
+// (ADR 0009), so every mutation writes its result into the react-query cache
+// (`src/lib/world-cache.ts`); the ones in ADR 0001's list also paint the
+// result optimistically in `onMutate` and roll back in `onError`.
 //
 // Single-active-session threading: every mutation is wrapped with
 // `useSessionedMutation` so the public signature stays session-free —
-// consumers (world.tsx, useViewMode) keep passing `{ characterId, ... }`
-// while the per-tab token is injected here. See
-// docs/security/threat-model.md → Threat #5.
+// consumers (world.tsx, useViewMode) pass `{ characterId, ... }` while the
+// per-tab token is injected here. See docs/security/threat-model.md →
+// Threat #5.
 
-import type { OptimisticLocalStore } from "convex/browser";
-import { useMutation } from "convex/react";
-import { useRef } from "react";
-import { teleportStoneTravelSeconds } from "#/game/combat/constants";
+import { useMutation } from "@tanstack/react-query";
+
 import {
-	bySlotAsc,
-	byStashSlotAsc,
 	createInventorySlotAllocator,
 	createStashSlotAllocator,
 } from "#/game/inventory/constants";
+import { stashModeOf } from "#/game/inventory/stash-mode";
 import { computeSellPrice } from "#/game/items/sell-price";
-import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
-import { ACT_1, findNode } from "#/game/world";
-import { computeTravelTime } from "#/game/world/travel";
-import { applyCharacterDelta, applyCombatStateDelta, findCharacter } from "#/lib/optimistic-character";
-import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
+import { findVendorProduct } from "#/game/vendor/products";
+import { resolvePurchase } from "#/game/vendor/purchase";
+import {
+	CLEARED_VISIT,
+	resolveTeleport,
+	resolveTravelStart,
+	type TravelCharacter,
+} from "#/game/world/zone-actions";
+import { useTRPC } from "#/integrations/trpc/client";
+import type { ItemRow } from "#/lib/api-types";
+import {
+	moveToSlot,
+	rollbackOnError,
+	useWorldCache,
+	withoutBagEntries,
+} from "#/lib/world-cache";
+
 import { useSessionedMutation } from "./useSessionToken";
 
-// Places the docs into the next available inventory slots, sorted, and
-// writes them back through the optimistic store. Shared by exitZone /
-// pickFromBag which both move bag docs into inventory. Aborts the
-// optimistic write if the live inventory query isn't loaded yet (we
-// can't predict slots without it) or if any doc would land in slot -1
-// (inventory full — server will reject with "Inventory overflow"; same
-// skip-optimistic pattern as InventoryModal's unequipItem).
-function moveDocsIntoInventory(
-	localStore: OptimisticLocalStore,
-	characterId: Id<"characters">,
-	docs: ReadonlyArray<Doc<"items">>,
-): void {
-	if (docs.length === 0) return;
-	const bagKey = { characterId };
-	const inv = localStore.getQuery(api.items.inventory, bagKey);
-	if (!inv) return;
-	const nextFreeSlot = createInventorySlotAllocator(inv);
-	const moved: Doc<"items">[] = [];
-	for (const d of docs) {
-		const slot = nextFreeSlot();
-		if (slot === -1) return;
-		moved.push({
-			...d,
-			locationKind: "inventory" as const,
-			zoneSession: undefined,
-			inventorySlot: slot,
-		});
-	}
-	localStore.setQuery(
-		api.items.inventory,
-		bagKey,
-		[...inv, ...moved].sort(bySlotAsc),
-	);
+// The optimistic travel predictions run the server's own decisions
+// (src/game/world/zone-actions.ts), so a trip the server would refuse is never
+// painted. At module scope because they read the clock: the mutation
+// callbacks call them when they fire, never during render.
+function predictTravel(character: TravelCharacter, destination: string) {
+	return resolveTravelStart(character, destination, Date.now());
+}
+function predictTeleport(character: TravelCharacter, destination: string) {
+	return resolveTeleport(character, destination, Date.now());
 }
 
 export function useWorldMutations({
+	characterId,
 	movementSpeed,
 }: {
+	characterId: number;
 	movementSpeed: number;
 }) {
-	// Latest movementSpeed kept in a ref so the startTravel optimistic closure
-	// (created once at hook mount) reads the live value at click-time, not the
-	// stale value captured when the mutation was declared.
-	const movementSpeedRef = useRef(movementSpeed);
-	movementSpeedRef.current = movementSpeed;
+	const trpc = useTRPC();
+	const cache = useWorldCache(characterId);
+	const { keys } = cache;
 
-	const enterCity = useSessionedMutation(useMutation(api.combat.enterCity));
-	const enterZone = useSessionedMutation(useMutation(api.combat.enterZone));
+	// New items from the bag get their ids on the server, so the inventory
+	// takes the returned rows instead of guessing them optimistically.
+	const addToInventory = (rows: readonly ItemRow[]) => {
+		const inventory = cache.inventory();
+		if (inventory) cache.setInventory([...inventory, ...rows]);
+	};
 
+	// Camp pick and discard both take the entries out of the bag at once.
+	const removeFromBag = async ({ itemIds }: { itemIds: string[] }) => {
+		const rollback = await cache.snapshot([keys.zoneBag]);
+		const bag = cache.zoneBag();
+		if (bag) cache.setZoneBag(withoutBagEntries(bag, itemIds));
+		return { rollback };
+	};
+
+	const enterCity = useSessionedMutation(
+		useMutation(
+			trpc.combat.enterCity.mutationOptions({
+				onSuccess: ({ hpCurrent, potions }) => {
+					const character = cache.character();
+					if (!character) return;
+					cache.patchCharacter({
+						hpCurrent,
+						potions,
+						barrierCurrent: character.cachedMaxBarrier,
+					});
+				},
+			}),
+		).mutateAsync,
+	);
+
+	const enterZone = useSessionedMutation(
+		useMutation(
+			trpc.combat.enterZone.mutationOptions({
+				onSuccess: (visit) => {
+					const character = cache.character();
+					if (!character) return;
+					cache.patchCharacter({
+						...CLEARED_VISIT,
+						currentZoneSession: visit.zoneSession,
+						zoneStartedAt: visit.zoneStartedAt,
+						campThresholdsMs: visit.campThresholdsMs,
+						currentZoneKills: 0,
+						hpCurrent: character.cachedMaxLife,
+						barrierCurrent: character.cachedMaxBarrier,
+					});
+					cache.setZoneBag([]);
+				},
+			}),
+		).mutateAsync,
+	);
+
+	// Optimistic: the bag empties and the visit ends at once; the kept items
+	// join the inventory when the server returns them.
 	const exitZone = useSessionedMutation(
-		useMutation(api.items.exitZone).withOptimisticUpdate((localStore, args) => {
-			const char = findCharacter(localStore, args.characterId);
-			const zoneSession = char?.currentZoneSession;
-			if (!zoneSession) return;
-			const bagKey = { zoneSession };
-			const bag = localStore.getQuery(api.items.zoneBag, bagKey);
-			if (bag) localStore.setQuery(api.items.zoneBag, bagKey, []);
-			const keep = new Set(args.keepIds.map((id) => id.toString()));
-			const keptDocs = (bag ?? []).filter((it) => keep.has(it._id.toString()));
-			moveDocsIntoInventory(localStore, args.characterId, keptDocs);
-		}),
+		useMutation(
+			trpc.items.exitZone.mutationOptions({
+				onMutate: async () => {
+					const rollback = await cache.snapshot([keys.zoneBag, keys.character]);
+					cache.setZoneBag([]);
+					cache.patchCharacter(CLEARED_VISIT);
+					return { rollback };
+				},
+				onError: rollbackOnError,
+				onSuccess: ({ items }) => addToInventory(items),
+			}),
+		).mutateAsync,
 	);
 
 	const pickFromBag = useSessionedMutation(
-		useMutation(api.items.pickFromBag).withOptimisticUpdate(
-			(localStore, args) => {
-				const char = findCharacter(localStore, args.characterId);
-				const zoneSession = char?.currentZoneSession;
-				if (!zoneSession) return;
-				const bagKey = { zoneSession };
-				const bag = localStore.getQuery(api.items.zoneBag, bagKey);
-				if (!bag) return;
-				const idSet = new Set(args.itemIds.map((id) => id.toString()));
-				const picked = bag.filter((it) => idSet.has(it._id.toString()));
-				if (picked.length === 0) return;
-				localStore.setQuery(
-					api.items.zoneBag,
-					bagKey,
-					bag.filter((it) => !idSet.has(it._id.toString())),
-				);
-				moveDocsIntoInventory(localStore, args.characterId, picked);
-			},
-		),
+		useMutation(
+			trpc.items.pickFromBag.mutationOptions({
+				onMutate: removeFromBag,
+				onError: rollbackOnError,
+				onSuccess: ({ items }) => addToInventory(items),
+			}),
+		).mutateAsync,
 	);
 
 	const discardFromBag = useSessionedMutation(
-		useMutation(api.items.discardFromBag).withOptimisticUpdate(
-			(localStore, args) => {
-				const char = findCharacter(localStore, args.characterId);
-				const zoneSession = char?.currentZoneSession;
-				if (!zoneSession) return;
-				const bagKey = { zoneSession };
-				const bag = localStore.getQuery(api.items.zoneBag, bagKey);
-				if (!bag) return;
-				const idSet = new Set(args.itemIds.map((id) => id.toString()));
-				localStore.setQuery(
-					api.items.zoneBag,
-					bagKey,
-					bag.filter((it) => !idSet.has(it._id.toString())),
-				);
-			},
-		),
+		useMutation(
+			trpc.items.discardFromBag.mutationOptions({
+				onMutate: removeFromBag,
+				onError: rollbackOnError,
+			}),
+		).mutateAsync,
 	);
 
-	const respawnDead = useSessionedMutation(useMutation(api.combat.respawnDead));
+	// Server-only (ADR 0001): the XP penalty is decided there. Softcore stays
+	// in /world, so the character is refetched; hardcore navigates away.
+	const respawnDead = useSessionedMutation(
+		useMutation(
+			trpc.combat.respawnDead.mutationOptions({
+				onSuccess: () => {
+					cache.setZoneBag([]);
+					cache.invalidate([keys.character]);
+				},
+			}),
+		).mutateAsync,
+	);
 
+	// `movementSpeed` is read when the mutation fires: useMutation picks up
+	// this render's options, so the closure is never stale.
 	const startTravel = useSessionedMutation(
-		useMutation(api.combat.startTravel).withOptimisticUpdate(
-			(localStore, args) => {
-				const char = findCharacter(localStore, args.characterId);
-				if (!char) return;
-				const fromId = char.currentLocation ?? "city";
-				const fromNode = findNode(ACT_1, fromId);
-				const conn = fromNode?.connections.find(
-					(c) => c.id === args.destinationNodeId,
-				);
-				if (!conn) return;
-				const seconds = computeTravelTime(
-					conn.distance,
-					movementSpeedRef.current,
-				);
-				const startedAt = Date.now();
-				const arrivesAt = startedAt + Math.round(seconds * 1000);
-				applyCharacterDelta(localStore, args.characterId, {
-					travelDestination: args.destinationNodeId,
-					travelStartedAt: startedAt,
-					travelArrivesAt: arrivesAt,
-				});
-			},
-		),
+		useMutation(
+			trpc.combat.startTravel.mutationOptions({
+				onMutate: async ({ destinationNodeId }) => {
+					const rollback = await cache.snapshot([keys.character]);
+					const character = cache.character();
+					// This render's movement speed: the cached row's stat cache lags an
+					// equip until the next refetch.
+					const travel =
+						character &&
+						predictTravel(
+							{ ...character, cachedMovementSpeed: movementSpeed },
+							destinationNodeId,
+						);
+					if (travel?.ok) {
+						cache.patchCharacter({
+							travelDestination: destinationNodeId,
+							travelStartedAt: travel.startedAt,
+							travelArrivesAt: travel.arrivesAt,
+						});
+					}
+					return { rollback };
+				},
+				onError: rollbackOnError,
+				onSuccess: ({ startedAt, arrivesAt }, { destinationNodeId }) =>
+					cache.patchCharacter({
+						travelDestination: destinationNodeId,
+						travelStartedAt: startedAt,
+						travelArrivesAt: arrivesAt,
+					}),
+			}),
+		).mutateAsync,
 	);
 
 	const arriveAtTravel = useSessionedMutation(
-		useMutation(api.combat.arriveAtTravel),
-	);
-
-	// Vendor mutations with optimistic updates so fast/repeat clicks don't
-	// outrun the reactive query and trigger "cap reached" / "item not found"
-	// errors from a stale client view.
-	const vendorBuy = useSessionedMutation(
-		useMutation(api.vendor.vendorBuy).withOptimisticUpdate(
-			(localStore, args) => {
-				const char = findCharacter(localStore, args.characterId);
-				if (!char) return;
-				const product = VENDOR_PRODUCTS[args.productId as VendorProductId];
-				if (!product) return;
-				const qty = args.quantity;
-				if (qty <= 0) return;
-				const totalCost = product.priceRubys * qty;
-				const rubys = char.rubys ?? 0;
-				if (rubys < totalCost) return;
-
-				if (product.counterField === "potions") {
-					const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
-					const currentCount = csData?.potions ?? char.potions ?? 0;
-					const newCount = currentCount + qty;
-					if (product.cap !== undefined && newCount > product.cap) return;
-					applyCharacterDelta(localStore, args.characterId, { rubys: rubys - totalCost });
-					applyCombatStateDelta(localStore, args.characterId, { potions: newCount });
-				} else {
-					const currentCount = char[product.counterField] ?? 0;
-					const newCount = currentCount + qty;
-					if (product.cap !== undefined && newCount > product.cap) return;
-					applyCharacterDelta(localStore, args.characterId, {
-						rubys: rubys - totalCost,
-						[product.counterField]: newCount,
+		useMutation(
+			trpc.combat.arriveAtTravel.mutationOptions({
+				onSuccess: ({ arrivedAt }) => {
+					const character = cache.character();
+					if (!character) return;
+					cache.patchCharacter({
+						currentLocation: arrivedAt,
+						travelDestination: null,
+						travelStartedAt: null,
+						travelArrivesAt: null,
+						unlockedNodes: character.unlockedNodes.includes(arrivedAt)
+							? character.unlockedNodes
+							: [...character.unlockedNodes, arrivedAt],
 					});
-				}
-			},
-		),
+				},
+			}),
+		).mutateAsync,
 	);
 
-	// Aliased to `teleportStone` (no `use` prefix) so consumers can call it
-	// from inside async handlers without tripping biome's useHookAtTopLevel
-	// rule — Convex's mutation name happens to start with `use`, but the
-	// returned function is a regular async call, not a React hook.
+	// Optimistic so fast repeat clicks don't outrun the cache and trip "cap
+	// reached" / "Not enough rubys" from a stale view.
+	const vendorBuy = useSessionedMutation(
+		useMutation(
+			trpc.vendor.vendorBuy.mutationOptions({
+				onMutate: async ({ productId, quantity }) => {
+					const rollback = await cache.snapshot([keys.character]);
+					const character = cache.character();
+					const product = findVendorProduct(productId);
+					if (!character || !product) return { rollback };
+					const currentCount = character[product.counterField];
+					const purchase = resolvePurchase({
+						product,
+						quantity,
+						rubys: character.rubys,
+						currentCount,
+					});
+					if (purchase.ok) {
+						cache.patchCharacter({
+							rubys: character.rubys - purchase.cost,
+							[product.counterField]: currentCount + quantity,
+						});
+					}
+					return { rollback };
+				},
+				onError: rollbackOnError,
+				onSuccess: ({ rubys, counterField, count }) =>
+					cache.patchCharacter({ rubys, [counterField]: count }),
+			}),
+		).mutateAsync,
+	);
+
+	// `consumeTeleportStone`, aliased to a name without the `use` prefix the
+	// hooks lint rule would flag.
 	const teleportStone = useSessionedMutation(
-		useMutation(api.combat.useTeleportStone).withOptimisticUpdate(
-			(localStore, args) => {
-				const char = findCharacter(localStore, args.characterId);
-				if (!char) return;
-				const stones = char.teleportStones ?? 0;
-				if (stones <= 0) return;
-				const destinationNodeId = args.destinationNodeId ?? "city";
-				const startedAt = Date.now();
-				const arrivesAt =
-					startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000;
-				applyCharacterDelta(localStore, args.characterId, {
-					teleportStones: stones - 1,
-					travelDestination: destinationNodeId,
-					travelStartedAt: startedAt,
-					travelArrivesAt: arrivesAt,
-				});
-				applyCombatStateDelta(localStore, args.characterId, {
-					currentZoneSession: undefined,
-					zoneStartedAt: undefined,
-					campThresholdsMs: undefined,
-					inCamp: false,
-					lastCampIndex: undefined,
-				});
-			},
-		),
+		useMutation(
+			trpc.combat.consumeTeleportStone.mutationOptions({
+				onMutate: async ({ destinationNodeId }) => {
+					const rollback = await cache.snapshot([keys.character, keys.zoneBag]);
+					const character = cache.character();
+					const destination = destinationNodeId ?? "city";
+					const jump = character && predictTeleport(character, destination);
+					if (character && jump?.ok) {
+						cache.patchCharacter({
+							...CLEARED_VISIT,
+							teleportStones: character.teleportStones - 1,
+							travelDestination: destination,
+							travelStartedAt: jump.startedAt,
+							travelArrivesAt: jump.arrivesAt,
+						});
+						cache.setZoneBag([]);
+					}
+					return { rollback };
+				},
+				onError: rollbackOnError,
+				// The full write, so the cache is right even when the prediction
+				// bailed: visit and bag cleared, and the city refill when it applies.
+				onSuccess: (written) => {
+					cache.patchCharacter({ ...CLEARED_VISIT, ...written });
+					cache.setZoneBag([]);
+				},
+			}),
+		).mutateAsync,
 	);
 
 	const switchElement = useSessionedMutation(
-		useMutation(api.combat.switchElement),
+		useMutation(
+			trpc.combat.switchElement.mutationOptions({
+				onSuccess: (attunement) => cache.patchCharacter(attunement),
+			}),
+		).mutateAsync,
 	);
 
 	const vendorSellMany = useSessionedMutation(
-		useMutation(api.vendor.vendorSellMany).withOptimisticUpdate(
-			(localStore, args) => {
-				const inventory = localStore.getQuery(api.items.inventory, {
-					characterId: args.characterId,
-				});
-				if (!inventory) return;
-				const idSet = new Set(args.itemIds.map((id) => id.toString()));
-				const sold = inventory.filter((it) => idSet.has(it._id.toString()));
-				if (sold.length === 0) return;
-				const total = sold.reduce(
-					(sum, it) => sum + computeSellPrice(it.data),
-					0,
-				);
-				localStore.setQuery(
-					api.items.inventory,
-					{ characterId: args.characterId },
-					inventory.filter((it) => !idSet.has(it._id.toString())),
-				);
-				const char = findCharacter(localStore, args.characterId);
-				if (!char) return;
-				applyCharacterDelta(localStore, args.characterId, {
-					rubys: (char.rubys ?? 0) + total,
-				});
-			},
-		),
+		useMutation(
+			trpc.vendor.vendorSellMany.mutationOptions({
+				onMutate: async ({ itemIds }) => {
+					const rollback = await cache.snapshot([
+						keys.inventory,
+						keys.character,
+					]);
+					const inventory = cache.inventory();
+					const character = cache.character();
+					if (!inventory || !character) return { rollback };
+					const sold = new Set(itemIds);
+					const total = inventory
+						.filter((it) => sold.has(it.id))
+						.reduce((sum, it) => sum + computeSellPrice(it.data), 0);
+					cache.setInventory(inventory.filter((it) => !sold.has(it.id)));
+					cache.patchCharacter({ rubys: character.rubys + total });
+					return { rollback };
+				},
+				onError: rollbackOnError,
+				onSuccess: ({ rubys }) => cache.patchCharacter({ rubys }),
+			}),
+		).mutateAsync,
 	);
 
-	const reorderInventory = useSessionedMutation(
-		useMutation(api.items.reorderInventory).withOptimisticUpdate(
-			(localStore, args) => {
-				const inv = localStore.getQuery(api.items.inventory, {
-					characterId: args.characterId,
-				});
-				if (!inv) return;
-				const source = inv.find((it) => it._id === args.itemId);
-				if (!source) return;
-				const occupant = inv.find((it) => it.inventorySlot === args.targetSlot);
-				const sourceSlot = source.inventorySlot;
-				const next = inv
-					.map((it) => {
-						if (it._id === source._id)
-							return { ...it, inventorySlot: args.targetSlot };
-						if (occupant && it._id === occupant._id)
-							return { ...it, inventorySlot: sourceSlot ?? -1 };
-						return it;
-					})
-					.sort(bySlotAsc);
-				localStore.setQuery(
-					api.items.inventory,
-					{ characterId: args.characterId },
-					next,
-				);
-			},
-		),
-	);
-
+	// Deposit and withdraw move what fits; the rest fails server-side, and
+	// then the client refetches both sides rather than guess which ones.
 	const depositToStash = useSessionedMutation(
-		useMutation(api.stash.depositToStash).withOptimisticUpdate(
-			(localStore, args) => {
-				const char = findCharacter(localStore, args.characterId);
-				if (!char) return;
-				const stashMode = char.hardcore ? "hardcore" : "softcore";
-				const inv = localStore.getQuery(api.items.inventory, {
-					characterId: args.characterId,
-				});
-				const stash = localStore.getQuery(api.items.stash, {
-					stashMode,
-				});
-				if (!inv || !stash) return;
-				const idSet = new Set(args.itemIds.map((id) => id.toString()));
-				const toMove = inv.filter((it) => idSet.has(it._id.toString()));
-				if (toMove.length === 0) return;
-				const nextStashSlot = createStashSlotAllocator(stash);
-				const moved: Doc<"items">[] = [];
-				for (const item of toMove) {
-					const slot = nextStashSlot();
-					if (slot === -1) break;
-					moved.push({
-						...item,
-						locationKind: "stash" as const,
-						characterId: undefined,
-						inventorySlot: undefined,
-						stashSlot: slot,
-					});
-				}
-				const movedIds = new Set(moved.map((it) => it._id));
-				localStore.setQuery(
-					api.items.inventory,
-					{ characterId: args.characterId },
-					inv.filter((it) => !movedIds.has(it._id)).sort(bySlotAsc),
-				);
-				localStore.setQuery(
-					api.items.stash,
-					{ stashMode },
-					[...stash, ...moved].sort(byStashSlotAsc),
-				);
-			},
-		),
+		useMutation(
+			trpc.stash.depositToStash.mutationOptions({
+				onMutate: async ({ itemIds }) => {
+					const character = cache.character();
+					if (!character) return;
+					const mode = stashModeOf(character);
+					const rollback = await cache.snapshot([
+						keys.inventory,
+						keys.stash(mode),
+					]);
+					const inventory = cache.inventory();
+					const stash = cache.stash(mode);
+					if (!inventory || !stash) return { rollback };
+					const requested = new Set(itemIds);
+					const nextSlot = createStashSlotAllocator(stash);
+					const moved: ItemRow[] = [];
+					for (const item of inventory.filter((it) => requested.has(it.id))) {
+						const slot = nextSlot();
+						if (slot === -1) break;
+						moved.push({
+							...item,
+							locationKind: "stash",
+							characterId: null,
+							inventorySlot: null,
+							stashSlot: slot,
+							stashMode: mode,
+						});
+					}
+					const movedIds = new Set(moved.map((it) => it.id));
+					cache.setInventory(inventory.filter((it) => !movedIds.has(it.id)));
+					cache.setStash(mode, [...stash, ...moved]);
+					return { rollback };
+				},
+				onError: rollbackOnError,
+				onSuccess: ({ failed }) => {
+					const character = cache.character();
+					if (failed > 0 && character) {
+						cache.invalidate([
+							keys.inventory,
+							keys.stash(stashModeOf(character)),
+						]);
+					}
+				},
+			}),
+		).mutateAsync,
 	);
 
 	const withdrawFromStash = useSessionedMutation(
-		useMutation(api.stash.withdrawFromStash).withOptimisticUpdate(
-			(localStore, args) => {
-				const char = findCharacter(localStore, args.characterId);
-				if (!char) return;
-				const stashMode = char.hardcore ? "hardcore" : "softcore";
-				const inv = localStore.getQuery(api.items.inventory, {
-					characterId: args.characterId,
-				});
-				const stash = localStore.getQuery(api.items.stash, {
-					stashMode,
-				});
-				if (!inv || !stash) return;
-				const idSet = new Set(args.itemIds.map((id) => id.toString()));
-				const toMove = stash.filter((it) => idSet.has(it._id.toString()));
-				if (toMove.length === 0) return;
-				const nextInvSlot = createInventorySlotAllocator(inv);
-				const moved: Doc<"items">[] = [];
-				for (const item of toMove) {
-					const slot = nextInvSlot();
-					if (slot === -1) break;
-					moved.push({
-						...item,
-						locationKind: "inventory" as const,
-						characterId: args.characterId,
-						stashSlot: undefined,
-						stashMode: undefined,
-						inventorySlot: slot,
-					});
-				}
-				const movedIds = new Set(moved.map((it) => it._id));
-				localStore.setQuery(
-					api.items.stash,
-					{ stashMode },
-					stash.filter((it) => !movedIds.has(it._id)).sort(byStashSlotAsc),
-				);
-				localStore.setQuery(
-					api.items.inventory,
-					{ characterId: args.characterId },
-					[...inv, ...moved].sort(bySlotAsc),
-				);
-			},
-		),
+		useMutation(
+			trpc.stash.withdrawFromStash.mutationOptions({
+				onMutate: async ({ itemIds }) => {
+					const character = cache.character();
+					if (!character) return;
+					const mode = stashModeOf(character);
+					const rollback = await cache.snapshot([
+						keys.inventory,
+						keys.stash(mode),
+					]);
+					const inventory = cache.inventory();
+					const stash = cache.stash(mode);
+					if (!inventory || !stash) return { rollback };
+					const requested = new Set(itemIds);
+					const nextSlot = createInventorySlotAllocator(inventory);
+					const moved: ItemRow[] = [];
+					for (const item of stash.filter((it) => requested.has(it.id))) {
+						const slot = nextSlot();
+						if (slot === -1) break;
+						moved.push({
+							...item,
+							locationKind: "inventory",
+							characterId,
+							stashSlot: null,
+							stashMode: null,
+							inventorySlot: slot,
+						});
+					}
+					const movedIds = new Set(moved.map((it) => it.id));
+					cache.setStash(
+						mode,
+						stash.filter((it) => !movedIds.has(it.id)),
+					);
+					cache.setInventory([...inventory, ...moved]);
+					return { rollback };
+				},
+				onError: rollbackOnError,
+				onSuccess: ({ failed }) => {
+					const character = cache.character();
+					if (failed > 0 && character) {
+						cache.invalidate([
+							keys.inventory,
+							keys.stash(stashModeOf(character)),
+						]);
+					}
+				},
+			}),
+		).mutateAsync,
 	);
 
 	const reorderStash = useSessionedMutation(
-		useMutation(api.stash.reorderStash).withOptimisticUpdate(
-			(localStore, args) => {
-				const char = findCharacter(localStore, args.characterId);
-				if (!char) return;
-				const stashMode = char.hardcore ? "hardcore" : "softcore";
-				const stash = localStore.getQuery(api.items.stash, {
-					stashMode,
-				});
-				if (!stash) return;
-				const source = stash.find((it) => it._id === args.itemId);
-				if (!source) return;
-				const occupant = stash.find((it) => it.stashSlot === args.targetSlot);
-				const sourceSlot = source.stashSlot;
-				const next = stash
-					.map((it) => {
-						if (it._id === source._id)
-							return { ...it, stashSlot: args.targetSlot };
-						if (occupant && it._id === occupant._id)
-							return { ...it, stashSlot: sourceSlot ?? -1 };
-						return it;
-					})
-					.sort(byStashSlotAsc);
-				localStore.setQuery(api.items.stash, { stashMode }, next);
-			},
-		),
+		useMutation(
+			trpc.stash.reorderStash.mutationOptions({
+				onMutate: async (move) => {
+					const character = cache.character();
+					if (!character) return;
+					const mode = stashModeOf(character);
+					const rollback = await cache.snapshot([keys.stash(mode)]);
+					const stash = cache.stash(mode);
+					const next = stash && moveToSlot(stash, "stashSlot", move);
+					if (next) cache.setStash(mode, next);
+					return { rollback };
+				},
+				onError: rollbackOnError,
+			}),
+		).mutateAsync,
 	);
 
 	return {
@@ -422,7 +445,6 @@ export function useWorldMutations({
 		teleportStone,
 		vendorSellMany,
 		switchElement,
-		reorderInventory,
 		depositToStash,
 		withdrawFromStash,
 		reorderStash,

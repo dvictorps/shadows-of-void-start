@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import type { ComputedCharacterStats, SwingProfile } from "../stats/types";
 import {
 	applyDamageToBarrierThenLife,

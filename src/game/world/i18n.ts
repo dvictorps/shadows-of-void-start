@@ -15,7 +15,13 @@ import {
 } from "#/game/monsters";
 import { m } from "#/paraglide/messages";
 import { getLocale, type Locale } from "#/paraglide/runtime";
-import { type GenderedForm, pickGendered } from "../i18n/lexicon-shared";
+
+import {
+	type GenderedForm,
+	isGenderedForm,
+	pickGendered,
+} from "../i18n/lexicon-shared";
+import { hasOwnKey } from "../typed-object";
 import { lexiconEn } from "./lexicon/en";
 import { lexiconPt } from "./lexicon/pt";
 import type {
@@ -49,10 +55,12 @@ export interface NameableEnemy {
 // instead of two parallel switch cases. The `description` slot is optional —
 // zones without a description return null and the caller falls back to the
 // node name.
-const NODE_I18N: Record<
-	string,
-	{ name: () => string; description?: () => string }
-> = {
+interface NodeMessages {
+	name: () => string;
+	description?: () => string;
+}
+
+const NODE_I18N = {
 	city: { name: m.zone_city, description: m.zone_city_description },
 	forest_starter: {
 		name: m.zone_forest_starter,
@@ -69,7 +77,7 @@ const NODE_I18N: Record<
 		name: m.zone_fenda_vazio,
 		description: m.zone_fenda_vazio_description,
 	},
-};
+} satisfies Record<string, NodeMessages>;
 
 /**
  * Resolve a world-node's display name through the active locale's messages.
@@ -77,7 +85,7 @@ const NODE_I18N: Record<
  * render even before translations land.
  */
 export function translateNodeName(node: WorldNode): string {
-	return NODE_I18N[node.id]?.name() ?? node.name;
+	return hasOwnKey(NODE_I18N, node.id) ? NODE_I18N[node.id].name() : node.name;
 }
 
 /**
@@ -85,15 +93,16 @@ export function translateNodeName(node: WorldNode): string {
  * caller (TextLog) falls back to the node name in that case.
  */
 export function translateNodeDescription(node: WorldNode): string | null {
-	return NODE_I18N[node.id]?.description?.() ?? null;
+	if (!hasOwnKey(NODE_I18N, node.id)) return null;
+	const entry: NodeMessages = NODE_I18N[node.id];
+	return entry.description?.() ?? null;
 }
 
 // Three ambient lines per zone that fade in during the camp cinematic. Falls
 // back to a neutral set when a zone has no entry. See CONTEXT.md → Acampamento.
-const CAMP_LINES_I18N: Record<
-	string,
-	[() => string, () => string, () => string]
-> = {
+type CampLines = [() => string, () => string, () => string];
+
+const CAMP_LINES_I18N = {
 	forest_starter: [
 		m.camp_line_forest_starter_1,
 		m.camp_line_forest_starter_2,
@@ -120,15 +129,15 @@ const CAMP_LINES_I18N: Record<
 		m.camp_line_fenda_vazio_2,
 		m.camp_line_fenda_vazio_3,
 	],
-};
+} satisfies Record<string, CampLines>;
 
-const CAMP_LINES_FALLBACK: [() => string, () => string, () => string] = [
+const CAMP_LINES_FALLBACK: CampLines = [
 	m.camp_line_fallback_1,
 	m.camp_line_fallback_2,
 	m.camp_line_fallback_3,
 ];
 
-const CAMP_LINES_INCENSE: [() => string, () => string, () => string] = [
+const CAMP_LINES_INCENSE: CampLines = [
 	m.camp_line_incense_1,
 	m.camp_line_incense_2,
 	m.camp_line_incense_3,
@@ -150,11 +159,13 @@ export function translateCampLines(
 			CAMP_LINES_INCENSE[2](),
 		];
 	}
-	const entry = CAMP_LINES_I18N[zoneId] ?? CAMP_LINES_FALLBACK;
+	const entry = hasOwnKey(CAMP_LINES_I18N, zoneId)
+		? CAMP_LINES_I18N[zoneId]
+		: CAMP_LINES_FALLBACK;
 	return [entry[0](), entry[1](), entry[2]()];
 }
 
-const MONSTER_I18N: Record<MonsterId, () => string> = {
+const MONSTER_I18N = {
 	goblin: m.monster_goblin,
 	slime: m.monster_slime,
 	macaco: m.monster_macaco,
@@ -168,13 +179,13 @@ const MONSTER_I18N: Record<MonsterId, () => string> = {
 	lich: m.monster_lich,
 	olho_do_vazio: m.monster_olho_do_vazio,
 	criatura_do_vazio: m.monster_criatura_do_vazio,
-};
+} satisfies Record<MonsterId, () => string>;
 
 // Elemental resistances participate in the compound-name rule: two or more
 // collapse into a single "Elemental Resistant" adjective instead of stacking
 // individual suffixes ("of Frost and Flame" / "de Frio e Fogo"). One resist
 // still renders normally as a suffix.
-const RESIST_MOD_IDS: ReadonlySet<MonsterModId> = new Set([
+const RESIST_MOD_IDS: ReadonlySet<SuffixMonsterModId> = new Set([
 	"monsterColdResistance",
 	"monsterFireResistance",
 	"monsterLightningResistance",
@@ -187,6 +198,12 @@ function isPrefixMod(id: MonsterModId): id is PrefixMonsterModId {
 
 function isSuffixMod(id: MonsterModId): id is SuffixMonsterModId {
 	return MONSTER_MODIFIERS[id].affixType === "suffix";
+}
+
+// Every resist mod is a suffix (RESIST_MOD_IDS is typed that way), so the
+// isSuffixMod check never rejects a resist — it only narrows the type.
+function isResistMod(id: MonsterModId): id is SuffixMonsterModId {
+	return isSuffixMod(id) && RESIST_MOD_IDS.has(id);
 }
 
 /**
@@ -207,7 +224,9 @@ export function translateMonsterName(
 	def: MonsterDefinition,
 	mods?: readonly MonsterModId[],
 ): string {
-	const base = MONSTER_I18N[def.id as MonsterId]?.() ?? def.name;
+	const base = hasOwnKey(MONSTER_I18N, def.id)
+		? MONSTER_I18N[def.id]()
+		: def.name;
 	if (!mods || mods.length === 0) return base;
 	const locale = getLocale();
 	if (locale === "pt") return renderPt(def, base, mods);
@@ -229,10 +248,8 @@ function partitionMods(mods: readonly MonsterModId[]): PartitionedMods {
 	const suffixIds: SuffixMonsterModId[] = [];
 	const resists: SuffixMonsterModId[] = [];
 	for (const id of mods) {
-		if (RESIST_MOD_IDS.has(id)) {
-			// All RESIST_MOD_IDS entries are SuffixMonsterModId by construction
-			// (see the set's declaration below); the cast just propagates that.
-			resists.push(id as SuffixMonsterModId);
+		if (isResistMod(id)) {
+			resists.push(id);
 		} else if (isPrefixMod(id)) {
 			prefixIds.push(id);
 		} else if (isSuffixMod(id)) {
@@ -261,7 +278,7 @@ function renderEn(
 		const joined =
 			suffixes.length === 1
 				? suffixes[0]
-				: `${suffixes.slice(0, -1).join(", ")} and ${suffixes[suffixes.length - 1]}`;
+				: `${suffixes.slice(0, -1).join(", ")} and ${suffixes.at(-1)}`;
 		result = `${result} of ${joined}`;
 	}
 	return result;
@@ -273,7 +290,8 @@ function renderPt(
 	mods: readonly MonsterModId[],
 ): string {
 	const lex = lexiconPt;
-	const gender = lex.monsterGender?.[def.id as MonsterId] ?? "m";
+	const genders = lex.monsterGender;
+	const gender = genders && hasOwnKey(genders, def.id) ? genders[def.id] : "m";
 	const { prefixIds, suffixIds, resists } = partitionMods(mods);
 	const adjectives = prefixIds.map((id) =>
 		pickGendered(lex.prefixAdj[id], gender),
@@ -294,19 +312,31 @@ function renderPt(
 	return result;
 }
 
+function isGenderedNoun(noun: string | GenderedNoun): noun is GenderedNoun {
+	return typeof noun !== "string";
+}
+
 function nounAsString(noun: string | GenderedNoun): string {
-	return typeof noun === "string" ? noun : noun.noun;
+	return isGenderedNoun(noun) ? noun.noun : noun;
 }
 
 function formAsString(form: string | GenderedForm): string {
-	return typeof form === "string" ? form : form.m;
+	return isGenderedForm(form) ? form.m : form;
 }
 
 function suffixPhrasePt(noun: string | GenderedNoun): string {
-	if (typeof noun === "string") return noun;
+	if (!isGenderedNoun(noun)) return noun;
 	const article = noun.gender === "m" ? "do" : "da";
 	return `${article} ${noun.noun}`;
 }
+
+// BossConfig.nameKey → its zero-arg paraglide message. An explicit table
+// (like MONSTER_I18N) instead of indexing `m` by string: `m` mixes zero-arg
+// and required-input messages, so a dynamic lookup can't be typed. A new
+// boss adds its key here; a missing entry falls back to def.name.
+const BOSS_NAME_I18N = {
+	boss_gralfor_name: m.boss_gralfor_name,
+} satisfies Record<string, () => string>;
 
 /**
  * Localized display name for any combat enemy. Normal / magic monsters fall
@@ -321,16 +351,8 @@ function suffixPhrasePt(noun: string | GenderedNoun): string {
 export function translateEnemyName(enemy: NameableEnemy): string {
 	if (enemy.rarity === "unique") {
 		const boss = getBossConfig(enemy);
-		if (boss) {
-			// Boss names are zero-arg paraglide keys (no inputs), so we can call
-			// them positionally. Cast through `unknown` because paraglide's
-			// generated `m` has a heterogeneous signature surface with required
-			// inputs on other keys.
-			const messageFn = (m as unknown as Record<string, () => string>)[
-				boss.nameKey
-			];
-			if (typeof messageFn === "function") return messageFn();
-		}
+		if (boss && hasOwnKey(BOSS_NAME_I18N, boss.nameKey))
+			return BOSS_NAME_I18N[boss.nameKey]();
 		// Fallback — if the BossConfig or paraglide key is missing for any
 		// reason, fall through to the def.name so we always render something.
 		return enemy.def.name;
@@ -373,7 +395,7 @@ function pickRareEpithetPool(
 	let resistCount = 0;
 	let firstPrefix: PrefixMonsterModId | null = null;
 	for (const id of mods) {
-		if (RESIST_MOD_IDS.has(id)) resistCount += 1;
+		if (isResistMod(id)) resistCount += 1;
 		else if (isPrefixMod(id) && firstPrefix === null) firstPrefix = id;
 	}
 	if (resistCount >= 2) return lex.rareCompoundEpithets;

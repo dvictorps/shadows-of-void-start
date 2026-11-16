@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
 import { queueFlashToast } from "#/lib/flash-toast";

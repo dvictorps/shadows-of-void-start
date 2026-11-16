@@ -1,6 +1,7 @@
 // Player BarrierState owner across map / combat / city / travel. See ADR 0005.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+
 import {
 	type BarrierState,
 	damageBarrier,
@@ -8,6 +9,7 @@ import {
 	rescaleBarrier,
 	tickBarrier,
 } from "#/game/combat/barrier";
+
 import { useTicker } from "./useTicker";
 
 export type BarrierApi = {
@@ -37,33 +39,49 @@ export function useBarrier({
 		}
 		return makeBarrierState(maxBarrier);
 	});
+	// Every writer below (the ticker, applyDamage, restoreToFull and the two
+	// prop-sync updaters) sets the ref alongside the state, so the ref never
+	// needs a render-time resync.
 	const barrierRef = useRef(barrier);
-	barrierRef.current = barrier;
 
-	useEffect(() => {
+	// Both prop syncs below use React's "adjust state while rendering" pattern:
+	// keep the previous input in state and queue the update during render
+	// when it changes. The functional updaters chain in declaration order (cap
+	// rescale first, then the server value clamped to the new cap) and keep
+	// the ref in step for the ticker.
+	//
+	// Rescale the existing pool when the cap changes. `barrier` is also mutated
+	// by the regen ticker and by damage, so it can't be derived from the cap.
+	const [prevMaxBarrier, setPrevMaxBarrier] = useState(maxBarrier);
+	if (maxBarrier !== prevMaxBarrier) {
+		setPrevMaxBarrier(maxBarrier);
 		setBarrier((prev) => {
 			const next = rescaleBarrier(prev, maxBarrier);
 			if (next === prev) return prev;
 			barrierRef.current = next;
 			return next;
 		});
-	}, [maxBarrier]);
+	}
 
 	// Cold-start race: useState runs once at mount. When combatState arrives
-	// from Convex after that (initialBarrier transitions from undefined to a
+	// from the character query after that (initialBarrier transitions from undefined to a
 	// real value), `useState` would silently drop it and the periodic syncHp
 	// would then overwrite the server with the local default. Pull the new
-	// value in on prop change, clamped to current max.
-	useEffect(() => {
-		if (initialBarrier === undefined) return;
-		setBarrier((prev) => {
-			const clamped = Math.min(initialBarrier, prev.max);
-			if (prev.current === clamped) return prev;
-			const next = { ...prev, current: clamped };
-			barrierRef.current = next;
-			return next;
-		});
-	}, [initialBarrier]);
+	// value in on prop change, clamped to current max. The mount value is
+	// already applied by the lazy initializer above.
+	const [prevInitialBarrier, setPrevInitialBarrier] = useState(initialBarrier);
+	if (initialBarrier !== prevInitialBarrier) {
+		setPrevInitialBarrier(initialBarrier);
+		if (initialBarrier !== undefined) {
+			setBarrier((prev) => {
+				const clamped = Math.min(initialBarrier, prev.max);
+				if (prev.current === clamped) return prev;
+				const next = { ...prev, current: clamped };
+				barrierRef.current = next;
+				return next;
+			});
+		}
+	}
 
 	useTicker(active, 100, () => {
 		const next = tickBarrier(barrierRef.current, 0.1);
@@ -74,7 +92,10 @@ export function useBarrier({
 	});
 
 	const applyDamage = useCallback((rawDamage: number) => {
-		const { state, lifeOverflow } = damageBarrier(barrierRef.current, rawDamage);
+		const { state, lifeOverflow } = damageBarrier(
+			barrierRef.current,
+			rawDamage,
+		);
 		if (state !== barrierRef.current) {
 			barrierRef.current = state;
 			setBarrier(state);

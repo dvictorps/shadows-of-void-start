@@ -1,33 +1,34 @@
-import { convexQuery } from "@convex-dev/react-query";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation } from "convex/react";
-import type { FunctionReturnType } from "convex/server";
 import { useState } from "react";
 import { toast } from "sonner";
+
 import { AdminPageHeader, EmptyTableRow } from "#/components/admin/AdminShared";
 import { Button } from "#/components/ui/button";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
-import { convexErrorMessage } from "#/lib/convex-errors";
+import { useTRPC } from "#/integrations/trpc/client";
+import { adminTabQueries, useSetUserRole } from "#/lib/admin-prefetch";
+import type { AdminOutputs } from "#/lib/api-types";
 import { formatDate } from "#/lib/format";
+import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
-import { api } from "../../../convex/_generated/api";
 
 export const Route = createFileRoute("/admin/admins")({
 	loader: ({ context }) =>
-		context.queryClient.ensureQueryData(convexQuery(api.admin.listAdmins, {})),
+		context.queryClient.ensureQueryData(
+			adminTabQueries(context.trpc).listAdmins,
+		),
 	component: AdminAdminsPage,
 });
 
-type AdminRow = FunctionReturnType<typeof api.admin.listAdmins>[number];
+type AdminRow = AdminOutputs["listAdmins"][number];
 
 function AdminAdminsPage() {
-	const { data: admins } = useSuspenseQuery(
-		convexQuery(api.admin.listAdmins, {}),
-	);
-	const { data: me } = useQuery(convexQuery(api.users.getUserRole, {}));
+	const trpc = useTRPC();
+	const { data: admins } = useSuspenseQuery(adminTabQueries(trpc).listAdmins);
+	const { data: me } = useQuery(trpc.users.getUserRole.queryOptions());
 
-	const setUserRole = useMutation(api.users.setUserRole);
+	const setUserRole = useSetUserRole();
 	const confirm = useConfirmationModal();
 	const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -45,7 +46,7 @@ function AdminAdminsPage() {
 			await setUserRole({ authUserId: row.authUserId, role: "user" });
 			toast.success(m.admin_revoke_success({ email: row.email }));
 		} catch (err) {
-			toast.error(convexErrorMessage(err, m.admin_revoke_failed()));
+			toast.error(serverErrorMessage(err, m.admin_revoke_failed()));
 		} finally {
 			setPendingId(null);
 		}

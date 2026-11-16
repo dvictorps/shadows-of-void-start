@@ -6,8 +6,8 @@ An online Action RPG with automatic stat-check combat, deep itemization, and inf
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+)
-- npm
+- [Node.js](https://nodejs.org/) (v22+)
+- pnpm
 
 ### Installation
 
@@ -17,44 +17,39 @@ git clone https://github.com/dvictorps/shadows-of-void.git
 cd shadows-of-void
 
 # Install dependencies
-npm install
+pnpm install
 
-# Set up environment variables
-cp .env.local.example .env.local
-# Fill in your Convex and auth credentials (see below)
+# Local secrets for the Worker (Better Auth)
+cp .dev.vars.example .dev.vars
+
+# Create the local D1 database
+pnpm db:migrate:local
 ```
 
 ### Running the Project
 
-You need two terminals running simultaneously:
-
 ```bash
-# Terminal 1 — Start the Convex backend
-npx convex dev
-
-# Terminal 2 — Start the dev server
-npm run dev
+pnpm dev
 ```
 
-The app will be available at `http://localhost:3002`.
-
-### Environment Variables
-
-Create a `.env.local` file with:
-
-```
-VITE_CONVEX_URL=<your-convex-url>
-CONVEX_DEPLOYMENT=<your-convex-deployment>
-BETTER_AUTH_SECRET=<generate with: npx @better-auth/cli secret>
-```
+One process serves everything: the app, the tRPC API (`/api/trpc`) and auth (`/api/auth`), on a local D1 under `.wrangler/`. The app will be available at `http://localhost:3002`.
 
 ### Other Commands
 
 ```bash
-npm run build    # Production build
-npm run test     # Run tests (Vitest)
-npm run lint     # Lint with Biome
-npm run format   # Format with Biome
+pnpm build    # Production build
+pnpm test     # Run tests (Vitest: unit + workerd integration)
+pnpm lint     # Lint with oxlint
+pnpm format   # Format with oxfmt
+```
+
+### Deploying
+
+The app is one Cloudflare Worker with a D1 database per environment (see `docs/adr/0009-cloudflare-d1-trpc-backend.md`).
+
+```bash
+pnpm db:migrate:staging && pnpm deploy:staging        # staging, from any branch
+pnpm db:migrate:production && pnpm deploy:production  # production, from master after merging dev
 ```
 
 ## About the Project
@@ -72,7 +67,7 @@ The project is in early development. Here's what's already built:
 - **Procedural Item Generator** — Full item generation engine with 10 modifier tiers, 5 rarity levels, prefix/suffix system, local/global stat resolution, and weighted modifier rolling. Covers 9 weapon types, 4 armor slots (3 variants each), shields, and jewelry.
 - **Item Tooltip UI** — Rich tooltip display with color-coded stats, rarity-specific styling (glows, ornaments), and modifier formatting.
 - **Equipment Base Progression** — 21-tier base item progression for weapons and armor, 8 tiers for jewelry, all level-gated.
-- **Authentication System** — User registration and login via Better Auth + Convex.
+- **Authentication System** — User registration and login via Better Auth on D1.
 - **Admin Panel** — Admin interface for item generation testing and inspection.
 - **Internationalization** — i18n support via Paraglide (English/Portuguese).
 - **71+ Unit Tests** — Comprehensive test suite covering the item generation system.
@@ -80,38 +75,47 @@ The project is in early development. Here's what's already built:
 ## Roadmap
 
 ### Unique Items
+
 Hand-crafted item templates with fixed, curated modifiers — some exclusive to that item. Uniques sit above Epic rarity and define build-around fantasies: powerful but narrow. Each unique is a complete item definition, separate from the random generator.
 
 ### Class System
+
 Multiple playable classes, each with distinct stat profiles and playstyle identities. Classes influence which weapon types and armor variants are most effective, encouraging diverse build paths.
 
 ### Passive Skill Tree
+
 A branching passive tree where players allocate points to customize their character's strengths. Nodes grant stat bonuses, unlock build-defining keystones, and create meaningful choices between offensive, defensive, and utility paths.
 
 ### Auto-Combat System
+
 A stat-check combat engine where encounters are resolved automatically based on the player's build. The system compares offensive stats (damage, speed, crit) against enemy defenses, with results influenced by gear, passives, and class bonuses. No manual aiming — the depth comes from preparation, not execution.
 
 ### Campaign Mode
+
 A node-based world map where players progress through themed zones. Each node represents a combat encounter; defeating all enemies in a zone unlocks the next node. The campaign tells the story of the Void through a sequence of increasingly challenging areas, serving as the introduction to the game's mechanics and lore.
 
 ### Infinite Endgame
+
 After completing the campaign, players enter a theoretically infinite endgame loop designed for long-term grinding. Endgame content scales in difficulty and rewards, providing a reason to keep optimizing builds and hunting for better gear.
 
 ### Ranking Systems
+
 Competitive leaderboards tracking:
+
 - **Character Level** — Highest level reached
 - **Boss Eliminations** — Fastest kills and hardest bosses defeated
 - **Dungeon Depth** — Deepest floor reached in endgame dungeons
 
 ### Player Trading
+
 A trade system allowing players to exchange items with each other, creating a player-driven economy. Trading adds a social layer to the loot hunt and enables build completion through commerce rather than pure RNG.
 
 ## Tech Stack
 
 - **Frontend:** React 19 + TypeScript + Tailwind CSS 4 + TanStack Router/Start
-- **Backend:** Convex (database + serverless functions)
+- **Backend:** one Cloudflare Worker — D1 (SQLite) + Drizzle, tRPC
 - **Auth:** Better Auth
-- **Build:** Vite + Biome (lint/format) + Vitest (testing)
+- **Build:** Vite + oxlint (lint) + oxfmt (format) + Vitest (testing)
 - **i18n:** Paraglide
 - **Analytics:** PostHog
 

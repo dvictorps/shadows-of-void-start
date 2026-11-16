@@ -11,12 +11,12 @@ type Flash = z.infer<typeof FlashSchema>;
 const KEY = "sov-flash-toast";
 
 export function queueFlashToast(type: Flash["type"], message: string) {
-	if (typeof window === "undefined") return;
+	if (globalThis.window === undefined) return;
 	sessionStorage.setItem(KEY, JSON.stringify({ type, message }));
 }
 
 export function consumeFlashToast() {
-	if (typeof window === "undefined") return;
+	if (globalThis.window === undefined) return;
 	const raw = sessionStorage.getItem(KEY);
 	if (!raw) return;
 	sessionStorage.removeItem(KEY);

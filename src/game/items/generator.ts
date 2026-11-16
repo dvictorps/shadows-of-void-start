@@ -28,8 +28,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
+	findModifier,
+	getModifier,
 	getModifierTierForItemLevel,
-	MODIFIERS,
+	MODIFIER_IDS,
 	type ModifierId,
 } from "./data/modifiers";
 import type { EquipmentTemplate } from "./data/templates";
@@ -60,11 +62,15 @@ function pickRandom<T>(arr: T[]): T {
 function pickWeighted<T>(items: T[], getWeight: (item: T) => number): T {
 	const totalWeight = items.reduce((sum, item) => sum + getWeight(item), 0);
 	let roll = Math.random() * totalWeight;
+	// Float drift can leave `roll` a hair above 0 after the loop; fall back to
+	// the last item, same as the old `items[items.length - 1]`.
+	let last = items[0];
 	for (const item of items) {
 		roll -= getWeight(item);
 		if (roll <= 0) return item;
+		last = item;
 	}
-	return items[items.length - 1];
+	return last;
 }
 
 // ── Value formatting ──
@@ -92,19 +98,19 @@ function formatRangeDescription(
 
 type DefenseStatKey = "armor" | "evasion" | "barrier";
 
-export const DEFENSE_LABELS: Record<
-	string,
-	{ stat: DefenseStatKey; flat: string; pct: string }
-> = {
+export const DEFENSE_LABELS = {
 	plate: { stat: "armor", flat: "Armor", pct: "Armor" },
 	leather: { stat: "evasion", flat: "Evasion Rating", pct: "Evasion" },
 	silk: { stat: "barrier", flat: "Barrier", pct: "Barrier" },
-};
+} satisfies Record<
+	ArmorType,
+	{ stat: DefenseStatKey; flat: string; pct: string }
+>;
 
 export function resolveDefenseFormat(
 	modId: string,
 	displayFormat: string,
-	armorType?: string,
+	armorType?: ArmorType,
 ): string {
 	if (!armorType) return displayFormat;
 	const labels = DEFENSE_LABELS[armorType];
@@ -122,33 +128,33 @@ function isGroupKey(target: string): target is EquipmentGroup {
 	return target in EQUIPMENT_GROUPS;
 }
 
-const MOD_REQUIRED_ARMOR_TYPE: Record<string, ArmorType> = {
-	globalArmorIncrease: "plate",
-	globalEvasionIncrease: "leather",
-	globalBarrierIncrease: "silk",
-	globalSpellDamageIncrease: "silk",
-};
+const MOD_REQUIRED_ARMOR_TYPE: ReadonlyMap<ModifierId, ArmorType> = new Map([
+	["globalArmorIncrease", "plate"],
+	["globalEvasionIncrease", "leather"],
+	["globalBarrierIncrease", "silk"],
+	["globalSpellDamageIncrease", "silk"],
+]);
 
 // Maps the four spell-flat mod ids (isGlobalStat-tagged, no statEffect) to the
 // elemental damage entry they fold into the spell weapon's swing. The mods
 // don't accumulate as character globals — see compute.ts no-op for the same
 // ids. Exported so tests can assert against the same source-of-truth.
-export const SPELL_FLAT_TO_ELEMENT: Record<string, string> = {
-	coldDamageFlat: "Cold",
-	fireDamageFlat: "Fire",
-	lightningDamageFlat: "Lightning",
-	voidDamageFlat: "Void",
-};
+export const SPELL_FLAT_TO_ELEMENT: ReadonlyMap<string, string> = new Map([
+	["coldDamageFlat", "Cold"],
+	["fireDamageFlat", "Fire"],
+	["lightningDamageFlat", "Lightning"],
+	["voidDamageFlat", "Void"],
+]);
 
 function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
-	return (Object.keys(MODIFIERS) as ModifierId[]).filter((modId) => {
-		const mod = MODIFIERS[modId];
+	return MODIFIER_IDS.filter((modId) => {
+		const mod = getModifier(modId);
 
 		// Gate mods to a specific armor base, from either the per-mod inline
 		// field (ADR 0007) or the legacy MOD_REQUIRED_ARMOR_TYPE registry.
 		// Non-armor templates (weapons, jewelry, tomes) pass through.
 		const requiredArmorType =
-			mod.restrictedToArmorType ?? MOD_REQUIRED_ARMOR_TYPE[modId];
+			mod.restrictedToArmorType ?? MOD_REQUIRED_ARMOR_TYPE.get(modId);
 		if (
 			requiredArmorType &&
 			template.armorType &&
@@ -159,10 +165,7 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 
 		// Slot-conditional implicit gate (ADR 0007). Only narrows amulets —
 		// the slot where attribute-typed implicits live. Other slots pass.
-		if (
-			mod.restrictedToImplicitMod &&
-			template.equipmentType === "amulet"
-		) {
+		if (mod.restrictedToImplicitMod && template.equipmentType === "amulet") {
 			const hasImplicit = template.implicits.some(
 				(imp) => imp.modifierId === mod.restrictedToImplicitMod,
 			);
@@ -171,7 +174,7 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 
 		return mod.applicableTo.some((target) => {
 			if (isGroupKey(target)) {
-				const members = EQUIPMENT_GROUPS[target] as readonly string[];
+				const members: readonly string[] = EQUIPMENT_GROUPS[target];
 				return (
 					members.includes(template.equipmentType) ||
 					(template.weaponType != null && members.includes(template.weaponType))
@@ -187,10 +190,10 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 
 // ── Synergy system (intelligent generation for epic/legendary) ──
 
-const SYNERGY_MULTIPLIERS: Partial<Record<ItemRarity, number>> = {
+const SYNERGY_MULTIPLIERS = {
 	epic: 3,
 	legendary: 1.5,
-};
+} satisfies Partial<Record<ItemRarity, number>>;
 
 export function getSynergyWeight(
 	baseWeight: number,
@@ -231,7 +234,7 @@ interface EpicModPattern {
 	suffixes: ModifierId[];
 }
 
-const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
+const EPIC_MOD_PATTERNS = {
 	attackWeapon: {
 		prefixes: [
 			"physicalDamageFlat",
@@ -240,13 +243,13 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"fireDamageToAttacksFlat",
 			"lightningDamageToAttacksFlat",
 			"voidDamageToAttacksFlat",
-		] as ModifierId[],
+		],
 		suffixes: [
 			"attackSpeedIncrease",
 			"criticalChanceIncrease",
 			"criticalStrikeMultiplierFlat",
 			"accuracyFlat",
-		] as ModifierId[],
+		],
 	},
 	spellWeapon: {
 		prefixes: [
@@ -266,13 +269,13 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"tomeGainAsExtraFire",
 			"tomeGainAsExtraLightning",
 			"tomeGainAsExtraVoid",
-		] as ModifierId[],
+		],
 		suffixes: [
 			"globalCastSpeedIncrease",
 			"globalCriticalChanceIncrease",
 			"criticalStrikeMultiplierFlat",
 			"manaRegenFlat",
-		] as ModifierId[],
+		],
 	},
 	armor: {
 		prefixes: [
@@ -286,7 +289,7 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"tomeGainAsExtraFire",
 			"tomeGainAsExtraLightning",
 			"tomeGainAsExtraVoid",
-		] as ModifierId[],
+		],
 		suffixes: [
 			"localDefenseIncrease",
 			"coldResistance",
@@ -294,10 +297,10 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"lightningResistance",
 			"voidResistance",
 			"healthRegenFlat",
-		] as ModifierId[],
+		],
 	},
 	boots: {
-		prefixes: ["localDefenseFlat", "healthFlat", "manaFlat"] as ModifierId[],
+		prefixes: ["localDefenseFlat", "healthFlat", "manaFlat"],
 		suffixes: [
 			"localDefenseIncrease",
 			"coldResistance",
@@ -306,10 +309,10 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"voidResistance",
 			"healthRegenFlat",
 			"movementSpeedIncrease",
-		] as ModifierId[],
+		],
 	},
 	shield: {
-		prefixes: ["localDefenseFlat", "healthFlat", "manaFlat"] as ModifierId[],
+		prefixes: ["localDefenseFlat", "healthFlat", "manaFlat"],
 		suffixes: [
 			"localDefenseIncrease",
 			"blockChanceIncrease",
@@ -317,7 +320,7 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"fireResistance",
 			"lightningResistance",
 			"voidResistance",
-		] as ModifierId[],
+		],
 	},
 	belt: {
 		prefixes: [
@@ -326,7 +329,7 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"evasionFlat",
 			"barrierFlat",
 			"manaFlat",
-		] as ModifierId[],
+		],
 		suffixes: [
 			"coldResistance",
 			"fireResistance",
@@ -335,7 +338,7 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"strengthFlat",
 			"dexterityFlat",
 			"intelligenceFlat",
-		] as ModifierId[],
+		],
 	},
 	ring: {
 		prefixes: [
@@ -345,7 +348,7 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"evasionFlat",
 			"barrierFlat",
 			"lifeGainOnHitFlat",
-		] as ModifierId[],
+		],
 		suffixes: [
 			"coldResistance",
 			"fireResistance",
@@ -354,7 +357,7 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"criticalStrikeMultiplierFlat",
 			"accuracyFlat",
 			"lifeLeechPercent",
-		] as ModifierId[],
+		],
 	},
 	amulet: {
 		prefixes: [
@@ -370,7 +373,7 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"tomeGainAsExtraFire",
 			"tomeGainAsExtraLightning",
 			"tomeGainAsExtraVoid",
-		] as ModifierId[],
+		],
 		suffixes: [
 			"coldResistance",
 			"fireResistance",
@@ -380,9 +383,9 @@ const EPIC_MOD_PATTERNS: Record<EpicArchetype, EpicModPattern> = {
 			"dexterityFlat",
 			"intelligenceFlat",
 			"criticalStrikeMultiplierFlat",
-		] as ModifierId[],
+		],
 	},
-};
+} satisfies Record<EpicArchetype, EpicModPattern>;
 
 function getEpicArchetype(template: EquipmentTemplate): EpicArchetype | null {
 	if (template.equipmentType === "weapon") {
@@ -485,7 +488,7 @@ function rollExplicits(
 		}
 		return availableModifiers.filter((modId) => {
 			if (usedModIds.has(modId)) return false;
-			const mod = MODIFIERS[modId];
+			const mod = getModifier(modId);
 			if (mod.affixType !== affixType) return false;
 			return tierCache.has(modId);
 		});
@@ -496,7 +499,7 @@ function rollExplicits(
 		if (eligible.length === 0) return false;
 
 		const modId = pickWeighted(eligible, (id) => {
-			const m = MODIFIERS[id];
+			const m = getModifier(id);
 			return getSynergyWeight(
 				m.weight ?? DEFAULT_MODIFIER_WEIGHT,
 				m.tags ?? [],
@@ -504,13 +507,13 @@ function rollExplicits(
 				synergyMultiplier,
 			);
 		});
-		const mod = MODIFIERS[modId];
+		const mod = getModifier(modId);
 		let tier = tierCache.get(modId)!;
 
 		// Epic: clamp to minimum tier 4 (lower number = better, so use Math.min)
 		if (isEpic && tier.tier > EPIC_MIN_TIER) {
 			// Find tier 4 for this modifier
-			const modDef = MODIFIERS[modId];
+			const modDef = getModifier(modId);
 			const tier4 = modDef.tiers.find((t) => t.tier === EPIC_MIN_TIER);
 			if (tier4) tier = tier4;
 		}
@@ -594,7 +597,7 @@ export function computeWeaponStats(
 	const elementalDamage: { element: string; min: number; max: number }[] = [];
 
 	for (const mod of explicits) {
-		const spellElement = SPELL_FLAT_TO_ELEMENT[mod.modifierId];
+		const spellElement = SPELL_FLAT_TO_ELEMENT.get(mod.modifierId);
 		if (spellElement) {
 			elementalDamage.push({
 				element: spellElement,
@@ -604,7 +607,7 @@ export function computeWeaponStats(
 			continue;
 		}
 
-		const modifier = MODIFIERS[mod.modifierId as ModifierId];
+		const modifier = findModifier(mod.modifierId);
 		if (!modifier?.statEffect || modifier.isGlobalStat) continue;
 
 		const { target, operation, element } = modifier.statEffect;
@@ -664,7 +667,7 @@ export function computeWeaponStats(
 
 function computeArmorStats(
 	baseStats: Partial<Record<BaseStatKey, number>>,
-	armorType: string | undefined,
+	armorType: ArmorType | undefined,
 	explicits: RolledMod[],
 	implicits: RolledImplicit[] = [],
 ): ComputedDefenseStats | undefined {
@@ -676,7 +679,7 @@ function computeArmorStats(
 
 	const accumulate = (mod: RolledImplicit | RolledMod) => {
 		if (!mod.modifierId) return;
-		const modifier = MODIFIERS[mod.modifierId as ModifierId];
+		const modifier = findModifier(mod.modifierId);
 		if (!modifier?.statEffect || modifier.isGlobalStat) return;
 
 		if (modifier.statEffect.target === "defense") {

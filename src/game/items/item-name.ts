@@ -1,12 +1,11 @@
 import { pickGendered } from "#/game/i18n/lexicon-shared";
+import { hasOwnKey } from "#/game/typed-object";
+import { hashStringToUnit } from "#/lib/rng";
 import { getLocale } from "#/paraglide/runtime";
+
 import { lexiconEn } from "./lexicon/en";
 import { lexiconPt } from "./lexicon/pt";
-import type {
-	TemplateBaseId,
-	TemplateModifierId,
-} from "./lexicon/template-ids";
-import type { ItemNameLexicon } from "./lexicon/types";
+import type { BaseEntry, ItemNameLexicon } from "./lexicon/types";
 import type { GeneratedItem } from "./types";
 
 // Localized display name for an item, rendered at display time from
@@ -61,18 +60,29 @@ function renderBaseName(
 	lex: ItemNameLexicon,
 	locale: Locale,
 ): string {
-	if (!item.nameBase) return item.templateId;
-	const baseEntry = lex.bases[item.nameBase as TemplateBaseId];
+	const baseEntry = findBaseEntry(item, lex);
 	if (!baseEntry) return item.templateId;
 	const baseName = baseEntry.name;
 	if (item.nameModifier == null) return baseName;
-	const modifier = lex.modifiers[item.nameModifier as TemplateModifierId];
+	const modifier = hasOwnKey(lex.modifiers, item.nameModifier)
+		? lex.modifiers[item.nameModifier]
+		: undefined;
 	if (!modifier) return baseName;
 	const gender = baseEntry.gender ?? "m";
 	const modifierWord = pickGendered(modifier, gender);
 	return locale === "pt"
 		? `${baseName} ${modifierWord}`
 		: `${modifierWord} ${baseName}`;
+}
+
+// item.nameBase is a plain string on persisted items; ids no longer in the
+// lexicon resolve to undefined and callers fall back.
+function findBaseEntry(
+	item: GeneratedItem,
+	lex: ItemNameLexicon,
+): BaseEntry | undefined {
+	if (!item.nameBase || !hasOwnKey(lex.bases, item.nameBase)) return undefined;
+	return lex.bases[item.nameBase];
 }
 
 function appendMagicAffixes(
@@ -85,14 +95,15 @@ function appendMagicAffixes(
 	const suffix = item.explicits.find((e) => e.affixType === "suffix");
 	const gender =
 		locale === "pt" && item.nameBase
-			? (lex.bases[item.nameBase as TemplateBaseId]?.gender ?? "m")
+			? (findBaseEntry(item, lex)?.gender ?? "m")
 			: "m";
 	const prefixWord = prefix
 		? (renderAffixPrefix(lex, prefix.modifierId, gender) ?? prefix.modifierId)
 		: null;
 	const suffixWord = suffix
-		? (lex.suffixPhrases[suffix.modifierId as keyof typeof lex.suffixPhrases] ??
-			suffix.modifierId)
+		? ((hasOwnKey(lex.suffixPhrases, suffix.modifierId)
+				? lex.suffixPhrases[suffix.modifierId]
+				: undefined) ?? suffix.modifierId)
 		: null;
 	const parts =
 		locale === "pt"
@@ -106,30 +117,19 @@ function renderAffixPrefix(
 	modifierId: string,
 	gender: "m" | "f",
 ): string | null {
-	const form = lex.prefixForms[modifierId as keyof typeof lex.prefixForms];
+	if (!hasOwnKey(lex.prefixForms, modifierId)) return null;
+	const form = lex.prefixForms[modifierId];
 	if (form == null) return null;
 	return pickGendered(form, gender);
 }
 
 function renderProperName(item: GeneratedItem, lex: ItemNameLexicon): string {
-	const [h1, h2] = hashItemId(item.id);
+	// Two salts → two independent picks from one id, so pool sizes that share
+	// factors don't collapse onto the same slot.
+	const h1 = hashStringToUnit(item.id, 0);
+	const h2 = hashStringToUnit(item.id, 1);
 	const first = lex.rareFirstWords[Math.floor(h1 * lex.rareFirstWords.length)];
 	const second =
 		lex.rareSecondWords[Math.floor(h2 * lex.rareSecondWords.length)];
 	return `${first} ${second}`;
-}
-
-// Two independent [0, 1) values from the item's UUID. Forward + reverse FNV-1a
-// walks decouple the indices so pool sizes that share factors don't collapse
-// onto the same slot.
-function hashItemId(id: string): [number, number] {
-	let h1 = 2166136261;
-	let h2 = 2166136261;
-	for (let i = 0; i < id.length; i++) {
-		h1 = Math.imul(h1 ^ id.charCodeAt(i), 16777619);
-	}
-	for (let i = id.length - 1; i >= 0; i--) {
-		h2 = Math.imul(h2 ^ id.charCodeAt(i), 16777619);
-	}
-	return [(h1 >>> 0) / 4294967296, (h2 >>> 0) / 4294967296];
 }

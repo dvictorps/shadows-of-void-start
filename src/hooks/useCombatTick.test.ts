@@ -9,55 +9,37 @@
 // future refactor that re-introduces the snapshot read fails loudly.
 
 import { act, renderHook } from "@testing-library/react";
-import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { EMPTY_ELEMENTAL_GAIN } from "#/game/combat/damage";
 import type { Enemy } from "#/game/combat/types";
 import type { MonsterDefinition } from "#/game/monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
-import { SessionTokenProvider } from "./useSessionToken";
 
-// ── Mocks ──────────────────────────────────────────────────────────────────
-// `useCombatTick` calls `useMutation(api.combat.syncHp)` and `.usePotion`.
-// In tests there's no Convex client; stub the hook out with a no-op callable
-// that still exposes `.withOptimisticUpdate` (used for the potion mutation).
-vi.mock("convex/react", () => {
-	const noop = Object.assign(
-		async () => {
-			/* no-op */
-		},
-		{ withOptimisticUpdate: () => noop },
-	);
-	return { useMutation: () => noop };
-});
+import { useBarrier } from "./useBarrier";
+import { useCombatTick } from "./useCombatTick";
 
-// Stub SFX — jsdom has no real audio backend and we don't need the side effect.
-vi.mock("#/lib/sfx", () => ({
+type TickParams = Parameters<typeof useCombatTick>[0];
+type CombatTickDeps = NonNullable<TickParams["deps"]>;
+
+// Deterministic rolls let the test control exactly how much each side deals:
+// the bug under test is in HOW the hook composes those results, not in the
+// dice. Audio is silent because jsdom has no audio backend.
+const rollPlayerSwingMock = vi.fn<CombatTickDeps["rollPlayerSwing"]>();
+const rollEnemyAttackMock = vi.fn<CombatTickDeps["rollEnemyAttack"]>();
+const TEST_DEPS: CombatTickDeps = {
+	rollPlayerSwing: rollPlayerSwingMock,
+	rollEnemyAttack: rollEnemyAttackMock,
 	playSfx: () => {},
 	playPlayerSwingSfx: () => {},
-	playMonsterDeathSfx: () => {},
-	playKillSfx: () => {},
-}));
+};
 
-// Stub the damage roll functions so we control exactly how much each side
-// deals — the bug under test is in HOW the hook composes those results, not
-// in the dice rolls themselves.
-const rollPlayerSwingMock = vi.fn();
-const rollEnemyAttackMock = vi.fn();
-vi.mock("#/game/combat/damage", async () => {
-	const actual = await vi.importActual<typeof import("#/game/combat/damage")>(
-		"#/game/combat/damage",
-	);
-	return {
-		...actual,
-		rollPlayerSwing: (...args: unknown[]) => rollPlayerSwingMock(...args),
-		rollEnemyAttack: (...args: unknown[]) => rollEnemyAttackMock(...args),
-	};
-});
-
-// Imported AFTER mocks so the hook closure picks up the mocked deps.
-const { useCombatTick } = await import("./useCombatTick");
-const { useBarrier } = await import("./useBarrier");
+// The server calls are parameters of the hook; these tests exercise the tick
+// math, so they never resolve anything.
+const NO_SERVER = {
+	syncVitals: async () => {},
+	consumePotion: async () => {},
+};
 
 // ── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -210,42 +192,35 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 		});
 
 		let latestEnemy = makeEnemy(INITIAL_HP);
-		const updateEnemy = vi.fn((next: Enemy) => {
+		const updateEnemy = vi.fn<TickParams["updateEnemy"]>((next) => {
 			latestEnemy = next;
 		});
-		const resolveKill = vi.fn();
-		const onPlayerDeath = vi.fn();
-		const pushEvent = vi.fn();
+		const resolveKill = vi.fn<TickParams["resolveKill"]>();
+		const onPlayerDeath = vi.fn<TickParams["onPlayerDeath"]>();
+		const pushEvent = vi.fn<TickParams["pushEvent"]>();
 
-		renderHook(
-			() => {
-				const stats = makeStats({ thorns: THORNS });
-				const barrierApi = useBarrier({
-					maxBarrier: stats.maxBarrier,
-					active: true,
-				});
-				return useCombatTick({
-					characterId: "test-char" as unknown as Parameters<
-						typeof useCombatTick
-					>[0]["characterId"],
-					active: true,
-					isEngaged: true,
-					enemy: latestEnemy,
-					stats,
-					initialHp: 100,
-					potions: 0,
-					barrierApi,
-					onPlayerDeath,
-					resolveKill,
-					pushEvent,
-					updateEnemy,
-				});
-			},
-			{
-				wrapper: ({ children }) =>
-					createElement(SessionTokenProvider, null, children),
-			},
-		);
+		renderHook(() => {
+			const stats = makeStats({ thorns: THORNS });
+			const barrierApi = useBarrier({
+				maxBarrier: stats.maxBarrier,
+				active: true,
+			});
+			return useCombatTick({
+				...NO_SERVER,
+				active: true,
+				isEngaged: true,
+				enemy: latestEnemy,
+				stats,
+				initialHp: 100,
+				potions: 0,
+				barrierApi,
+				onPlayerDeath,
+				resolveKill,
+				pushEvent,
+				updateEnemy,
+				deps: TEST_DEPS,
+			});
+		});
 
 		// One 50ms tick → both progress refs reach exactly 1.0 → both swings
 		// fire in the same callback invocation.
@@ -279,35 +254,28 @@ function renderRegenHook({
 	maxLife: number;
 	initialHp: number;
 }) {
-	return renderHook(
-		() => {
-			const stats = makeStats({ lifeRegen, maxLife });
-			const barrierApi = useBarrier({
-				maxBarrier: stats.maxBarrier,
-				active: true,
-			});
-			return useCombatTick({
-				characterId: "test-char" as unknown as Parameters<
-					typeof useCombatTick
-				>[0]["characterId"],
-				active: true,
-				isEngaged: false,
-				enemy: null,
-				stats,
-				initialHp,
-				potions: 0,
-				barrierApi,
-				onPlayerDeath: vi.fn(),
-				resolveKill: vi.fn(),
-				pushEvent: vi.fn(),
-				updateEnemy: vi.fn(),
-			});
-		},
-		{
-			wrapper: ({ children }) =>
-				createElement(SessionTokenProvider, null, children),
-		},
-	);
+	return renderHook(() => {
+		const stats = makeStats({ lifeRegen, maxLife });
+		const barrierApi = useBarrier({
+			maxBarrier: stats.maxBarrier,
+			active: true,
+		});
+		return useCombatTick({
+			...NO_SERVER,
+			active: true,
+			isEngaged: false,
+			enemy: null,
+			stats,
+			initialHp,
+			potions: 0,
+			barrierApi,
+			onPlayerDeath: vi.fn<TickParams["onPlayerDeath"]>(),
+			resolveKill: vi.fn<TickParams["resolveKill"]>(),
+			pushEvent: vi.fn<TickParams["pushEvent"]>(),
+			updateEnemy: vi.fn<TickParams["updateEnemy"]>(),
+			deps: TEST_DEPS,
+		});
+	});
 }
 
 describe("useCombatTick — life regen modifier", () => {

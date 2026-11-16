@@ -1,0 +1,65 @@
+// One Worker serves the whole app (SSR + assets + /api/auth + /api/trpc + cron).
+// See docs/adr/0009-cloudflare-d1-trpc-backend.md.
+//
+// Environments are picked at BUILD time by the Cloudflare Vite plugin
+// (`CLOUDFLARE_ENV`, set through `.env.staging` / `.env.production` and
+// `vite build --mode <env>`), not by `wrangler deploy --env`. The top level is
+// what `pnpm dev` runs against: a local D1 under `.wrangler/`, never remote.
+//
+// Secrets (`BETTER_AUTH_SECRET`) are set per env with
+// `wrangler secret put BETTER_AUTH_SECRET --env <env>`, and locally in `.dev.vars`.
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "shadows-of-void",
+	"compatibility_date": "2026-11-10",
+	"compatibility_flags": ["nodejs_compat"],
+	"main": "src/server.ts",
+	"observability": { "enabled": true },
+	// Serve on <name>.<account>.workers.dev; no per-version preview URLs.
+	"workers_dev": true,
+	"preview_urls": false,
+
+	// Local dev. `database_id` only names the local SQLite file here.
+	"vars": { "BETTER_AUTH_URL": "http://localhost:3002" },
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "shadows-of-void-local",
+			"database_id": "local",
+			"migrations_dir": "drizzle",
+		},
+	],
+	// Leaderboard snapshot (ADR 0006), hourly.
+	"triggers": { "crons": ["0 * * * *"] },
+
+	"env": {
+		"staging": {
+			"vars": {
+				"BETTER_AUTH_URL": "https://shadows-of-void-staging.dvictorps.workers.dev",
+			},
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "shadows-of-void-staging",
+					"database_id": "7c05a253-9145-46e2-8071-aee5001ad770",
+					"migrations_dir": "drizzle",
+				},
+			],
+			"triggers": { "crons": ["0 * * * *"] },
+		},
+		"production": {
+			"vars": {
+				"BETTER_AUTH_URL": "https://shadows-of-void-production.dvictorps.workers.dev",
+			},
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "shadows-of-void-production",
+					"database_id": "8454bc10-13b5-46b6-8556-50749afdd3d8",
+					"migrations_dir": "drizzle",
+				},
+			],
+			"triggers": { "crons": ["0 * * * *"] },
+		},
+	},
+}

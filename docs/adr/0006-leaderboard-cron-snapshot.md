@@ -16,10 +16,12 @@ Use a **scheduled Convex cron job** (runs every 5 minutes) that computes the ran
 ## Alternatives considered
 
 ### Live reactive query
+
 - **Pro**: zero additional infrastructure, idiomatic Convex, always fresh.
 - **Con**: the ranking "flickers" on every XP tick across all players. Distracting UX — the board feels unstable. Also triggers recomputation on every character mutation, which scales poorly with player count.
 
 ### Client-side polling with stale-while-revalidate
+
 - **Pro**: no cron job, no extra table.
 - **Con**: fights Convex's reactive model. Requires custom cache-invalidation logic on the client. More code for worse guarantees.
 
@@ -29,3 +31,12 @@ Use a **scheduled Convex cron job** (runs every 5 minutes) that computes the ran
 - A cron job runs every 5 minutes and overwrites the snapshot.
 - The leaderboard can be up to 5 minutes stale — this is accepted as a game-design feature, not a limitation.
 - Opening the leaderboard modal is a single small read (the pre-computed snapshot), not a table scan.
+
+## Update (2026-11-15)
+
+- **Cadence drift**: the cron no longer runs every 5 minutes. Commit `5091c25` (2026-05-27, Convex bandwidth pass) moved it to 30 and then 60 minutes, so the board can be up to an hour stale. The decision itself (a snapshot table written by a cron, not a live query) is unchanged.
+- **Mechanism moving**: [ADR 0009](./0009-cloudflare-d1-trpc-backend.md) replaces the Convex cron with a Workers Cron Trigger and the reactive subscription with interval refetch. Same snapshot model.
+
+## Update (2026-11-16, Cloudflare migration shipped)
+
+The move announced above is done. The snapshot is computed by `computeLeaderboardSnapshot` (`src/server/leaderboard.ts`) from the Worker's `scheduled` handler, on a Workers Cron Trigger at `0 * * * *` (hourly, `wrangler.jsonc`), into the `leaderboard_snapshot` table. The leaderboard modal refetches the snapshot every 5 minutes while it's open (`refetchInterval`, no subscription). The board can still be up to an hour stale, as before.

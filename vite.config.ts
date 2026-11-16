@@ -1,15 +1,32 @@
+import { cloudflare } from "@cloudflare/vite-plugin";
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
-
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
-import { nitro } from "nitro/vite";
-import { defineConfig } from "vite";
+import { configDefaults, defineConfig } from "vitest/config";
 
 const config = defineConfig({
 	resolve: {
 		tsconfigPaths: true,
+	},
+	test: {
+		projects: [
+			{
+				extends: true,
+				test: {
+					name: "unit",
+					// Lint-rule tests run under node --test (pnpm test:lint-rules).
+					// Integration tests need workerd: vitest.workers.config.ts.
+					exclude: [
+						...configDefaults.exclude,
+						"tools/**",
+						"**/*.integration.test.ts",
+					],
+				},
+			},
+			"./vitest.workers.config.ts",
+		],
 	},
 	plugins: [
 		devtools(),
@@ -22,8 +39,12 @@ const config = defineConfig({
 			strategy: ["localStorage", "preferredLanguage", "baseLocale"],
 		}),
 		tailwindcss(),
+		// Workers runtime for SSR + server routes (replaces nitro). Skipped under
+		// Vitest: the unit tests are plain Node and never need workerd.
+		...(process.env.VITEST
+			? []
+			: [cloudflare({ viteEnvironment: { name: "ssr" } })]),
 		tanstackStart(),
-		nitro(),
 		viteReact(),
 	],
 });

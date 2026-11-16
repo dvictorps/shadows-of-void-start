@@ -2,8 +2,8 @@ import type { CharacterClassDefinition } from "../classes/types";
 import type { GeneratedItem } from "../items/types";
 
 // ── Equipment slots ──
-// Single source of truth — also drives the convex schema validator and the
-// equip mutation arg union (see convex/characters.ts).
+// Single source of truth — also drives the `items.equipped_slot` column enum
+// and the equip procedures' Zod input (src/server/).
 
 export const EQUIPPED_SLOTS = [
 	"weapon",
@@ -22,15 +22,18 @@ export type EquippedSlot = (typeof EQUIPPED_SLOTS)[number];
 
 const EQUIPPED_SLOT_SET = new Set<string>(EQUIPPED_SLOTS);
 
+function isEquippedSlot(s: string): s is EquippedSlot {
+	return EQUIPPED_SLOT_SET.has(s);
+}
+
 /**
- * Runtime narrower for Convex-returned `equippedSlot: string | undefined`.
+ * Runtime narrower for an untyped `equippedSlot` (drag-and-drop payloads).
  * Returns the value typed as EquippedSlot when it matches; undefined otherwise.
  */
 export function narrowEquippedSlot(
 	s: string | undefined,
 ): EquippedSlot | undefined {
-	if (s === undefined || !EQUIPPED_SLOT_SET.has(s)) return undefined;
-	return s as EquippedSlot;
+	return s !== undefined && isEquippedSlot(s) ? s : undefined;
 }
 
 export interface EquippedItem {
@@ -44,8 +47,13 @@ export interface StatEngineInput {
 	classDef: CharacterClassDefinition | null;
 	level: number;
 	equippedItems: EquippedItem[];
-	selectedElement?: "fire" | "cold" | "lightning";
+	selectedElement?: SelectableElement;
 }
+
+// Mage elemental attunement choices (CONTEXT.md → Elemental Attunement).
+// Also drives the D1 `characters.selected_element` column enum.
+export const SELECTABLE_ELEMENTS = ["fire", "cold", "lightning"] as const;
+export type SelectableElement = (typeof SELECTABLE_ELEMENTS)[number];
 
 // ── Resistance + element keys ──
 

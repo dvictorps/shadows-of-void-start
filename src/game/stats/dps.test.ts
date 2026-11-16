@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { estimateDps } from "./dps";
 import type { ComputedCharacterStats, SwingProfile } from "./types";
 

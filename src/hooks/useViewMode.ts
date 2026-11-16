@@ -1,16 +1,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  View-mode state machine for the /world route. Owns the "map | city | combat"
-//  view + the in-flight `pendingArrival` token, plus the three effects that
-//  bridge server-side travel state into client-side view transitions:
+//  view + the in-flight `pendingArrival` token, plus the bridge from
+//  server-side travel state to client-side view transitions:
 //
 //    1. Refresh resilience  — if the page loads mid-travel with no pending
-//       token, seed it from `travelDestination` so the arrival effect knows
-//       where to transition.
+//       token, seed it from `travelDestination` so the arrival knows where to
+//       transition.
 //    2. Auto-arrival        — schedule the `arriveAtTravel` mutation at
 //       `travelArrivesAt`. If we're past it already (closed-tab case), fire
 //       immediately.
-//    3. Auto-enter          — when the server confirms arrival and the player
-//       is now at the pending node, transition the view to that node's area.
+//    3. Auto-enter          — when `arriveAtTravel` answers with the pending
+//       node, transition the view to that node's area.
 //
 //  Setters are deliberately exposed because outgoing transitions
 //  (handleEnterNode kicking off travel, handleBackToMap closing combat,
@@ -19,24 +19,30 @@
 //  not all transitions.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useEffectEvent,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
+
 import { ACT_1, findNode } from "#/game/world";
-import type { Id } from "../../convex/_generated/dataModel";
+
+import type { useWorldMutations } from "./useWorldMutations";
 
 type ViewMode = "map" | "city" | "combat";
 
-type EnterCity = (args: { characterId: Id<"characters"> }) => Promise<unknown>;
-type EnterZone = (args: {
-	characterId: Id<"characters">;
-	zoneId: string;
-}) => Promise<unknown>;
-type ArriveAtTravel = (args: {
-	characterId: Id<"characters">;
-}) => Promise<unknown>;
+// The session-wrapped mutations this hook drives; typing them from their
+// owner keeps the server shape honest.
+type WorldMutations = ReturnType<typeof useWorldMutations>;
+type EnterCity = WorldMutations["enterCity"];
+type EnterZone = WorldMutations["enterZone"];
+type ArriveAtTravel = WorldMutations["arriveAtTravel"];
 
 export function useViewMode({
 	characterId,
-	currentLocation,
 	travelDestination,
 	travelArrivesAt,
 	enterCity,
@@ -44,10 +50,9 @@ export function useViewMode({
 	arriveAtTravel,
 	onEnterNewArea,
 }: {
-	characterId: Id<"characters">;
-	currentLocation: string;
-	travelDestination: string | undefined;
-	travelArrivesAt: number | undefined;
+	characterId: number;
+	travelDestination: string | null;
+	travelArrivesAt: number | null;
 	enterCity: EnterCity;
 	enterZone: EnterZone;
 	arriveAtTravel: ArriveAtTravel;
@@ -62,24 +67,28 @@ export function useViewMode({
 	// still arrives in the right view.
 	const [pendingArrival, setPendingArrival] = useState<string | null>(null);
 
-	const isTraveling =
-		travelDestination !== undefined && travelArrivesAt !== undefined;
+	const isTraveling = travelDestination !== null && travelArrivesAt !== null;
 
 	// Latest-ref pattern so callers can pass `onEnterNewArea` inline without
-	// invalidating `enterDestination`'s memoization each render.
+	// invalidating `enterDestination`'s memoization each render. Synced in a
+	// layout effect (refs can't be written during render), which runs before
+	// any click handler or passive effect can call `enterDestination`.
 	const onEnterNewAreaRef = useRef(onEnterNewArea);
-	onEnterNewAreaRef.current = onEnterNewArea;
+	useLayoutEffect(() => {
+		onEnterNewAreaRef.current = onEnterNewArea;
+	});
 
+	// Switches the view, notifies the route and tells the server.
 	const enterDestination = useCallback(
 		(nodeId: string) => {
 			const node = findNode(ACT_1, nodeId);
 			if (!node) return;
+			const nextView = viewForNode(nodeId);
+			if (nextView) setView(nextView);
 			onEnterNewAreaRef.current?.();
 			if (node.kind === "city") {
-				setView("city");
 				void enterCity({ characterId });
 			} else if (node.kind === "combat" || node.kind === "boss") {
-				setView("combat");
 				void enterZone({ characterId, zoneId: nodeId });
 			}
 		},
@@ -87,37 +96,41 @@ export function useViewMode({
 	);
 
 	// Refresh resilience: if we land on this view mid-travel (no client-side
-	// pendingArrival yet), seed it from the server so the auto-arrival effect
-	// triggers the correct view transition when the timer fires.
-	useEffect(() => {
-		if (travelDestination && !pendingArrival) {
-			setPendingArrival(travelDestination);
-		}
-	}, [travelDestination, pendingArrival]);
+	// pendingArrival yet), seed it from the server so the auto-enter step
+	// triggers the correct view transition when the timer fires. Adjusted
+	// during render; it converges because the guard fails once seeded.
+	if (travelDestination && !pendingArrival) {
+		setPendingArrival(travelDestination);
+	}
+
+	// Auto-enter, handled where the server's answer arrives: the player is now
+	// at `arrivedAt`, and when that's the node we were heading to, the view
+	// follows. An Effect Event, so it reads the current pending token.
+	const onArrived = useEffectEvent((arrivedAt: string) => {
+		if (arrivedAt !== pendingArrival) return;
+		setPendingArrival(null);
+		enterDestination(arrivedAt);
+	});
 
 	// Auto-arrival: schedule arriveAtTravel at travelArrivesAt. If we're already
-	// past the arrival time (long-tab-closed case), fire immediately.
+	// past the arrival time (long-tab-closed case), fire immediately. The
+	// timer is the external system here; the arrival itself is handled in the
+	// mutation's answer above.
 	useEffect(() => {
-		if (!isTraveling || travelArrivesAt === undefined) return;
+		if (!isTraveling || travelArrivesAt === null) return;
+		const arrive = () => {
+			arriveAtTravel({ characterId })
+				.then(({ arrivedAt }) => onArrived(arrivedAt))
+				.catch(() => {});
+		};
 		const remaining = travelArrivesAt - Date.now();
 		if (remaining <= 0) {
-			void arriveAtTravel({ characterId });
+			arrive();
 			return;
 		}
-		const timer = window.setTimeout(() => {
-			void arriveAtTravel({ characterId });
-		}, remaining);
+		const timer = window.setTimeout(arrive, remaining);
 		return () => window.clearTimeout(timer);
 	}, [isTraveling, travelArrivesAt, arriveAtTravel, characterId]);
-
-	// Auto-enter destination after the server confirms arrival. Detects the
-	// transition "was traveling → not traveling AND now at the pendingArrival".
-	useEffect(() => {
-		if (!pendingArrival || isTraveling) return;
-		if (currentLocation !== pendingArrival) return;
-		enterDestination(pendingArrival);
-		setPendingArrival(null);
-	}, [pendingArrival, isTraveling, currentLocation, enterDestination]);
 
 	return {
 		view,
@@ -127,4 +140,12 @@ export function useViewMode({
 		isTraveling,
 		enterDestination,
 	};
+}
+
+function viewForNode(nodeId: string): ViewMode | null {
+	const node = findNode(ACT_1, nodeId);
+	if (!node) return null;
+	if (node.kind === "city") return "city";
+	if (node.kind === "combat" || node.kind === "boss") return "combat";
+	return null;
 }

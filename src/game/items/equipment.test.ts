@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { canSwapHands, planEquip, validSlotsForItem } from "./equipment";
 import type { GeneratedItem } from "./types";
 
@@ -152,10 +153,8 @@ describe("planEquip", () => {
 				{ slot: "offhand", item: makeShield("s") },
 			],
 		});
-		expect(plan.displaced.map((d) => d.slot).sort()).toEqual([
-			"offhand",
-			"weapon",
-		]);
+		const slots = plan.displaced.map((d) => d.slot).toSorted();
+		expect(slots).toEqual(["offhand", "weapon"]);
 	});
 
 	it("equipping to off-hand while main hand is 2H displaces the 2H", () => {
@@ -293,7 +292,7 @@ describe("planEquip", () => {
 			],
 		});
 		// Standard 2H rule displaces off-hand (the quiver), plus old bow displaces.
-		const slots = plan.displaced.map((d) => d.slot).sort();
+		const slots = plan.displaced.map((d) => d.slot).toSorted();
 		expect(slots).toEqual(["offhand", "weapon"]);
 	});
 
@@ -306,7 +305,7 @@ describe("planEquip", () => {
 				{ slot: "offhand", item: makeQuiver("q") },
 			],
 		});
-		const slots = plan.displaced.map((d) => d.slot).sort();
+		const slots = plan.displaced.map((d) => d.slot).toSorted();
 		expect(slots).toEqual(["offhand", "weapon"]);
 	});
 });
