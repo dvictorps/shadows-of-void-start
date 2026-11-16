@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import type { ItemRarity } from "#/game/items/types";
+import { seededRng } from "#/lib/rng";
 
-import { promoteRarity, rollBossDrops, rollMinibossDrops } from "./drops";
+import {
+	promoteRarity,
+	rollBossDrops,
+	rollDrop,
+	rollMinibossDrops,
+	rollMonsterLevel,
+} from "./drops";
 
 const SAMPLES = 200;
 
@@ -81,5 +88,23 @@ describe("promoteRarity", () => {
 			}
 		}
 		expect(sawEpic).toBe(true);
+	});
+});
+
+describe("drops — injected rng", () => {
+	it("repeats a kill's drops for the same seed", () => {
+		const drops = (seed: number) => {
+			const rng = seededRng(seed);
+			return [
+				rollDrop(
+					{ monsterRarity: "rare", monsterLevel: 30, magicFind: 50 },
+					rng,
+				),
+				rollMinibossDrops({ monsterLevel: 30 }, rng),
+				rollBossDrops({ monsterLevel: 30 }, rng),
+				rollMonsterLevel(30, rng),
+			];
+		};
+		expect(drops(77)).toEqual(drops(77));
 	});
 });

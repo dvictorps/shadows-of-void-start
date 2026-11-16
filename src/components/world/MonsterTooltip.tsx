@@ -5,7 +5,7 @@ import {
 	TooltipSeparator,
 } from "#/components/ui/rarity-card";
 import type { BossConfig } from "#/game/bosses";
-import type { MonsterElementDamage } from "#/game/monsters/types";
+import { elementName } from "#/game/combat/element-name";
 import {
 	translateEnemyName,
 	translateMonsterModDescription,
@@ -23,22 +23,6 @@ import { m } from "#/paraglide/messages";
 // breakdown, attack speed). See CONTEXT.md → Boss.
 
 type ElementKey = "fire" | "cold" | "lightning" | "void";
-
-const ELEMENT_LABEL = {
-	fire: m.element_fire,
-	cold: m.element_cold,
-	lightning: m.element_lightning,
-	void: m.element_void,
-} satisfies Record<ElementKey, () => string>;
-
-// Damage lines carry the capitalized combat element; map it onto the
-// lowercase label key instead of asserting a `toLowerCase()` result.
-const DAMAGE_ELEMENT_KEY = {
-	Cold: "cold",
-	Fire: "fire",
-	Lightning: "lightning",
-	Void: "void",
-} as const satisfies Record<MonsterElementDamage["element"], ElementKey>;
 
 interface ResistanceDisplay {
 	text: string;
@@ -78,7 +62,7 @@ function BossStatSheet({ enemy }: { enemy: Enemy }) {
 			{elems.map((e) => (
 				<div key={e.element} style={{ color: "rgba(220, 220, 220, 0.95)" }}>
 					{m.stat_element_damage({
-						element: ELEMENT_LABEL[DAMAGE_ELEMENT_KEY[e.element]](),
+						element: elementName(e.element),
 					})}
 					:{" "}
 					<span style={{ color: "#ffaa66" }}>
@@ -97,7 +81,7 @@ function BossStatSheet({ enemy }: { enemy: Enemy }) {
 						className="flex justify-between"
 						style={{ color: "rgba(220, 220, 220, 0.95)" }}
 					>
-						<span>{ELEMENT_LABEL[key]()}</span>
+						<span>{elementName(key)}</span>
 						<span style={{ color: formatted.color }}>{formatted.text}</span>
 					</div>
 				);

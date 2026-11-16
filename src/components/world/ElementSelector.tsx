@@ -3,34 +3,31 @@ import { useEffect, useState } from "react";
 
 import { Button } from "#/components/ui/button";
 import { ELEMENT_SWITCH_COOLDOWN_MS } from "#/game/combat/constants";
+import { elementName } from "#/game/combat/element-name";
 import {
 	SELECTABLE_ELEMENTS,
 	type SelectableElement as Element,
 } from "#/game/stats/types";
-import { m } from "#/paraglide/messages";
 
 const ELEMENT_CONFIG = {
 	fire: {
-		label: m.element_fire,
 		icon: Flame,
 		color: "#ff6b35",
 		glowColor: "rgba(255, 107, 53, 0.6)",
 	},
 	cold: {
-		label: m.element_cold,
 		icon: Snowflake,
 		color: "#4fc3f7",
 		glowColor: "rgba(79, 195, 247, 0.6)",
 	},
 	lightning: {
-		label: m.element_lightning,
 		icon: Zap,
 		color: "#ffd54f",
 		glowColor: "rgba(255, 213, 79, 0.6)",
 	},
 } satisfies Record<
 	Element,
-	{ label: () => string; icon: typeof Flame; color: string; glowColor: string }
+	{ icon: typeof Flame; color: string; glowColor: string }
 >;
 
 const ELEMENTS = SELECTABLE_ELEMENTS;
@@ -82,7 +79,7 @@ export default function ElementSelector({
 						key={el}
 						variant="hud"
 						size="hud-icon"
-						aria-label={cfg.label()}
+						aria-label={elementName(el)}
 						onClick={() => handleClick(el)}
 						onMouseEnter={() => onHover?.(`element_${el}`)}
 						onMouseLeave={() => onHover?.(null)}

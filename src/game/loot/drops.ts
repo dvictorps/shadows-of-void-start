@@ -1,4 +1,11 @@
-import { chance, pickRandom, pickWeighted, randInt } from "../../lib/rng";
+import {
+	chance,
+	defaultRng,
+	pickRandom,
+	pickWeighted,
+	randInt,
+	type Rng,
+} from "../../lib/rng";
 import type { EquipmentTemplate } from "../items/data/templates";
 import { EQUIPMENT_TEMPLATES } from "../items/data/templates";
 import { generateItem } from "../items/generator";
@@ -83,12 +90,13 @@ const PROMOTION_CHAIN: ReadonlyMap<
 export function promoteRarity(
 	rarity: ItemRarity,
 	magicFind: number,
+	rng: Rng = defaultRng,
 ): ItemRarity {
 	let current = rarity;
 	let step = PROMOTION_CHAIN.get(current);
 	while (step) {
 		const promoteChance = (step.basePct / 100) * (1 + magicFind / 100);
-		if (!chance(promoteChance)) break;
+		if (!chance(promoteChance, rng)) break;
 		current = step.next;
 		step = PROMOTION_CHAIN.get(current);
 	}
@@ -97,11 +105,12 @@ export function promoteRarity(
 
 function pickRarity(
 	distribution: { rarity: ItemRarity; weight: number }[],
+	rng: Rng,
 ): ItemRarity {
 	// "normal" only satisfies the type: every DROP_TABLE distribution is
 	// non-empty, so `.at(-1)` always resolves.
 	return (
-		pickWeighted(distribution, (e) => e.weight)?.rarity ??
+		pickWeighted(distribution, (e) => e.weight, rng)?.rarity ??
 		distribution.at(-1)?.rarity ??
 		"normal"
 	);
@@ -129,8 +138,9 @@ export interface RollDropParams {
 function rollItemAtRarity(
 	rarity: ItemRarity,
 	monsterLevel: number,
+	rng: Rng,
 ): GeneratedItem | null {
-	const picked = pickWeighted(DROP_TYPE_WEIGHTS, (e) => e.weight);
+	const picked = pickWeighted(DROP_TYPE_WEIGHTS, (e) => e.weight, rng);
 	if (!picked) return null;
 	const equipmentType = picked.type;
 
@@ -147,13 +157,12 @@ function rollItemAtRarity(
 		);
 		if (candidates.length === 0) return null;
 	}
-	const template = pickRandom(candidates);
+	const template = pickRandom(candidates, rng);
 	if (!template) return null;
-	return generateItem({
-		rarity,
-		itemLevel: monsterLevel,
-		templateId: template.id,
-	});
+	return generateItem(
+		{ rarity, itemLevel: monsterLevel, templateId: template.id },
+		rng,
+	);
 }
 
 /**
@@ -161,12 +170,15 @@ function rollItemAtRarity(
  * For mobs that drop multiple items (minibosses, act bosses), use the
  * dedicated `rollMinibossDrops` instead.
  */
-export function rollDrop(params: RollDropParams): GeneratedItem | null {
+export function rollDrop(
+	params: RollDropParams,
+	rng: Rng = defaultRng,
+): GeneratedItem | null {
 	const table = DROP_TABLE[params.monsterRarity];
-	if (!chance(table.dropChance)) return null;
-	const baseRarity = pickRarity(table.rarity);
-	const rarity = promoteRarity(baseRarity, params.magicFind ?? 0);
-	return rollItemAtRarity(rarity, params.monsterLevel);
+	if (!chance(table.dropChance, rng)) return null;
+	const baseRarity = pickRarity(table.rarity, rng);
+	const rarity = promoteRarity(baseRarity, params.magicFind ?? 0, rng);
+	return rollItemAtRarity(rarity, params.monsterLevel, rng);
 }
 
 /**
@@ -174,20 +186,23 @@ export function rollDrop(params: RollDropParams): GeneratedItem | null {
  * two items, one guaranteed Rare and one rolled via the rare-tier table
  * (30 Normal / 55 Magic / 15 Rare). MF can promote the guaranteed Rare.
  */
-export function rollMinibossDrops(params: {
-	monsterLevel: number;
-	magicFind?: number;
-}): GeneratedItem[] {
+export function rollMinibossDrops(
+	params: { monsterLevel: number; magicFind?: number },
+	rng: Rng = defaultRng,
+): GeneratedItem[] {
 	const mf = params.magicFind ?? 0;
 	const drops: GeneratedItem[] = [];
-	const guaranteedRarity = promoteRarity("rare", mf);
-	const guaranteed = rollItemAtRarity(guaranteedRarity, params.monsterLevel);
+	const guaranteedRarity = promoteRarity("rare", mf, rng);
+	const guaranteed = rollItemAtRarity(
+		guaranteedRarity,
+		params.monsterLevel,
+		rng,
+	);
 	if (guaranteed) drops.push(guaranteed);
-	const second = rollDrop({
-		monsterRarity: "rare",
-		monsterLevel: params.monsterLevel,
-		magicFind: mf,
-	});
+	const second = rollDrop(
+		{ monsterRarity: "rare", monsterLevel: params.monsterLevel, magicFind: mf },
+		rng,
+	);
 	if (second) drops.push(second);
 	return drops;
 }
@@ -197,23 +212,30 @@ export function rollMinibossDrops(params: {
  * guaranteed Rare; remaining slots use the unique table (75% Rare / 25%
  * Magic, no Normals). MF-based rarity promotion is applied per-slot.
  */
-export function rollBossDrops(params: {
-	monsterLevel: number;
-	magicFind?: number;
-}): GeneratedItem[] {
+export function rollBossDrops(
+	params: { monsterLevel: number; magicFind?: number },
+	rng: Rng = defaultRng,
+): GeneratedItem[] {
 	const mf = params.magicFind ?? 0;
 	const drops: GeneratedItem[] = [];
-	const guaranteedRarity = promoteRarity("rare", mf);
-	const guaranteed = rollItemAtRarity(guaranteedRarity, params.monsterLevel);
+	const guaranteedRarity = promoteRarity("rare", mf, rng);
+	const guaranteed = rollItemAtRarity(
+		guaranteedRarity,
+		params.monsterLevel,
+		rng,
+	);
 	if (guaranteed) drops.push(guaranteed);
 	// 2-3 items: always emit a second from the table, 50/50 on a third.
-	const extras = chance(0.5) ? 1 : 2;
+	const extras = chance(0.5, rng) ? 1 : 2;
 	for (let i = 0; i < extras; i++) {
-		const rolled = rollDrop({
-			monsterRarity: "unique",
-			monsterLevel: params.monsterLevel,
-			magicFind: mf,
-		});
+		const rolled = rollDrop(
+			{
+				monsterRarity: "unique",
+				monsterLevel: params.monsterLevel,
+				magicFind: mf,
+			},
+			rng,
+		);
 		if (rolled) drops.push(rolled);
 	}
 	return drops;
@@ -223,8 +245,11 @@ export function rollBossDrops(params: {
  * Resolves a monster's instance level from the zone level — uniformly rolls
  * one of zoneLevel-1, zoneLevel, zoneLevel+1, floored at 1.
  */
-export function rollMonsterLevel(zoneLevel: number): number {
-	return Math.max(1, zoneLevel + randInt(-1, 1));
+export function rollMonsterLevel(
+	zoneLevel: number,
+	rng: Rng = defaultRng,
+): number {
+	return Math.max(1, zoneLevel + randInt(-1, 1, rng));
 }
 
 // Suppress unused-export linter for the EquipmentType import when only used in types.

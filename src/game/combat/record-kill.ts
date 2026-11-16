@@ -1,4 +1,4 @@
-import { randomUnit } from "#/lib/rng";
+import { defaultRng, type Rng } from "#/lib/rng";
 
 import { findBoss } from "../bosses/data";
 import type { BossId } from "../bosses/types";
@@ -114,10 +114,11 @@ export function resolveKill(params: {
 	/** Stats at the new level; only when the kill levels the character up. */
 	levelUpStats: StatCache | null;
 	now: number;
-	random?: () => number;
+	/** The potion, incense and item rolls; tests pass `seededRng(seed)`. */
+	rng?: Rng;
 }): KillOutcome {
 	const { character, target, gain, levelUpStats } = params;
-	const random = params.random ?? randomUnit;
+	const rng = params.rng ?? defaultRng;
 
 	const zone = findNode(ACT_1, character.currentLocation);
 	const kill = classifyKill(params.monsterRarity, zone?.kind);
@@ -152,6 +153,7 @@ export function resolveKill(params: {
 		if (progress.resetCampSchedule && zone) {
 			update.campThresholdsMs = rollCampThresholdsMs(
 				zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN,
+				rng,
 			);
 			update.zoneStartedAt = params.now;
 			update.lastCampIndex = null;
@@ -168,9 +170,9 @@ export function resolveKill(params: {
 	}
 
 	const potionDropped =
-		character.potions < MAX_POTIONS && random() < POTION_DROP_CHANCE;
+		character.potions < MAX_POTIONS && rng.unit() < POTION_DROP_CHANCE;
 	if (potionDropped) update.potions = character.potions + 1;
-	const incenseDropped = random() < ETHEREAL_INCENSE_DROP_CHANCE;
+	const incenseDropped = rng.unit() < ETHEREAL_INCENSE_DROP_CHANCE;
 	if (incenseDropped) update.etherealIncense = character.etherealIncense + 1;
 
 	// Drops only exist inside a zone visit: they go to its bag.
@@ -180,6 +182,7 @@ export function resolveKill(params: {
 				params.monsterRarity,
 				target.monsterLevel,
 				magicFind,
+				rng,
 			)
 		: [];
 
@@ -200,10 +203,11 @@ function rollKillDrops(
 	monsterRarity: MonsterRarity,
 	monsterLevel: number,
 	magicFind: number,
+	rng: Rng,
 ): GeneratedItem[] {
-	if (table === "boss") return rollBossDrops({ monsterLevel, magicFind });
+	if (table === "boss") return rollBossDrops({ monsterLevel, magicFind }, rng);
 	if (table === "miniboss")
-		return rollMinibossDrops({ monsterLevel, magicFind });
-	const drop = rollDrop({ monsterRarity, monsterLevel, magicFind });
+		return rollMinibossDrops({ monsterLevel, magicFind }, rng);
+	const drop = rollDrop({ monsterRarity, monsterLevel, magicFind }, rng);
 	return drop ? [drop] : [];
 }
