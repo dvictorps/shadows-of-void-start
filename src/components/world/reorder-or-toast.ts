@@ -3,21 +3,22 @@ import { toast } from "sonner";
 import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
 
-export type InventoryMove = {
+export type SlotMove = {
 	itemId: number;
 	targetSlot: number;
 	swapWithItemId?: number;
 };
 
 /**
- * Moves a bag item and toasts a refusal; never rejects. The optimistic move
- * and its rollback live in `useInventoryMutations`. Both inventory reorders
- * go through here: the inventory modal's and the stash modal's bag side.
+ * Moves an item to another slot of its grid (the bag or the stash) and toasts
+ * a refusal; never rejects. The optimistic move and its rollback live in the
+ * mutation hooks. Every reorder goes through here: the inventory modal's, and
+ * the stash modal's on both sides.
  */
 export async function reorderOrToast(
-	reorder: (args: { characterId: number } & InventoryMove) => Promise<object>,
+	reorder: (args: { characterId: number } & SlotMove) => Promise<object>,
 	characterId: number,
-	move: InventoryMove,
+	move: SlotMove,
 ): Promise<void> {
 	try {
 		await reorder({ characterId, ...move });

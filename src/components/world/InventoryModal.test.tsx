@@ -15,11 +15,11 @@
 //   (`dnd-test-harness.ts`: the layout and `animate` stubs, the cleanup).
 
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { TRPCClientError } from "@trpc/client";
 import { Toaster } from "sonner";
 import { describe, expect, it, vi } from "vitest";
 
 import { narrow } from "#/components/dom-test-utils";
+import { ruleError } from "#/components/trpc-test-utils";
 import { INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import type { GeneratedItem } from "#/game/items/types";
 import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
@@ -27,7 +27,6 @@ import { makeStats } from "#/hooks/combat-test-fixtures";
 import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
 import type { ItemRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
-import type { AppRouter } from "#/server/trpc/router";
 
 import {
 	card,
@@ -103,17 +102,6 @@ function setup({
 		</ConfirmationProvider>,
 	);
 	return { ...result, server, onClose };
-}
-
-/** A tRPC rule violation, the way the client receives one. */
-function ruleError(message: string) {
-	return TRPCClientError.from<AppRouter>({
-		error: {
-			message,
-			code: -32_600,
-			data: { code: "BAD_REQUEST", httpStatus: 400 },
-		},
-	});
 }
 
 // ── DOM lookups ───────────────────────────────────────────────────────────

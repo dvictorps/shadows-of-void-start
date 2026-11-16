@@ -46,7 +46,7 @@ import {
 	resolveDrop,
 } from "./inventory-modal/drag";
 import PaperDoll from "./inventory-modal/PaperDoll";
-import { reorderOrToast } from "./inventory-modal/reorder";
+import { reorderOrToast } from "./reorder-or-toast";
 
 type InventoryMutations = ReturnType<typeof useInventoryMutations>;
 type ArgsOf<Name extends keyof InventoryMutations> = Parameters<

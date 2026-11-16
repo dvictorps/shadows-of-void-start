@@ -1,9 +1,9 @@
 import BagPreviewModal from "#/components/world/BagPreviewModal";
 import ExitZoneModal from "#/components/world/ExitZoneModal";
-import { reorderOrToast } from "#/components/world/inventory-modal/reorder";
 import InventoryModal, {
 	type InventoryServer,
 } from "#/components/world/InventoryModal";
+import { reorderOrToast } from "#/components/world/reorder-or-toast";
 import SettingsModal from "#/components/world/SettingsModal";
 import StashModal from "#/components/world/StashModal";
 import VendorModal from "#/components/world/VendorModal";

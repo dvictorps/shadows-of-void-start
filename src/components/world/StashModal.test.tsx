@@ -22,7 +22,6 @@ import {
 	render,
 	screen,
 } from "@testing-library/react";
-import { TRPCClientError } from "@trpc/client";
 import { Toaster } from "sonner";
 import {
 	afterAll,
@@ -35,6 +34,7 @@ import {
 } from "vitest";
 
 import { narrow } from "#/components/dom-test-utils";
+import { ruleError } from "#/components/trpc-test-utils";
 import {
 	INVENTORY_MAX_SLOTS,
 	STASH_MAX_SLOTS,
@@ -43,7 +43,6 @@ import type { GeneratedItem } from "#/game/items/types";
 import type { ItemRow } from "#/lib/api-types";
 import { SERVER_ERRORS } from "#/lib/server-errors";
 import { m } from "#/paraglide/messages";
-import type { AppRouter } from "#/server/trpc/router";
 
 import {
 	card,
@@ -104,17 +103,6 @@ function setup({ isOpen = true, inventory = [], stash = [] }: Setup = {}) {
 		close: () => result.rerender(tree(false)),
 		open: () => result.rerender(tree(true)),
 	};
-}
-
-/** A tRPC rule violation, the way the client receives one. */
-function ruleError(message: string) {
-	return TRPCClientError.from<AppRouter>({
-		error: {
-			message,
-			code: -32_600,
-			data: { code: "BAD_REQUEST", httpStatus: 400 },
-		},
-	});
 }
 
 /** A promise the test settles by hand. */
@@ -408,34 +396,28 @@ describe("StashModal — bulk deposit and withdraw", () => {
 		expect(narrow(depositButton(), HTMLButtonElement).disabled).toBe(false);
 	});
 
-	it("puts the selection back and toasts the raw error message on a failure", async () => {
-		// Pinned oddity: the toast shows `err.message` as is, not through
-		// serverErrorMessage, so a crash leaks its text and a rule error stays
-		// in the server's English.
+	it("puts the selection back and toasts a crash with the generic message", async () => {
 		const a = sword();
 		const t = setup({ inventory: [inventoryRow(1, a, 0)] });
 		t.onDeposit.mockRejectedValue(new Error("boom"));
 		await click(a);
 		await press(depositButton());
-		expect(await screen.findByText("boom")).toBeTruthy();
+		expect(await screen.findByText(m.error_deposit_failed())).toBeTruthy();
+		expect(screen.queryByText("boom")).toBeNull();
 		expect(invCell(0).className).toContain(SELECTED);
 	});
 
-	it("puts the withdraw selection back on a failure", async () => {
+	it("puts the withdraw selection back and translates a rule error", async () => {
 		const a = sword();
 		const t = setup({ stash: [stashRow(1, a, 0)] });
 		t.onWithdraw.mockRejectedValue(ruleError(SERVER_ERRORS.characterNotFound));
 		await click(a);
 		await press(withdrawButton());
-		// Pinned oddity: the server's English, untranslated.
-		expect(
-			await screen.findByText(SERVER_ERRORS.characterNotFound),
-		).toBeTruthy();
+		expect(await screen.findByText(m.error_character_not_found())).toBeTruthy();
 		expect(stashCell(0).className).toContain(SELECTED);
 	});
 
-	it("falls back to the full-side message when the failure carries none", async () => {
-		// Pinned oddity: any non-Error failure reads as "full".
+	it("toasts the generic message, not 'full', for a failure with no message", async () => {
 		const a = sword();
 		const b = ring();
 		const t = setup({
@@ -446,10 +428,11 @@ describe("StashModal — bulk deposit and withdraw", () => {
 		t.onWithdraw.mockRejectedValue("offline");
 		await click(a);
 		await press(depositButton());
-		expect(await screen.findByText(m.stash_full_error())).toBeTruthy();
+		expect(await screen.findByText(m.error_deposit_failed())).toBeTruthy();
 		await click(b);
 		await press(withdrawButton());
-		expect(await screen.findByText(m.inventory_full_error())).toBeTruthy();
+		expect(await screen.findByText(m.error_withdraw_failed())).toBeTruthy();
+		expect(screen.queryByText(m.stash_full_error())).toBeNull();
 	});
 });
 
@@ -484,12 +467,12 @@ describe("StashModal — shift-click transfer", () => {
 		expect(await screen.findByText(m.inventory_full_error())).toBeTruthy();
 	});
 
-	it("toasts the raw error message on a failure", async () => {
+	it("toasts a crash with the generic message", async () => {
 		const a = sword();
 		const t = setup({ inventory: [inventoryRow(1, a, 0)] });
 		t.onDeposit.mockRejectedValue(new Error("boom"));
 		await click(a, true);
-		expect(await screen.findByText("boom")).toBeTruthy();
+		expect(await screen.findByText(m.error_deposit_failed())).toBeTruthy();
 	});
 });
 
@@ -570,7 +553,7 @@ describe("StashModal — drag across panels (transfer)", () => {
 		expect(t.onWithdraw).toHaveBeenCalledWith([2]);
 	});
 
-	it("toasts a full side on a refused transfer", async () => {
+	it("toasts a full stash, and a failed withdraw with its own message", async () => {
 		const a = sword();
 		const b = ring();
 		const t = setup({
@@ -582,15 +565,15 @@ describe("StashModal — drag across panels (transfer)", () => {
 		await drag(a, stashCell(5));
 		expect(await screen.findByText(m.stash_full_error())).toBeTruthy();
 		await drag(b, invCell(5));
-		expect(await screen.findByText(m.inventory_full_error())).toBeTruthy();
+		expect(await screen.findByText(m.error_withdraw_failed())).toBeTruthy();
 	});
 
-	it("toasts the raw error message of a failed transfer", async () => {
+	it("translates a rule error on a failed transfer", async () => {
 		const b = ring();
 		const t = setup({ stash: [stashRow(2, b, 0)] });
-		t.onWithdraw.mockRejectedValue(new Error("boom"));
+		t.onWithdraw.mockRejectedValue(ruleError(SERVER_ERRORS.characterNotFound));
 		await drag(b, invCell(5));
-		expect(await screen.findByText("boom")).toBeTruthy();
+		expect(await screen.findByText(m.error_character_not_found())).toBeTruthy();
 	});
 });
 
@@ -616,9 +599,7 @@ describe("StashModal — drag feedback", () => {
 		expect(invCell(0).className).not.toContain(SELECTED);
 	});
 
-	it("cancels on Escape without a call, and the modal closes too", async () => {
-		// Pinned oddity: the drag holds no Escape layer (InventoryModal's
-		// does), so the same Escape that cancels the drag closes the stash.
+	it("cancels on Escape without a call, and the stash stays open", async () => {
 		const a = sword();
 		const t = setup({ inventory: [inventoryRow(1, a, 0)] });
 		await startDrag(a, invCell(9));
@@ -628,7 +609,7 @@ describe("StashModal — drag feedback", () => {
 		});
 		expect(t.onReorderInventory).not.toHaveBeenCalled();
 		expect(dragSlotIn(invCell(0)).style.opacity).toBe("1");
-		expect(t.onClose).toHaveBeenCalled();
+		expect(t.onClose).not.toHaveBeenCalled();
 		expect(dialog()).toBeTruthy();
 	});
 });

@@ -26,9 +26,11 @@ import {
 } from "#/game/inventory/constants";
 import type { GeneratedItem } from "#/game/items/types";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
+import { useEscapeLayer } from "#/hooks/useEscapeLayer";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
 import type { ItemRow } from "#/lib/api-types";
+import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
 
 import {
@@ -69,6 +71,12 @@ const FULL_MESSAGE = {
 	withdraw: () => m.inventory_full_error(),
 } satisfies Record<Transfer, () => string>;
 
+/** The toast for a crash or a network failure (a rule error is translated). */
+const FAILED_MESSAGE = {
+	deposit: () => m.error_deposit_failed(),
+	withdraw: () => m.error_withdraw_failed(),
+} satisfies Record<Transfer, () => string>;
+
 const emptySelection = () => new Set<number>();
 
 export default function StashModal({
@@ -85,6 +93,9 @@ export default function StashModal({
 	const slotSize = compact ? SLOT_SIZE_COMPACT : SLOT_SIZE_DEFAULT;
 
 	const [active, setActive] = useState<DragSourceData | null>(null);
+	// A drag sits above the modal: dnd-kit's sensor cancels it on Escape by
+	// itself, and this layer keeps that Escape from closing the stash.
+	useEscapeLayer(active !== null);
 	const [invSelected, setInvSelected] = useState(emptySelection);
 	const [stashSelected, setStashSelected] = useState(emptySelection);
 	const [isDepositing, runDeposit] = useInFlight(isOpen);
@@ -133,10 +144,7 @@ export default function StashModal({
 				: onWithdraw([itemId]));
 			if (failed > 0) toast.error(FULL_MESSAGE[direction]());
 		} catch (err) {
-			// The error's own text, or the "full" message when it carries none.
-			toast.error(
-				err instanceof Error ? err.message : FULL_MESSAGE[direction](),
-			);
+			toast.error(serverErrorMessage(err, FAILED_MESSAGE[direction]()));
 		}
 	};
 
@@ -166,9 +174,7 @@ export default function StashModal({
 				if (partial) toast(partial);
 			} catch (err) {
 				setSelected(previous);
-				toast.error(
-					err instanceof Error ? err.message : FULL_MESSAGE[direction](),
-				);
+				toast.error(serverErrorMessage(err, FAILED_MESSAGE[direction]()));
 			}
 		});
 	};

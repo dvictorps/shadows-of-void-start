@@ -306,6 +306,8 @@
 	"error_unequip_failed": "Unequip failed",
 	"error_swap_hands_failed": "Hand swap failed",
 	"error_reorder_failed": "Reorder failed",
+	"error_deposit_failed": "Deposit failed",
+	"error_withdraw_failed": "Withdraw failed",
 	"broken_missing_level": "Missing level {value}",
 	"broken_missing_strength": "Missing {value} Strength",
 	"broken_missing_dexterity": "Missing {value} Dexterity",
