@@ -29,3 +29,8 @@ Use a **scheduled Convex cron job** (runs every 5 minutes) that computes the ran
 - A cron job runs every 5 minutes and overwrites the snapshot.
 - The leaderboard can be up to 5 minutes stale — this is accepted as a game-design feature, not a limitation.
 - Opening the leaderboard modal is a single small read (the pre-computed snapshot), not a table scan.
+
+## Update (2026-11-15)
+
+- **Cadence drift**: the cron no longer runs every 5 minutes. Commit `5091c25` (2026-05-27, Convex bandwidth pass) moved it to 30 and then 60 minutes, so the board can be up to an hour stale. The decision itself (a snapshot table written by a cron, not a live query) is unchanged.
+- **Mechanism moving**: [ADR 0009](./0009-cloudflare-d1-trpc-backend.md) replaces the Convex cron with a Workers Cron Trigger and the reactive subscription with interval refetch. Same snapshot model.
