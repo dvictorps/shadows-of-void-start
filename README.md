@@ -17,7 +17,7 @@ git clone https://github.com/dvictorps/shadows-of-void.git
 cd shadows-of-void
 
 # Install dependencies
-npm install
+pnpm install
 
 # Set up environment variables
 cp .env.local.example .env.local
@@ -33,7 +33,7 @@ You need two terminals running simultaneously:
 npx convex dev
 
 # Terminal 2 — Start the dev server
-npm run dev
+pnpm dev
 ```
 
 The app will be available at `http://localhost:3002`.
@@ -51,10 +51,10 @@ BETTER_AUTH_SECRET=<generate with: npx @better-auth/cli secret>
 ### Other Commands
 
 ```bash
-npm run build    # Production build
-npm run test     # Run tests (Vitest)
-npm run lint     # Lint with oxlint
-npm run format   # Format with oxfmt
+pnpm build    # Production build
+pnpm test     # Run tests (Vitest)
+pnpm lint     # Lint with oxlint
+pnpm format   # Format with oxfmt
 ```
 
 ## About the Project
