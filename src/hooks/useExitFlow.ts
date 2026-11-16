@@ -119,8 +119,8 @@ export function useExitFlow({
 			const plan = planZoneExit(bagSize, phase);
 			if (plan.kind === "wait") return;
 			// The view goes to the map before the modal opens, so the modal's
-			// Cancel lands on the map (see docs/plans/in-progress.md → the exit
-			// modal Cancel divergence, pending an owner decision).
+			// Cancel lands on the map (CONTEXT.md → Inventory overflow and
+			// exit-modal flow).
 			backToMap();
 			if (plan.kind === "pick") {
 				openExitModal(plan.keepCap);

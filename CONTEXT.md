@@ -245,7 +245,9 @@ On exit from a zone (Retreat / Teleport Stone / Camp Retornar — death-respawn 
 - **Phase cap enforcement**: in exploração or combate, the count of items marked "keep" is capped at `floor(bag.length × 0.30)` (minimum 1). Attempting to exceed it disables the toggle on additional items until something is unmarked.
 - **"Confirm"** with at least one item to discard: secondary warning "These items will be lost forever."
 - **"Confirm"** with zero items kept: warns "All items will be discarded."
-- **"Cancel"** closes the modal and returns the player to the engaged combat view — the zone bag persists, the session is unchanged.
+- **"Cancel"** closes the modal; the zone bag persists and the session is unchanged. Where it lands depends on the path:
+  - **Teleport Stone**: back on the combat view, resuming the same fight (combat pauses while the modal is open).
+  - **Retreat**: on the world map. The bag stays staged, and clicking the zone again starts a new visit. (Owner decision 2026-11-16: the doc follows the shipped behavior, pinned by `useExitFlow.test.ts`; revisit with the gameplay-feel pass.)
 - Inventory full check: if total kept > free slots, "Confirm" is disabled. Player must discard items either in the bag OR via the Inventory panel separately before committing.
 
 ### Loot button (combat HUD)
