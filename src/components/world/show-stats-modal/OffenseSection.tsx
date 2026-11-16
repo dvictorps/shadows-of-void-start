@@ -7,6 +7,7 @@ import { estimateDps } from "#/game/stats/dps";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
 import { m } from "#/paraglide/messages";
 
+import { increasedPools } from "./increased-pools";
 import { Row, SectionHeading } from "./Row";
 
 /** DPS, speed, accuracy, crit, per-hand damage and the increased pools; "unarmed" with no swing. */
@@ -25,10 +26,21 @@ export function OffenseSection({ stats }: { stats: ComputedCharacterStats }) {
 			: m.stats_section_offense_spell();
 	const speed = stats.tickRate.toFixed(2);
 	const swingsLabel = stats.swings
-		.map((s) => (s.source === "mainHand" ? "MH" : "OH"))
+		.map((s) =>
+			s.source === "mainHand"
+				? m.stats_main_hand_short()
+				: m.stats_off_hand_short(),
+		)
 		.join(" + ");
 
 	const dps = estimateDps(stats);
+	// One per hand: a dual wielder's weapons can differ in base crit.
+	const critChances = stats.swings
+		.map(
+			(s) =>
+				`${effectiveCritChance(s.baseCritChance, stats.increased.criticalChance).toFixed(1)}%`,
+		)
+		.join(" / ");
 
 	return (
 		<section>
@@ -45,13 +57,7 @@ export function OffenseSection({ stats }: { stats: ComputedCharacterStats }) {
 						value={`${speed} /s`}
 					/>
 					<Row label={m.stats_accuracy()} value={stats.accuracy} />
-					<Row
-						label={m.stats_crit_chance()}
-						value={`${effectiveCritChance(
-							stats.swings[0]?.baseCritChance ?? 0,
-							stats.increased.criticalChance,
-						).toFixed(1)}%`}
-					/>
+					<Row label={m.stats_crit_chance()} value={critChances} />
 					<Row
 						label={m.stats_crit_multi()}
 						value={`${totalCritMultiplier(stats.bonusCritMultiplier)}%`}
@@ -126,26 +132,7 @@ function elementLabel(element: string): string {
 }
 
 function IncreasedRows({ stats }: { stats: ComputedCharacterStats }) {
-	const i = stats.increased;
-	const entries = [
-		{ label: m.stats_increased_physical(), value: i.physical },
-		{ label: m.stats_increased_cold(), value: i.cold },
-		{ label: m.stats_increased_fire(), value: i.fire },
-		{ label: m.stats_increased_lightning(), value: i.lightning },
-		{ label: m.stats_increased_void(), value: i.void },
-		{ label: m.stats_increased_elemental(), value: i.elementalGlobal },
-		{
-			label:
-				stats.path === "attack"
-					? m.stats_increased_attack_speed()
-					: m.stats_increased_cast_speed(),
-			value: stats.path === "attack" ? i.attackSpeed : i.castSpeed,
-		},
-		{
-			label: m.stats_increased_global_crit_chance(),
-			value: i.criticalChance,
-		},
-	].filter((e) => e.value !== 0);
+	const entries = increasedPools(stats);
 	if (entries.length === 0) return null;
 	return (
 		<div className="mt-3 border-t border-white/10 pt-2">
