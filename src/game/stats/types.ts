@@ -22,6 +22,10 @@ export type EquippedSlot = (typeof EQUIPPED_SLOTS)[number];
 
 const EQUIPPED_SLOT_SET = new Set<string>(EQUIPPED_SLOTS);
 
+function isEquippedSlot(s: string): s is EquippedSlot {
+	return EQUIPPED_SLOT_SET.has(s);
+}
+
 /**
  * Runtime narrower for Convex-returned `equippedSlot: string | undefined`.
  * Returns the value typed as EquippedSlot when it matches; undefined otherwise.
@@ -29,8 +33,7 @@ const EQUIPPED_SLOT_SET = new Set<string>(EQUIPPED_SLOTS);
 export function narrowEquippedSlot(
 	s: string | undefined,
 ): EquippedSlot | undefined {
-	if (s === undefined || !EQUIPPED_SLOT_SET.has(s)) return undefined;
-	return s as EquippedSlot;
+	return s !== undefined && isEquippedSlot(s) ? s : undefined;
 }
 
 export interface EquippedItem {

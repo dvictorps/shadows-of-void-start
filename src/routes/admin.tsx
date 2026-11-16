@@ -6,9 +6,11 @@ import {
 	redirect,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+
 import { Button } from "#/components/ui/button";
 import { prefetchAdminTabs } from "#/lib/admin-prefetch";
 import { m } from "#/paraglide/messages";
+
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/admin")({

@@ -15,7 +15,9 @@ export default defineConfig({
 		"public/**",
 		"src/routeTree.gen.ts",
 		"src/paraglide/**",
-		"convex/_generated/**",
+		// Deleted by the Cloudflare migration (ADR 0009, phase 4); its 15
+		// pre-existing violations aren't worth fixing in code on its way out.
+		"convex/**",
 		"tools/oxlint/anti-slop/**",
 	],
 	plugins: [
@@ -123,8 +125,14 @@ export default defineConfig({
 			"warn",
 			{
 				forbid: [
-					{ element: "button", message: "Use <Button> from #/components/ui/button." },
-					{ element: "select", message: "Use <Select> from #/components/ui/select." },
+					{
+						element: "button",
+						message: "Use <Button> from #/components/ui/button.",
+					},
+					{
+						element: "select",
+						message: "Use <Select> from #/components/ui/select.",
+					},
 					{
 						element: "textarea",
 						message: "Use <Textarea> from #/components/ui/textarea.",
@@ -144,6 +152,19 @@ export default defineConfig({
 				"react/forbid-elements": "off",
 				"shadcn/no-restyle": "off",
 				"you-might-not-need-an-effect/no-event-handler": "off",
+			},
+		},
+		{
+			// Game art, not design-system UI: rarity colors, glows and computed
+			// positions are data-driven and have no token equivalent.
+			files: ["src/components/world/**", "src/components/game/**"],
+			rules: {
+				"shadcn/no-restyle": "off",
+				"shadcn/no-raw-colors": "off",
+				"shadcn/no-arbitrary-values": "off",
+				"shadcn/no-inline-styles": "off",
+				"shadcn/no-unknown-classes": "off",
+				"shadcn/require-static-classes": "off",
 			},
 		},
 		{

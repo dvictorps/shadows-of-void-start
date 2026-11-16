@@ -2,6 +2,7 @@
 
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+
 import { useInFlight } from "./useInFlight";
 
 describe("useInFlight", () => {
@@ -26,7 +27,7 @@ describe("useInFlight", () => {
 		expect(firstCallStarted.value).toBe(true);
 		expect(result.current[0]).toBe(true);
 
-		let secondResult: unknown = "not-undefined";
+		let secondResult: string | undefined = "not-undefined";
 		await act(async () => {
 			secondResult = await result.current[1](async () => {
 				secondCallStarted.value = true;

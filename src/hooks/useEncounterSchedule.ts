@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { type MonsterRarity, rollMonsterRarity } from "#/game/monsters";
 import type { CampSource } from "#/game/world";
 import {
@@ -14,6 +15,7 @@ import {
 	rollSpawnGapMs,
 	type ZoneEncounterPlan,
 } from "#/game/world/encounter-schedule";
+
 import { useTicker } from "./useTicker";
 
 // Calmaria ticker is intentionally coarser than the combat tick — the bar
@@ -32,8 +34,8 @@ type Params = {
 	serverCampThresholdsMs: readonly number[];
 	isSearching: boolean;
 	// Held by the state machine; set true between miniboss kill and the
-	// victory-delay transition. Read at render time so the ticker re-evaluates
-	// whenever state flips. A ref (not state) so flips don't trigger renders.
+	// victory-delay transition. Checked at the top of each calmaria tick. A
+	// ref (not state) so flips don't trigger renders.
 	postMinibossPauseRef: React.MutableRefObject<boolean>;
 	// Fires with the crossed threshold's index so the parent can call
 	// `enterCamp(thresholdIndex)` against the server.
@@ -86,6 +88,11 @@ export function useEncounterSchedule({
 	const [nextSpawnGapMs, setNextSpawnGapMs] = useState(() =>
 		rollSpawnGapMs(encounterPlan),
 	);
+	// Stays an effect: the roll reads `ambushPackRemainingRef` (refs can't be
+	// read during render) and is random, so it must not run twice under a
+	// replayed render. Moving it to every "back to searching" site in
+	// useCombatLoop would spread the pacing rule across the state machine.
+	/* oxlint-disable you-might-not-need-an-effect/no-derived-state, you-might-not-need-an-effect/no-event-handler, you-might-not-need-an-effect/no-adjust-state-on-prop-change -- see the comment above. */
 	useEffect(() => {
 		if (isSearching) {
 			if (ambushPlan && ambushPackRemainingRef.current > 0) {
@@ -95,6 +102,7 @@ export function useEncounterSchedule({
 			}
 		}
 	}, [isSearching, encounterPlan, ambushPlan]);
+	/* oxlint-enable you-might-not-need-an-effect/no-derived-state, you-might-not-need-an-effect/no-event-handler, you-might-not-need-an-effect/no-adjust-state-on-prop-change */
 
 	// Shared by the activation effect and resetForMiniboss — zero the time
 	// bar, re-roll ambushes, drain any in-flight pack. Camp thresholds are
@@ -115,7 +123,11 @@ export function useEncounterSchedule({
 		setAmbushActive(false);
 	}, [encounterPlan]);
 
+	// Stays an effect: `resetSchedule` resets refs alongside state (refs can't
+	// be written during render), and useCombatLoop's activation reset relies
+	// on this landing in the same post-commit flush.
 	const activeRef = useRef(active);
+	/* oxlint-disable you-might-not-need-an-effect/no-event-handler, you-might-not-need-an-effect/no-adjust-state-on-prop-change -- see the comment above. */
 	useEffect(() => {
 		if (active && !activeRef.current) {
 			resetSchedule();
@@ -123,54 +135,54 @@ export function useEncounterSchedule({
 		}
 		activeRef.current = active;
 	}, [active, resetSchedule]);
+	/* oxlint-enable you-might-not-need-an-effect/no-event-handler, you-might-not-need-an-effect/no-adjust-state-on-prop-change */
 
 	// Calmaria ticker — drives the time bar and the camp + ambush triggers.
 	// The post-miniboss flag holds the ticker through the victory→searching
 	// transition so the drained bar doesn't gain a tick before reset commits.
-	useTicker(
-		active && isSearching && !postMinibossPauseRef.current,
-		CALMARIA_TICK_MS,
-		() => {
-			const next = calmariaElapsedMsRef.current + CALMARIA_TICK_MS;
-			calmariaElapsedMsRef.current = next;
-			setCalmariaElapsedMs(next);
+	// The flag is checked inside the tick (not in the `active` argument) so
+	// the ref is never read during render; a held tick is a no-op.
+	useTicker(active && isSearching, CALMARIA_TICK_MS, () => {
+		if (postMinibossPauseRef.current) return;
+		const next = calmariaElapsedMsRef.current + CALMARIA_TICK_MS;
+		calmariaElapsedMsRef.current = next;
+		setCalmariaElapsedMs(next);
 
-			// Camp fires only if the budget hasn't filled yet — at the budget
-			// boundary the boss-spawn check wins on the next spawn instead.
-			const currentCampIndex = nextCampIndexRef.current;
-			const nextCampThreshold = campThresholdsMsRef.current[currentCampIndex];
-			if (
-				nextCampThreshold !== undefined &&
-				next >= nextCampThreshold &&
-				next < calmariaBudgetMs
-			) {
-				nextCampIndexRef.current = currentCampIndex + 1;
-				setCampSource("baked");
-				// Pass the index of the threshold the player just crossed so the
-				// parent can call enterCamp(thresholdIndex) against the server.
-				onCampTriggered(currentCampIndex);
-				return;
-			}
+		// Camp fires only if the budget hasn't filled yet — at the budget
+		// boundary the boss-spawn check wins on the next spawn instead.
+		const currentCampIndex = nextCampIndexRef.current;
+		const nextCampThreshold = campThresholdsMsRef.current[currentCampIndex];
+		if (
+			nextCampThreshold !== undefined &&
+			next >= nextCampThreshold &&
+			next < calmariaBudgetMs
+		) {
+			nextCampIndexRef.current = currentCampIndex + 1;
+			setCampSource("baked");
+			// Pass the index of the threshold the player just crossed so the
+			// parent can call enterCamp(thresholdIndex) against the server.
+			onCampTriggered(currentCampIndex);
+			return;
+		}
 
-			// Ambush trigger — checked after camps so a co-located camp wins.
-			const nextAmbush = ambushScheduleRef.current[nextAmbushIndexRef.current];
-			if (
-				ambushPlan &&
-				nextAmbush !== undefined &&
-				next >= nextAmbush.thresholdMs &&
-				next < calmariaBudgetMs &&
-				ambushPackRemainingRef.current === 0
-			) {
-				nextAmbushIndexRef.current += 1;
-				ambushPackRemainingRef.current = nextAmbush.packSize;
-				setAmbushActive(true);
-				// Collapse the search gap so the first ambush mob fires almost
-				// immediately. Subsequent spawns use the in-pack gap (set in
-				// the post-spawn re-roll above).
-				setNextSpawnGapMs(ambushPlan.gapWithinPackMs);
-			}
-		},
-	);
+		// Ambush trigger — checked after camps so a co-located camp wins.
+		const nextAmbush = ambushScheduleRef.current[nextAmbushIndexRef.current];
+		if (
+			ambushPlan &&
+			nextAmbush !== undefined &&
+			next >= nextAmbush.thresholdMs &&
+			next < calmariaBudgetMs &&
+			ambushPackRemainingRef.current === 0
+		) {
+			nextAmbushIndexRef.current += 1;
+			ambushPackRemainingRef.current = nextAmbush.packSize;
+			setAmbushActive(true);
+			// Collapse the search gap so the first ambush mob fires almost
+			// immediately. Subsequent spawns use the in-pack gap (set in
+			// the post-spawn re-roll above).
+			setNextSpawnGapMs(ambushPlan.gapWithinPackMs);
+		}
+	});
 
 	const rollSpawnRarity = useCallback((): MonsterRarity => {
 		if (calmariaElapsedMsRef.current >= calmariaBudgetMs) return "rare";

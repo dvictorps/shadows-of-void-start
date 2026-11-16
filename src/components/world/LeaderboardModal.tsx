@@ -1,18 +1,22 @@
 import { useQuery } from "convex/react";
 import { Skull } from "lucide-react";
 import { useMemo, useState } from "react";
+
 import { m } from "#/paraglide/messages";
+
 import { api } from "../../../convex/_generated/api";
 import Modal from "../Modal";
 
 type Category = "level" | "bossKills";
 type Mode = "softcore" | "hardcore";
 
-const CLASS_LABELS: Record<string, () => string> = {
-	warrior: () => m.class_warrior_name(),
-	rogue: () => m.class_rogue_name(),
-	mage: () => m.class_mage_name(),
-};
+// Keyed by the leaderboard row's open `classId: string`; a Map keeps unknown
+// ids on the raw-id fallback. Insertion order drives the filter buttons.
+const CLASS_LABELS = new Map<string, () => string>([
+	["warrior", () => m.class_warrior_name()],
+	["rogue", () => m.class_rogue_name()],
+	["mage", () => m.class_mage_name()],
+]);
 
 export default function LeaderboardModal({
 	isOpen,
@@ -96,7 +100,7 @@ export default function LeaderboardModal({
 							className="border border-white/30 bg-black px-2 py-1 text-xs text-white"
 						>
 							<option value="all">{m.leaderboard_all_classes()}</option>
-							{Object.entries(CLASS_LABELS).map(([id, label]) => (
+							{[...CLASS_LABELS].map(([id, label]) => (
 								<option key={id} value={id}>
 									{label()}
 								</option>
@@ -153,7 +157,7 @@ export default function LeaderboardModal({
 										</span>
 									</td>
 									<td className="py-1.5 pr-2 text-white/70">
-										{CLASS_LABELS[entry.classId]?.() ?? entry.classId}
+										{CLASS_LABELS.get(entry.classId)?.() ?? entry.classId}
 									</td>
 									<td className="py-1.5 text-right font-bold">
 										{category === "level" ? entry.level : entry.totalBossKills}

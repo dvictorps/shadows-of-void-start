@@ -4,6 +4,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+
 import type { CampSource } from "#/game/world";
 import { translateCampLines } from "#/game/world/i18n";
 import { playSfx } from "#/lib/sfx";
@@ -15,19 +16,19 @@ type Stage = 0 | 1 | 2 | "fading_out" | "panel";
 // behind it — stage 0's hold is followed by stage 1 entering, which keeps
 // the eye occupied; stage 2 is followed by an empty pause that otherwise
 // reads as "the last message went by faster than the first".
-const STAGE_HOLD_MS: Record<0 | 1 | 2, number> = {
+const STAGE_HOLD_MS = {
 	0: 2000,
 	1: 3000,
 	2: 3000,
-};
+} satisfies Record<0 | 1 | 2, number>;
 const TEXT_EXIT_MS = 1200;
 const POST_TEXT_PAUSE_MS = 1000;
 
-const NEXT_STAGE: Record<0 | 1 | 2, Stage> = {
+const NEXT_STAGE = {
 	0: 1,
 	1: 2,
 	2: "fading_out",
-};
+} satisfies Record<0 | 1 | 2, Stage>;
 
 type Props = {
 	zoneId: string;
@@ -53,11 +54,9 @@ export default function CampCinematic({
 	const [stage, setStage] = useState<Stage>(0);
 	const lines = translateCampLines(zoneId, source);
 
-	useEffect(() => {
-		if (skip && stage !== "panel") {
-			setStage("panel");
-		}
-	}, [skip, stage]);
+	// Skip jumps straight to the panel; adjusted during render so the skipped
+	// text stage never commits.
+	if (skip && stage !== "panel") setStage("panel");
 
 	useEffect(() => {
 		// Wind sweeps: one with the first line (open), one with the last line
@@ -80,7 +79,7 @@ export default function CampCinematic({
 		const id = window.setTimeout(
 			() =>
 				setStage((prev) =>
-					prev in NEXT_STAGE ? NEXT_STAGE[prev as 0 | 1 | 2] : prev,
+					prev === 0 || prev === 1 || prev === 2 ? NEXT_STAGE[prev] : prev,
 				),
 			STAGE_HOLD_MS[stage],
 		);

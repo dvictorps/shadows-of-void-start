@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { computeTravelTime, MIN_TRAVEL_SECONDS } from "./travel";
 
 describe("computeTravelTime", () => {

@@ -14,18 +14,21 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { createServerFn } from "@tanstack/react-start";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useEffect } from "react";
+
 import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
 import { SessionTokenProvider } from "#/hooks/useSessionToken";
 import { authClient } from "#/lib/auth-client";
 import { getToken } from "#/lib/auth-server";
 import { consumeFlashToast } from "#/lib/flash-toast";
 import { getLocale } from "#/paraglide/runtime";
+
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Toaster from "../components/Toaster";
 import PostHogProvider from "../integrations/posthog/provider";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
+
 import appCss from "../styles.css?url";
 
 interface MyRouterContext {
@@ -46,7 +49,7 @@ const getAuth = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	beforeLoad: async (ctx) => {
-		if (typeof document !== "undefined") {
+		if (globalThis.document !== undefined) {
 			document.documentElement.setAttribute("lang", getLocale());
 		}
 

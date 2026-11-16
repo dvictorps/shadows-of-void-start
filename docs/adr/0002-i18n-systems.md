@@ -13,7 +13,7 @@ The game ships text from three distinct shapes:
 
 Each shape has its own constraints. Forcing one i18n system to handle all three either explodes the key namespace (modifier × gender = duplicate keys per locale) or pushes runtime composition into places that should stay static.
 
-PR #41 (the lexicon refactor) explicitly considered unifying the three systems and rejected each unification — the analysis was load-bearing on every subsequent translation decision, and the playbook [`i18n-which-system.md`](../playbooks/i18n-which-system.md) explains the *how*. This ADR captures the *why* so a future contributor doesn't redo the analysis.
+PR #41 (the lexicon refactor) explicitly considered unifying the three systems and rejected each unification — the analysis was load-bearing on every subsequent translation decision, and the playbook [`i18n-which-system.md`](../playbooks/i18n-which-system.md) explains the _how_. This ADR captures the _why_ so a future contributor doesn't redo the analysis.
 
 ## Decision
 
@@ -56,7 +56,7 @@ Tried; rejected. Tooltip mod lines and magic-item affix names have different sha
 **Why we paid it:**
 
 - Each shape gets the cheapest tool that fits it. Paraglide's static extraction stays for the UI; lexicons' runtime composition stays for naming; mod-i18n's per-id formatters stay for tooltips.
-- The split *enables* per-domain enforcement (literal-union keys on lexicon Records) that a single shared table couldn't model cleanly.
+- The split _enables_ per-domain enforcement (literal-union keys on lexicon Records) that a single shared table couldn't model cleanly.
 - Adding a new locale = one new lexicon file per domain + the matching paraglide JSON. The decomposition keeps each locale's effort proportional to the locale's needs, not multiplied across surfaces.
 
 ## Consequences

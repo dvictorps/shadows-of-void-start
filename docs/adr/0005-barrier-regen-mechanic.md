@@ -5,7 +5,7 @@
 
 ## Context
 
-Barrier is the caster-aligned defensive layer — a pool that sits over life, blue ring around the HP globe. Silk armor and the tome provide flat barrier; jewelry provides smaller flat barrier rolls; `+% Barrier` increases on silk pieces and jewelry scale the flat pool; INT contributes a per-point `+1% Barrier Increased`. Endgame mage builds can stack `+5 000` barrier on top of `~1 500` life — barrier is roughly the *majority* of the mage's effective HP pool.
+Barrier is the caster-aligned defensive layer — a pool that sits over life, blue ring around the HP globe. Silk armor and the tome provide flat barrier; jewelry provides smaller flat barrier rolls; `+% Barrier` increases on silk pieces and jewelry scale the flat pool; INT contributes a per-point `+1% Barrier Increased`. Endgame mage builds can stack `+5 000` barrier on top of `~1 500` life — barrier is roughly the _majority_ of the mage's effective HP pool.
 
 The original recovery mechanic was binary: when current barrier hit zero, a 6-second timer started; when the timer expired, barrier refilled to **100% instantly** in a single tick. Damage during the recovery window passed through to life directly; the timer did not reset on subsequent hits.
 
@@ -31,7 +31,7 @@ Replace the binary 6s-timer-then-full-refill mechanic with a **continuous regen 
 
 ## Why these rules
 
-- **Regen is always-on, not delay-gated (unlike PoE).** PoE's energy shield uses a "no damage for N seconds → recovery starts" model. That model creates a *stop-start* feeling well-suited to PoE's hundreds-of-mobs-per-map cadence (you get reliable recovery between packs). Shadows of Void's 1v1 cadence makes "between packs" indistinguishable from "during combat" — a delay-gated model would feel arbitrary because there is no clear "out of combat" moment inside a zone. Always-on regen with a *hard* cooldown only on break is simpler to reason about and maps cleanly to "barrier is a recharging shield, breaking it is the punishing event."
+- **Regen is always-on, not delay-gated (unlike PoE).** PoE's energy shield uses a "no damage for N seconds → recovery starts" model. That model creates a _stop-start_ feeling well-suited to PoE's hundreds-of-mobs-per-map cadence (you get reliable recovery between packs). Shadows of Void's 1v1 cadence makes "between packs" indistinguishable from "during combat" — a delay-gated model would feel arbitrary because there is no clear "out of combat" moment inside a zone. Always-on regen with a _hard_ cooldown only on break is simpler to reason about and maps cleanly to "barrier is a recharging shield, breaking it is the punishing event."
 - **Damage doesn't interrupt regen** because doing otherwise creates a "barrier stuck at low equilibrium" feel that resembles dying-by-papercut more than spike absorption. With non-interrupting regen, sustained DPS that roughly equals regen produces a slow drain instead of a stalled stalemate, while burst damage that exceeds regen still breaks the barrier and triggers the cooldown — both feel readable.
 - **30 seconds of total downtime after a break** is calibrated against the 1v1 zone cadence: a typical engagement is 5–10s, gaps between encounters are 3–9s of exploração, and an ambush pack lasts ~5 spawns × ~5s. A broken barrier means the next 1–2 fights are without it — meaningful but not run-ending. Acampamentos and city visits are the rest points that fully reset; in-zone the player has to mitigate spikes with life and potions instead of waiting on a free refill.
 - **No regen cap, parallel to "no `+% Max Life` mod" decision.** Both intentionally accept that mage's defensive ceiling is higher than warrior's life ceiling in absolute terms. The lever is monster damage scaling, not stat-cap engineering. This avoids special-case math in the engine and keeps regen behaviour predictable (`max × 0.05` is the rule, full stop).
@@ -71,6 +71,7 @@ The "auto-break metagame" (tank a trash hit pre-boss to reset partial barrier) i
 City entry behavior and gear-swap behavior from the original ADR are preserved unchanged.
 
 The failure mode that motivated the original move-away-from-binary ("mage immortal to anything but continuous DPS over 10s, potions trivialise the 6s window, no build pressure on life") is partially mitigated by:
+
 - 10s vulnerability window (vs original 6s) is longer.
 - +50% damage multiplier shrinks effective pool by 33% — first-burst absorption is meaningfully weaker.
 - Player still must engage potions during the cooldown window — barrier doesn't save them from the next 1-2 fights without it.

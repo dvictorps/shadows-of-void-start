@@ -81,7 +81,10 @@ export function useSessionedMutation<
 	const { sessionToken } = useSessionToken();
 	return useCallback(
 		(args: Omit<TArgs, "sessionToken">) =>
-			mutation({ ...args, sessionToken } as unknown as TArgs),
+			// SAFETY: `args` is TArgs minus exactly the `sessionToken` key, and the
+			// spread adds that key back as a string, which is all TArgs' constraint
+			// requires. TS can't recombine `Omit<T, K> & Pick<T, K>` into a generic T.
+			mutation({ ...args, sessionToken } as TArgs),
 		[mutation, sessionToken],
 	);
 }

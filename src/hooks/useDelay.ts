@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 
 /**
  * Fires `onFire` once after `delayMs` while `active` is true. Cancelled if
@@ -10,12 +10,14 @@ export function useDelay(
 	delayMs: number,
 	onFire: () => void,
 ): void {
-	const callbackRef = useRef(onFire);
-	callbackRef.current = onFire;
+	// Effect Event: always calls the latest `onFire` without making the
+	// callback a dependency, so a new closure each render never restarts the
+	// timer.
+	const fire = useEffectEvent(onFire);
 
 	useEffect(() => {
 		if (!active) return;
-		const id = window.setTimeout(() => callbackRef.current(), delayMs);
+		const id = window.setTimeout(() => fire(), delayMs);
 		return () => window.clearTimeout(id);
 	}, [active, delayMs]);
 }

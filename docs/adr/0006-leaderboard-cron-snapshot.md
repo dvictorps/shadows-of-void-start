@@ -16,10 +16,12 @@ Use a **scheduled Convex cron job** (runs every 5 minutes) that computes the ran
 ## Alternatives considered
 
 ### Live reactive query
+
 - **Pro**: zero additional infrastructure, idiomatic Convex, always fresh.
 - **Con**: the ranking "flickers" on every XP tick across all players. Distracting UX — the board feels unstable. Also triggers recomputation on every character mutation, which scales poorly with player count.
 
 ### Client-side polling with stale-while-revalidate
+
 - **Pro**: no cron job, no extra table.
 - **Con**: fights Convex's reactive model. Requires custom cache-invalidation logic on the client. More code for worse guarantees.
 

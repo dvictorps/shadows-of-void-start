@@ -11,11 +11,17 @@ export interface GenderedForm {
 	f: string;
 }
 
+export function isGenderedForm(
+	form: string | GenderedForm,
+): form is GenderedForm {
+	return typeof form !== "string";
+}
+
 // Resolve a possibly-gendered form to its concrete string for the given noun
 // gender. Strings (locales without gender concord) pass through unchanged.
 export function pickGendered(
 	form: string | GenderedForm,
 	gender: GrammaticalGender,
 ): string {
-	return typeof form === "string" ? form : form[gender];
+	return isGenderedForm(form) ? form[gender] : form;
 }

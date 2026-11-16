@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+
 import { type HitFxKind, WEAPON_FX } from "#/game/combat/weapon-fx";
 import type { WeaponType } from "#/game/items/types/base";
 
@@ -107,7 +108,6 @@ function ArrowFx({ critScale }: { critScale: number }) {
 				const dy = Math.sin(angle) * sparkReach;
 				return (
 					<motion.div
-						// biome-ignore lint/suspicious/noArrayIndexKey: deterministic per-render
 						key={i}
 						className="absolute top-0 left-0 rounded-full"
 						style={{
@@ -139,7 +139,6 @@ function ImpactFx({ critScale }: { critScale: number }) {
 				const angle = (i / lineCount) * 360;
 				return (
 					<motion.div
-						// biome-ignore lint/suspicious/noArrayIndexKey: deterministic per-render
 						key={i}
 						className="absolute top-0 left-0"
 						style={{
@@ -190,7 +189,6 @@ function MagicFx({ critScale }: { critScale: number }) {
 				const hue = 200 + ((i * 30) % 180);
 				return (
 					<motion.div
-						// biome-ignore lint/suspicious/noArrayIndexKey: deterministic per-render
 						key={i}
 						className="absolute top-0 left-0 rounded-full"
 						style={{

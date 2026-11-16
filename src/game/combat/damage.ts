@@ -130,16 +130,15 @@ export function rollPlayerSwing({
 
 	// 1. Roll flat damage per type using the swing's base ranges.
 	const physBase = randInt(swing.physicalDamage.min, swing.physicalDamage.max);
-	const elementRolls: Record<string, number> = {
-		Cold: 0,
-		Fire: 0,
-		Lightning: 0,
-		Void: 0,
-	};
+	// Keyed by the swing's display element name ("Cold", ...), a plain string.
+	const elementRolls = new Map<string, number>();
 	for (const e of swing.elementalDamage) {
-		elementRolls[e.element] =
-			(elementRolls[e.element] ?? 0) + randInt(e.min, e.max);
+		elementRolls.set(
+			e.element,
+			(elementRolls.get(e.element) ?? 0) + randInt(e.min, e.max),
+		);
 	}
+	const rolled = (element: string) => elementRolls.get(element) ?? 0;
 
 	// 2. Sum increased pools per element, applied additively then once.
 	const inc = stats.increased;
@@ -152,11 +151,10 @@ export function rollPlayerSwing({
 		pathSpecific;
 
 	const phys = physBase * (1 + physIncreased / 100);
-	let cold = elementRolls.Cold * (1 + elementBonus(inc.cold) / 100);
-	let fire = elementRolls.Fire * (1 + elementBonus(inc.fire) / 100);
-	let lightning =
-		elementRolls.Lightning * (1 + elementBonus(inc.lightning) / 100);
-	let voidDmg = elementRolls.Void * (1 + elementBonus(inc.void) / 100);
+	let cold = rolled("Cold") * (1 + elementBonus(inc.cold) / 100);
+	let fire = rolled("Fire") * (1 + elementBonus(inc.fire) / 100);
+	let lightning = rolled("Lightning") * (1 + elementBonus(inc.lightning) / 100);
+	let voidDmg = rolled("Void") * (1 + elementBonus(inc.void) / 100);
 
 	// See CONTEXT.md → "Gain as Extra Elemental".
 	if (isSpell) {
@@ -290,12 +288,12 @@ export function rollEnemyAttack({
 		Math.max(0, physicalDamage.min),
 		Math.max(physicalDamage.min, physicalDamage.max),
 	);
-	const elementRolls: Record<"Cold" | "Fire" | "Lightning" | "Void", number> = {
+	const elementRolls = {
 		Cold: 0,
 		Fire: 0,
 		Lightning: 0,
 		Void: 0,
-	};
+	} satisfies Record<"Cold" | "Fire" | "Lightning" | "Void", number>;
 	for (const e of elementalDamage) {
 		elementRolls[e.element] += randInt(
 			Math.max(0, e.min),

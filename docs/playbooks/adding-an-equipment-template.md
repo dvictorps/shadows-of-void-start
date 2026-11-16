@@ -17,27 +17,27 @@ Names are **not** stored on the template itself — they're composed at display 
 
 Open the right file under `src/game/items/data/templates/`. One file per category:
 
-| Slot | File |
-|---|---|
-| sword | `swords.ts` |
-| dagger | `daggers.ts` |
-| axe | `axes.ts` |
-| mace | `maces.ts` |
-| greatsword | `greatswords.ts` |
+| Slot         | File                 |
+| ------------ | -------------------- |
+| sword        | `swords.ts`          |
+| dagger       | `daggers.ts`         |
+| axe          | `axes.ts`            |
+| mace         | `maces.ts`           |
+| greatsword   | `greatswords.ts`     |
 | twoHandedAxe | `two-handed-axes.ts` |
-| bow | `bows.ts` |
-| staff | `staves.ts` |
-| wand | `wands.ts` |
-| helmet | `helmets.ts` |
-| chestplate | `chestplates.ts` |
-| boots | `boots.ts` |
-| gloves | `gloves.ts` |
-| shield | `shields.ts` |
-| tome | `tomes.ts` |
-| quiver | `quivers.ts` |
-| ring | `rings.ts` |
-| amulet | `amulets.ts` |
-| belt | `belts.ts` |
+| bow          | `bows.ts`            |
+| staff        | `staves.ts`          |
+| wand         | `wands.ts`           |
+| helmet       | `helmets.ts`         |
+| chestplate   | `chestplates.ts`     |
+| boots        | `boots.ts`           |
+| gloves       | `gloves.ts`          |
+| shield       | `shields.ts`         |
+| tome         | `tomes.ts`           |
+| quiver       | `quivers.ts`         |
+| ring         | `rings.ts`           |
+| amulet       | `amulets.ts`         |
+| belt         | `belts.ts`           |
 
 Add an entry to the exported array:
 
@@ -113,6 +113,7 @@ If your template needs a `nameBase` or `nameModifier` that doesn't exist yet:
 4. TS will tell you if you forgot any of the three (the lexicon Records require literal-union coverage).
 
 Naming guide:
+
 - Materials → snake_case noun (`iron`, `copper`, `bronze`, `oak`, `silk`)
 - Possessives → snake without apostrophe (`soldiers`, `knights`, `hunters`)
 - Adjectives that inflect → snake_case adjective (`hallowed`, `runed`, `void_touched`)
@@ -130,6 +131,7 @@ Open the admin items panel if you have admin role (`/admin/items`) and roll a fe
 ## Gotchas
 
 ### Requirement curves
+
 Look at the existing curve before picking your numbers. For example:
 
 - Swords: STR + DEX both, starting (10, 10) at level 1, scaling to (~112, 112) at level 80
@@ -139,4 +141,5 @@ Look at the existing curve before picking your numbers. For example:
 A new tier-5 sword should sit between tier-4 and tier-6 cleanly — about (28, 28) STR/DEX. Don't make up numbers; interpolate from siblings.
 
 ### Display name fallback
+
 If `nameBase` or `nameModifier` resolves to a lexicon entry that doesn't exist (shouldn't happen with the literal unions, but possible via casts), the renderer falls back to the `templateId` string. If you see a raw `sword_t5` in the tooltip during testing, that's the signal — fix the lexicon entry.

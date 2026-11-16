@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+
 import ItemCard, {
 	BROKEN_BORDER,
 	BROKEN_GLOW,
@@ -9,6 +10,7 @@ import { describeBrokenReasons } from "#/game/stats/compute";
 import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { m } from "#/paraglide/messages";
+
 import InventoryButton from "./InventoryButton";
 import RubyCounter from "./RubyCounter";
 

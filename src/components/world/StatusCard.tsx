@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+
 import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
 import { getClassDisplayName } from "#/game/classes/i18n";
@@ -14,6 +15,7 @@ import { estimateDps } from "#/game/stats/dps";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { m } from "#/paraglide/messages";
+
 import type { Doc } from "../../../convex/_generated/dataModel";
 import HealthGlobe from "./HealthGlobe";
 

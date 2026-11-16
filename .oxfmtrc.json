@@ -12,7 +12,7 @@
 		".wrangler/**",
 		"dist/**",
 		"public/**",
-		"convex/_generated/**",
+		"convex/**",
 		"src/routeTree.gen.ts",
 		"src/paraglide/**",
 		"src/styles.css",

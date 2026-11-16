@@ -10,7 +10,8 @@
 
 import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
-import { useRef } from "react";
+import type { FunctionArgs } from "convex/server";
+
 import { teleportStoneTravelSeconds } from "#/game/combat/constants";
 import {
 	bySlotAsc,
@@ -19,10 +20,15 @@ import {
 	createStashSlotAllocator,
 } from "#/game/inventory/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
-import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
+import { findVendorProduct } from "#/game/vendor/products";
 import { ACT_1, findNode } from "#/game/world";
 import { computeTravelTime } from "#/game/world/travel";
-import { applyCharacterDelta, applyCombatStateDelta, findCharacter } from "#/lib/optimistic-character";
+import {
+	applyCharacterDelta,
+	applyCombatStateDelta,
+	findCharacter,
+} from "#/lib/optimistic-character";
+
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { useSessionedMutation } from "./useSessionToken";
@@ -58,8 +64,62 @@ function moveDocsIntoInventory(
 	localStore.setQuery(
 		api.items.inventory,
 		bagKey,
-		[...inv, ...moved].sort(bySlotAsc),
+		[...inv, ...moved].toSorted(bySlotAsc),
 	);
+}
+
+// The two travel-starting optimistic updates live at module scope: they read
+// the clock (`Date.now()`) when the mutation fires, which is fine there but
+// reads as an impure call during render if the closure is built inline.
+function startTravelOptimistic(movementSpeed: number) {
+	return (
+		localStore: OptimisticLocalStore,
+		args: FunctionArgs<typeof api.combat.startTravel>,
+	): void => {
+		const char = findCharacter(localStore, args.characterId);
+		if (!char) return;
+		const fromId = char.currentLocation ?? "city";
+		const fromNode = findNode(ACT_1, fromId);
+		const conn = fromNode?.connections.find(
+			(c) => c.id === args.destinationNodeId,
+		);
+		if (!conn) return;
+		const seconds = computeTravelTime(conn.distance, movementSpeed);
+		const startedAt = Date.now();
+		const arrivesAt = startedAt + Math.round(seconds * 1000);
+		applyCharacterDelta(localStore, args.characterId, {
+			travelDestination: args.destinationNodeId,
+			travelStartedAt: startedAt,
+			travelArrivesAt: arrivesAt,
+		});
+	};
+}
+
+function teleportStoneOptimistic(
+	localStore: OptimisticLocalStore,
+	args: FunctionArgs<typeof api.combat.useTeleportStone>,
+): void {
+	const char = findCharacter(localStore, args.characterId);
+	if (!char) return;
+	const stones = char.teleportStones ?? 0;
+	if (stones <= 0) return;
+	const destinationNodeId = args.destinationNodeId ?? "city";
+	const startedAt = Date.now();
+	const arrivesAt =
+		startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000;
+	applyCharacterDelta(localStore, args.characterId, {
+		teleportStones: stones - 1,
+		travelDestination: destinationNodeId,
+		travelStartedAt: startedAt,
+		travelArrivesAt: arrivesAt,
+	});
+	applyCombatStateDelta(localStore, args.characterId, {
+		currentZoneSession: undefined,
+		zoneStartedAt: undefined,
+		campThresholdsMs: undefined,
+		inCamp: false,
+		lastCampIndex: undefined,
+	});
 }
 
 export function useWorldMutations({
@@ -67,12 +127,6 @@ export function useWorldMutations({
 }: {
 	movementSpeed: number;
 }) {
-	// Latest movementSpeed kept in a ref so the startTravel optimistic closure
-	// (created once at hook mount) reads the live value at click-time, not the
-	// stale value captured when the mutation was declared.
-	const movementSpeedRef = useRef(movementSpeed);
-	movementSpeedRef.current = movementSpeed;
-
 	const enterCity = useSessionedMutation(useMutation(api.combat.enterCity));
 	const enterZone = useSessionedMutation(useMutation(api.combat.enterZone));
 
@@ -133,29 +187,11 @@ export function useWorldMutations({
 
 	const respawnDead = useSessionedMutation(useMutation(api.combat.respawnDead));
 
+	// `withOptimisticUpdate` builds a new mutation every render, so passing
+	// this render's `movementSpeed` gives the click-time value without a ref.
 	const startTravel = useSessionedMutation(
 		useMutation(api.combat.startTravel).withOptimisticUpdate(
-			(localStore, args) => {
-				const char = findCharacter(localStore, args.characterId);
-				if (!char) return;
-				const fromId = char.currentLocation ?? "city";
-				const fromNode = findNode(ACT_1, fromId);
-				const conn = fromNode?.connections.find(
-					(c) => c.id === args.destinationNodeId,
-				);
-				if (!conn) return;
-				const seconds = computeTravelTime(
-					conn.distance,
-					movementSpeedRef.current,
-				);
-				const startedAt = Date.now();
-				const arrivesAt = startedAt + Math.round(seconds * 1000);
-				applyCharacterDelta(localStore, args.characterId, {
-					travelDestination: args.destinationNodeId,
-					travelStartedAt: startedAt,
-					travelArrivesAt: arrivesAt,
-				});
-			},
+			startTravelOptimistic(movementSpeed),
 		),
 	);
 
@@ -171,7 +207,7 @@ export function useWorldMutations({
 			(localStore, args) => {
 				const char = findCharacter(localStore, args.characterId);
 				if (!char) return;
-				const product = VENDOR_PRODUCTS[args.productId as VendorProductId];
+				const product = findVendorProduct(args.productId);
 				if (!product) return;
 				const qty = args.quantity;
 				if (qty <= 0) return;
@@ -180,12 +216,18 @@ export function useWorldMutations({
 				if (rubys < totalCost) return;
 
 				if (product.counterField === "potions") {
-					const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+					const csData = localStore.getQuery(api.combatState.byCharacterId, {
+						characterId: args.characterId,
+					});
 					const currentCount = csData?.potions ?? char.potions ?? 0;
 					const newCount = currentCount + qty;
 					if (product.cap !== undefined && newCount > product.cap) return;
-					applyCharacterDelta(localStore, args.characterId, { rubys: rubys - totalCost });
-					applyCombatStateDelta(localStore, args.characterId, { potions: newCount });
+					applyCharacterDelta(localStore, args.characterId, {
+						rubys: rubys - totalCost,
+					});
+					applyCombatStateDelta(localStore, args.characterId, {
+						potions: newCount,
+					});
 				} else {
 					const currentCount = char[product.counterField] ?? 0;
 					const newCount = currentCount + qty;
@@ -200,35 +242,14 @@ export function useWorldMutations({
 	);
 
 	// Aliased to `teleportStone` (no `use` prefix) so consumers can call it
-	// from inside async handlers without tripping biome's useHookAtTopLevel
-	// rule — Convex's mutation name happens to start with `use`, but the
-	// returned function is a regular async call, not a React hook.
+	// from inside async handlers without tripping the hooks lint rule —
+	// Convex's mutation name happens to start with `use`, but the returned
+	// function is a regular async call, not a React hook.
 	const teleportStone = useSessionedMutation(
-		useMutation(api.combat.useTeleportStone).withOptimisticUpdate(
-			(localStore, args) => {
-				const char = findCharacter(localStore, args.characterId);
-				if (!char) return;
-				const stones = char.teleportStones ?? 0;
-				if (stones <= 0) return;
-				const destinationNodeId = args.destinationNodeId ?? "city";
-				const startedAt = Date.now();
-				const arrivesAt =
-					startedAt + teleportStoneTravelSeconds(destinationNodeId) * 1000;
-				applyCharacterDelta(localStore, args.characterId, {
-					teleportStones: stones - 1,
-					travelDestination: destinationNodeId,
-					travelStartedAt: startedAt,
-					travelArrivesAt: arrivesAt,
-				});
-				applyCombatStateDelta(localStore, args.characterId, {
-					currentZoneSession: undefined,
-					zoneStartedAt: undefined,
-					campThresholdsMs: undefined,
-					inCamp: false,
-					lastCampIndex: undefined,
-				});
-			},
-		),
+		useMutation(
+			// oxlint-disable-next-line react/hooks -- `api.combat.useTeleportStone` is the Convex server function's name (defined in convex/, out of scope and slated for the Cloudflare migration), not a React hook.
+			api.combat.useTeleportStone,
+		).withOptimisticUpdate(teleportStoneOptimistic),
 	);
 
 	const switchElement = useSessionedMutation(
@@ -282,7 +303,7 @@ export function useWorldMutations({
 							return { ...it, inventorySlot: sourceSlot ?? -1 };
 						return it;
 					})
-					.sort(bySlotAsc);
+					.toSorted(bySlotAsc);
 				localStore.setQuery(
 					api.items.inventory,
 					{ characterId: args.characterId },
@@ -325,12 +346,12 @@ export function useWorldMutations({
 				localStore.setQuery(
 					api.items.inventory,
 					{ characterId: args.characterId },
-					inv.filter((it) => !movedIds.has(it._id)).sort(bySlotAsc),
+					inv.filter((it) => !movedIds.has(it._id)).toSorted(bySlotAsc),
 				);
 				localStore.setQuery(
 					api.items.stash,
 					{ stashMode },
-					[...stash, ...moved].sort(byStashSlotAsc),
+					[...stash, ...moved].toSorted(byStashSlotAsc),
 				);
 			},
 		),
@@ -370,12 +391,12 @@ export function useWorldMutations({
 				localStore.setQuery(
 					api.items.stash,
 					{ stashMode },
-					stash.filter((it) => !movedIds.has(it._id)).sort(byStashSlotAsc),
+					stash.filter((it) => !movedIds.has(it._id)).toSorted(byStashSlotAsc),
 				);
 				localStore.setQuery(
 					api.items.inventory,
 					{ characterId: args.characterId },
-					[...inv, ...moved].sort(bySlotAsc),
+					[...inv, ...moved].toSorted(bySlotAsc),
 				);
 			},
 		),
@@ -403,7 +424,7 @@ export function useWorldMutations({
 							return { ...it, stashSlot: sourceSlot ?? -1 };
 						return it;
 					})
-					.sort(byStashSlotAsc);
+					.toSorted(byStashSlotAsc);
 				localStore.setQuery(api.items.stash, { stashMode }, next);
 			},
 		),

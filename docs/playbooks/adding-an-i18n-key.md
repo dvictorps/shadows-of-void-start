@@ -40,6 +40,7 @@ Paraglide auto-regenerates `src/paraglide/messages.js` on the next dev run (or v
 If you find yourself writing a string literal in a `<button>`, `<p>`, `toast.*()`, or `aria-label`, stop and add a key. The error pattern is easy to spot in code review — Portuguese accents (`ção`, `ões`) or English UI words in component files.
 
 The only exceptions:
+
 - Debug-only text (never shown to users)
 - Internal modifier ids, slot ids, etc — system identifiers, not display strings
 

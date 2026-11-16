@@ -1,4 +1,5 @@
 import { Button } from "#/components/ui/button";
+
 import Modal from "./Modal";
 
 type Variant = "default" | "destructive";

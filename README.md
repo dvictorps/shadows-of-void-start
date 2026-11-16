@@ -80,30 +80,39 @@ The project is in early development. Here's what's already built:
 ## Roadmap
 
 ### Unique Items
+
 Hand-crafted item templates with fixed, curated modifiers — some exclusive to that item. Uniques sit above Epic rarity and define build-around fantasies: powerful but narrow. Each unique is a complete item definition, separate from the random generator.
 
 ### Class System
+
 Multiple playable classes, each with distinct stat profiles and playstyle identities. Classes influence which weapon types and armor variants are most effective, encouraging diverse build paths.
 
 ### Passive Skill Tree
+
 A branching passive tree where players allocate points to customize their character's strengths. Nodes grant stat bonuses, unlock build-defining keystones, and create meaningful choices between offensive, defensive, and utility paths.
 
 ### Auto-Combat System
+
 A stat-check combat engine where encounters are resolved automatically based on the player's build. The system compares offensive stats (damage, speed, crit) against enemy defenses, with results influenced by gear, passives, and class bonuses. No manual aiming — the depth comes from preparation, not execution.
 
 ### Campaign Mode
+
 A node-based world map where players progress through themed zones. Each node represents a combat encounter; defeating all enemies in a zone unlocks the next node. The campaign tells the story of the Void through a sequence of increasingly challenging areas, serving as the introduction to the game's mechanics and lore.
 
 ### Infinite Endgame
+
 After completing the campaign, players enter a theoretically infinite endgame loop designed for long-term grinding. Endgame content scales in difficulty and rewards, providing a reason to keep optimizing builds and hunting for better gear.
 
 ### Ranking Systems
+
 Competitive leaderboards tracking:
+
 - **Character Level** — Highest level reached
 - **Boss Eliminations** — Fastest kills and hardest bosses defeated
 - **Dungeon Depth** — Deepest floor reached in endgame dungeons
 
 ### Player Trading
+
 A trade system allowing players to exchange items with each other, creating a player-driven economy. Trading adds a social layer to the loot hunt and enables build completion through commerce rather than pure RNG.
 
 ## Tech Stack

@@ -2,6 +2,7 @@ import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
 import { m } from "#/paraglide/messages";
+
 import type { Doc } from "../../../convex/_generated/dataModel";
 
 const ITEM_SLOT_SIZE = 96;

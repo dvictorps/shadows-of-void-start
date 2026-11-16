@@ -36,13 +36,13 @@ One registry, one lookup, but `MonsterDefinition` becomes polymorphic and any co
 Putting Gralfor in `MONSTERS` invites two long-term problems:
 
 1. **`monsterPool` declarations would need to ignore him.** Every regular zone declares its `monsterPool: MonsterId[]` and the spawn roller picks uniformly. If `gralfor` is in the `MonsterId` union, every reviewer has to remember not to put him in a regular pool — and the type system can't help, because `MonsterId` is one big literal union. The first agent who legitimately wants to add Gralfor to a "boss-themed mini-zone" pool can do it without noticing they've broken the act-1 boss's exclusivity.
-2. **`MONSTERS` becomes a mixed-purpose registry.** It's currently "things the regular zone roller picks from." Adding entries that are *not* zone-rollable conflates two concerns. Future agents reading `MONSTERS.gralfor` need a comment to know it's special — and comments rot.
+2. **`MONSTERS` becomes a mixed-purpose registry.** It's currently "things the regular zone roller picks from." Adding entries that are _not_ zone-rollable conflates two concerns. Future agents reading `MONSTERS.gralfor` need a comment to know it's special — and comments rot.
 
 Two lookups in two places is the smaller cost. The lookups are explicit and the type system enforces who can spawn through which path.
 
 ## Why not (C)
 
-Optional fields are contagious. The moment `MonsterDefinition.boss?` exists, every consumer that *might* care about boss-ness either:
+Optional fields are contagious. The moment `MonsterDefinition.boss?` exists, every consumer that _might_ care about boss-ness either:
 
 - handles the optional and the type guard noise spreads everywhere, or
 - ignores it and silently mis-handles bosses (e.g., the rare-name lexicon renderer trying to compose `"<adjective> <Gralfor's first-word>"`).
@@ -51,7 +51,7 @@ The parallel-registry version makes "boss" a first-class category — code that 
 
 ## Trade-off accepted
 
-The parallel registry pays a one-time cost: combat code that needs the boss's cinematic config (CombatScene for screenshake/sfx, MonsterTooltip for nameplate color, sfx.ts for death sfx routing) does a second lookup via `findBoss(enemy.def.id as BossId)`. That's one extra map read per boss-related render — measurably nothing.
+The parallel registry pays a one-time cost: combat code that needs the boss's cinematic config (CombatScene for screenshake, useCombatLoop for the entry sfx, MonsterTooltip for nameplate color, sfx.ts for death sfx routing) does a second lookup via `findBoss(enemy.def.id as BossId)`. That's one extra map read per boss-related render — measurably nothing.
 
 The benefit: the boss surface is explicit at the call site (the `as BossId` cast signals "we're crossing into boss-land"), uniques never accidentally route through rare-only code paths, and adding a new boss is one file under `src/game/bosses/` + one paraglide key per locale, no `MONSTERS` edit.
 
@@ -75,4 +75,8 @@ No combat-engine changes are required to add a second boss — the parallel regi
 
 Code that needs to distinguish bosses from rares does so by reading `enemy.rarity === "unique"`. The `Enemy.def` shape stays uniform (BossTemplate is a `MonsterDefinition`), so the combat tick and scaling don't branch — only presentation code (tooltip, nameplate color, intro stage cascade) and reward routing (drops, recordKill) care about the distinction.
 
-If a future feature lets *items* be unique (per the convention noted in CONTEXT.md → Boss), they reuse `ItemRarity = "...|unique"` the same way — the rarity-tier infrastructure already exists.
+If a future feature lets _items_ be unique (per the convention noted in CONTEXT.md → Boss), they reuse `ItemRarity = "...|unique"` the same way — the rarity-tier infrastructure already exists.
+
+## Update (2026-11)
+
+`findBoss` now takes a plain `string` and returns `null` for non-boss ids (own-key check), so callers drop the `as BossId` cast: `findBoss(enemy.def.id)`. Boss display names resolve through the `BOSS_NAME_I18N` table in `src/game/world/i18n.ts` instead of indexing paraglide's `m` by string, so a new boss registers its `nameKey` there.

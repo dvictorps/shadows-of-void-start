@@ -8,13 +8,20 @@
 //    leech heal → barrier recovery → player swing → enemy swing → thorns
 //
 //  Mutations fire on:
-//    - usePotion (consumePotion, optimistic decrement on the mutation hook)
+//    - drinkPotion (consumePotion, optimistic decrement on the mutation hook)
 //    - HP sync ticker (syncHp every 10s when hp changed; gated on deadRef)
 //    - deactivation (syncHp flush, only when not dead)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useMutation } from "convex/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
+
 import {
 	type BarrierState,
 	damageBarrier,
@@ -31,8 +38,13 @@ import type { LeechInstance } from "#/game/combat/leech";
 import { createLeechInstance, tickLeechInstances } from "#/game/combat/leech";
 import type { Enemy } from "#/game/combat/types";
 import type { ComputedCharacterStats } from "#/game/stats/types";
-import { applyCharacterDelta, applyCombatStateDelta, findCharacter } from "#/lib/optimistic-character";
+import {
+	applyCharacterDelta,
+	applyCombatStateDelta,
+	findCharacter,
+} from "#/lib/optimistic-character";
 import { playPlayerSwingSfx, playSfx } from "#/lib/sfx";
+
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { BarrierApi } from "./useBarrier";
@@ -68,7 +80,24 @@ type Params = {
 	// Mutates `enemy` when a swing connects (mid-tick HP write). The state
 	// machine's enemy ref is the source of truth.
 	updateEnemy: (next: Enemy) => void;
+	// Dice rolls and audio. Production uses the defaults; tests inject
+	// deterministic rolls and silent audio instead of mocking modules.
+	deps?: CombatTickDeps;
 };
+
+export interface CombatTickDeps {
+	rollPlayerSwing: typeof rollPlayerSwing;
+	rollEnemyAttack: typeof rollEnemyAttack;
+	playSfx: typeof playSfx;
+	playPlayerSwingSfx: typeof playPlayerSwingSfx;
+}
+
+const DEFAULT_COMBAT_TICK_DEPS = {
+	rollPlayerSwing,
+	rollEnemyAttack,
+	playSfx,
+	playPlayerSwingSfx,
+} satisfies CombatTickDeps;
 
 export function useCombatTick({
 	characterId,
@@ -83,15 +112,14 @@ export function useCombatTick({
 	resolveKill,
 	pushEvent,
 	updateEnemy,
+	deps = DEFAULT_COMBAT_TICK_DEPS,
 }: Params) {
 	const maxHp = stats.maxLife;
 
 	const [playerHp, setPlayerHp] = useState(initialHp);
 
 	const playerHpRef = useRef(playerHp);
-	playerHpRef.current = playerHp;
 	const initialHpRef = useRef(initialHp);
-	initialHpRef.current = initialHp;
 	const lastSyncedHpRef = useRef(initialHp);
 	const lastSyncedBarrierRef = useRef(barrierApi.barrierRef.current.current);
 	const { barrierRef } = barrierApi;
@@ -116,7 +144,16 @@ export function useCombatTick({
 	// so mid-tick HP updates from a player swing are visible to subsequent
 	// reads in the same tick.
 	const enemyRef = useRef<Enemy | null>(enemy);
-	enemyRef.current = enemy;
+
+	// Latest-value mirrors, synced after every commit. Refs can't be written
+	// during render; a layout effect runs before any timer or passive effect
+	// can read them, and render + commit of these timer-driven updates happen
+	// in one task, so readers see the same values as with a render-time write.
+	useLayoutEffect(() => {
+		playerHpRef.current = playerHp;
+		initialHpRef.current = initialHp;
+		enemyRef.current = enemy;
+	});
 
 	// Combat-progress refs: how far each side is into its next swing (in
 	// "swings", incremented by dt*rate per tick; ≥1 fires the swing).
@@ -129,6 +166,7 @@ export function useCombatTick({
 	const { withSession } = useSessionToken();
 
 	const syncHp = useMutation(api.combat.syncHp);
+	// oxlint-disable-next-line react/hooks -- `api.combat.usePotion` is the Convex server function's name (defined in convex/, out of scope and slated for the Cloudflare migration), not a React hook.
 	const consumePotion = useMutation(api.combat.usePotion).withOptimisticUpdate(
 		(localStore, args) => {
 			const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
@@ -140,7 +178,9 @@ export function useCombatTick({
 					hpCurrent: Math.min(maxHp, currentHp + heal),
 				});
 			}
-			const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+			const csData = localStore.getQuery(api.combatState.byCharacterId, {
+				characterId: args.characterId,
+			});
 			if (csData) {
 				const currentHp = args.clientHp ?? csData.hpCurrent;
 				applyCombatStateDelta(localStore, args.characterId, {
@@ -158,26 +198,38 @@ export function useCombatTick({
 	// path that creates a new `Enemy` MUST allocate a fresh `scaled` object —
 	// reusing or mutating in place would silently stop resetting swing
 	// alternation across fights.
-	const enemyScaled = enemy?.scaled;
-	useEffect(() => {
-		if (enemyScaled) {
-			playerProgressRef.current = 0;
-			enemyProgressRef.current = 0;
-			nextSwingIndexRef.current = 0;
-			enemyBarrierRef.current = makeBarrierState(enemyScaled.barrier);
-			leechHealAccRef.current = 0;
-			lastLeechEventRef.current = 0;
-		}
-	}, [enemyScaled]);
+	//
+	// The reset runs lazily at the top of the engaged tick (see
+	// `resetForFreshFight`) rather than in an effect on `enemy.scaled`: every
+	// ref it touches is only read inside that tick, so resetting just before
+	// the first read of a new fight is equivalent.
+	const fightScaledRef = useRef<Enemy["scaled"] | null>(null);
+	const resetForFreshFight = (scaled: Enemy["scaled"]) => {
+		fightScaledRef.current = scaled;
+		playerProgressRef.current = 0;
+		enemyProgressRef.current = 0;
+		nextSwingIndexRef.current = 0;
+		enemyBarrierRef.current = makeBarrierState(scaled.barrier);
+		leechHealAccRef.current = 0;
+		lastLeechEventRef.current = 0;
+	};
 
 	// Activation resets HP + transient combat refs. Barrier lives in
-	// useBarrier and persists across views — not reset here.
+	// useBarrier and persists across views — not reset here. The HP state
+	// resets during render (React's "adjust state while rendering" pattern);
+	// the layout-effect mirror above then carries it into `playerHpRef`.
+	const [prevActive, setPrevActive] = useState(active);
+	if (active !== prevActive) {
+		setPrevActive(active);
+		if (active) setPlayerHp(initialHp);
+	}
+	// The ref resets and the deactivation HP sync stay in an effect: refs
+	// can't be written during render, and syncHp is a server call.
 	const activeRef = useRef(active);
 	useEffect(() => {
 		const wasActive = activeRef.current;
 		if (active && !wasActive) {
 			playerHpRef.current = initialHpRef.current;
-			setPlayerHp(initialHpRef.current);
 			lastSyncedHpRef.current = initialHpRef.current;
 			lastSyncedBarrierRef.current = barrierRef.current.current;
 			deadRef.current = false;
@@ -186,6 +238,7 @@ export function useCombatTick({
 			lastLeechEventRef.current = 0;
 			nextSwingIndexRef.current = 0;
 			regenAccRef.current = 0;
+			// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- flushing HP to the server on deactivation is a sync with an external system; `active` flips from several route paths (retreat, death, travel), so there is no single handler to own it. Convex-transport-shaped: revisit in the Cloudflare migration.
 		} else if (!active && wasActive && !deadRef.current) {
 			syncHp(
 				withSession({
@@ -239,6 +292,9 @@ export function useCombatTick({
 		if (deadRef.current) return;
 		const currentEnemy = enemyRef.current;
 		if (!currentEnemy || currentEnemy.currentHp <= 0) return;
+		if (fightScaledRef.current !== currentEnemy.scaled) {
+			resetForFreshFight(currentEnemy.scaled);
+		}
 
 		const dt = TICK_INTERVAL_MS / 1000;
 
@@ -299,10 +355,7 @@ export function useCombatTick({
 		// life takes the overflow, mirror onto Enemy for the UI bar. Used by
 		// the player-swing branch and the thorns-reflect branch — both share
 		// the same "barrier-first then HP" rule.
-		const applyDamageToEnemy = (
-			amount: number,
-			snapshot: Enemy,
-		): { updated: Enemy; hpDamage: number } => {
+		const applyDamageToEnemy = (amount: number, snapshot: Enemy) => {
 			let hpDamage = amount;
 			if (enemyBarrierRef.current.current > 0) {
 				const { state: nextEnemyBarrier, lifeOverflow } = damageBarrier(
@@ -337,7 +390,7 @@ export function useCombatTick({
 			nextSwingIndexRef.current =
 				(nextSwingIndexRef.current + 1) % stats.swings.length;
 
-			const result = rollPlayerSwing({
+			const result = deps.rollPlayerSwing({
 				swing,
 				stats,
 				defender: {
@@ -365,7 +418,7 @@ export function useCombatTick({
 					isCrit: result.isCrit,
 					weaponType: swing.weaponType,
 				});
-				playPlayerSwingSfx(swing.weaponType);
+				deps.playPlayerSwingSfx(swing.weaponType);
 
 				// MVP: leech on physical only; elemental leech is a future mod.
 				// Apply globally regardless of which weapon swung.
@@ -389,7 +442,7 @@ export function useCombatTick({
 					isCrit: false,
 					isMiss: true,
 				});
-				playSfx("combat/errarHit.wav", {
+				deps.playSfx("combat/errarHit.wav", {
 					volume: 0.25,
 					pitchVariance: 0.1,
 					exclusive: true,
@@ -398,7 +451,7 @@ export function useCombatTick({
 		}
 
 		if (enemySwing) {
-			const attack = rollEnemyAttack({
+			const attack = deps.rollEnemyAttack({
 				enemyAccuracy: currentEnemy.scaled.accuracy,
 				physicalDamage: currentEnemy.scaled.physicalDamage,
 				elementalDamage: currentEnemy.scaled.elementalDamage,
@@ -416,7 +469,7 @@ export function useCombatTick({
 			});
 			if (attack.isMiss) {
 				pushEvent({ amount: 0, target: "player", isMiss: true });
-				playSfx("combat/esquiva.wav", {
+				deps.playSfx("combat/esquiva.wav", {
 					volume: 0.5,
 					pitchVariance: 0.1,
 					exclusive: true,
@@ -424,7 +477,7 @@ export function useCombatTick({
 			} else if (attack.isBlocked) {
 				// No damage to barrier/life, but the hit still "lands" for thorns.
 				pushEvent({ amount: 0, target: "player", isBlocked: true });
-				playSfx("combat/block.wav", {
+				deps.playSfx("combat/block.wav", {
 					volume: 0.5,
 					pitchVariance: 0.1,
 					exclusive: true,
@@ -443,7 +496,7 @@ export function useCombatTick({
 					target: "player",
 					isCrit: attack.isCrit,
 				});
-				playSfx(
+				deps.playSfx(
 					attack.isCrit ? "combat/critico.wav" : "combat/tomandoHit.wav",
 					{
 						volume: 0.3,
@@ -454,7 +507,7 @@ export function useCombatTick({
 
 				if (result.newLife <= 0 && !deadRef.current) {
 					deadRef.current = true;
-					playSfx("morte.wav");
+					deps.playSfx("morte.wav");
 					queueMicrotask(() => onPlayerDeath());
 				}
 			}
@@ -504,7 +557,9 @@ export function useCombatTick({
 	// ticks (playerHp state changes every damage frame; including it in deps
 	// would recreate the callback at 50ms cadence and invalidate any
 	// downstream memoization).
-	const usePotion = useCallback(async () => {
+	// Named `drinkPotion`, not `usePotion`: it's a plain async action, and a
+	// `use*` name makes the hooks lint treat every caller as a hook call.
+	const drinkPotion = useCallback(async () => {
 		if (potions <= 0 || playerHpRef.current >= maxHp) return;
 		const prevHp = playerHpRef.current;
 		const heal = Math.floor(maxHp * POTION_HEAL_FRACTION);
@@ -541,7 +596,7 @@ export function useCombatTick({
 
 	return {
 		playerHp,
-		usePotion,
+		drinkPotion,
 		restoreToFull,
 	};
 }

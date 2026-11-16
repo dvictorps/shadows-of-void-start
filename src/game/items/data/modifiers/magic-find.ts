@@ -1,7 +1,7 @@
 import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
-export const MAGIC_FIND_MODIFIERS: Record<string, Modifier> = {
+export const MAGIC_FIND_MODIFIERS = {
 	itemRarityIncreasePrefix: {
 		id: "itemRarityIncreasePrefix",
 		affixType: "prefix",
@@ -40,4 +40,4 @@ export const MAGIC_FIND_MODIFIERS: Record<string, Modifier> = {
 		isGlobalStat: true,
 		tiers: createStandardTiers(5, 10, 41, 50),
 	},
-};
+} satisfies Record<string, Modifier>;

@@ -16,16 +16,16 @@ Read these in order if you're new to the codebase:
 
 **Update docs in the same PR as the code change. Concretely:**
 
-| If your PR… | Update… |
-|---|---|
-| Adds, removes, or renames a file/directory referenced in `docs/codebase-map.md` | The matching table row(s) in `codebase-map.md` |
-| Changes a game-design rule (combat formula, drop rate, balance number, retention tier, etc) | The relevant section of `CONTEXT.md` — that file is the single source of truth |
-| Ships a queued item from `docs/plans/in-progress.md` | Remove (or rewrite) the queued entry; closed work belongs in commit history, not this file |
-| Materially changes line counts the docs cite (a refactor that breaks a "currently N lines" claim) | The cited number(s) in `codebase-map.md` and `in-progress.md` |
-| Adds a new system that didn't exist before (skill, passive node, stash, leaderboard, etc) | Write a new playbook under `docs/playbooks/` + a sentinel under `_examples/` + a `CONTEXT.md` section. If the choice is load-bearing, write a new ADR under `docs/adr/` |
-| Changes the shape of a type that a playbook documents (Modifier, Template, Monster, Zone, Class) | The sentinel under `docs/playbooks/_examples/` AND the playbook's example block. `tsc --noEmit` will fail otherwise |
-| Reverses an architectural decision already in an ADR | Append an "Update" or "Superseded by" note to the existing ADR; do NOT silently rewrite it |
-| Closes a threat in `docs/security/threat-model.md` | Mark the threat closed inline, link the PR/commit |
+| If your PR…                                                                                       | Update…                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Adds, removes, or renames a file/directory referenced in `docs/codebase-map.md`                   | The matching table row(s) in `codebase-map.md`                                                                                                                          |
+| Changes a game-design rule (combat formula, drop rate, balance number, retention tier, etc)       | The relevant section of `CONTEXT.md` — that file is the single source of truth                                                                                          |
+| Ships a queued item from `docs/plans/in-progress.md`                                              | Remove (or rewrite) the queued entry; closed work belongs in commit history, not this file                                                                              |
+| Materially changes line counts the docs cite (a refactor that breaks a "currently N lines" claim) | The cited number(s) in `codebase-map.md` and `in-progress.md`                                                                                                           |
+| Adds a new system that didn't exist before (skill, passive node, stash, leaderboard, etc)         | Write a new playbook under `docs/playbooks/` + a sentinel under `_examples/` + a `CONTEXT.md` section. If the choice is load-bearing, write a new ADR under `docs/adr/` |
+| Changes the shape of a type that a playbook documents (Modifier, Template, Monster, Zone, Class)  | The sentinel under `docs/playbooks/_examples/` AND the playbook's example block. `tsc --noEmit` will fail otherwise                                                     |
+| Reverses an architectural decision already in an ADR                                              | Append an "Update" or "Superseded by" note to the existing ADR; do NOT silently rewrite it                                                                              |
+| Closes a threat in `docs/security/threat-model.md`                                                | Mark the threat closed inline, link the PR/commit                                                                                                                       |
 
 **Triggers that mean "find the doc and update it":**
 
@@ -48,7 +48,8 @@ When in doubt, **prefer updating an existing doc to creating a new one**. The or
 - **Backend:** Convex (database + auth)
 - **Build:** Vite + oxlint (lint) + oxfmt (format) + Vitest (testing). Lint config is `oxlint.config.ts`; the `anti-slop` and `you-might-not-need-an-effect` JS plugins are vendored under `tools/oxlint/`
 - **Path alias:** `#/*` → `./src/*` (client only — convex uses relative paths)
-- **Lint discipline:** the codebase has a recorded oxlint baseline debt (see `docs/plans/in-progress.md`). New files must pass `npx oxlint <file>` with zero errors, and don't add errors to files you touch. Don't run `npm run format` repo-wide until the line-ending policy in that same note is decided.
+- **Lint discipline:** `pnpm lint:errors` must stay at zero, and the lefthook pre-push gate enforces it. Inline `oxlint-disable` is only for a real external constraint, and the comment must say why the documented pattern does not apply. Otherwise fix the code.
+- **Package manager / formatting:** pnpm (`pnpm-lock.yaml`). Line endings are LF everywhere (`.gitattributes`). The lefthook pre-commit hook runs `oxlint --fix` and `oxfmt` on staged files, so don't hand-format.
 
 ## Game Context
 
@@ -127,15 +128,15 @@ You do NOT need to touch `generator.ts` unless you're adding a new `LocalStatTar
 
 Local mods declare what they do via `statEffect` so the generator applies them automatically:
 
-| target | operation | What it does |
-|---|---|---|
-| `"physicalDamage"` | `"flat"` | Adds value to both minDamage and maxDamage |
-| `"physicalDamage"` | `"increased"` | Multiplies physical damage by `(1 + value/100)` |
-| `"attackSpeed"` | `"increased"` | Multiplies attack speed by `(1 + value/100)` |
-| `"criticalChance"` | `"increased"` | Multiplies crit chance by `(1 + value/100)` — NOT flat additive |
-| `"elementalDamage"` | `"flat"` | Adds a new elemental damage line. Requires `element: "Cold"` etc. |
-| `"defense"` | `"flat"` | Adds flat defense (resolved to armor/evasion/barrier by armorType) |
-| `"defense"` | `"increased"` | Multiplies defense by `(1 + value/100)` |
+| target              | operation     | What it does                                                       |
+| ------------------- | ------------- | ------------------------------------------------------------------ |
+| `"physicalDamage"`  | `"flat"`      | Adds value to both minDamage and maxDamage                         |
+| `"physicalDamage"`  | `"increased"` | Multiplies physical damage by `(1 + value/100)`                    |
+| `"attackSpeed"`     | `"increased"` | Multiplies attack speed by `(1 + value/100)`                       |
+| `"criticalChance"`  | `"increased"` | Multiplies crit chance by `(1 + value/100)` — NOT flat additive    |
+| `"elementalDamage"` | `"flat"`      | Adds a new elemental damage line. Requires `element: "Cold"` etc.  |
+| `"defense"`         | `"flat"`      | Adds flat defense (resolved to armor/evasion/barrier by armorType) |
+| `"defense"`         | `"increased"` | Multiplies defense by `(1 + value/100)`                            |
 
 To add a new stat target (e.g., `"blockChance"`), add it to `LocalStatTarget` in `types/mods.ts` and handle it in `computeWeaponStats` or `computeArmorStats` in `generator.ts`.
 
@@ -143,10 +144,10 @@ To add a new stat target (e.g., `"blockChance"`), add it to `LocalStatTarget` in
 
 Use groups instead of listing individual slots:
 
-| Group | Expands to |
-|---|---|
-| `"allArmor"` | helmet, chestplate, boots, gloves |
-| `"allJewelry"` | ring, amulet, belt |
+| Group                | Expands to                                              |
+| -------------------- | ------------------------------------------------------- |
+| `"allArmor"`         | helmet, chestplate, boots, gloves                       |
+| `"allJewelry"`       | ring, amulet, belt                                      |
 | `"allAttackWeapons"` | sword, greatsword, dagger, bow, axe, mace, twoHandedAxe |
 
 Groups are defined in `types/base.ts` → `EQUIPMENT_GROUPS`. Adding a new equipment slot to a group automatically includes it in all modifiers using that group.
@@ -157,13 +158,13 @@ You can mix groups with individual types: `["allAttackWeapons", "helmet", "glove
 
 Controls how likely a mod is to roll. Default is `1000`. Higher = more common.
 
-| Weight | Meaning | Examples |
-|---|---|---|
-| 2000 | Very common (bad mod) | Light Radius |
-| 1500-1800 | Common (filler) | Thorns, Stun Duration |
-| 1000 | Standard (default) | Most mods |
-| 500-600 | Uncommon (good) | Attack Speed, Crit Chance, Life |
-| 400 | Rare (premium) | Life Leech |
+| Weight    | Meaning               | Examples                        |
+| --------- | --------------------- | ------------------------------- |
+| 2000      | Very common (bad mod) | Light Radius                    |
+| 1500-1800 | Common (filler)       | Thorns, Stun Duration           |
+| 1000      | Standard (default)    | Most mods                       |
+| 500-600   | Uncommon (good)       | Attack Speed, Crit Chance, Life |
+| 400       | Rare (premium)        | Life Leech                      |
 
 ### Tier System
 
@@ -173,13 +174,13 @@ Controls how likely a mod is to roll. Default is `1000`. Higher = more common.
 
 ### Rarity System
 
-| Rarity | Explicits | Max Prefix | Max Suffix |
-|---|---|---|---|
-| normal | 0 | 0 | 0 |
-| magic | 1-2 | 2 | 2 |
-| rare | 3-4 | 2 | 2 |
-| legendary | 5 | 3 | 3 |
-| epic | 6 | 3 | 3 |
+| Rarity    | Explicits | Max Prefix | Max Suffix |
+| --------- | --------- | ---------- | ---------- |
+| normal    | 0         | 0          | 0          |
+| magic     | 1-2       | 2          | 2          |
+| rare      | 3-4       | 2          | 2          |
+| legendary | 5         | 3          | 3          |
+| epic      | 6         | 3          | 3          |
 
 Epic is the highest tier (above legendary).
 
@@ -203,6 +204,7 @@ Epic is the highest tier (above legendary).
 ### Tests
 
 Run with `npx vitest run src/game/items/generator.test.ts`. Tests cover:
+
 - Mod counts per rarity, prefix/suffix limits, no duplicates
 - Integer values only (no decimals)
 - Spell weapon exclusions, attack weapon computed stats

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+
 import type { ItemRarity } from "#/game/items/types";
 
 // Keyed by ItemRarity (the superset). MonsterRarity overlaps on
@@ -10,23 +11,23 @@ import type { ItemRarity } from "#/game/items/types";
 // colored border + colored box-shadow). ItemTooltip passes true only for
 // legendary/epic/unique; MonsterTooltip passes true always.
 
-export const RARITY_COLORS: Record<ItemRarity, string> = {
+export const RARITY_COLORS = {
 	normal: "#c8c8c8",
 	magic: "#8888ff",
 	rare: "#ffff77",
 	legendary: "#dc143c",
 	epic: "#1eff00",
 	unique: "#af6025",
-};
+} satisfies Record<ItemRarity, string>;
 
-export const RARITY_HEADER_BG: Record<ItemRarity, string> = {
+export const RARITY_HEADER_BG = {
 	normal: "transparent",
 	magic: "rgba(56, 56, 120, 0.35)",
 	rare: "rgba(120, 110, 30, 0.35)",
 	legendary: "rgba(140, 10, 30, 0.3)",
 	epic: "rgba(15, 130, 0, 0.3)",
 	unique: "rgba(95, 50, 15, 0.35)",
-};
+} satisfies Record<ItemRarity, string>;
 
 export function TooltipSeparator() {
 	return (

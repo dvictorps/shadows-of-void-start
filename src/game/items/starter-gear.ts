@@ -109,27 +109,28 @@ const tatteredLeatherVest: GeneratedItem = {
 	computedDefenseStats: { evasion: 20 },
 };
 
-const STARTER_ITEMS: Record<string, GeneratedItem> = {
-	"starter:rusty_sword": rustySword,
-	"starter:rusty_dagger": rustyDagger,
-	"starter:cracked_wand": crackedWand,
-	"starter:tattered_leather_vest": tatteredLeatherVest,
-};
+// Keyed by the persisted item id (a plain string), so lookups go through a Map.
+const STARTER_ITEMS: ReadonlyMap<string, GeneratedItem> = new Map([
+	["starter:rusty_sword", rustySword],
+	["starter:rusty_dagger", rustyDagger],
+	["starter:cracked_wand", crackedWand],
+	["starter:tattered_leather_vest", tatteredLeatherVest],
+]);
 
-export const STARTER_WEAPON_BY_CLASS: Record<CharacterClassId, string> = {
+export const STARTER_WEAPON_BY_CLASS = {
 	warrior: "starter:rusty_sword",
 	rogue: "starter:rusty_dagger",
 	mage: "starter:cracked_wand",
-};
+} satisfies Record<CharacterClassId, string>;
 
 // Per-class starter armor — currently only rogues get one (warriors have HP
 // and mages have barrier from their class; rogues' evasion identity needs a
-// piece of leather to activate). Empty entries mean "no starter armor".
-export const STARTER_CHESTPLATE_BY_CLASS: Partial<
-	Record<CharacterClassId, string>
-> = {
+// piece of leather to activate). `undefined` entries mean "no starter armor".
+export const STARTER_CHESTPLATE_BY_CLASS = {
+	warrior: undefined,
 	rogue: "starter:tattered_leather_vest",
-};
+	mage: undefined,
+} satisfies Record<CharacterClassId, string | undefined>;
 
 /**
  * Resolve a starter-item id (e.g., "starter:rusty_sword") to its definition.
@@ -137,5 +138,5 @@ export const STARTER_CHESTPLATE_BY_CLASS: Partial<
  * different prefix).
  */
 export function findStarterItem(id: string): GeneratedItem | null {
-	return STARTER_ITEMS[id] ?? null;
+	return STARTER_ITEMS.get(id) ?? null;
 }

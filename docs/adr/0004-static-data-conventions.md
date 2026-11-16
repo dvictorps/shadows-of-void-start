@@ -21,23 +21,24 @@ Three conventions hold uniformly across the codebase. This ADR codifies them so 
 Game design data that is **fixed by the developer** (and changes only via code edits + a redeploy) lives in `src/game/`. Player-mutable state lives in `convex/schema.ts`.
 
 Concretely:
+
 - **In `src/game/`**: monster stats, item base templates, modifier pools, class definitions, vendor product catalog, world node graph + connections, drop tables, level-XP curves, formulas (damage, sell price, travel time).
 - **In `convex/schema.ts`**: character documents (level, hp, rubys, attributes, location, travel state), items rolled at runtime (with their snapshot in `data`), user role rows.
 
-The test: *can the player's actions change this row?* If yes, DB. If no, `src/game/`. An exception requires this ADR to be amended.
+The test: _can the player's actions change this row?_ If yes, DB. If no, `src/game/`. An exception requires this ADR to be amended.
 
 ### Rule 2 — Convex stores the id; `src/game/` owns the definition
 
 When a DB row needs to reference static game data, it stores the **id as a string** and resolves it at use time via a safe lookup helper:
 
-| DB field | Helper | Lookup target |
-|---|---|---|
-| `characters.classId` | `findClassDefinition(id)` | `CLASS_DEFINITIONS` |
-| `characters.currentLocation`, `unlockedNodes[]`, `completedZones[]` | `findNode(ACT_1, id)` | `ACT_1.nodes` |
-| `items.data.templateId` | `TEMPLATE_BY_ID.get(id)` | `EQUIPMENT_TEMPLATES` |
-| `items.droppedFrom` | `findMonster(id)` | `MONSTERS` |
-| `vendorBuy.productId` | `findVendorProduct(id)` | `VENDOR_PRODUCTS` |
-| equipped weapon (starter) | `findStarterItem(id)` | `STARTER_ITEMS` |
+| DB field                                                            | Helper                    | Lookup target         |
+| ------------------------------------------------------------------- | ------------------------- | --------------------- |
+| `characters.classId`                                                | `findClassDefinition(id)` | `CLASS_DEFINITIONS`   |
+| `characters.currentLocation`, `unlockedNodes[]`, `completedZones[]` | `findNode(ACT_1, id)`     | `ACT_1.nodes`         |
+| `items.data.templateId`                                             | `TEMPLATE_BY_ID.get(id)`  | `EQUIPMENT_TEMPLATES` |
+| `items.droppedFrom`                                                 | `findMonster(id)`         | `MONSTERS`            |
+| `vendorBuy.productId`                                               | `findVendorProduct(id)`   | `VENDOR_PRODUCTS`     |
+| equipped weapon (starter)                                           | `findStarterItem(id)`     | `STARTER_ITEMS`       |
 
 Each helper returns `null` (or throws on the mutation path) when the id is unknown — never crashes, never silently corrupts. The convention is:
 
@@ -66,7 +67,7 @@ This rule doesn't sanction caching arbitrarily. The two existing instances were 
 ## Consequences
 
 - A new domain (skills, passives, stash items, etc.) follows the same shape automatically: definitions in `src/game/<domain>/data.ts` with a `findX(id)` helper; player-mutable state in `convex/schema.ts` as a new table or fields on `characters`; cross-references via string id.
-- A future "skill levels" feature (per-character allocation of skill points) puts the *catalog of skills* in `src/game/skills/` and the *per-character allocation* in `convex/schema.ts` — the rule disambiguates without further discussion.
+- A future "skill levels" feature (per-character allocation of skill points) puts the _catalog of skills_ in `src/game/skills/` and the _per-character allocation_ in `convex/schema.ts` — the rule disambiguates without further discussion.
 - Refactors that move data from `src/game/` to the DB (or vice versa) require amending this ADR, because they break the established mental model that every future agent will rely on.
 - The audit that produced this ADR found zero drift today. Anything that introduces drift in the future is a regression: a string id in the DB without a corresponding `findX()` helper, a player-mutable field in `src/game/`, or a denormalized cache without the inline-comment gate.
 

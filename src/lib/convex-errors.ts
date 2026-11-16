@@ -1,4 +1,5 @@
 import { ConvexError } from "convex/values";
+
 import { m } from "#/paraglide/messages";
 
 /**
@@ -7,6 +8,7 @@ import { m } from "#/paraglide/messages";
  * through translateServerError() to surface a localized message; non-Convex
  * errors fall back to the caller-provided default.
  */
+// oxlint-disable-next-line anti-slop/no-unknown-parameters -- this IS the decoder for catch-clause values, which the language types as `unknown`; it narrows via instanceof before reading anything.
 export function convexErrorMessage(err: unknown, fallback: string): string {
 	if (err instanceof ConvexError) {
 		return translateServerError(String(err.data));

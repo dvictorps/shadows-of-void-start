@@ -4,6 +4,7 @@
 // and ungendered in EN, or even a different gender in another language.
 
 import type { MonsterId } from "#/game/monsters";
+
 import type {
 	GenderedForm,
 	GenderedNoun,
@@ -12,7 +13,7 @@ import type {
 	SuffixMonsterModId,
 } from "./types";
 
-const monsterGender: Record<MonsterId, "m" | "f"> = {
+const monsterGender = {
 	goblin: "m",
 	slime: "m",
 	macaco: "m",
@@ -26,9 +27,9 @@ const monsterGender: Record<MonsterId, "m" | "f"> = {
 	lich: "m",
 	olho_do_vazio: "m",
 	criatura_do_vazio: "f",
-};
+} satisfies Record<MonsterId, "m" | "f">;
 
-const prefixAdj: Record<PrefixMonsterModId, GenderedForm> = {
+const prefixAdj = {
 	monsterIncreasedLife: { m: "Robusto", f: "Robusta" },
 	monsterIncreasedDamage: { m: "Furioso", f: "Furiosa" },
 	monsterIncreasedEvasion: { m: "Esquivo", f: "Esquiva" },
@@ -39,11 +40,11 @@ const prefixAdj: Record<PrefixMonsterModId, GenderedForm> = {
 	monsterFireDamage: { m: "Flamejante", f: "Flamejante" },
 	monsterLightningDamage: { m: "Crepitante", f: "Crepitante" },
 	monsterVoidDamage: { m: "Sombrio", f: "Sombria" },
-};
+} satisfies Record<PrefixMonsterModId, GenderedForm>;
 
 // Suffix nouns carry their own gender so the renderer can pick "do" (m) vs
 // "da" (f). Two suffixes join with " e " in PT.
-const suffixNoun: Record<SuffixMonsterModId, GenderedNoun> = {
+const suffixNoun = {
 	monsterIncreasedAttackSpeed: { noun: "Velocidade", gender: "f" },
 	monsterIncreasedAccuracy: { noun: "Precisão", gender: "f" },
 	monsterColdResistance: { noun: "Frio", gender: "m" },
@@ -51,7 +52,7 @@ const suffixNoun: Record<SuffixMonsterModId, GenderedNoun> = {
 	monsterLightningResistance: { noun: "Raio", gender: "m" },
 	monsterVoidResistance: { noun: "Vazio", gender: "m" },
 	monsterCriticalMultiplier: { noun: "Massacre", gender: "m" },
-};
+} satisfies Record<SuffixMonsterModId, GenderedNoun>;
 
 // Rare proper-name pools. Format: "<FirstNoun> <SecondPhrase>" with the
 // preposition (de / do / da / das) baked into the second-pool entry so the
@@ -96,7 +97,7 @@ const rareSecondWords: readonly string[] = [
 	"do Caos",
 ];
 
-const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
+const rareEpithetsByPrefix = {
 	monsterIncreasedLife: ["o Robusto", "o Resoluto", "o Vigoroso", "o Tenaz"],
 	monsterIncreasedDamage: [
 		"o Furioso",
@@ -132,7 +133,7 @@ const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
 		"o Eletrizante",
 	],
 	monsterVoidDamage: ["o Sombrio", "o Profano", "o Maculado", "o Aberrante"],
-};
+} satisfies Record<PrefixMonsterModId, readonly string[]>;
 
 const rareCompoundEpithets: readonly string[] = [
 	"o Inquebrável",

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { POTION_HEAL_FRACTION } from "./constants";
 import { resolvePotionUse } from "./potion";
 

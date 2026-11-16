@@ -10,8 +10,9 @@ import {
 	useSensor,
 	useSensors,
 } from "@dnd-kit/core";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
@@ -22,7 +23,9 @@ import {
 import type { GeneratedItem } from "#/game/items/types";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { useInFlight } from "#/hooks/useInFlight";
+import { useOpenedEdge } from "#/hooks/useOpenedEdge";
 import { m } from "#/paraglide/messages";
+
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const SLOT_SIZE_DEFAULT = 76;
@@ -53,7 +56,11 @@ type Props = {
 		targetSlot: number;
 		swapWithItemId?: Id<"items">;
 	}) => void;
-	onReorderStash: (args: { itemId: Id<"items">; targetSlot: number; swapWithItemId?: Id<"items"> }) => void;
+	onReorderStash: (args: {
+		itemId: Id<"items">;
+		targetSlot: number;
+		swapWithItemId?: Id<"items">;
+	}) => void;
 };
 
 export default function StashModal({
@@ -79,17 +86,18 @@ export default function StashModal({
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
 	);
 
-	useEffect(() => {
-		if (!isOpen) return;
+	// Clear both selections on the closed → open edge, during render ("adjust
+	// state when a prop changes") so the first open frame is already clean.
+	const justOpened = useOpenedEdge(isOpen);
+	if (justOpened) {
 		setInvSelected(new Set());
 		setStashSelected(new Set());
-	}, [isOpen]);
+	}
 
 	const inventoryBySlot = useMemo(() => {
 		const map = new Map<number, Doc<"items">>();
 		for (const item of inventoryItems) {
-			if (typeof item.inventorySlot === "number")
-				map.set(item.inventorySlot, item);
+			if (item.inventorySlot !== undefined) map.set(item.inventorySlot, item);
 		}
 		return map;
 	}, [inventoryItems]);
@@ -97,7 +105,7 @@ export default function StashModal({
 	const stashBySlot = useMemo(() => {
 		const map = new Map<number, Doc<"items">>();
 		for (const item of stashItems) {
-			if (typeof item.stashSlot === "number") map.set(item.stashSlot, item);
+			if (item.stashSlot !== undefined) map.set(item.stashSlot, item);
 		}
 		return map;
 	}, [stashItems]);
@@ -116,23 +124,25 @@ export default function StashModal({
 	}, [active, inventoryItems, stashItems]);
 
 	const handleDragStart = (event: DragStartEvent) => {
-		const data = asDragSource(event.active.data.current);
-		if (data) setActive(data);
+		const data = event.active.data.current;
+		if (isDragSource(data)) setActive(data);
 	};
 
 	const handleDragCancel = () => setActive(null);
 
 	const handleDragEnd = async (event: DragEndEvent) => {
-		const source = asDragSource(event.active.data.current);
-		const target = asDropTarget(event.over?.data.current);
+		const source = event.active.data.current;
+		const target = event.over?.data.current;
 		setActive(null);
-		if (!source || !target) return;
+		if (!isDragSource(source) || !isDropTarget(target)) return;
 
 		// Same panel reorder
 		if (source.kind === "inventory" && target.kind === "inventory") {
 			const doc = inventoryItems.find((it) => it._id === source.itemId);
 			if (!doc || doc.inventorySlot === target.slot) return;
-			const occupant = inventoryItems.find((it) => it.inventorySlot === target.slot && it._id !== source.itemId);
+			const occupant = inventoryItems.find(
+				(it) => it.inventorySlot === target.slot && it._id !== source.itemId,
+			);
 			onReorderInventory({
 				itemId: source.itemId,
 				targetSlot: target.slot,
@@ -143,8 +153,14 @@ export default function StashModal({
 		if (source.kind === "stash" && target.kind === "stash") {
 			const doc = stashItems.find((it) => it._id === source.itemId);
 			if (!doc || doc.stashSlot === target.slot) return;
-			const stashOccupant = stashItems.find((it) => it.stashSlot === target.slot && it._id !== source.itemId);
-			onReorderStash({ itemId: source.itemId, targetSlot: target.slot, swapWithItemId: stashOccupant?._id });
+			const stashOccupant = stashItems.find(
+				(it) => it.stashSlot === target.slot && it._id !== source.itemId,
+			);
+			onReorderStash({
+				itemId: source.itemId,
+				targetSlot: target.slot,
+				swapWithItemId: stashOccupant?._id,
+			});
 			return;
 		}
 
@@ -366,7 +382,6 @@ export default function StashModal({
 									const item = inventoryBySlot.get(slot) ?? null;
 									return (
 										<StashSlotDroppable
-											// biome-ignore lint/suspicious/noArrayIndexKey: fixed grid, slot index IS the identity
 											key={`inv-${slot}`}
 											droppableId={`inv-${slot}`}
 											kind="inventory"
@@ -437,7 +452,6 @@ export default function StashModal({
 										const item = stashBySlot.get(slot) ?? null;
 										return (
 											<StashSlotDroppable
-												// biome-ignore lint/suspicious/noArrayIndexKey: fixed grid, slot index IS the identity
 												key={`stash-${slot}`}
 												droppableId={`stash-${slot}`}
 												kind="stash"
@@ -539,15 +553,13 @@ function DraggableStashItem({
 	onClick: (itemId: Id<"items">, shiftKey: boolean) => void;
 	slotSize: number;
 }) {
-	const handle = useDraggable({
+	const { attributes, listeners, setNodeRef } = useDraggable({
 		id: `${dragKind}-${item._id}`,
 		data: { kind: dragKind, itemId: item._id } satisfies DragSourceData,
 	});
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: dnd-kit handles keyboard via handle.attributes
-		// biome-ignore lint/a11y/noStaticElementInteractions: dnd-kit manages accessibility via handle.attributes
 		<div
-			ref={handle.setNodeRef}
+			ref={setNodeRef}
 			className="absolute inset-0"
 			style={{
 				opacity: hidden ? 0 : 1,
@@ -561,36 +573,31 @@ function DraggableStashItem({
 							onClick(item._id, e.shiftKey);
 						}
 			}
-			{...handle.listeners}
-			{...handle.attributes}
+			{...listeners}
+			{...attributes}
 		>
 			<ItemCard item={item.data} size={slotSize} suppressTooltip={hidden} />
 		</div>
 	);
 }
 
-function asDragSource(d: unknown): DragSourceData | undefined {
-	if (!d || typeof d !== "object") return undefined;
-	const obj = d as Record<string, unknown>;
-	const itemId = obj.itemId;
-	if (typeof itemId !== "string") return undefined;
-	if (obj.kind === "inventory") {
-		return { kind: "inventory", itemId: itemId as Id<"items"> };
-	}
-	if (obj.kind === "stash") {
-		return { kind: "stash", itemId: itemId as Id<"items"> };
-	}
-	return undefined;
+// @dnd-kit types `data.current` as an open record; these guards are the
+// `unknown` boundary. `itemId` is only checked to be a string: Id<"items"> is
+// a compile-time brand and every draggable here registers a real item id.
+
+function isDragSource(d: unknown): d is DragSourceData {
+	if (typeof d !== "object" || d === null) return false;
+	if (!("kind" in d) || !("itemId" in d)) return false;
+	return (
+		(d.kind === "inventory" || d.kind === "stash") &&
+		typeof d.itemId === "string"
+	);
 }
 
-function asDropTarget(d: unknown): DropTargetData | undefined {
-	if (!d || typeof d !== "object") return undefined;
-	const obj = d as Record<string, unknown>;
-	if (
-		(obj.kind === "inventory" || obj.kind === "stash") &&
-		typeof obj.slot === "number"
-	) {
-		return { kind: obj.kind, slot: obj.slot };
-	}
-	return undefined;
+function isDropTarget(d: unknown): d is DropTargetData {
+	if (typeof d !== "object" || d === null) return false;
+	if (!("kind" in d) || !("slot" in d)) return false;
+	return (
+		(d.kind === "inventory" || d.kind === "stash") && typeof d.slot === "number"
+	);
 }

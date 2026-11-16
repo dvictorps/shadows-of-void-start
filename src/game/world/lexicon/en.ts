@@ -7,7 +7,7 @@ import type {
 	SuffixMonsterModId,
 } from "./types";
 
-const prefixAdj: Record<PrefixMonsterModId, string> = {
+const prefixAdj = {
 	monsterIncreasedLife: "Tough",
 	monsterIncreasedDamage: "Vicious",
 	monsterIncreasedEvasion: "Elusive",
@@ -18,9 +18,9 @@ const prefixAdj: Record<PrefixMonsterModId, string> = {
 	monsterFireDamage: "Burning",
 	monsterLightningDamage: "Sparking",
 	monsterVoidDamage: "Voidtouched",
-};
+} satisfies Record<PrefixMonsterModId, string>;
 
-const suffixNoun: Record<SuffixMonsterModId, string> = {
+const suffixNoun = {
 	monsterIncreasedAttackSpeed: "Swiftness",
 	monsterIncreasedAccuracy: "Precision",
 	monsterColdResistance: "Frost",
@@ -28,7 +28,7 @@ const suffixNoun: Record<SuffixMonsterModId, string> = {
 	monsterLightningResistance: "Storm",
 	monsterVoidResistance: "Void",
 	monsterCriticalMultiplier: "Slaughter",
-};
+} satisfies Record<SuffixMonsterModId, string>;
 
 // Rare proper-name pools. First word stays capitalized, second word stays
 // lowercase, then concatenated without a space ("Stonemaw", "Frostfang").
@@ -67,7 +67,7 @@ const rareSecondWords: readonly string[] = [
 	"heart",
 ];
 
-const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
+const rareEpithetsByPrefix = {
 	monsterIncreasedLife: [
 		"the Tough",
 		"the Resolute",
@@ -118,7 +118,7 @@ const rareEpithetsByPrefix: Record<PrefixMonsterModId, readonly string[]> = {
 		"the Hollow-Eyed",
 		"the Cursed",
 	],
-};
+} satisfies Record<PrefixMonsterModId, readonly string[]>;
 
 const rareCompoundEpithets: readonly string[] = [
 	"the Unbroken",

@@ -18,7 +18,7 @@ export interface WeaponFx {
 	sound: string;
 }
 
-export const WEAPON_FX: Record<WeaponType, WeaponFx> = {
+export const WEAPON_FX = {
 	sword: { visual: "slash", sound: "combat/cortante.wav" },
 	axe: { visual: "slash", sound: "combat/cortante.wav" },
 	greatsword: { visual: "slash", sound: "combat/cortante.wav" },
@@ -28,4 +28,4 @@ export const WEAPON_FX: Record<WeaponType, WeaponFx> = {
 	mace: { visual: "impact", sound: "combat/impacto.wav" },
 	wand: { visual: "magic", sound: "combat/magia.wav" },
 	staff: { visual: "magic", sound: "combat/magia.wav" },
-};
+} satisfies Record<WeaponType, WeaponFx>;

@@ -1,7 +1,7 @@
 import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
-export const UTILITY_MODIFIERS: Record<string, Modifier> = {
+export const UTILITY_MODIFIERS = {
 	movementSpeedIncrease: {
 		id: "movementSpeedIncrease",
 		affixType: "suffix",
@@ -50,4 +50,4 @@ export const UTILITY_MODIFIERS: Record<string, Modifier> = {
 		weight: 1500,
 		tiers: createStandardTiers(5, 10, 21, 25),
 	},
-};
+} satisfies Record<string, Modifier>;

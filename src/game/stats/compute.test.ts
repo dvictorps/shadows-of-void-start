@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { CLASS_DEFINITIONS } from "../classes/data";
 import type { GeneratedItem, RolledMod } from "../items/types";
 import {
@@ -255,7 +256,9 @@ describe("computeCharacterStats — equipment contributions", () => {
 			name: "Test Shield",
 			itemLevel: 10,
 			baseStats: { barrier: 30, blockChance: 22 },
-			implicits: [{ modifierId: "blockChanceIncrease", description: "", value: 18 }],
+			implicits: [
+				{ modifierId: "blockChanceIncrease", description: "", value: 18 },
+			],
 			explicits: [mod("blockChanceIncrease", 4)],
 			computedDefenseStats: { barrier: 30, blockChance: 44 },
 		};
@@ -326,7 +329,12 @@ describe("computeCharacterStats — equipment contributions", () => {
 			rarity: "rare",
 			name: "Test Wand Phys",
 			itemLevel: 10,
-			baseStats: { minDamage: 12, maxDamage: 25, attackSpeed: 1.0, criticalChance: 6 },
+			baseStats: {
+				minDamage: 12,
+				maxDamage: 25,
+				attackSpeed: 1.0,
+				criticalChance: 6,
+			},
 			implicits: [],
 			explicits: [],
 			computedStats: {
@@ -345,7 +353,9 @@ describe("computeCharacterStats — equipment contributions", () => {
 		const swing = stats.swings[0];
 		expect(swing.physicalDamage).toEqual({ min: 0, max: 0 });
 		const fire = swing.elementalDamage.find((e) => e.element === "Fire");
-		const lightning = swing.elementalDamage.find((e) => e.element === "Lightning");
+		const lightning = swing.elementalDamage.find(
+			(e) => e.element === "Lightning",
+		);
 		expect(fire).toEqual({ element: "Fire", min: 6, max: 12 });
 		expect(lightning).toEqual({ element: "Lightning", min: 13, max: 27 });
 	});

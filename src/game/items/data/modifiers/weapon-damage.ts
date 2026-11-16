@@ -1,7 +1,7 @@
 import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
-export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
+export const WEAPON_DAMAGE_MODIFIERS = {
 	// ── Local attack mods (affect weapon header, attack weapons only) ──
 	physicalDamageFlat: {
 		id: "physicalDamageFlat",
@@ -215,4 +215,4 @@ export const WEAPON_DAMAGE_MODIFIERS: Record<string, Modifier> = {
 		tags: ["critical"],
 		tiers: createStandardTiers(8, 15, 45, 60),
 	},
-};
+} satisfies Record<string, Modifier>;

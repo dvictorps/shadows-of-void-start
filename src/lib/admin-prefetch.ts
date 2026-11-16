@@ -1,5 +1,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
+
 import { api } from "../../convex/_generated/api";
 
 // Fire-and-forget — by the time the user reaches a sidebar tab the

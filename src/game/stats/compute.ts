@@ -162,122 +162,122 @@ function applyModifierValue(
 		// Attributes
 		case "strengthFlat":
 			stats.attributes.strength += v;
-			return;
+			break;
 		case "dexterityFlat":
 			stats.attributes.dexterity += v;
-			return;
+			break;
 		case "intelligenceFlat":
 			stats.attributes.intelligence += v;
-			return;
+			break;
 		case "allAttributesFlat":
 			stats.attributes.strength += v;
 			stats.attributes.dexterity += v;
 			stats.attributes.intelligence += v;
-			return;
+			break;
 
 		// Life / mana
 		case "healthFlat":
 			stats.maxLife += v;
-			return;
+			break;
 		case "manaFlat":
 			stats.maxMana += v;
-			return;
+			break;
 		case "healthRegenFlat":
 			stats.lifeRegen += v;
-			return;
+			break;
 		case "manaRegenFlat":
 			stats.manaRegen += v;
-			return;
+			break;
 
 		// Resistances
 		case "coldResistance":
 			stats.resistances.cold += v;
-			return;
+			break;
 		case "fireResistance":
 			stats.resistances.fire += v;
-			return;
+			break;
 		case "lightningResistance":
 			stats.resistances.lightning += v;
-			return;
+			break;
 		case "voidResistance":
 			stats.resistances.void += v;
-			return;
+			break;
 
 		// Global defenses
 		case "armorFlat":
 			stats.armor += v;
-			return;
+			break;
 		case "evasionFlat":
 			stats.evasion += v;
-			return;
+			break;
 		case "barrierFlat":
 			stats.maxBarrier += v;
-			return;
+			break;
 		case "accuracyFlat":
 			stats.accuracy += v;
-			return;
+			break;
 		case "thornsDamageFlat":
 			stats.thorns += v;
-			return;
+			break;
 		case "blockChanceIncrease":
 			// Baked into the shield's computedDefenseStats.blockChance — must
 			// stay out of the global accumulator to avoid double-count.
-			return;
+			break;
 
 		case "globalArmorIncrease":
 			pcts.armor += v;
-			return;
+			break;
 		case "globalEvasionIncrease":
 			pcts.evasion += v;
-			return;
+			break;
 		case "globalBarrierIncrease":
 			pcts.barrier += v;
-			return;
+			break;
 
 		// Global damage increased
 		case "globalPhysicalDamageIncrease":
 			stats.increased.physical += v;
-			return;
+			break;
 		case "globalColdDamageIncrease":
 			stats.increased.cold += v;
-			return;
+			break;
 		case "globalFireDamageIncrease":
 			stats.increased.fire += v;
-			return;
+			break;
 		case "globalLightningDamageIncrease":
 			stats.increased.lightning += v;
-			return;
+			break;
 		case "globalVoidDamageIncrease":
 			stats.increased.void += v;
-			return;
+			break;
 		case "globalElementalDamageIncrease":
 			stats.increased.elementalGlobal += v;
-			return;
+			break;
 		case "globalElementalDamageWithAttacksIncrease":
 			stats.increased.elementalWithAttacks += v;
-			return;
+			break;
 		case "globalMeleeDamageIncrease":
 			stats.increased.melee += v;
-			return;
+			break;
 		case "globalSpellDamageIncrease":
 			stats.increased.spell += v;
-			return;
+			break;
 
 		// Speed
 		case "globalAttackSpeedIncrease":
 			stats.increased.attackSpeed += v;
-			return;
+			break;
 		case "globalCastSpeedIncrease":
 			stats.increased.castSpeed += v;
-			return;
+			break;
 
 		// Crit
 		case "globalCriticalChanceIncrease":
 			stats.increased.criticalChance += v;
-			return;
+			break;
 		case "criticalStrikeMultiplierFlat":
 			stats.bonusCritMultiplier += v;
-			return;
+			break;
 
 		// Flat damage to attacks — these are summed into a per-element pool but
 		// physically attached to attack swings. We store them on the increased
@@ -293,7 +293,7 @@ function applyModifierValue(
 		case "lightningDamageToAttacksFlatGlobal":
 		case "voidDamageToAttacksFlatGlobal":
 			// Handled in collectGlobalFlatDamage during swing assembly.
-			return;
+			break;
 
 		// Flat damage to spells — only rolls on caster weapons; folded into the
 		// weapon's computed stats already, NOT into character globals.
@@ -301,51 +301,51 @@ function applyModifierValue(
 		case "fireDamageFlat":
 		case "lightningDamageFlat":
 		case "voidDamageFlat":
-			return;
+			break;
 
 		// Utility
 		case "movementSpeedIncrease":
 			stats.movementSpeed += v;
-			return;
+			break;
 		case "lifeGainOnHitFlat":
 			stats.lifeGainOnHit += v;
-			return;
+			break;
 		case "manaGainOnHitFlat":
 			stats.manaGainOnHit += v;
-			return;
+			break;
 		case "lifeOnKillFlat":
 			stats.lifeOnKill += v;
-			return;
+			break;
 		case "manaOnKillFlat":
 			stats.manaOnKill += v;
-			return;
+			break;
 		case "lifeLeechPercent":
 			stats.lifeLeechPercent += v;
-			return;
+			break;
 
 		// MF (prefix + suffix variants both feed magicFind)
 		case "itemRarityIncreasePrefix":
 		case "itemRarityIncreaseSuffix":
 			stats.magicFind += v;
-			return;
+			break;
 
 		case "tomeGainAsExtraCold":
 			stats.gainAsExtraSpell.cold += v;
-			return;
+			break;
 		case "tomeGainAsExtraFire":
 			stats.gainAsExtraSpell.fire += v;
-			return;
+			break;
 		case "tomeGainAsExtraLightning":
 			stats.gainAsExtraSpell.lightning += v;
-			return;
+			break;
 		case "tomeGainAsExtraVoid":
 			stats.gainAsExtraSpell.void += v;
-			return;
+			break;
 
 		// Filler / reserved
 		case "stunDurationIncrease":
 		case "reducedAttributeRequirements":
-			return;
+			break;
 	}
 }
 
@@ -368,28 +368,28 @@ function blankGearFlat(): GearFlatDamage {
 // filtered out at the call site, so they never reach this map in practice).
 // The `*ToAttacksFlatGlobal` ids are the global versions that roll on
 // rings/amulet/gloves/quiver.
-const FLAT_DAMAGE_MAP: Record<string, keyof GearFlatDamage> = {
-	physicalDamageFlatGlobal: "physical",
-	coldDamageToAttacksFlat: "cold",
-	coldDamageToAttacksFlatGlobal: "cold",
-	fireDamageToAttacksFlat: "fire",
-	fireDamageToAttacksFlatGlobal: "fire",
-	lightningDamageToAttacksFlat: "lightning",
-	lightningDamageToAttacksFlatGlobal: "lightning",
-	voidDamageToAttacksFlat: "void",
-	voidDamageToAttacksFlatGlobal: "void",
-};
+const FLAT_DAMAGE_MAP: ReadonlyMap<string, keyof GearFlatDamage> = new Map([
+	["physicalDamageFlatGlobal", "physical"],
+	["coldDamageToAttacksFlat", "cold"],
+	["coldDamageToAttacksFlatGlobal", "cold"],
+	["fireDamageToAttacksFlat", "fire"],
+	["fireDamageToAttacksFlatGlobal", "fire"],
+	["lightningDamageToAttacksFlat", "lightning"],
+	["lightningDamageToAttacksFlatGlobal", "lightning"],
+	["voidDamageToAttacksFlat", "void"],
+	["voidDamageToAttacksFlatGlobal", "void"],
+]);
 
 function collectGlobalFlatDamage(items: EquippedItem[]): GearFlatDamage {
 	const flat = blankGearFlat();
 	for (const { item } of items) {
 		for (const mod of item.implicits) {
 			if (!mod.modifierId) continue;
-			const bucket = FLAT_DAMAGE_MAP[mod.modifierId];
+			const bucket = FLAT_DAMAGE_MAP.get(mod.modifierId);
 			if (bucket) flat[bucket] += mod.value;
 		}
 		for (const mod of item.explicits) {
-			const bucket = FLAT_DAMAGE_MAP[mod.modifierId];
+			const bucket = FLAT_DAMAGE_MAP.get(mod.modifierId);
 			if (bucket) flat[bucket] += mod.value;
 		}
 	}
@@ -470,11 +470,11 @@ function determinePath(
 
 // ── Build a swing profile from a weapon ──
 
-const ELEMENT_DISPLAY_NAME: Record<"fire" | "cold" | "lightning", string> = {
+const ELEMENT_DISPLAY_NAME = {
 	fire: "Fire",
 	cold: "Cold",
 	lightning: "Lightning",
-};
+} satisfies Record<"fire" | "cold" | "lightning", string>;
 
 interface BuildSwingOptions {
 	selectedElement?: "fire" | "cold" | "lightning";
@@ -627,10 +627,7 @@ function computeOnce(
 
 	const mainHand = live.find((eq) => eq.slot === "weapon")?.item ?? null;
 	const offHand = live.find((eq) => eq.slot === "offhand")?.item ?? null;
-	stats.path = determinePath(
-		mainHand,
-		input.classDef?.id as CharacterClassId | undefined,
-	);
+	stats.path = determinePath(mainHand, input.classDef?.id);
 	const offHandType = offHand?.weaponType;
 	// Source of truth for "is this attack dual-wielding?". The public
 	// `isAttackDualWielding(stats)` helper below re-derives the same answer from
@@ -704,7 +701,8 @@ export function computeCharacterStats(
 	const maxIterations = input.equippedItems.length + 1;
 
 	for (let i = 0; i <= maxIterations; i++) {
-		const live = input.equippedItems.filter((eq) => !broken.has(eq.item.id));
+		const brokenIds = broken;
+		const live = input.equippedItems.filter((eq) => !brokenIds.has(eq.item.id));
 		stats = computeOnce(input, live);
 
 		const newBroken = new Set(broken);

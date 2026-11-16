@@ -16,13 +16,18 @@ export function clampVital(value: number, max: number): number {
 	return Math.max(0, Math.min(max, Math.floor(value)));
 }
 
+export interface VitalPatch {
+	hpCurrent?: number;
+	barrierCurrent?: number;
+}
+
 export interface VitalSyncResult {
 	/** The clamped HP, always returned so the caller can echo it to the client
 	 * even when nothing changed. */
 	hpCurrent: number;
 	/** Only the fields that actually changed, so the caller can skip the DB
 	 * write entirely when the patch is empty (the common idle-tick case). */
-	patch: { hpCurrent?: number; barrierCurrent?: number };
+	patch: VitalPatch;
 }
 
 /**
@@ -44,7 +49,7 @@ export function resolveVitalSync(params: {
 			? clampVital(params.clientBarrier, params.maxBarrier)
 			: undefined;
 
-	const patch: { hpCurrent?: number; barrierCurrent?: number } = {};
+	const patch: VitalPatch = {};
 	if (hpCurrent !== params.prevHp) patch.hpCurrent = hpCurrent;
 	if (clampedBarrier !== undefined && clampedBarrier !== params.prevBarrier)
 		patch.barrierCurrent = clampedBarrier;

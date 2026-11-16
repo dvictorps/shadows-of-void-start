@@ -9,6 +9,7 @@
 // shape we want to avoid).
 
 import type { OptimisticLocalStore } from "convex/browser";
+
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 
@@ -45,7 +46,13 @@ export function applyCombatStateDelta(
 	characterId: Id<"characters">,
 	delta: Partial<Doc<"combatState">>,
 ): void {
-	const cs = localStore.getQuery(api.combatState.byCharacterId, { characterId });
+	const cs = localStore.getQuery(api.combatState.byCharacterId, {
+		characterId,
+	});
 	if (!cs) return;
-	localStore.setQuery(api.combatState.byCharacterId, { characterId }, { ...cs, ...delta });
+	localStore.setQuery(
+		api.combatState.byCharacterId,
+		{ characterId },
+		{ ...cs, ...delta },
+	);
 }

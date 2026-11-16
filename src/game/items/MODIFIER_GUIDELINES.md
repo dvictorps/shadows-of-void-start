@@ -43,10 +43,10 @@ Specific design rules for each modifier category. For general system docs (how t
 
 ## Mods That Are Intentionally Bad (High Weight)
 
-| Mod | Weight | Reason |
-|---|---|---|
-| Light Radius | 2000 | Filler, dilutes mod pool |
-| Thorns Damage | 1800 | Weak stat, common roll |
-| Stun Duration | 1500 | Marginal value |
+| Mod           | Weight | Reason                   |
+| ------------- | ------ | ------------------------ |
+| Light Radius  | 2000   | Filler, dilutes mod pool |
+| Thorns Damage | 1800   | Weak stat, common roll   |
+| Stun Duration | 1500   | Marginal value           |
 
 These exist to make good rolls feel rewarding. Do not lower their weight without discussion.

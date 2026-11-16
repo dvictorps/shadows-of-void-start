@@ -34,7 +34,7 @@ export interface KillClassification {
  */
 export function classifyKill(
 	rarity: MonsterRarity,
-	zoneKind: NodeKind | undefined,
+	zoneKind?: NodeKind,
 ): KillClassification {
 	const isBossNodeRareKill = rarity === "rare" && zoneKind === "boss";
 	const isMinibossKill = rarity === "rare" && !isBossNodeRareKill;
@@ -115,7 +115,7 @@ export interface BossKillTally {
 export function tallyBossKill(
 	bossId: string,
 	priorCounts: Record<string, number>,
-	priorTotal: number | undefined,
+	priorTotal?: number,
 ): BossKillTally {
 	const bossKillCounts = {
 		...priorCounts,
