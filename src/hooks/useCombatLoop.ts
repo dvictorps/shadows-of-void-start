@@ -41,6 +41,7 @@ import { useCombatTick, type Vitals } from "./useCombatTick";
 import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
 import { useDelay } from "./useDelay";
 import { useEncounterSchedule } from "./useEncounterSchedule";
+import { useStageCascade } from "./useStageCascade";
 
 // CampSource / DamageEvent are passed through unchanged to CombatScene; the
 // other re-exports give external consumers a single import surface for the
@@ -543,55 +544,27 @@ export function useCombatLoop({
 		},
 	);
 
-	// ── Rare intro stages → cascade into engaged ──
-	useDelay(
-		active && state === "rare_intro" && rareIntroStage === "sprite",
-		RARE_INTRO_STAGE_MS.sprite,
-		() => setRareIntroStage("name"),
+	// ── Intro cinematics → cascade into engaged ──
+	// Spawning a rare sets state "rare_intro" + stage "sprite"; a boss sets
+	// "boss_intro" + "sprite". Each stage holds for its entry in the shared
+	// table, the same for every boss. See CONTEXT.md → Boss Cinematic.
+	const engage = () => {
+		stateRef.current = "engaged";
+		setState("engaged");
+	};
+	useStageCascade(
+		active && state === "rare_intro",
+		rareIntroStage,
+		RARE_INTRO_STAGE_MS,
+		setRareIntroStage,
+		engage,
 	);
-	useDelay(
-		active && state === "rare_intro" && rareIntroStage === "name",
-		RARE_INTRO_STAGE_MS.name,
-		() => setRareIntroStage("hp"),
-	);
-	useDelay(
-		active && state === "rare_intro" && rareIntroStage === "hp",
-		RARE_INTRO_STAGE_MS.hp,
-		() => {
-			setRareIntroStage(null);
-			stateRef.current = "engaged";
-			setState("engaged");
-		},
-	);
-
-	// ── Boss intro stages → cascade into engaged ──
-	// The boss orchestrator (task #6) sets state === "boss_intro" + bossIntroStage
-	// = "sprite" when spawning a boss. Per-boss `BossConfig.cinematic` overrides
-	// the sprite + impact-beat timings; name + hp use the default constants so
-	// every boss feels consistent at the end of the cascade.
-	useDelay(
-		active && state === "boss_intro" && bossIntroStage === "sprite",
-		BOSS_INTRO_STAGE_MS_DEFAULT.sprite,
-		() => setBossIntroStage("impact"),
-	);
-	useDelay(
-		active && state === "boss_intro" && bossIntroStage === "impact",
-		BOSS_INTRO_STAGE_MS_DEFAULT.impact,
-		() => setBossIntroStage("name"),
-	);
-	useDelay(
-		active && state === "boss_intro" && bossIntroStage === "name",
-		BOSS_INTRO_STAGE_MS_DEFAULT.name,
-		() => setBossIntroStage("hp"),
-	);
-	useDelay(
-		active && state === "boss_intro" && bossIntroStage === "hp",
-		BOSS_INTRO_STAGE_MS_DEFAULT.hp,
-		() => {
-			setBossIntroStage(null);
-			stateRef.current = "engaged";
-			setState("engaged");
-		},
+	useStageCascade(
+		active && state === "boss_intro",
+		bossIntroStage,
+		BOSS_INTRO_STAGE_MS_DEFAULT,
+		setBossIntroStage,
+		engage,
 	);
 
 	// ── Victory pause → back to searching (or pause for miniboss modal) ──
