@@ -61,6 +61,8 @@ const EXACT = {
 	[SERVER_ERRORS.nameEmpty]: m.name_cannot_be_empty,
 	[SERVER_ERRORS.duplicateName]: m.error_duplicate_name,
 	[SERVER_ERRORS.sessionLost]: m.error_session_lost,
+	[SERVER_ERRORS.notEnoughRubys]: m.error_not_enough_rubys,
+	[SERVER_ERRORS.invalidQuantity]: m.error_invalid_quantity,
 } satisfies Record<string, () => string>;
 
 const REQUIREMENT = {
@@ -112,6 +114,10 @@ const PATTERNS: readonly ((msg: string) => string | null)[] = [
 		return max ? m.error_max_characters({ max: Number(max) }) : null;
 	},
 	(msg) => (msg.startsWith("Unknown class") ? m.error_unknown_class() : null),
+	// Vendor: "<productId> cap reached" (resolvePurchase), "Unknown product: …".
+	(msg) => (/^[a-z_]+ cap reached$/.test(msg) ? m.vendor_buy_at_cap() : null),
+	(msg) =>
+		msg.startsWith("Unknown product") ? m.error_unknown_product() : null,
 ];
 
 function tryTranslate(raw: string): string | null {

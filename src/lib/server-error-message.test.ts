@@ -21,6 +21,8 @@ describe("translateServerError — exact matches", () => {
 		[SERVER_ERRORS.nameEmpty, m.name_cannot_be_empty()],
 		[SERVER_ERRORS.duplicateName, m.error_duplicate_name()],
 		[SERVER_ERRORS.sessionLost, m.error_session_lost()],
+		[SERVER_ERRORS.notEnoughRubys, m.error_not_enough_rubys()],
+		[SERVER_ERRORS.invalidQuantity, m.error_invalid_quantity()],
 	])("%s", (raw, expected) => {
 		expect(translateServerError(raw)).toBe(expected);
 	});
@@ -61,6 +63,9 @@ describe("translateServerError — substring and parametric matches", () => {
 		["Name must be at most 20 characters", m.error_name_too_long({ max: 20 })],
 		["Max 6 characters per account", m.error_max_characters({ max: 6 })],
 		["Unknown class: bard", m.error_unknown_class()],
+		["potion cap reached", m.vendor_buy_at_cap()],
+		["teleport_stone cap reached", m.vendor_buy_at_cap()],
+		["Unknown product: sword", m.error_unknown_product()],
 	])("%s", (raw, expected) => {
 		expect(translateServerError(raw)).toBe(expected);
 	});
@@ -79,9 +84,7 @@ describe("translateServerError — substring and parametric matches", () => {
 
 describe("translateServerError — unknown", () => {
 	it("passes an unknown message through untouched", () => {
-		expect(translateServerError("  Not enough rubys ")).toBe(
-			"  Not enough rubys ",
-		);
+		expect(translateServerError("  Out of stock ")).toBe("  Out of stock ");
 	});
 
 	it("never matches an object prototype name", () => {

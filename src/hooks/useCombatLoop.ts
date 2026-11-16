@@ -7,10 +7,9 @@
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
-import { findBoss, getBossConfig } from "#/game/bosses";
+import { bossIntroStageMsFor, findBoss, getBossConfig } from "#/game/bosses";
 import type { CombatPhase } from "#/game/combat/constants";
 import {
-	BOSS_INTRO_STAGE_MS_DEFAULT,
 	type BossIntroStage,
 	type CombatState,
 	derivePhase,
@@ -546,8 +545,9 @@ export function useCombatLoop({
 
 	// ── Intro cinematics → cascade into engaged ──
 	// Spawning a rare sets state "rare_intro" + stage "sprite"; a boss sets
-	// "boss_intro" + "sprite". Each stage holds for its entry in the shared
-	// table, the same for every boss. See CONTEXT.md → Boss Cinematic.
+	// "boss_intro" + "sprite". The rare stages share one table; a boss takes
+	// sprite and impact from its cinematic config (`bossIntroStageMsFor`, one
+	// stable table per boss). See CONTEXT.md → Boss Cinematic.
 	const engage = () => {
 		stateRef.current = "engaged";
 		setState("engaged");
@@ -562,7 +562,7 @@ export function useCombatLoop({
 	useStageCascade(
 		active && state === "boss_intro",
 		bossIntroStage,
-		BOSS_INTRO_STAGE_MS_DEFAULT,
+		bossIntroStageMsFor(enemy),
 		setBossIntroStage,
 		engage,
 	);
