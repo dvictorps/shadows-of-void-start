@@ -7,13 +7,17 @@ import { DIM_COLOR } from "./colors";
 
 /**
  * "Requires" with the level (above 1) and attributes on one line, and a
- * quiver's bow line. Renders nothing for an item with neither.
+ * quiver's bow line. Renders nothing for an item with neither (a level-1 item
+ * with no attribute requirement).
  */
 export default function Requirements({ item }: { item: GeneratedItem }) {
 	const reqs = item.requirements;
-	const hasStatReq = !!(reqs && (reqs.str || reqs.dex || reqs.int));
+	const hasReq = !!(
+		reqs &&
+		(reqs.level > 1 || reqs.str || reqs.dex || reqs.int)
+	);
 	const needsBow = isQuiver(item);
-	if (!hasStatReq && !needsBow) return null;
+	if (!hasReq && !needsBow) return null;
 	return (
 		<>
 			<TooltipSeparator />
@@ -21,7 +25,7 @@ export default function Requirements({ item }: { item: GeneratedItem }) {
 				className="px-4 py-1 text-xs uppercase tracking-wider"
 				style={{ color: DIM_COLOR }}
 			>
-				{hasStatReq && reqs && (
+				{hasReq && reqs && (
 					<div>
 						<span>{m.tooltip_requires()} </span>
 						{[
