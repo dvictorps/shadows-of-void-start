@@ -52,7 +52,7 @@ npx tsc --noEmit
 npx vitest run src/game/passives/
 npx vitest run src/game/stats/    # passive allocation must compose with items
 npx vitest run src/game/items/    # don't regress item-driven stats
-npx biome check src/
+npx oxlint src/
 npx convex dev --once             # schema additions
 ```
 

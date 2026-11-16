@@ -97,7 +97,7 @@ TS will flag any of these you miss — `Record<CharacterClassId, () => string>` 
 ```bash
 npx tsc --noEmit
 npx vitest run
-npx biome check src/
+npx oxlint src/
 ```
 
 Then `npm run dev`, open the character-select modal, scroll the class list, verify:

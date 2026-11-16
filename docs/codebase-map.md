@@ -29,7 +29,8 @@ For game design rules (what stats mean, what's allowed where, why), read [CONTEX
 │   ├── lib/                # Small utilities
 │   ├── paraglide/          # Generated i18n bindings (don't hand-edit)
 │   └── styles.css          # Global CSS + keyframes
-└── biome.json, vite.config.ts, package.json
+├── tools/oxlint/      # Vendored oxlint JS plugins (anti-slop, you-might-not-need-an-effect)
+└── oxlint.config.ts, .oxfmtrc.json, vite.config.ts, package.json
 ```
 
 ---
@@ -246,7 +247,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 - **`messages/pt.json`** + **`messages/en.json`** are the source — edit these, paraglide regenerates `src/paraglide/messages.js` on the next dev run.
 - Import with `import { m } from "#/paraglide/messages"`. Call as `m.key_name({ param })`.
 - Strategy: localStorage → preferredLanguage → baseLocale (pt). No URL prefix.
-- `src/paraglide/` is generated — don't hand-edit. `biome.json` excludes the directory from lint/format so it never appears in diffs.
+- `src/paraglide/` is generated — don't hand-edit. `oxlint.config.ts` and `.oxfmtrc.json` exclude the directory from lint/format so it never appears in diffs.
 
 ---
 

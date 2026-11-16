@@ -122,7 +122,7 @@ Naming guide:
 ```bash
 npx tsc --noEmit
 npx vitest run
-npx biome check src/
+npx oxlint src/
 ```
 
 Open the admin items panel if you have admin role (`/admin/items`) and roll a few drops at your template's `dropLevel` to eyeball the display name in both EN and PT (toggle via Settings).

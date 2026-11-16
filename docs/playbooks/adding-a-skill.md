@@ -48,7 +48,7 @@ npx tsc --noEmit
 npx vitest run src/game/skills/
 npx vitest run src/game/stats/    # stat engine must still pass with skill inputs
 npx vitest run src/hooks/         # if you added combat hook tests
-npx biome check src/
+npx oxlint src/
 ```
 
 Then `npm run dev`: cast the skill in combat, verify damage matches the formula, kill a mob, take damage, die, respawn — touch every state machine transition skills participate in.

@@ -1,5 +1,6 @@
 {
   "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "tools/oxlint", ".output", "dist", ".tanstack", ".wrangler", ".nitro"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

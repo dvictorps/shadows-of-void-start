@@ -10,9 +10,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "format": "biome format",
-    "lint": "biome lint",
-    "check": "biome check"
+    "format": "oxfmt",
+    "lint": "oxlint",
+    "lint:errors": "oxlint --quiet",
+    "lint:fix": "oxlint --fix",
+    "format:check": "oxfmt --check",
+    "test:lint-rules": "node --test \"tools/oxlint/**/*.test.ts\""
   },
   "dependencies": {
     "@convex-dev/better-auth": "^0.11.4",
@@ -52,8 +55,9 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.10",
     "@inlang/paraglide-js": "^2.13.1",
+    "@oxlint/plugins": "1.78.0",
+    "@shadcn/lint": "^0.1.5",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/devtools-vite": "latest",
     "@testing-library/dom": "^10.4.1",
@@ -62,7 +66,10 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
+    "eslint-plugin-react-you-might-not-need-an-effect": "^1.2.0",
     "jsdom": "^29.0.2",
+    "oxfmt": "0.63.0",
+    "oxlint": "1.82.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.7",
     "vitest": "^4.1.3"
