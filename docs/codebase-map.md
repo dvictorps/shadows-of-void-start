@@ -30,7 +30,7 @@ For game design rules (what stats mean, what's allowed where, why), read [CONTEX
 │   ├── paraglide/          # Generated i18n bindings (don't hand-edit)
 │   └── styles.css          # Global CSS + keyframes
 ├── tools/oxlint/      # Vendored oxlint JS plugins (anti-slop, you-might-not-need-an-effect)
-└── oxlint.config.ts, .oxfmtrc.json, vite.config.ts, package.json
+└── oxlint.config.ts, .oxfmtrc.json, lefthook.yml, .gitattributes, vite.config.ts, package.json
 ```
 
 ---

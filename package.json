@@ -15,7 +15,9 @@
 		"lint:errors": "oxlint --quiet",
 		"lint:fix": "oxlint --fix",
 		"format:check": "oxfmt --check",
-		"test:lint-rules": "node --test \"tools/oxlint/**/*.test.ts\""
+		"test:lint-rules": "node --test \"tools/oxlint/**/*.test.ts\"",
+		"prepare": "lefthook install",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@convex-dev/better-auth": "^0.11.4",
@@ -68,6 +70,7 @@
 		"@vitejs/plugin-react": "^6.0.1",
 		"eslint-plugin-react-you-might-not-need-an-effect": "^1.2.0",
 		"jsdom": "^29.0.2",
+		"lefthook": "^2.2.2",
 		"oxfmt": "0.63.0",
 		"oxlint": "1.82.0",
 		"typescript": "^6.0.2",
