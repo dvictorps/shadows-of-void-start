@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, master]
+  pull_request:
+    branches: [dev, master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # package.json has no `packageManager` field; pin the pnpm major the
+      # lockfile is maintained with.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      # .nvmrc pins Node 24, the version the project is developed on. Node 25+
+      # ships a global `localStorage` that shadows jsdom's, so the paraglide
+      # runtime throws on `getItem` in every jsdom test.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # `prepare` installs the lefthook hooks and runs `pnpm cf-typegen`, which
+      # writes worker-configuration.d.ts (gitignored, needed by tsc).
+      - run: pnpm install --frozen-lockfile
+
+      # src/paraglide is generated and gitignored. Vite/Vitest build it through
+      # the paraglide plugin, but type-aware lint and tsc run first and import
+      # it. Same strategy as paraglideVitePlugin in vite.config.ts.
+      - name: Compile paraglide messages
+        run: pnpm exec paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --strategy localStorage preferredLanguage baseLocale
+
+      - name: Lint (errors only)
+        run: pnpm lint:errors
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      # Both Vitest projects from vite.config.ts: `unit` and `server` (the tRPC
+      # integration tests, in workerd against a local D1 with the drizzle
+      # migrations applied; no Cloudflare credentials or secrets needed).
+      - name: Tests
+        run: pnpm test
+
+      - name: Lint-rule tests
+        run: pnpm test:lint-rules
