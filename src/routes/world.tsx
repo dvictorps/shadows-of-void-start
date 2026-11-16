@@ -1,42 +1,46 @@
 import { noop, useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { Button } from "#/components/ui/button";
 import CityScene from "#/components/world/CityScene";
-import CombatScene, {
-	type ConsumableKey,
-} from "#/components/world/CombatScene";
-import EquipmentPanel from "#/components/world/EquipmentPanel";
+import { CombatPane } from "#/components/world/CombatPane";
+import type { ConsumableKey } from "#/components/world/CombatScene";
 import LeaderboardModal from "#/components/world/LeaderboardModal";
-import MapScene from "#/components/world/MapScene";
 import SessionLostModal from "#/components/world/SessionLostModal";
 import ShowStatsModal from "#/components/world/ShowStatsModal";
-import StatusCard from "#/components/world/StatusCard";
 import TextLog from "#/components/world/TextLog";
-import TravelProgressBar from "#/components/world/TravelProgressBar";
+import { WorldMapPane } from "#/components/world/WorldMapPane";
 import { WorldModals } from "#/components/world/WorldModals";
+import {
+	type EquippedBySlot,
+	WorldSidebar,
+} from "#/components/world/WorldSidebar";
 import { defaultElementFor } from "#/game/classes/attunement";
 import { findClassDefinition } from "#/game/classes/data";
-import { computeBagKeepCap } from "#/game/combat/constants";
 import { stashModeOf } from "#/game/inventory/stash-mode";
-import { xpToNextLevel } from "#/game/progression/levels";
 import { computeCharacterStats } from "#/game/stats/compute";
-import { type EquippedItem, type EquippedSlot } from "#/game/stats/types";
-import { ACT_1, findNode } from "#/game/world";
-import { encounterPlanForNode } from "#/game/world/encounter-schedule";
-import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
+import { type EquippedItem, type SelectableElement } from "#/game/stats/types";
+import { ACT_1 } from "#/game/world";
+import { translateNodeName } from "#/game/world/i18n";
+import { resolveNodeClick } from "#/game/world/node-click";
+import { resolveTextLog } from "#/game/world/text-log";
+import { zoneContextFor } from "#/game/world/zone-context";
 import { useBarrier } from "#/hooks/useBarrier";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useCombatMutations } from "#/hooks/useCombatMutations";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
+import { useExitFlow } from "#/hooks/useExitFlow";
+import { useIncenseGuard } from "#/hooks/useIncenseGuard";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useInventoryMutations } from "#/hooks/useInventoryMutations";
 import { useModal } from "#/hooks/useModal";
+import { useSessionClaim } from "#/hooks/useSessionClaim";
 import { useSessionToken } from "#/hooks/useSessionToken";
 import { useViewMode } from "#/hooks/useViewMode";
 import { useWorldMutations } from "#/hooks/useWorldMutations";
@@ -51,15 +55,6 @@ import { m } from "#/paraglide/messages";
 const searchSchema = z.object({
 	characterId: z.coerce.number().int().positive(),
 });
-
-const CONSUMABLE_DESCRIPTIONS = {
-	potion: m.consumable_desc_potion,
-	teleport: m.consumable_desc_teleport,
-	incense: m.incense_hint,
-	element_fire: m.element_desc_fire,
-	element_cold: m.element_desc_cold,
-	element_lightning: m.element_desc_lightning,
-} satisfies Record<ConsumableKey, () => string>;
 
 export const Route = createFileRoute("/world")({
 	validateSearch: searchSchema,
@@ -109,7 +104,7 @@ function WorldView() {
 	if (!character) {
 		return (
 			<main className="flex h-screen items-center justify-center bg-black text-white">
-				<p className="text-xs uppercase tracking-[0.2em] text-neutral-600">
+				<p className="text-xs uppercase tracking-label text-muted-foreground">
 					{m.loading()}
 				</p>
 			</main>
@@ -124,6 +119,22 @@ function WorldView() {
 // downstream ref-sync useEffect in useEncounterSchedule for no reason.
 const EMPTY_THRESHOLDS: readonly number[] = [];
 
+// The /world grid at each viewport size: the scene column next to the fixed
+// sidebar, and inside it the scene above the text log.
+const LAYOUT = {
+	compact: {
+		main: "grid-cols-world-compact gap-2 p-2",
+		scene: "grid-rows-world-scene-compact gap-2",
+	},
+	wide: {
+		main: "grid-cols-world gap-3 p-3",
+		scene: "grid-rows-world-scene gap-3",
+	},
+};
+
+// Sections, in order: composition (every hook) → handlers → derivations →
+// JSX. Logic with a decision in it lives in `src/game` or a tested hook; this
+// component wires them. See docs/plans/in-progress.md → world.tsx size.
 function WorldLayout({ character }: { character: CharacterRow }) {
 	const navigate = useNavigate();
 	const confirm = useConfirmationModal();
@@ -138,48 +149,18 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	// next user-initiated mutation surfaces the "Session lost" modal via the
 	// global error handler. See docs/security/threat-model.md → Threat #5.
 	const tokenMatches = character.activeSessionToken === sessionToken;
-
-	// Single-active-session reconciliation. A fresh tab arriving directly at
-	// /world (refresh, bookmark, restored tab) has no prior claim — auto-fire
-	// one. `hasMatched` flips true the first time the character shows our
-	// token win; from that point on a divergence means another tab/device
-	// stole the session, and `sessionLost` (derived) surfaces the non-
-	// dismissible modal. Without reactivity the divergence shows up when the
-	// character is refetched: on window focus, or after a write fails with
-	// "Session lost" (the router's mutation cache refetches it). We deliberately do NOT re-claim after a takeover —
-	// otherwise the two tabs ping-pong forever; the user must refresh to
-	// recover.
-	//
-	// `useInFlight` belt-and-suspenders: `mutateAsync` is stable, so the
-	// effect's dep array already gates re-runs to tokenMatches/hasMatched
-	// flips, but the guard removes any reliance on that invariant — the
-	// 50ms-tick combat re-render can't burst-fire claims.
 	const { mutateAsync: claimSession } = useMutation(
 		trpc.characters.claimCharacterSession.mutationOptions({
 			onSuccess: ({ sessionToken: claimed }) =>
 				cache.patchCharacter({ activeSessionToken: claimed }),
 		}),
 	);
-	const [hasMatched, setHasMatched] = useState(false);
-	const [isClaiming, runClaim] = useInFlight();
-	const sessionLost = hasMatched && !tokenMatches;
-	// Latch during render: once our token has been seen winning, it stays won.
-	if (tokenMatches && !hasMatched) setHasMatched(true);
-	useEffect(() => {
-		// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- the claim fires on arriving at /world (refresh, bookmark, restored tab) with no prior claim; no user action starts it, so this is a mount-time sync with the server, which is what effects are for
-		if (tokenMatches || hasMatched || isClaiming) return;
-		void runClaim(() =>
-			claimSession({ characterId: character.id, sessionToken }),
-		);
-	}, [
+	const { sessionLost } = useSessionClaim({
 		tokenMatches,
-		hasMatched,
-		isClaiming,
-		runClaim,
-		claimSession,
-		character.id,
+		characterId: character.id,
 		sessionToken,
-	]);
+		claim: claimSession,
+	});
 
 	const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 	const [deathLog, setDeathLog] = useState<string | null>(null);
@@ -195,14 +176,18 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	const stashModal = useModal();
 	const leaderboardModal = useModal();
 	const currentLocation = character.currentLocation ?? "city";
-	const currentNode = findNode(ACT_1, currentLocation);
-	const hoveredNode = hoveredNodeId ? findNode(ACT_1, hoveredNodeId) : null;
-	const travelDestination = character.travelDestination;
-	const travelArrivesAt = character.travelArrivesAt;
+	// Memoized on the location so the schedule's plan-bound callbacks
+	// (recordSpawn, cancelAmbush) stay stable: a boss node's plan is built
+	// fresh on each call.
+	const zone = useMemo(
+		() => zoneContextFor(ACT_1, currentLocation),
+		[currentLocation],
+	);
+	const currentNode = zone.node;
+	const zoneLevel = zone.level ?? character.level;
 
 	// Equipped is always-on because stats (maxLife, damage, etc.) depend on it
-	// for the combat loop. Inventory is deferred until after `view` is known so
-	// it can be skipped during combat — see the conditional subscription below.
+	// for the combat loop.
 	const { data: liveEquipped } = useQuery(
 		trpc.items.equipped.queryOptions({ characterId: character.id }),
 	);
@@ -238,16 +223,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		[classDef, character.level, equippedSnapshot, selectedElement],
 	);
 
-	const maxHp = stats.maxLife;
-
-	// The combat state and progression are columns of the character row.
-	const hp = character.hpCurrent;
-	const potions = character.potions;
-	const incense = character.etherealIncense;
-	const xp = character.xp;
-	const zoneSession = character.currentZoneSession;
-	const campThresholds = character.campThresholdsMs ?? EMPTY_THRESHOLDS;
-
 	const barrierApi = useBarrier({
 		maxBarrier: stats.maxBarrier,
 		initialBarrier: character.barrierCurrent,
@@ -279,8 +254,8 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	const { view, setView, setPendingArrival, isTraveling, enterDestination } =
 		useViewMode({
 			characterId: character.id,
-			travelDestination,
-			travelArrivesAt,
+			travelDestination: character.travelDestination,
+			travelArrivesAt: character.travelArrivesAt,
 			enterCity,
 			enterZone,
 			arriveAtTravel,
@@ -288,8 +263,8 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 				setDeathLog(null);
 				// A new zone visit starts clean. `combat` is declared below (it
 				// needs `view`); this runs on the entry event, after render.
-				const node = findNode(ACT_1, nodeId);
-				combat.startVisit(encounterPlanForNode(node), node?.bossNode ?? null);
+				const entered = zoneContextFor(ACT_1, nodeId);
+				combat.startVisit(entered.encounterPlan, entered.bossNode);
 			},
 		});
 
@@ -313,37 +288,89 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 
 	// The bag only matters inside a zone visit; enterZone / exitZone and the
 	// kills keep the cached copy current.
-	const wantsBag = view === "combat" || exitModal.isOpen;
 	const { data: zoneBag } = useQuery({
 		...trpc.items.zoneBag.queryOptions({ characterId: character.id }),
-		enabled: wantsBag && zoneSession !== null,
+		enabled:
+			(view === "combat" || exitModal.isOpen) &&
+			character.currentZoneSession !== null,
+	});
+	const bagSize = zoneBag?.length;
+
+	const equippedBySlot: EquippedBySlot = useMemo(
+		() =>
+			new Map(
+				equippedSnapshot.map((eq) => [
+					eq.slot,
+					{ id: eq.item.id, data: eq.item },
+				]),
+			),
+		[equippedSnapshot],
+	);
+	const unlockedNodeIds = useMemo(
+		() => new Set(character.unlockedNodes),
+		[character.unlockedNodes],
+	);
+	const completedZoneIds = useMemo(
+		() => new Set(character.completedZones),
+		[character.completedZones],
+	);
+
+	const combatServer = useCombatMutations({
+		characterId: character.id,
+		maxHp: stats.maxLife,
+	});
+	const combat = useCombatLoop({
+		characterId: character.id,
+		server: combatServer,
+		stats,
+		initialHp: character.hpCurrent,
+		barrierApi,
+		potions: character.potions,
+		incense: character.etherealIncense,
+		monsterPool: zone.monsterPool,
+		zoneLevel,
+		encounterPlan: zone.encounterPlan,
+		bossNode: zone.bossNode,
+		serverCampThresholdsMs: character.campThresholdsMs ?? EMPTY_THRESHOLDS,
+		active: view === "combat" && !exitModal.isOpen && tokenMatches,
+		// The tick fires this and moves on; `handlePlayerDeath` catches its own
+		// errors (toast), so nothing is left to await. It is declared with the
+		// handlers below and only called after render.
+		onPlayerDeath: () => void handlePlayerDeath(),
 	});
 
-	const equippedBySlot = useMemo<
-		ReadonlyMap<EquippedSlot, { id: string; data: EquippedItem["item"] }>
-	>(() => {
-		const map = new Map<
-			EquippedSlot,
-			{ id: string; data: EquippedItem["item"] }
-		>();
-		for (const eq of equippedSnapshot) {
-			map.set(eq.slot, { id: eq.item.id, data: eq.item });
-		}
-		return map;
-	}, [equippedSnapshot]);
-	const monsterPool = useMemo(
-		() => currentNode?.monsterPool ?? [],
-		[currentNode],
+	// Spam-click guards. `useInFlight(view)` resets each flag on view change
+	// so a slow request finishing after navigating away doesn't leave the
+	// next visit's button stuck disabled. The enter-node flag is discarded
+	// (no JSX disabled wiring — the in-handler early-return inside `run…` is
+	// the full guard). The stone and retreat flags live in `useExitFlow`.
+	const [isUsingPotion, runUsePotion] = useInFlight(view);
+	const runEnterNode = useInFlight(view)[1];
+	const { isUsingIncense, lightIncense } = useIncenseGuard(
+		combat.incense,
+		combat.triggerIncense,
 	);
-	const zoneLevel = currentNode?.level ?? character.level;
-	// Memoized so the schedule's plan-bound callbacks (recordSpawn,
-	// cancelAmbush) stay stable: a boss node's plan is built fresh on each call.
-	const encounterPlan = useMemo(
-		() => encounterPlanForNode(currentNode),
-		[currentNode],
-	);
+	const exitFlow = useExitFlow({
+		characterId: character.id,
+		view,
+		bagSize,
+		phase: combat.phase,
+		teleportStones: character.teleportStones,
+		exitModal,
+		server: { exitZone, pickFromBag, discardFromBag, teleportStone },
+		backToMap: () => setView("map"),
+		setPendingArrival,
+	});
 
-	const handlePlayerDeath = useCallback(async () => {
+	// City entry restores barrier to full (ADR 0005). Destructure
+	// restoreToFull so the dep is the memoized callback, not the freshly-
+	// constructed barrierApi object (which would re-fire every render).
+	const { restoreToFull: restoreBarrierToFull } = barrierApi;
+	useEffect(() => {
+		if (view === "city") restoreBarrierToFull();
+	}, [view, restoreBarrierToFull]);
+
+	const handlePlayerDeath = async () => {
 		try {
 			const result = await respawnDead({ characterId: character.id });
 			if (result.mode === "softcore") {
@@ -361,98 +388,44 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		} catch {
 			toast.error(m.failed_handle_death());
 		}
-	}, [respawnDead, character.id, setView, setPendingArrival]);
-
-	const combatServer = useCombatMutations({
-		characterId: character.id,
-		maxHp: stats.maxLife,
-	});
-	const combat = useCombatLoop({
-		characterId: character.id,
-		server: combatServer,
-		stats,
-		initialHp: hp,
-		barrierApi,
-		potions,
-		incense,
-		monsterPool,
-		zoneLevel,
-		encounterPlan,
-		bossNode: currentNode?.bossNode ?? null,
-		serverCampThresholdsMs: campThresholds,
-		active: view === "combat" && !exitModal.isOpen && tokenMatches,
-		// The tick fires this and moves on; `handlePlayerDeath` catches its own
-		// errors (toast), so nothing is left to await.
-		onPlayerDeath: () => void handlePlayerDeath(),
-	});
-
-	// Bag retention cap by exit phase, frozen at modal-open time so
-	// incremental picks don't dilute the 30% punishment ("bag shrinks each
-	// pick → cap recomputes lower → effective share grows"). Reset when
-	// the modal closes. Math lives in `computeBagKeepCap` so the client
-	// preview can't drift from the server's enforcement.
-	const [exitKeepCap, setExitKeepCap] = useState(0);
-
-	// Spam-click guards. `useInFlight(view)` resets each flag on view change
-	// so a slow request finishing after navigating away doesn't leave the
-	// next visit's button stuck disabled. The enter-node and retreat flags
-	// are discarded (no JSX disabled wiring — the in-handler early-return
-	// inside `run…` is the full guard). Incense stays plain useState because
-	// its trigger is synchronous; the watcher effect below clears it on the
-	// optimistic count change instead.
-	const [isUsingPotion, runUsePotion] = useInFlight(view);
-	const [isUsingTeleportStone, runUseTeleportStone] = useInFlight(view);
-	const runEnterNode = useInFlight(view)[1];
-	const runRetreat = useInFlight(view)[1];
-	const [isUsingIncense, setIsUsingIncense] = useState(false);
-
-	const unlockedNodeIds = useMemo(
-		() => new Set(character.unlockedNodes),
-		[character.unlockedNodes],
-	);
-	const completedZoneIds = useMemo(
-		() => new Set(character.completedZones),
-		[character.completedZones],
-	);
+	};
 
 	const handleEnterNode = (nodeId: string) =>
 		// `pendingArrival` catches subsequent clicks once set, but the click →
 		// confirm → setPendingArrival flow leaves a small window where two
 		// clicks could both fire startTravel. `runEnterNode` bails synchronously
-		// on re-entry; the inner stone branch additionally hops onto
+		// on re-entry; the stone branch additionally hops onto the exit flow's
 		// `runUseTeleportStone` so a map-click stone jump shares its flag with
 		// the HUD's panic stone.
 		runEnterNode(async () => {
 			if (isTraveling) return;
-			// Re-entering the current node skips travel — the player is already there.
-			if (nodeId === currentLocation) {
+			const click = resolveNodeClick({
+				act: ACT_1,
+				nodeId,
+				currentLocation,
+				unlockedNodeIds,
+				teleportStones: character.teleportStones,
+			});
+			if (click.kind === "reenter") {
 				enterDestination(nodeId);
 				return;
 			}
-			const fromNode = findNode(ACT_1, currentLocation);
-			const conn = fromNode?.connections.find((c) => c.id === nodeId);
-			if (!conn) {
-				// Not directly connected. If the destination is unlocked AND the
-				// player has a teleport stone, offer the jump. Otherwise fail with
-				// the existing no-route toast.
-				const destNode = findNode(ACT_1, nodeId);
-				const destName = destNode ? translateNodeName(destNode) : nodeId;
-				const stones = character.teleportStones;
-				if (!unlockedNodeIds.has(nodeId) || stones <= 0) {
-					toast.error(m.travel_no_route({ destination: destName }));
-					return;
-				}
+			if (click.kind === "no-route") {
+				toast.error(m.travel_no_route({ destination: click.destinationName }));
+				return;
+			}
+			if (click.kind === "stone") {
 				const ok = await confirm({
 					title: m.wind_crystal_confirm_title(),
 					message: m.wind_crystal_confirm_message({
-						destination: destName,
-						remaining: stones,
+						destination: click.destinationName,
+						remaining: click.stones,
 					}),
 					confirmLabel: m.wind_crystal_use_action(),
 					cancelLabel: m.cancel(),
 				});
 				if (!ok) return;
-				await runUseTeleportStone(async () => {
+				await exitFlow.runUseTeleportStone(async () => {
 					setPendingArrival(nodeId);
 					try {
 						await teleportStone({
@@ -477,202 +450,24 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 			}
 		});
 
-	// Set while the exit modal is acting as the bag-handling step for a stone
-	// jump. Cleared on cancel or after the stone fires.
-	const pendingStoneRef = useRef(false);
-
-	const fireStoneToCity = () =>
-		runUseTeleportStone(async () => {
-			setPendingArrival("city");
-			try {
-				await teleportStone({
-					characterId: character.id,
-					destinationNodeId: "city",
-				});
-			} catch (err) {
-				setPendingArrival(null);
-				toast.error(serverErrorMessage(err, m.teleport_stone_failed()));
-			}
-		});
-
-	const handleUseTeleportStone = async () => {
-		// Spam-click guard: the modal-open path doesn't go through
-		// `runUseTeleportStone`, so an explicit `isUsingTeleportStone` check
-		// here prevents a second click from re-opening the modal while a
-		// fireStoneToCity from the previous click is still in flight.
-		if (isUsingTeleportStone) return;
-		if (exitModal.isOpen) return;
-		const stones = character.teleportStones;
-		if (stones <= 0) return;
-		if (zoneBag === undefined) return;
-		// The HUD button always sends to city — the panic-return contract.
-		// Non-city destinations come through `handleEnterNode` instead.
-		// Bag with items routes through the exit modal so the player keeps
-		// their phase-capped share (camp → 100%, exploração/combate → 30%).
-		// See CONTEXT.md → Bag retention tiers.
-		if (zoneBag.length > 0) {
-			pendingStoneRef.current = true;
-			setExitKeepCap(computeBagKeepCap(zoneBag.length, combat.phase));
-			exitModal.open();
-			return;
-		}
-		await fireStoneToCity();
-	};
-
 	const handleBackToMap = () => {
 		setView("map");
 	};
 
-	const handleRetreat = () =>
-		// Wait for the bag query to resolve before deciding modal vs auto-exit —
-		// otherwise an undefined (still-loading) bag silently discards the loot.
-		// The flag covers both branches (modal-open + exitZone) so a fast double-
-		// tap during the render-cycle window between click and unmount can't
-		// double-open the modal or double-fire exitZone.
-		runRetreat(async () => {
-			if (zoneBag === undefined) return;
-			if (zoneBag.length > 0) {
-				// Bag path is modal-driven; the modal's own buttons carry their own
-				// in-flight tracking. No async work here beyond opening the modal.
-				handleBackToMap();
-				setExitKeepCap(computeBagKeepCap(zoneBag.length, combat.phase));
-				exitModal.open();
-				return;
-			}
-			handleBackToMap();
-			await exitZone({
-				characterId: character.id,
-				keepIds: [],
-			});
-		});
-
-	// A camp selection action that covers the whole bag empties it: the
-	// handler closes the exit modal right after firing the mutation — the
-	// same moment the optimistic update zeroes the bag, so the picker still
-	// "auto-closes the moment the bag goes to zero" (CONTEXT.md). `zoneBag`
-	// is the pre-mutation closure value and the selection is always a subset
-	// of it, so equal length = whole bag.
-	const selectionEmptiesBag = (ids: string[]) =>
-		zoneBag !== undefined && ids.length === zoneBag.length;
-
-	const handlePickSelected = async (ids: string[]) => {
-		// Camp: incremental pick. Modal stays open until bag empties.
-		// Non-camp: one-shot commit via exitZone — bag is wiped, modal closes.
-		// Routing here matches the server gate (pickFromBag rejects non-camp).
+	const handleSwitchElement = async (element: SelectableElement) => {
 		try {
-			if (combat.phase === "camp") {
-				const pick = pickFromBag({
-					characterId: character.id,
-					itemIds: ids,
-				});
-				if (selectionEmptiesBag(ids)) void closeExit(true);
-				await pick;
-			} else {
-				await exitZone({
-					characterId: character.id,
-					keepIds: ids,
-				});
-				await closeExit(true);
-			}
-		} catch (err) {
-			toast.error(serverErrorMessage(err, m.inventory_full_error()));
+			await switchElement({ characterId: character.id, element });
+		} catch {
+			// Cooldown or non-mage — silently swallowed
 		}
 	};
-
-	const handleDiscardSelected = async (ids: string[]) => {
-		// Camp-only action — the modal hides the button outside camp.
-		if (combat.phase !== "camp") return;
-		const discard = discardFromBag({
-			characterId: character.id,
-			itemIds: ids,
-		});
-		if (selectionEmptiesBag(ids)) void closeExit(true);
-		await discard;
-	};
-
-	const handlePickAll = async (ids: string[]) => {
-		try {
-			await exitZone({
-				characterId: character.id,
-				keepIds: ids,
-			});
-			await closeExit(true);
-		} catch (err) {
-			toast.error(serverErrorMessage(err, m.inventory_full_error()));
-		}
-	};
-
-	const handleDiscardAll = async () => {
-		await exitZone({
-			characterId: character.id,
-			keepIds: [],
-		});
-		await closeExit(true);
-	};
-
-	// Single close path for the exit modal: the user's own dismiss
-	// (`handleCloseExit`), the camp selection handlers that just emptied the
-	// bag, and the exitZone commits (non-camp pick, Get-all, Discard-all),
-	// which always wipe the bag. When a stone was pending and the bag is
-	// empty, fire the stone.
-	// A close with a non-empty bag is a user cancel — clear the pending flag
-	// and leave the bag; the next enterZone purges any orphan session.
-	// `bagEmptied` is passed in because the emptying callers still hold the
-	// pre-mutation `zoneBag` in their closure.
-	// Known gap, accepted: if the bag empties from outside these handlers
-	// while the modal is open (a server-side purge), the modal stays open on
-	// an empty list until the user dismisses it. The only such path today is
-	// another tab claiming the session, which already shows SessionLostModal.
-	const closeExit = async (bagEmptied: boolean) => {
-		const wasPendingStone = pendingStoneRef.current;
-		pendingStoneRef.current = false;
-		exitModal.close();
-		if (wasPendingStone && bagEmptied) {
-			await fireStoneToCity();
-		}
-	};
-
-	const handleCloseExit = () =>
-		closeExit(zoneBag !== undefined && zoneBag.length === 0);
-
-	const handleSwitchElement = useCallback(
-		async (element: "fire" | "cold" | "lightning") => {
-			try {
-				await switchElement({ characterId: character.id, element });
-			} catch {
-				// Cooldown or non-mage — silently swallowed
-			}
-		},
-		[switchElement, character.id],
-	);
 
 	// Spam-click guard around `combat.drinkPotion`. The local `potions` count
 	// already optimistically decrements, but a fast double-tap before the
 	// optimistic update reaches React can fire `consumePotion` twice and the
 	// second call gets rejected. `useInFlight` handles the early-return +
-	// try/finally; the button-disabled state ANDs in `!isUsingPotion`.
+	// try/finally; the buttons' disabled state ANDs in `!isUsingPotion`.
 	const handleUsePotion = () => runUsePotion(() => combat.drinkPotion());
-
-	// Spam-click guard around `combat.triggerIncense`. Unlike potion/teleport,
-	// `triggerIncense` is synchronous (fires a mutation without awaiting),
-	// so we anchor the in-flight reset to the optimistic `combat.incense`
-	// count change rather than a try/finally. The count decrement happens
-	// on the same render the mutation fires; if it reverts, the count goes
-	// back up and the watcher effect (below) still clears the flag.
-	const handleUseIncense = () => {
-		if (isUsingIncense) return;
-		if (combat.incense <= 0) return;
-		setIsUsingIncense(true);
-		combat.triggerIncense();
-	};
-
-	// Any change to the incense count (optimistic decrement or revert) clears
-	// the flag — adjusted during render by comparing with the previous count.
-	const [prevIncense, setPrevIncense] = useState(combat.incense);
-	if (combat.incense !== prevIncense) {
-		setPrevIncense(combat.incense);
-		setIsUsingIncense(false);
-	}
 
 	const handleLeaveWorld = async () => {
 		const ok = await confirm({
@@ -685,110 +480,53 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		void navigate({ to: "/character-select" });
 	};
 
-	// TextLog priority: death > consumable hover (combat) > low-HP warning >
-	// hovered node description (map view) > map idle (act label) > current
-	// zone (combat/city) > generic fallback. XP gains now surface as a
-	// floating popup over the enemy area instead of the log.
-	const lowHpThreshold = maxHp * 0.3;
-	const isLowHp =
-		view === "combat" &&
-		combat.playerHp > 0 &&
-		combat.playerHp < lowHpThreshold;
-	let logMessage: string | undefined;
-	let logTone: "info" | "warning" | "success" | "danger" = "info";
-	if (deathLog) {
-		logMessage = deathLog;
-		logTone = "danger";
-	} else if (view === "combat" && consumableHover) {
-		logMessage = CONSUMABLE_DESCRIPTIONS[consumableHover]();
-	} else if (isLowHp) {
-		logMessage =
-			combat.potions > 0 ? m.low_hp_use_potion() : m.low_hp_no_potions();
-		logTone = "warning";
-	} else if (view === "map" && hoveredNode) {
-		logMessage =
-			translateNodeDescription(hoveredNode) ?? translateNodeName(hoveredNode);
-	} else if (view === "map") {
-		logMessage = m.act_map_label({ number: 1 });
-	} else if (currentNode) {
-		logMessage = m.inside_zone({ zone: translateNodeName(currentNode) });
-	}
-
-	const hpOverride = view === "combat" ? combat.playerHp : Math.min(hp, maxHp);
-
-	// City entry restores barrier to full (ADR 0005). Destructure
-	// restoreToFull so the dep is the memoized callback, not the freshly-
-	// constructed barrierApi object (which would re-fire every render).
-	const { restoreToFull: restoreBarrierToFull } = barrierApi;
-	useEffect(() => {
-		if (view === "city") restoreBarrierToFull();
-	}, [view, restoreBarrierToFull]);
-
-	const barrierOverride = barrierApi.barrier.current;
-	const potionsOverride = view === "combat" ? combat.potions : potions;
-	// Pass the wrapped handler when allowed; when an in-flight call is
-	// pending, clear it so StatusCard's internal `canUsePotion` check disables
-	// its button without needing a new prop. CombatScene receives the handler
-	// + an explicit `canUsePotion` that ANDs in the same flag.
-	const onUsePotion =
-		(view === "combat" || view === "map") && !isUsingPotion
-			? handleUsePotion
-			: undefined;
-
-	// Pre-compute the travel overlay so the JSX stays readable. Renders only
-	// when both source + destination nodes resolve (defensive — they should
-	// always exist since the server validated the route on `startTravel`).
-	const travelFromNode = currentNode;
-	const travelToNode = travelDestination
-		? findNode(ACT_1, travelDestination)
-		: null;
-	const travelOverlay =
-		isTraveling &&
-		travelArrivesAt !== null &&
-		travelFromNode &&
-		travelToNode ? (
-			<TravelProgressBar
-				key={travelDestination}
-				fromName={translateNodeName(travelFromNode)}
-				toName={translateNodeName(travelToNode)}
-				arrivesAtMs={travelArrivesAt}
-			/>
-		) : null;
+	const textLog = resolveTextLog({
+		act: ACT_1,
+		view,
+		deathLog,
+		consumableHover,
+		playerHp: combat.playerHp,
+		maxHp: stats.maxLife,
+		potions: combat.potions,
+		hoveredNodeId,
+		currentNode,
+	});
+	const layout = compact ? LAYOUT.compact : LAYOUT.wide;
 
 	return (
 		<main
-			className={`relative grid h-screen overflow-hidden bg-black text-white ${compact ? "grid-cols-[1fr_520px] gap-2 p-2" : "grid-cols-[1fr_640px] gap-3 p-3"}`}
+			className={`relative grid h-screen overflow-hidden bg-black text-white ${layout.main}`}
 		>
 			{view === "map" && (
-				<button
-					type="button"
+				<Button
+					variant="hud"
+					size="hud"
+					caps
 					onClick={handleLeaveWorld}
 					aria-label={m.leave_world_back_label()}
-					className="absolute top-5 left-5 z-20 inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+					className="absolute top-5 left-5 z-20"
 				>
-					<ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
+					<ArrowLeft className="size-3.5" strokeWidth={2} />
 					{m.back()}
-				</button>
+				</Button>
 			)}
-			<div
-				className={`grid overflow-hidden ${compact ? "grid-rows-[1fr_100px] gap-2" : "grid-rows-[1fr_160px] gap-3"}`}
-			>
+			<div className={`grid overflow-hidden ${layout.scene}`}>
 				{view === "map" && (
-					<div className="relative overflow-hidden">
-						<MapScene
-							act={ACT_1}
-							onEnterNode={handleEnterNode}
-							onHoverNode={setHoveredNodeId}
-							hoveredNodeId={hoveredNodeId}
-							currentLocationNodeId={currentLocation}
-							unlockedNodeIds={unlockedNodeIds}
-							completedZoneIds={completedZoneIds}
-							hasTeleportStone={character.teleportStones > 0}
-							onOpenSettings={settingsModal.open}
-							onOpenLeaderboard={leaderboardModal.open}
-						/>
-						{travelOverlay}
-					</div>
+					<WorldMapPane
+						currentNode={currentNode}
+						currentLocation={currentLocation}
+						hoveredNodeId={hoveredNodeId}
+						onHoverNode={setHoveredNodeId}
+						onEnterNode={handleEnterNode}
+						unlockedNodeIds={unlockedNodeIds}
+						completedZoneIds={completedZoneIds}
+						teleportStones={character.teleportStones}
+						onOpenSettings={settingsModal.open}
+						onOpenLeaderboard={leaderboardModal.open}
+						isTraveling={isTraveling}
+						travelDestination={character.travelDestination}
+						travelArrivesAt={character.travelArrivesAt}
+					/>
 				)}
 				{view === "city" && currentNode && (
 					<CityScene
@@ -799,97 +537,46 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 					/>
 				)}
 				{view === "combat" && currentNode && (
-					<CombatScene
-						zoneName={translateNodeName(currentNode)}
+					<CombatPane
+						node={currentNode}
 						zoneLevel={zoneLevel}
-						state={combat.state}
-						isBossNode={currentNode?.kind === "boss"}
-						rareIntroStage={combat.rareIntroStage}
-						bossIntroStage={combat.bossIntroStage}
-						enemy={combat.enemy}
-						events={combat.events}
-						playerHp={combat.playerHp}
-						maxHp={maxHp}
-						barrier={barrierApi.barrier.current}
-						maxBarrier={barrierApi.barrier.max}
-						barrierRefillRemaining={barrierApi.barrier.refillRemaining}
-						xp={xp}
-						xpNeeded={xpToNextLevel(character.level)}
-						lastKillXp={combat.lastKill?.xp}
-						potions={combat.potions}
-						canUsePotion={
-							combat.potions > 0 && combat.playerHp < maxHp && !isUsingPotion
-						}
+						combat={combat}
+						maxHp={stats.maxLife}
+						barrier={barrierApi.barrier}
+						character={character}
+						selectedElement={selectedElement}
+						bagSize={bagSize}
+						isUsingPotion={isUsingPotion}
+						isUsingTeleportStone={exitFlow.isUsingTeleportStone}
+						isUsingIncense={isUsingIncense}
 						onUsePotion={handleUsePotion}
-						teleportStones={character.teleportStones}
-						canUseTeleportStone={
-							character.teleportStones > 0 && !isUsingTeleportStone
-						}
-						onUseTeleportStone={handleUseTeleportStone}
-						incense={combat.incense}
-						canUseIncense={
-							combat.incense > 0 &&
-							combat.state !== "rare_intro" &&
-							combat.state !== "boss_intro" &&
-							combat.state !== "acampamento" &&
-							combat.state !== "miniboss_victory" &&
-							currentNode?.kind !== "boss" &&
-							!(
-								combat.state === "engaged" &&
-								(combat.enemy?.rarity === "rare" ||
-									combat.enemy?.rarity === "unique")
-							) &&
-							!combat.ambushActive &&
-							!isUsingIncense
-						}
-						onUseIncense={handleUseIncense}
-						campSource={combat.campSource}
-						ambushActive={combat.ambushActive}
-						onRetreat={handleRetreat}
-						bagCount={zoneBag?.length ?? 0}
+						onUseTeleportStone={exitFlow.stoneToCity}
+						onUseIncense={lightIncense}
+						onRetreat={exitFlow.retreat}
 						onOpenBag={bagModal.open}
 						onConsumableHover={setConsumableHover}
-						calmariaElapsedMs={combat.calmariaElapsedMs}
-						calmariaBudgetMs={combat.calmariaBudgetMs}
-						campThresholdsMs={combat.campThresholdsMs}
-						onDismissMinibossModal={combat.dismissMinibossModal}
-						zoneId={currentNode.id}
-						onDismissCamp={combat.dismissCamp}
-						classId={character.classId}
-						selectedElement={selectedElement ?? "fire"}
 						onSwitchElement={handleSwitchElement}
-						lastElementSwitchAt={character.lastElementSwitchAt ?? undefined}
 					/>
 				)}
-				<TextLog message={logMessage} tone={logTone} />
+				<TextLog message={textLog.message} tone={textLog.tone} />
 			</div>
 
-			<aside
-				className={`grid grid-rows-[1fr_auto] ${compact ? "gap-1" : "gap-3"}`}
-			>
-				<EquipmentPanel
-					equippedBySlot={equippedBySlot}
-					stats={stats}
-					characterLevel={character.level}
-					rubys={character.rubys ?? 0}
-					onOpenInventory={inventoryModal.open}
-				/>
-				<StatusCard
-					character={character}
-					stats={stats}
-					hpOverride={hpOverride}
-					barrierOverride={barrierOverride}
-					barrierRefillRemaining={barrierApi.barrier.refillRemaining}
-					potionsOverride={potionsOverride}
-					xpOverride={xp}
-					teleportStones={character.teleportStones}
-					onUsePotion={onUsePotion}
-					onUseTeleportStone={
-						isUsingTeleportStone ? undefined : handleUseTeleportStone
-					}
-					onShowStats={statsModal.open}
-				/>
-			</aside>
+			<WorldSidebar
+				compact={compact}
+				view={view}
+				character={character}
+				stats={stats}
+				equippedBySlot={equippedBySlot}
+				barrier={barrierApi.barrier}
+				combatHp={combat.playerHp}
+				combatPotions={combat.potions}
+				isUsingPotion={isUsingPotion}
+				isUsingTeleportStone={exitFlow.isUsingTeleportStone}
+				onUsePotion={handleUsePotion}
+				onUseTeleportStone={exitFlow.stoneToCity}
+				onOpenInventory={inventoryModal.open}
+				onShowStats={statsModal.open}
+			/>
 
 			<WorldModals
 				bagModal={bagModal}
@@ -898,21 +585,21 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 				vendorModal={vendorModal}
 				stashModal={stashModal}
 				settingsModal={settingsModal}
-				zoneBag={zoneBag ?? []}
-				exitKeepCap={exitKeepCap}
-				onExitClose={handleCloseExit}
-				onPickSelected={handlePickSelected}
-				onDiscardSelected={handleDiscardSelected}
-				onPickAll={handlePickAll}
-				onDiscardAll={handleDiscardAll}
+				zoneBag={zoneBag}
+				exitKeepCap={exitFlow.exitKeepCap}
+				onExitClose={exitFlow.dismissExit}
+				onPickSelected={exitFlow.pickSelected}
+				onDiscardSelected={exitFlow.discardSelected}
+				onPickAll={exitFlow.pickAll}
+				onDiscardAll={exitFlow.discardAll}
 				stats={stats}
 				characterId={character.id}
 				characterLevel={character.level}
-				equippedItems={equippedItems ?? []}
-				inventoryItems={inventoryItems ?? []}
-				stashItems={stashItems ?? []}
-				rubys={character.rubys ?? 0}
-				potions={potions}
+				equippedItems={equippedItems}
+				inventoryItems={inventoryItems}
+				stashItems={stashItems}
+				rubys={character.rubys}
+				potions={character.potions}
 				teleportStones={character.teleportStones}
 				onVendorBuy={async (productId, quantity) => {
 					await vendorBuy({ characterId: character.id, productId, quantity });
