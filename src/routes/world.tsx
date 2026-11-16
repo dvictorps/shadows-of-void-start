@@ -41,6 +41,7 @@ import { useExitFlow } from "#/hooks/useExitFlow";
 import { useIncenseGuard } from "#/hooks/useIncenseGuard";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useInventoryMutations } from "#/hooks/useInventoryMutations";
+import { useLeaderboardSnapshot } from "#/hooks/useLeaderboardSnapshot";
 import { useModal } from "#/hooks/useModal";
 import { useSessionClaim } from "#/hooks/useSessionClaim";
 import { useSessionToken } from "#/hooks/useSessionToken";
@@ -177,6 +178,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	const vendorModal = useModal();
 	const stashModal = useModal();
 	const leaderboardModal = useModal();
+	const leaderboard = useLeaderboardSnapshot(leaderboardModal.isOpen);
 	const currentLocation = character.currentLocation ?? "city";
 	// Memoized on the location so the schedule's plan-bound callbacks
 	// (recordSpawn, cancelAmbush) stay stable: a boss node's plan is built
@@ -627,6 +629,9 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 			<LeaderboardModal
 				isOpen={leaderboardModal.isOpen}
 				onClose={leaderboardModal.close}
+				snapshot={leaderboard.snapshot}
+				query={leaderboard.query}
+				onQueryChange={leaderboard.setQuery}
 			/>
 			{/* Gated mount (unique among the modals): currentBarrier/currentLife
 				change every 50ms combat tick, so unmounting when closed avoids

@@ -16,10 +16,12 @@ const GAME_IMPORT_ALLOWLIST = [
 	"#/paraglide",
 ];
 
-// SHRINK-ONLY debt lists for the anti-monolith rules (CLAUDE.md → Scaling
-// rules). Each file here still breaks its rule and is held at `warn` until its
-// refactor lands; the refactor PR removes the entry. Never add a file: new
-// code meets the rule. The queue is docs/plans/in-progress.md.
+// SHRINK-ONLY debt list for the complexity rule (CLAUDE.md → Scaling rules).
+// Each file here still breaks it and is held at `warn` until its refactor
+// lands; the refactor PR removes the entry. Never add a file: new code meets
+// the rule. The queue is docs/plans/in-progress.md. (Its sibling for
+// no-server-calls-in-components emptied and is gone: that rule is an error
+// on every component.)
 const COMPLEXITY_DEBT = [
 	"src/game/items/equipment.ts",
 	"src/game/items/generator.ts",
@@ -37,10 +39,6 @@ const SERVER_CALL_MODULES = {
 	],
 	patterns: ["^#/hooks/use\\w*Mutations$"],
 };
-const SERVER_CALLS_IN_COMPONENTS_DEBT = [
-	"src/components/CreateCharacterModal.tsx",
-	"src/components/world/LeaderboardModal.tsx",
-];
 
 export default defineConfig({
 	// Type-aware rules (oxlint-tsgolint) for the async backend and the
@@ -348,14 +346,6 @@ export default defineConfig({
 			files: ["src/components/**"],
 			rules: {
 				"shadows/no-server-calls-in-components": ["error", SERVER_CALL_MODULES],
-			},
-		},
-		{
-			// Repeat the options: a severity-only override resets them to empty,
-			// so nothing would match.
-			files: SERVER_CALLS_IN_COMPONENTS_DEBT,
-			rules: {
-				"shadows/no-server-calls-in-components": ["warn", SERVER_CALL_MODULES],
 			},
 		},
 		{

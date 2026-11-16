@@ -68,7 +68,7 @@ Learned from the three refactors (`world.tsx`, `CombatScene`, `InventoryModal`).
 - **Components don't call the server** (`shadows/no-server-calls-in-components`). Calls come in as a `server` prop typed by an interface the component declares (`Promise<object>` returns, like `InventoryServer` / `ExitFlowServer`), so the component test injects `vi.fn()` fakes.
 - **A component folder once there's a second subcomponent**: `Foo.tsx` composes, `foo/*` holds the pieces and the pure rules.
 - **New component, new test**, in the same PR, on the shared harness (`src/components/dom-test-utils.ts`, `src/components/world/item-test-fixtures.ts`).
-- **Debt is a shrink-only list.** `COMPLEXITY_DEBT` and `SERVER_CALLS_IN_COMPONENTS_DEBT` in `oxlint.config.ts` hold the files that still break a rule, at `warn`. A refactor PR removes its entry; nothing is ever added.
+- **Debt is a shrink-only list.** `COMPLEXITY_DEBT` in `oxlint.config.ts` holds the files that still break the complexity rule, at `warn`. A refactor PR removes its entry; nothing is ever added. (`SERVER_CALLS_IN_COMPONENTS_DEBT` emptied and is gone: `no-server-calls-in-components` is an error on every component.)
 
 ## Game Context
 
