@@ -208,6 +208,10 @@ export function useCombatTick({
 	const activeRef = useRef(active);
 	useEffect(() => {
 		const wasActive = activeRef.current;
+		// Nothing to flush when the last kill or sync already carried them.
+		const unsynced =
+			playerHpRef.current !== lastSyncedHpRef.current ||
+			barrierRef.current.current !== lastSyncedBarrierRef.current;
 		if (active && !wasActive) {
 			playerHpRef.current = initialHpRef.current;
 			lastSyncedHpRef.current = initialHpRef.current;
@@ -219,13 +223,7 @@ export function useCombatTick({
 			nextSwingIndexRef.current = 0;
 			regenAccRef.current = 0;
 			// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- flushing HP to the server on deactivation is a sync with an external system; `active` flips from several route paths (retreat, death, travel, the exit modal opening), so there is no single handler to own it.
-		} else if (
-			!active &&
-			wasActive &&
-			!deadRef.current &&
-			(playerHpRef.current !== lastSyncedHpRef.current ||
-				barrierRef.current.current !== lastSyncedBarrierRef.current)
-		) {
+		} else if (!active && wasActive && !deadRef.current && unsynced) {
 			syncVitals({
 				hpCurrent: playerHpRef.current,
 				barrierCurrent: barrierRef.current.current,
