@@ -17,6 +17,7 @@ Use these when the task matches an existing pattern. For one-off architectural c
 - [Which i18n system to use](./i18n-which-system.md) — decision tree: paraglide vs lexicon vs `mod-i18n.ts`
 - [Touching combat](./touching-combat.md) — read this before editing `useCombatLoop.ts`
 - [Adding a procedure](./adding-a-procedure.md) — new tRPC endpoint on D1 (auth → load → decide → one write)
+- [Adding a world component](./adding-a-world-component.md) — new modal / panel / HUD block, or a new concern in one: the anti-monolith shape (decisions pure + tested, `server` prop, folder per component)
 
 ### Stubs (orientation docs for systems not yet built)
 

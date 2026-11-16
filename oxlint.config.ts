@@ -16,6 +16,35 @@ const GAME_IMPORT_ALLOWLIST = [
 	"#/paraglide",
 ];
 
+// SHRINK-ONLY debt lists for the anti-monolith rules (CLAUDE.md → Scaling
+// rules). Each file here still breaks its rule and is held at `warn` until its
+// refactor lands; the refactor PR removes the entry. Never add a file: new
+// code meets the rule. The queue is docs/plans/in-progress.md.
+const COMPLEXITY_DEBT = [
+	"src/components/game/ItemTooltip.tsx",
+	"src/components/world/StashModal.tsx",
+	"src/components/world/StatusCard.tsx",
+	"src/game/items/equipment.ts",
+	"src/game/items/generator.ts",
+	"src/game/stats/compute.ts",
+	"src/hooks/useCombatLoop.ts",
+	"src/hooks/useCombatTick.ts",
+	"src/lib/server-error-message.ts",
+];
+// What a component may not import (value imports; `import type` is fine).
+const SERVER_CALL_MODULES = {
+	modules: [
+		"#/integrations/trpc",
+		"@trpc/tanstack-react-query",
+		"@tanstack/react-query",
+	],
+	patterns: ["^#/hooks/use\\w*Mutations$"],
+};
+const SERVER_CALLS_IN_COMPONENTS_DEBT = [
+	"src/components/CreateCharacterModal.tsx",
+	"src/components/world/LeaderboardModal.tsx",
+];
+
 export default defineConfig({
 	// Type-aware rules (oxlint-tsgolint) for the async backend and the
 	// promise-heavy client. The categories below switch on every type-aware
@@ -83,7 +112,10 @@ export default defineConfig({
 				destructuredArrayIgnorePattern: "^_",
 			},
 		],
-		complexity: ["warn", { max: 20 }],
+		// The anti-monolith gate (CLAUDE.md → Scaling rules): a function over 20
+		// is a decision that belongs in a pure, tested module. Files still over
+		// it are listed in COMPLEXITY_DEBT below.
+		complexity: ["error", { max: 20 }],
 		"import/max-dependencies": "off",
 		"no-inline-comments": "off",
 		"no-underscore-dangle": "off",
@@ -312,6 +344,26 @@ export default defineConfig({
 				"src/integrations/trpc/client.ts",
 			],
 			rules: { "shadows/server-only-imports": "off" },
+		},
+		{
+			// Components take server data and calls as props (CLAUDE.md →
+			// Scaling rules); the route or a hook makes the calls.
+			files: ["src/components/**"],
+			rules: {
+				"shadows/no-server-calls-in-components": ["error", SERVER_CALL_MODULES],
+			},
+		},
+		{
+			// Repeat the options: a severity-only override resets them to empty,
+			// so nothing would match.
+			files: SERVER_CALLS_IN_COMPONENTS_DEBT,
+			rules: {
+				"shadows/no-server-calls-in-components": ["warn", SERVER_CALL_MODULES],
+			},
+		},
+		{
+			files: COMPLEXITY_DEBT,
+			rules: { complexity: ["warn", { max: 20 }] },
 		},
 	],
 });
