@@ -23,12 +23,12 @@ type Props = {
 	hitToken?: string | number | null;
 };
 
-const SIZE_CLASSES: Record<NonNullable<Props["size"]>, string> = {
+const SIZE_CLASSES = {
 	sm: "h-16 w-16 text-[10px]",
 	md: "h-24 w-24 text-sm",
 	lg: "h-28 w-28 text-sm",
 	xl: "h-36 w-36 text-base",
-};
+} satisfies Record<NonNullable<Props["size"]>, string>;
 
 export default function HealthGlobe({
 	hp,
@@ -59,6 +59,7 @@ export default function HealthGlobe({
 
 	const controls = useAnimationControls();
 	useEffect(() => {
+		// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- replaying the same keyframes on every hit needs framer-motion's imperative controls: a declarative `animate` with an unchanged target won't re-run, and a `key` remount would reset the HP/barrier fills' CSS height transitions on every hit
 		if (hitToken === null) return;
 		controls.start({
 			x: [0, -2, 2, -1.5, 1, 0],

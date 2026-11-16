@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { m } from "#/paraglide/messages";
 
 type Props = {
@@ -27,16 +27,12 @@ export default function TravelProgressBar({
 		return () => window.clearInterval(id);
 	}, []);
 
-	const animationRef = useRef<CSSProperties | null>(null);
-	if (animationRef.current === null) {
-		// Lock on first render; ignore later arrivesAtMs updates so the CSS
-		// animation doesn't restart mid-trip.
-		const remainingMs = Math.max(100, arrivesAtMs - Date.now());
-		animationRef.current = {
-			animation: `travel-fill ${remainingMs}ms linear both`,
-			transformOrigin: "left center",
-		};
-	}
+	// Lock on first render (lazy initial state); ignore later arrivesAtMs
+	// updates so the CSS animation doesn't restart mid-trip.
+	const [animationStyle] = useState<CSSProperties>(() => ({
+		animation: `travel-fill ${Math.max(100, arrivesAtMs - Date.now())}ms linear both`,
+		transformOrigin: "left center",
+	}));
 
 	const remainingSeconds = Math.max(0, Math.ceil((arrivesAtMs - now) / 1000));
 
@@ -52,7 +48,7 @@ export default function TravelProgressBar({
 				<div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
 					<div
 						className="h-full w-full bg-white"
-						style={animationRef.current}
+						style={animationStyle}
 					/>
 				</div>
 			</div>

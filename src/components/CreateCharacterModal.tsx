@@ -17,20 +17,17 @@ const MAX_NAME_LENGTH = 20;
 
 const CLASS_LIST: CharacterClassId[] = ["warrior", "rogue", "mage"];
 
-const CLASS_DESCRIPTION: Record<CharacterClassId, () => string> = {
+const CLASS_DESCRIPTION = {
 	warrior: m.class_warrior_description,
 	rogue: m.class_rogue_description,
 	mage: m.class_mage_description,
-};
+} satisfies Record<CharacterClassId, () => string>;
 
-const ATTRIBUTE_LABEL: Record<
-	"strength" | "dexterity" | "intelligence",
-	() => string
-> = {
+const ATTRIBUTE_LABEL = {
 	strength: m.attribute_strength,
 	dexterity: m.attribute_dexterity,
 	intelligence: m.attribute_intelligence,
-};
+} satisfies Record<"strength" | "dexterity" | "intelligence", () => string>;
 
 type Props = {
 	isOpen: boolean;

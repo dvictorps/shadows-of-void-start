@@ -51,7 +51,7 @@ The parallel-registry version makes "boss" a first-class category — code that 
 
 ## Trade-off accepted
 
-The parallel registry pays a one-time cost: combat code that needs the boss's cinematic config (CombatScene for screenshake/sfx, MonsterTooltip for nameplate color, sfx.ts for death sfx routing) does a second lookup via `findBoss(enemy.def.id as BossId)`. That's one extra map read per boss-related render — measurably nothing.
+The parallel registry pays a one-time cost: combat code that needs the boss's cinematic config (CombatScene for screenshake, useCombatLoop for the entry sfx, MonsterTooltip for nameplate color, sfx.ts for death sfx routing) does a second lookup via `findBoss(enemy.def.id as BossId)`. That's one extra map read per boss-related render — measurably nothing.
 
 The benefit: the boss surface is explicit at the call site (the `as BossId` cast signals "we're crossing into boss-land"), uniques never accidentally route through rare-only code paths, and adding a new boss is one file under `src/game/bosses/` + one paraglide key per locale, no `MONSTERS` edit.
 
@@ -76,3 +76,7 @@ No combat-engine changes are required to add a second boss — the parallel regi
 Code that needs to distinguish bosses from rares does so by reading `enemy.rarity === "unique"`. The `Enemy.def` shape stays uniform (BossTemplate is a `MonsterDefinition`), so the combat tick and scaling don't branch — only presentation code (tooltip, nameplate color, intro stage cascade) and reward routing (drops, recordKill) care about the distinction.
 
 If a future feature lets *items* be unique (per the convention noted in CONTEXT.md → Boss), they reuse `ItemRarity = "...|unique"` the same way — the rarity-tier infrastructure already exists.
+
+## Update (2026-11)
+
+`findBoss` now takes a plain `string` and returns `null` for non-boss ids (own-key check), so callers drop the `as BossId` cast: `findBoss(enemy.def.id)`. Boss display names resolve through the `BOSS_NAME_I18N` table in `src/game/world/i18n.ts` instead of indexing paraglide's `m` by string, so a new boss registers its `nameKey` there.

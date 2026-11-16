@@ -21,6 +21,10 @@ import { SessionTokenProvider } from "./useSessionToken";
 // `useCombatTick` calls `useMutation(api.combat.syncHp)` and `.usePotion`.
 // In tests there's no Convex client; stub the hook out with a no-op callable
 // that still exposes `.withOptimisticUpdate` (used for the potion mutation).
+// This is the last module mock in the file. The Cloudflare migration
+// (ADR 0009) replaces the Convex transport, and the mutation gets injected
+// through `deps` like the dice and audio below.
+// oxlint-disable-next-line anti-slop/no-module-mocking -- no injectable seam for `useMutation` yet; Convex transport is replaced by the Cloudflare migration.
 vi.mock("convex/react", () => {
 	const noop = Object.assign(
 		async () => {
@@ -31,33 +35,28 @@ vi.mock("convex/react", () => {
 	return { useMutation: () => noop };
 });
 
-// Stub SFX — jsdom has no real audio backend and we don't need the side effect.
-vi.mock("#/lib/sfx", () => ({
-	playSfx: () => {},
-	playPlayerSwingSfx: () => {},
-	playMonsterDeathSfx: () => {},
-	playKillSfx: () => {},
-}));
-
-// Stub the damage roll functions so we control exactly how much each side
-// deals — the bug under test is in HOW the hook composes those results, not
-// in the dice rolls themselves.
-const rollPlayerSwingMock = vi.fn();
-const rollEnemyAttackMock = vi.fn();
-vi.mock("#/game/combat/damage", async () => {
-	const actual = await vi.importActual<typeof import("#/game/combat/damage")>(
-		"#/game/combat/damage",
-	);
-	return {
-		...actual,
-		rollPlayerSwing: (...args: unknown[]) => rollPlayerSwingMock(...args),
-		rollEnemyAttack: (...args: unknown[]) => rollEnemyAttackMock(...args),
-	};
-});
-
-// Imported AFTER mocks so the hook closure picks up the mocked deps.
+// Imported AFTER the Convex mock so the hook closure picks it up.
 const { useCombatTick } = await import("./useCombatTick");
 const { useBarrier } = await import("./useBarrier");
+
+type TickParams = Parameters<typeof useCombatTick>[0];
+type CombatTickDeps = NonNullable<TickParams["deps"]>;
+
+// Deterministic rolls let the test control exactly how much each side deals:
+// the bug under test is in HOW the hook composes those results, not in the
+// dice. Audio is silent because jsdom has no audio backend.
+const rollPlayerSwingMock = vi.fn<CombatTickDeps["rollPlayerSwing"]>();
+const rollEnemyAttackMock = vi.fn<CombatTickDeps["rollEnemyAttack"]>();
+const TEST_DEPS: CombatTickDeps = {
+	rollPlayerSwing: rollPlayerSwingMock,
+	rollEnemyAttack: rollEnemyAttackMock,
+	playSfx: () => {},
+	playPlayerSwingSfx: () => {},
+};
+
+// SAFETY: `Id<"characters">` is a branded string; the id is only forwarded to
+// the stubbed `useMutation` above, which never resolves it against a table.
+const TEST_CHARACTER_ID = "test-char" as TickParams["characterId"];
 
 // ── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -210,12 +209,12 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 		});
 
 		let latestEnemy = makeEnemy(INITIAL_HP);
-		const updateEnemy = vi.fn((next: Enemy) => {
+		const updateEnemy = vi.fn<TickParams["updateEnemy"]>((next) => {
 			latestEnemy = next;
 		});
-		const resolveKill = vi.fn();
-		const onPlayerDeath = vi.fn();
-		const pushEvent = vi.fn();
+		const resolveKill = vi.fn<TickParams["resolveKill"]>();
+		const onPlayerDeath = vi.fn<TickParams["onPlayerDeath"]>();
+		const pushEvent = vi.fn<TickParams["pushEvent"]>();
 
 		renderHook(
 			() => {
@@ -225,9 +224,7 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 					active: true,
 				});
 				return useCombatTick({
-					characterId: "test-char" as unknown as Parameters<
-						typeof useCombatTick
-					>[0]["characterId"],
+					characterId: TEST_CHARACTER_ID,
 					active: true,
 					isEngaged: true,
 					enemy: latestEnemy,
@@ -239,6 +236,7 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 					resolveKill,
 					pushEvent,
 					updateEnemy,
+					deps: TEST_DEPS,
 				});
 			},
 			{
@@ -287,9 +285,7 @@ function renderRegenHook({
 				active: true,
 			});
 			return useCombatTick({
-				characterId: "test-char" as unknown as Parameters<
-					typeof useCombatTick
-				>[0]["characterId"],
+				characterId: TEST_CHARACTER_ID,
 				active: true,
 				isEngaged: false,
 				enemy: null,
@@ -297,10 +293,11 @@ function renderRegenHook({
 				initialHp,
 				potions: 0,
 				barrierApi,
-				onPlayerDeath: vi.fn(),
-				resolveKill: vi.fn(),
-				pushEvent: vi.fn(),
-				updateEnemy: vi.fn(),
+				onPlayerDeath: vi.fn<TickParams["onPlayerDeath"]>(),
+				resolveKill: vi.fn<TickParams["resolveKill"]>(),
+				pushEvent: vi.fn<TickParams["pushEvent"]>(),
+				updateEnemy: vi.fn<TickParams["updateEnemy"]>(),
+				deps: TEST_DEPS,
 			});
 		},
 		{

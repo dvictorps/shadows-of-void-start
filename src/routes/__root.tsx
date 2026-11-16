@@ -46,7 +46,7 @@ const getAuth = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	beforeLoad: async (ctx) => {
-		if (typeof document !== "undefined") {
+		if (globalThis.document !== undefined) {
 			document.documentElement.setAttribute("lang", getLocale());
 		}
 

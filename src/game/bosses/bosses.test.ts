@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { scaleMonsterStats } from "../monsters/scaling";
+import { typedKeys } from "../typed-object";
 import { BOSSES, findBoss } from "./data";
 import { GRALFOR } from "./gralfor";
 
@@ -11,9 +12,8 @@ describe("BOSSES registry", () => {
 	it("BossId union matches registry keys", () => {
 		// Compile-time check that BossId covers BOSSES — runtime side ensures
 		// we don't accidentally ship a registry entry with no BossId slot.
-		const keys = Object.keys(BOSSES);
-		for (const k of keys) {
-			expect(findBoss(k as keyof typeof BOSSES)).not.toBeNull();
+		for (const k of typedKeys(BOSSES)) {
+			expect(findBoss(k)).not.toBeNull();
 		}
 	});
 });

@@ -1,12 +1,12 @@
-import { describe, expect, it } from "vitest";
-import { MODIFIERS, type ModifierId } from "./data/modifiers";
+import { assert, describe, expect, it } from "vitest";
+import { findModifier, getModifier } from "./data/modifiers";
 import { EQUIPMENT_TEMPLATES } from "./data/templates";
 import {
 	generateItem,
 	getSynergyWeight,
 	SPELL_FLAT_TO_ELEMENT,
 } from "./generator";
-import type { GeneratedItem, ItemRarity } from "./types";
+import type { GeneratedItem, ItemRarity, RolledMod } from "./types";
 
 // ── Helpers ──
 
@@ -23,6 +23,17 @@ function allExplicitModIds(items: GeneratedItem[]): Set<string> {
 		for (const mod of item.explicits) ids.add(mod.modifierId);
 	}
 	return ids;
+}
+
+// Every rolled explicit matching one of `ids`, across items. Lets tests assert
+// on the matches unconditionally instead of branching inside a loop.
+function explicitsWithId(
+	items: GeneratedItem[],
+	...ids: string[]
+): RolledMod[] {
+	return items.flatMap((item) =>
+		item.explicits.filter((m) => ids.includes(m.modifierId)),
+	);
 }
 
 const ATTACK_WEAPON_IDS = [
@@ -216,7 +227,7 @@ describe("RolledMod carries modifierType and isGlobalStat", () => {
 		for (const item of items) {
 			for (const mod of item.explicits) {
 				expect(["flat", "increased", "more"]).toContain(mod.modifierType);
-				expect(typeof mod.isGlobalStat).toBe("boolean");
+				expect(mod.isGlobalStat).toBeTypeOf("boolean");
 			}
 		}
 	});
@@ -225,8 +236,9 @@ describe("RolledMod carries modifierType and isGlobalStat", () => {
 		const items = generateMany(50, { rarity: "epic", itemLevel: 80 });
 		for (const item of items) {
 			for (const mod of item.explicits) {
-				const def = MODIFIERS[mod.modifierId as ModifierId];
-				expect(mod.isGlobalStat).toBe(def.isGlobalStat ?? false);
+				const def = findModifier(mod.modifierId);
+				expect(def).toBeDefined();
+				expect(mod.isGlobalStat).toBe(def?.isGlobalStat ?? false);
 			}
 		}
 	});
@@ -238,11 +250,10 @@ describe("explicit ordering", () => {
 	it("prefixes come before suffixes", () => {
 		const items = generateMany(200, { rarity: "epic", itemLevel: 80 });
 		for (const item of items) {
-			let seenSuffix = false;
-			for (const mod of item.explicits) {
-				if (mod.affixType === "suffix") seenSuffix = true;
-				if (mod.affixType === "prefix") expect(seenSuffix).toBe(false);
-			}
+			const ranks = item.explicits.map((m) =>
+				m.affixType === "prefix" ? 0 : 1,
+			);
+			expect(ranks).toEqual(ranks.toSorted((a, b) => a - b));
 		}
 	});
 
@@ -253,11 +264,11 @@ describe("explicit ordering", () => {
 			const suffixes = item.explicits.filter((m) => m.affixType === "suffix");
 
 			for (const group of [prefixes, suffixes]) {
-				let seenFlat = false;
-				for (const mod of group) {
-					if (mod.modifierType === "flat") seenFlat = true;
-					if (mod.modifierType === "increased") expect(seenFlat).toBe(false);
-				}
+				// Same key as the generator's sort: increased first, then the rest.
+				const ranks = group.map((m) =>
+					m.modifierType === "increased" ? 0 : 1,
+				);
+				expect(ranks).toEqual(ranks.toSorted((a, b) => a - b));
 			}
 		}
 	});
@@ -320,12 +331,12 @@ describe("spell weapons (staff/wand)", () => {
 				itemLevel: 80,
 			});
 			const rolledIds = allExplicitModIds(items);
-			const spellMods = Object.keys(SPELL_FLAT_TO_ELEMENT);
+			const spellMods = [...SPELL_FLAT_TO_ELEMENT.keys()];
 			expect(spellMods.some((id) => rolledIds.has(id))).toBe(true);
 
 			for (const item of items) {
 				for (const expl of item.explicits) {
-					const expectedElem = SPELL_FLAT_TO_ELEMENT[expl.modifierId];
+					const expectedElem = SPELL_FLAT_TO_ELEMENT.get(expl.modifierId);
 					if (!expectedElem) continue;
 					const entry = item.computedStats?.elementalDamage.find(
 						(e) => e.element === expectedElem,
@@ -353,20 +364,18 @@ describe("attack weapon computed stats", () => {
 				i.explicits.some((m) => m.modifierId === "physicalDamageFlat") &&
 				i.computedStats,
 		);
-		expect(withFlat).toBeDefined();
-		if (withFlat) {
-			const flatMod = withFlat.explicits.find(
-				(m) => m.modifierId === "physicalDamageFlat",
-			)!;
-			expect(flatMod.minValue).toBeDefined();
-			expect(flatMod.maxValue).toBeDefined();
-			expect(withFlat.computedStats!.physicalDamage.min).toBeGreaterThanOrEqual(
-				(withFlat.baseStats.minDamage ?? 0) + flatMod.minValue!,
-			);
-			expect(withFlat.computedStats!.physicalDamage.max).toBeGreaterThanOrEqual(
-				(withFlat.baseStats.maxDamage ?? 0) + flatMod.maxValue!,
-			);
-		}
+		assert(withFlat, "no sword rolled physicalDamageFlat");
+		const flatMod = withFlat.explicits.find(
+			(m) => m.modifierId === "physicalDamageFlat",
+		)!;
+		expect(flatMod.minValue).toBeDefined();
+		expect(flatMod.maxValue).toBeDefined();
+		expect(withFlat.computedStats!.physicalDamage.min).toBeGreaterThanOrEqual(
+			(withFlat.baseStats.minDamage ?? 0) + flatMod.minValue!,
+		);
+		expect(withFlat.computedStats!.physicalDamage.max).toBeGreaterThanOrEqual(
+			(withFlat.baseStats.maxDamage ?? 0) + flatMod.maxValue!,
+		);
 	});
 
 	it("crit chance is increased (multiplicative), not flat additive", () => {
@@ -381,15 +390,13 @@ describe("attack weapon computed stats", () => {
 				!i.explicits.some((m) => m.modifierId === "physicalDamageFlat") &&
 				i.computedStats,
 		);
-		expect(withCrit).toBeDefined();
-		if (withCrit) {
-			const critMod = withCrit.explicits.find(
-				(m) => m.modifierId === "criticalChanceIncrease",
-			)!;
-			const base = withCrit.baseStats.criticalChance ?? 5;
-			const expected = Math.round(base * (1 + critMod.value / 100) * 10) / 10;
-			expect(withCrit.computedStats!.criticalChance).toBe(expected);
-		}
+		assert(withCrit, "no sword rolled criticalChanceIncrease without flat phys");
+		const critMod = withCrit.explicits.find(
+			(m) => m.modifierId === "criticalChanceIncrease",
+		)!;
+		const base = withCrit.baseStats.criticalChance ?? 5;
+		const expected = Math.round(base * (1 + critMod.value / 100) * 10) / 10;
+		expect(withCrit.computedStats!.criticalChance).toBe(expected);
 	});
 
 	it("attack weapons always have computedStats", () => {
@@ -413,18 +420,12 @@ describe("armor local defense", () => {
 			templateId: "plate_chestplate_t1",
 			itemLevel: 80,
 		});
-		let checked = 0;
-		for (const item of items) {
-			const defMod = item.explicits.find(
-				(m) => m.modifierId === "localDefenseFlat",
-			);
-			if (defMod) {
-				expect(defMod.description).toContain("Armor");
-				expect(defMod.description).not.toContain("Defense");
-				checked++;
-			}
+		const defMods = explicitsWithId(items, "localDefenseFlat");
+		expect(defMods.length).toBeGreaterThan(0);
+		for (const defMod of defMods) {
+			expect(defMod.description).toContain("Armor");
+			expect(defMod.description).not.toContain("Defense");
 		}
-		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("plate armor localDefenseIncrease description says Armor", () => {
@@ -433,18 +434,12 @@ describe("armor local defense", () => {
 			templateId: "plate_chestplate_t1",
 			itemLevel: 80,
 		});
-		let checked = 0;
-		for (const item of items) {
-			const defMod = item.explicits.find(
-				(m) => m.modifierId === "localDefenseIncrease",
-			);
-			if (defMod) {
-				expect(defMod.description).toContain("Armor");
-				expect(defMod.description).not.toContain("Defense");
-				checked++;
-			}
+		const defMods = explicitsWithId(items, "localDefenseIncrease");
+		expect(defMods.length).toBeGreaterThan(0);
+		for (const defMod of defMods) {
+			expect(defMod.description).toContain("Armor");
+			expect(defMod.description).not.toContain("Defense");
 		}
-		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("computedDefenseStats reflects local defense mods", () => {
@@ -458,12 +453,10 @@ describe("armor local defense", () => {
 				i.explicits.some((m) => m.modifierId === "localDefenseFlat") &&
 				i.computedDefenseStats,
 		);
-		expect(withDef).toBeDefined();
-		if (withDef) {
-			expect(withDef.computedDefenseStats!.armor).toBeGreaterThan(
-				withDef.baseStats.armor ?? 0,
-			);
-		}
+		assert(withDef, "no plate chest rolled localDefenseFlat");
+		expect(withDef.computedDefenseStats!.armor).toBeGreaterThan(
+			withDef.baseStats.armor ?? 0,
+		);
 	});
 });
 
@@ -541,7 +534,7 @@ describe("global defense % mods respect armorType", () => {
 
 describe("restrictedToArmorType modifier filter", () => {
 	it("filters armor templates by armorType; passes through non-armor", () => {
-		const target = MODIFIERS.physicalDamageFlatGlobal;
+		const target = getModifier("physicalDamageFlatGlobal");
 		const original = target.restrictedToArmorType;
 		target.restrictedToArmorType = "silk";
 		try {
@@ -695,18 +688,12 @@ describe("shield", () => {
 			templateId: "plate_shield_t1",
 			itemLevel: 80,
 		});
-		let checked = 0;
-		for (const item of items) {
-			const defMod = item.explicits.find(
-				(m) => m.modifierId === "localDefenseFlat",
-			);
-			if (defMod) {
-				expect(defMod.description).toContain("Armor");
-				expect(defMod.description).not.toContain("Defense");
-				checked++;
-			}
+		const defMods = explicitsWithId(items, "localDefenseFlat");
+		expect(defMods.length).toBeGreaterThan(0);
+		for (const defMod of defMods) {
+			expect(defMod.description).toContain("Armor");
+			expect(defMod.description).not.toContain("Defense");
 		}
-		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("leather shield localDefenseFlat resolves to Evasion Rating", () => {
@@ -715,18 +702,12 @@ describe("shield", () => {
 			templateId: "leather_shield_t1",
 			itemLevel: 80,
 		});
-		let checked = 0;
-		for (const item of items) {
-			const defMod = item.explicits.find(
-				(m) => m.modifierId === "localDefenseFlat",
-			);
-			if (defMod) {
-				expect(defMod.description).toContain("Evasion Rating");
-				expect(defMod.description).not.toContain("Defense");
-				checked++;
-			}
+		const defMods = explicitsWithId(items, "localDefenseFlat");
+		expect(defMods.length).toBeGreaterThan(0);
+		for (const defMod of defMods) {
+			expect(defMod.description).toContain("Evasion Rating");
+			expect(defMod.description).not.toContain("Defense");
 		}
-		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("silk shield localDefenseFlat resolves to Barrier", () => {
@@ -735,18 +716,12 @@ describe("shield", () => {
 			templateId: "silk_shield_t1",
 			itemLevel: 80,
 		});
-		let checked = 0;
-		for (const item of items) {
-			const defMod = item.explicits.find(
-				(m) => m.modifierId === "localDefenseFlat",
-			);
-			if (defMod) {
-				expect(defMod.description).toContain("Barrier");
-				expect(defMod.description).not.toContain("Defense");
-				checked++;
-			}
+		const defMods = explicitsWithId(items, "localDefenseFlat");
+		expect(defMods.length).toBeGreaterThan(0);
+		for (const defMod of defMods) {
+			expect(defMod.description).toContain("Barrier");
+			expect(defMod.description).not.toContain("Defense");
 		}
-		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("plate shield has only armor defense stat (no evasion/barrier)", () => {
@@ -801,48 +776,36 @@ describe("shield", () => {
 	});
 
 	it("blockChanceIncrease applies to shield base block chance", () => {
-		let found = false;
-		for (let i = 0; i < 500 && !found; i++) {
-			const item = generateItem({
-				rarity: "epic",
-				templateId: "plate_shield_t1",
-				itemLevel: 80,
-			});
-			const hasBlockMod = item.explicits.some(
-				(m) => m.modifierId === "blockChanceIncrease",
-			);
-			if (hasBlockMod) {
-				expect(item.computedDefenseStats?.blockChance).toBeDefined();
-				expect(item.computedDefenseStats!.blockChance).toBeGreaterThan(22);
-				found = true;
-			}
-		}
-		expect(found).toBe(true);
+		const item = generateMany(500, {
+			rarity: "epic",
+			templateId: "plate_shield_t1",
+			itemLevel: 80,
+		}).find((i) =>
+			i.explicits.some((m) => m.modifierId === "blockChanceIncrease"),
+		);
+		assert(item, "no plate shield rolled blockChanceIncrease");
+		expect(item.computedDefenseStats?.blockChance).toBeDefined();
+		expect(item.computedDefenseStats!.blockChance).toBeGreaterThan(22);
 	});
 
 	it("block sums additively across base + implicit + explicit (no multiplicative double-count)", () => {
 		// silk_shield_t2 (cotton ward): baseBlock 22, implicit blockChanceIncrease,
 		// magic+ may also roll an explicit blockChanceIncrease.
-		let asserted = 0;
-		for (let i = 0; i < 500 && asserted < 5; i++) {
-			const item = generateItem({
-				rarity: "epic",
-				templateId: "silk_shield_t2",
-				itemLevel: 80,
-			});
-			const implBlock = item.implicits
-				.filter((imp) => imp.modifierId === "blockChanceIncrease")
-				.reduce((s, imp) => s + imp.value, 0);
-			const explBlock = item.explicits
+		const blockSum = (item: GeneratedItem) =>
+			[...item.implicits, ...item.explicits]
 				.filter((m) => m.modifierId === "blockChanceIncrease")
 				.reduce((s, m) => s + m.value, 0);
-			if (implBlock > 0 || explBlock > 0) {
-				const expected = 22 + implBlock + explBlock;
-				expect(item.computedDefenseStats?.blockChance).toBe(expected);
-				asserted++;
-			}
+		const withBlock = generateMany(500, {
+			rarity: "epic",
+			templateId: "silk_shield_t2",
+			itemLevel: 80,
+		})
+			.filter((item) => blockSum(item) > 0)
+			.slice(0, 5);
+		expect(withBlock.length).toBeGreaterThan(0);
+		for (const item of withBlock) {
+			expect(item.computedDefenseStats?.blockChance).toBe(22 + blockSum(item));
 		}
-		expect(asserted).toBeGreaterThan(0);
 	});
 });
 
@@ -1078,17 +1041,12 @@ describe("flat damage mods roll as min-max range", () => {
 				itemLevel: 80,
 			}),
 		];
-		let checked = 0;
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				if (FLAT_DAMAGE_MODS.includes(mod.modifierId)) {
-					expect(mod.minValue).toBeDefined();
-					expect(mod.maxValue).toBeDefined();
-					checked++;
-				}
-			}
+		const flatMods = explicitsWithId(items, ...FLAT_DAMAGE_MODS);
+		expect(flatMods.length).toBeGreaterThan(0);
+		for (const mod of flatMods) {
+			expect(mod.minValue).toBeDefined();
+			expect(mod.maxValue).toBeDefined();
 		}
-		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("minValue is half of maxValue (rounded)", () => {
@@ -1104,20 +1062,13 @@ describe("flat damage mods roll as min-max range", () => {
 				itemLevel: 80,
 			}),
 		];
-		let checked = 0;
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				if (
-					mod.minValue != null &&
-					mod.maxValue != null &&
-					FLAT_DAMAGE_MODS.includes(mod.modifierId)
-				) {
-					expect(mod.minValue).toBe(Math.round(mod.maxValue / 2));
-					checked++;
-				}
-			}
+		const ranged = explicitsWithId(items, ...FLAT_DAMAGE_MODS).filter(
+			(mod) => mod.minValue != null && mod.maxValue != null,
+		);
+		expect(ranged.length).toBeGreaterThan(0);
+		for (const mod of ranged) {
+			expect(mod.minValue).toBe(Math.round(mod.maxValue! / 2));
 		}
-		expect(checked).toBeGreaterThan(0);
 	});
 
 	it("minValue and maxValue are integers", () => {
@@ -1133,14 +1084,11 @@ describe("flat damage mods roll as min-max range", () => {
 				itemLevel: 80,
 			}),
 		];
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				if (mod.minValue != null)
-					expect(Number.isInteger(mod.minValue)).toBe(true);
-				if (mod.maxValue != null)
-					expect(Number.isInteger(mod.maxValue)).toBe(true);
-			}
-		}
+		const bounds = items
+			.flatMap((item) => item.explicits)
+			.flatMap((mod) => [mod.minValue, mod.maxValue])
+			.filter((v) => v != null);
+		for (const v of bounds) expect(Number.isInteger(v)).toBe(true);
 	});
 
 	it("flat damage descriptions show min-max range", () => {
@@ -1156,16 +1104,9 @@ describe("flat damage mods roll as min-max range", () => {
 				itemLevel: 80,
 			}),
 		];
-		let checked = 0;
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				if (FLAT_DAMAGE_MODS.includes(mod.modifierId)) {
-					expect(mod.description).toMatch(/\d+-\d+/);
-					checked++;
-				}
-			}
-		}
-		expect(checked).toBeGreaterThan(0);
+		const flatMods = explicitsWithId(items, ...FLAT_DAMAGE_MODS);
+		expect(flatMods.length).toBeGreaterThan(0);
+		for (const mod of flatMods) expect(mod.description).toMatch(/\d+-\d+/);
 	});
 });
 
@@ -1177,7 +1118,7 @@ describe("synergy tags", () => {
 			let totalOverlap = 0;
 			for (const item of items) {
 				const allTags = item.explicits.flatMap(
-					(m) => MODIFIERS[m.modifierId as ModifierId]?.tags ?? [],
+					(m) => findModifier(m.modifierId)?.tags ?? [],
 				);
 				const unique = new Set(allTags);
 				totalOverlap +=
@@ -1297,15 +1238,11 @@ describe("deterministic epic patterns", () => {
 			templateId: "sword_t1",
 			itemLevel: 80,
 		});
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				if (mod.affixType === "prefix") {
-					expect(ATTACK_WEAPON_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true);
-				} else {
-					expect(ATTACK_WEAPON_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true);
-				}
-			}
-		}
+		const mods = items.flatMap((item) => item.explicits);
+		for (const mod of mods.filter((m) => m.affixType === "prefix"))
+			expect(ATTACK_WEAPON_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true);
+		for (const mod of mods.filter((m) => m.affixType !== "prefix"))
+			expect(ATTACK_WEAPON_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true);
 	});
 
 	it("epic spell weapon: all mods from spell pattern pool", () => {
@@ -1314,15 +1251,11 @@ describe("deterministic epic patterns", () => {
 			templateId: "staff_t1",
 			itemLevel: 80,
 		});
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				if (mod.affixType === "prefix") {
-					expect(SPELL_WEAPON_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true);
-				} else {
-					expect(SPELL_WEAPON_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true);
-				}
-			}
-		}
+		const mods = items.flatMap((item) => item.explicits);
+		for (const mod of mods.filter((m) => m.affixType === "prefix"))
+			expect(SPELL_WEAPON_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true);
+		for (const mod of mods.filter((m) => m.affixType !== "prefix"))
+			expect(SPELL_WEAPON_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true);
 	});
 
 	it("epic armor: all mods from defense/life/resistance pool", () => {
@@ -1331,15 +1264,11 @@ describe("deterministic epic patterns", () => {
 			templateId: "plate_chestplate_t1",
 			itemLevel: 80,
 		});
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				if (mod.affixType === "prefix") {
-					expect(ARMOR_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true);
-				} else {
-					expect(ARMOR_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true);
-				}
-			}
-		}
+		const mods = items.flatMap((item) => item.explicits);
+		for (const mod of mods.filter((m) => m.affixType === "prefix"))
+			expect(ARMOR_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true);
+		for (const mod of mods.filter((m) => m.affixType !== "prefix"))
+			expect(ARMOR_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true);
 	});
 
 	it("epic boots: can roll movementSpeedIncrease (boots special)", () => {
@@ -1358,15 +1287,11 @@ describe("deterministic epic patterns", () => {
 			templateId: "leather_belt",
 			itemLevel: 80,
 		});
-		for (const item of items) {
-			for (const mod of item.explicits) {
-				if (mod.affixType === "prefix") {
-					expect(BELT_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true);
-				} else {
-					expect(BELT_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true);
-				}
-			}
-		}
+		const mods = items.flatMap((item) => item.explicits);
+		for (const mod of mods.filter((m) => m.affixType === "prefix"))
+			expect(BELT_PATTERN_PREFIXES.has(mod.modifierId)).toBe(true);
+		for (const mod of mods.filter((m) => m.affixType !== "prefix"))
+			expect(BELT_PATTERN_SUFFIXES.has(mod.modifierId)).toBe(true);
 	});
 
 	it("epic items always roll tier 4 or better", () => {
@@ -1500,18 +1425,12 @@ describe("leather armor defense", () => {
 			templateId: "leather_chestplate_t1",
 			itemLevel: 80,
 		});
-		let checked = 0;
-		for (const item of items) {
-			const defMod = item.explicits.find(
-				(m) => m.modifierId === "localDefenseFlat",
-			);
-			if (defMod) {
-				expect(defMod.description).toContain("Evasion Rating");
-				expect(defMod.description).not.toContain("Defense");
-				checked++;
-			}
+		const defMods = explicitsWithId(items, "localDefenseFlat");
+		expect(defMods.length).toBeGreaterThan(0);
+		for (const defMod of defMods) {
+			expect(defMod.description).toContain("Evasion Rating");
+			expect(defMod.description).not.toContain("Defense");
 		}
-		expect(checked).toBeGreaterThan(0);
 	});
 });
 
@@ -1522,18 +1441,12 @@ describe("silk armor defense", () => {
 			templateId: "silk_chestplate_t1",
 			itemLevel: 80,
 		});
-		let checked = 0;
-		for (const item of items) {
-			const defMod = item.explicits.find(
-				(m) => m.modifierId === "localDefenseFlat",
-			);
-			if (defMod) {
-				expect(defMod.description).toContain("Barrier");
-				expect(defMod.description).not.toContain("Defense");
-				checked++;
-			}
+		const defMods = explicitsWithId(items, "localDefenseFlat");
+		expect(defMods.length).toBeGreaterThan(0);
+		for (const defMod of defMods) {
+			expect(defMod.description).toContain("Barrier");
+			expect(defMod.description).not.toContain("Defense");
 		}
-		expect(checked).toBeGreaterThan(0);
 	});
 });
 

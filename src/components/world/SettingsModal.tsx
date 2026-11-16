@@ -4,7 +4,7 @@ import { useSfxVolume } from "#/hooks/useSfxVolume";
 import { m } from "#/paraglide/messages";
 import {
 	getLocale,
-	type Locale,
+	isLocale,
 	locales,
 	setLocale,
 } from "#/paraglide/runtime";
@@ -40,8 +40,8 @@ export default function SettingsModal({ isOpen, onClose }: Props) {
 					<select
 						value={current}
 						onChange={(e) => {
-							const next = e.target.value as Locale;
-							if (next !== current) setLocale(next);
+							const next = e.target.value;
+							if (isLocale(next) && next !== current) setLocale(next);
 						}}
 						className="w-full border border-white/30 bg-black px-3 py-2 text-sm uppercase tracking-wider text-white outline-none transition focus:border-white"
 					>
@@ -65,7 +65,7 @@ export default function SettingsModal({ isOpen, onClose }: Props) {
 						step={1}
 						onValueChange={(values) => {
 							const next = values[0];
-							if (typeof next === "number") setSfxVolume(next / 100);
+							if (next !== undefined) setSfxVolume(next / 100);
 						}}
 						aria-label={m.settings_sfx_volume()}
 					/>

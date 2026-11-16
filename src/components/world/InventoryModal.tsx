@@ -118,7 +118,7 @@ export default function InventoryModal({
 					}
 					return it;
 				})
-				.sort(bySlotAsc);
+				.toSorted(bySlotAsc);
 			localStore.setQuery(
 				api.items.inventory,
 				{ characterId: args.characterId },
@@ -170,7 +170,7 @@ export default function InventoryModal({
 			const newInventory = [
 				...inv.filter((it) => it._id !== args.itemId),
 				...displacedToInventory,
-			].sort(bySlotAsc);
+			].toSorted(bySlotAsc);
 
 			const displacedIds = new Set(displacedDocs.map((d) => d._id));
 			const newEquipped = [
@@ -232,7 +232,7 @@ export default function InventoryModal({
 					equippedSlot: undefined,
 					inventorySlot: firstFree,
 				},
-			].sort(bySlotAsc);
+			].toSorted(bySlotAsc);
 			let newEquipped = equipped.filter((it) => it._id !== item._id);
 
 			// Invariant: main hand empty → off-hand cannot hold a weapon.
@@ -323,7 +323,7 @@ export default function InventoryModal({
 	const inventoryBySlot = useMemo(() => {
 		const map = new Map<number, Doc<"items">>();
 		for (const item of inventory) {
-			if (typeof item.inventorySlot === "number")
+			if (item.inventorySlot !== undefined)
 				map.set(item.inventorySlot, item);
 		}
 		return map;
@@ -349,17 +349,17 @@ export default function InventoryModal({
 	}, [activeItem, active]);
 
 	const handleDragStart = (event: DragStartEvent) => {
-		const data = asDragSource(event.active.data.current);
-		if (data) setActive(data);
+		const data = event.active.data.current;
+		if (isDragSource(data)) setActive(data);
 	};
 
 	const handleDragCancel = () => setActive(null);
 
 	const handleDragEnd = async (event: DragEndEvent) => {
-		const source = asDragSource(event.active.data.current);
-		const target = asDropTarget(event.over?.data.current);
+		const source = event.active.data.current;
+		const target = event.over?.data.current;
 		setActive(null);
-		if (!source || !target) return;
+		if (!isDragSource(source) || !isDropTarget(target)) return;
 
 		// Inventory item → inventory slot: reorder.
 		if (source.kind === "inventory" && target.kind === "inventory") {
@@ -415,7 +415,6 @@ export default function InventoryModal({
 				(source.slot === "offhand" && target.slot === "weapon");
 			if (!isHandPair || !handsSwappable) return;
 			await triggerSwapHands();
-			return;
 		}
 	};
 
@@ -464,8 +463,10 @@ export default function InventoryModal({
 		}
 	};
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: triggerEquip / triggerUnequip / triggerDiscard are recreated every render but capture stable mutations; including them would defeat the useMemo
-	const menuActions = useMemo<MenuAction[]>(() => {
+	// Plain per-render derivation: the trigger* handlers are recreated every
+	// render, so a memo would either go stale or never hit. Cheap — only a
+	// handful of entries, and only while a menu is open.
+	const menuActions = ((): MenuAction[] => {
 		if (!menu) return [];
 		const source = menu.source;
 		if (source.kind === "inventory") {
@@ -496,7 +497,7 @@ export default function InventoryModal({
 				onClick: () => void triggerUnequip(equippedSlot),
 			},
 		];
-	}, [menu, inventory]);
+	})();
 
 	return (
 		<Modal
@@ -611,7 +612,6 @@ export default function InventoryModal({
 									const item = inventoryBySlot.get(slot) ?? null;
 									return (
 										<InventoryDroppable
-											// biome-ignore lint/suspicious/noArrayIndexKey: fixed grid, slot index IS the identity
 											key={`slot-${slot}`}
 											slot={slot}
 											item={item}
@@ -713,7 +713,7 @@ type DraggableHandle = Pick<
 >;
 
 function DragSlot({
-	handle,
+	handle: { attributes, listeners, setNodeRef },
 	hidden,
 	children,
 }: {
@@ -723,14 +723,14 @@ function DragSlot({
 }) {
 	return (
 		<div
-			ref={handle.setNodeRef}
+			ref={setNodeRef}
 			className="absolute inset-0"
 			style={{
 				opacity: hidden ? 0 : 1,
 				cursor: hidden ? "grabbing" : "grab",
 			}}
-			{...handle.listeners}
-			{...handle.attributes}
+			{...listeners}
+			{...attributes}
 		>
 			{children}
 		</div>
@@ -896,30 +896,30 @@ function DraggableEquipped({
 // validate the shape here so a misregistered draggable in the future can't
 // silently coerce into a DragSourceData and crash a handler.
 
-function asDragSource(d: unknown): DragSourceData | undefined {
-	if (!d || typeof d !== "object") return undefined;
-	const obj = d as Record<string, unknown>;
-	const itemId = obj.itemId;
-	if (typeof itemId !== "string") return undefined;
-	if (obj.kind === "inventory") {
-		return { kind: "inventory", itemId: itemId as Id<"items"> };
-	}
-	if (obj.kind === "equipped" && typeof obj.slot === "string") {
-		const slot = narrowEquippedSlot(obj.slot);
-		if (slot) return { kind: "equipped", slot, itemId: itemId as Id<"items"> };
-	}
-	return undefined;
+// Type guards (not parsers) so the `unknown` boundary is explicit. `itemId`
+// is only checked to be a string: Id<"items"> is a compile-time brand and
+// every draggable here registers a real item id.
+
+function isDragSource(d: unknown): d is DragSourceData {
+	if (typeof d !== "object" || d === null) return false;
+	if (!("kind" in d) || !("itemId" in d)) return false;
+	if (typeof d.itemId !== "string") return false;
+	if (d.kind === "inventory") return true;
+	return (
+		d.kind === "equipped" &&
+		"slot" in d &&
+		typeof d.slot === "string" &&
+		narrowEquippedSlot(d.slot) !== undefined
+	);
 }
 
-function asDropTarget(d: unknown): DropTargetData | undefined {
-	if (!d || typeof d !== "object") return undefined;
-	const obj = d as Record<string, unknown>;
-	if (obj.kind === "inventory" && typeof obj.slot === "number") {
-		return { kind: "inventory", slot: obj.slot };
-	}
-	if (obj.kind === "equipment" && typeof obj.slot === "string") {
-		const slot = narrowEquippedSlot(obj.slot);
-		if (slot) return { kind: "equipment", slot };
-	}
-	return undefined;
+function isDropTarget(d: unknown): d is DropTargetData {
+	if (typeof d !== "object" || d === null) return false;
+	if (!("kind" in d) || !("slot" in d)) return false;
+	if (d.kind === "inventory") return typeof d.slot === "number";
+	return (
+		d.kind === "equipment" &&
+		typeof d.slot === "string" &&
+		narrowEquippedSlot(d.slot) !== undefined
+	);
 }

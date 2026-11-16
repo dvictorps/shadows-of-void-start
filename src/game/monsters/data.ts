@@ -1,4 +1,5 @@
 import type { MonsterDefinition } from "./types";
+import { hasOwnKey } from "../typed-object";
 
 export const MONSTERS = {
 	// Early-zone monsters (lvl 1-4): physical softened, elemental stripped.
@@ -177,14 +178,10 @@ export const MONSTERS = {
 
 export type MonsterId = keyof typeof MONSTERS;
 
-function isMonsterId(id: string): id is MonsterId {
-	return Object.hasOwn(MONSTERS, id);
-}
-
 /**
  * Safe lookup for a monster id that may have come from persisted data or a
  * zone's pool. Returns null when the id is unknown.
  */
 export function findMonster(id: string): MonsterDefinition | null {
-	return isMonsterId(id) ? MONSTERS[id] : null;
+	return hasOwnKey(MONSTERS, id) ? MONSTERS[id] : null;
 }

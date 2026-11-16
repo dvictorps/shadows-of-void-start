@@ -3,10 +3,7 @@ import { useEffect, useState } from "react";
 
 type Element = "fire" | "cold" | "lightning";
 
-const ELEMENT_CONFIG: Record<
-	Element,
-	{ icon: typeof Flame; color: string; glowColor: string }
-> = {
+const ELEMENT_CONFIG = {
 	fire: {
 		icon: Flame,
 		color: "#ff6b35",
@@ -22,7 +19,10 @@ const ELEMENT_CONFIG: Record<
 		color: "#ffd54f",
 		glowColor: "rgba(255, 213, 79, 0.6)",
 	},
-};
+} satisfies Record<
+	Element,
+	{ icon: typeof Flame; color: string; glowColor: string }
+>;
 
 const COOLDOWN_MS = 5_000;
 const ELEMENTS: Element[] = ["fire", "cold", "lightning"];
@@ -42,16 +42,10 @@ export default function ElementSelector({
 	disabled?: boolean;
 	lastSwitchAt?: number;
 }) {
-	const [cooldownEnd, setCooldownEnd] = useState(
-		lastSwitchAt ? lastSwitchAt + COOLDOWN_MS : 0,
-	);
-	const [now, setNow] = useState(Date.now());
-
-	useEffect(() => {
-		if (!lastSwitchAt) return;
-		const end = lastSwitchAt + COOLDOWN_MS;
-		if (end > Date.now()) setCooldownEnd(end);
-	}, [lastSwitchAt]);
+	// Derived from the server-stamped switch time; the ticking `now` below is
+	// the only state the countdown needs.
+	const cooldownEnd = lastSwitchAt ? lastSwitchAt + COOLDOWN_MS : 0;
+	const [now, setNow] = useState(() => Date.now());
 
 	const remaining = Math.max(0, cooldownEnd - now);
 	const onCooldown = remaining > 0;

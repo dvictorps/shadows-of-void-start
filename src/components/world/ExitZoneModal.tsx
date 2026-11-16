@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
@@ -6,6 +6,7 @@ import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useInFlight } from "#/hooks/useInFlight";
 import { m } from "#/paraglide/messages";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
+import { useOpenedEdge } from "#/hooks/useOpenedEdge";
 
 const ITEM_SLOT_SIZE = 96;
 
@@ -41,7 +42,18 @@ export default function ExitZoneModal({
 	keepCap,
 }: Props) {
 	// Selection defaults empty each time the modal opens. Toggling fills the set.
-	const [selected, setSelected] = useState<Set<string>>(new Set());
+	const [rawSelected, setSelected] = useState<Set<string>>(new Set());
+	// Reset on the closed → open edge, during render ("adjust state when a
+	// prop changes"), so the first open frame never shows a stale selection.
+	const justOpened = useOpenedEdge(isOpen);
+	if (justOpened) setSelected(new Set());
+	// Without this the "Pegar selecionados (N)" button label keeps the
+	// pre-action N: ids whose item left the bag are dropped at render time.
+	const selected = useMemo(() => {
+		const present = new Set(bagItems.map((it) => it._id.toString()));
+		const next = new Set([...rawSelected].filter((id) => present.has(id)));
+		return next.size === rawSelected.size ? rawSelected : next;
+	}, [rawSelected, bagItems]);
 	// In-flight tracking for the four action handlers. Modal-close on the
 	// success path already covers the most common spam-click case, but a
 	// slow round-trip would leave the buttons live until the close fires —
@@ -53,27 +65,6 @@ export default function ExitZoneModal({
 	const [isPickingAll, runPickAll] = useInFlight(isOpen);
 	const [isDiscardingAll, runDiscardAll] = useInFlight(isOpen);
 	const confirm = useConfirmationModal();
-
-	useEffect(() => {
-		if (isOpen) setSelected(new Set());
-	}, [isOpen]);
-
-	// Without this the "Pegar selecionados (N)" button label keeps the pre-action N.
-	useEffect(() => {
-		if (!isOpen) return;
-		const present = new Set(bagItems.map((it) => it._id.toString()));
-		setSelected((prev) => {
-			const next = new Set([...prev].filter((id) => present.has(id)));
-			return next.size === prev.size ? prev : next;
-		});
-	}, [isOpen, bagItems]);
-
-	// Auto-close after a partial pick/discard empties the bag. The modal only
-	// opens with items > 0, so an empty bagItems here always means the user
-	// just cleared it via a selection action.
-	useEffect(() => {
-		if (isOpen && bagItems.length === 0) onClose();
-	}, [isOpen, bagItems.length, onClose]);
 
 	const selectedCount = selected.size;
 	const hasSelection = selectedCount > 0;

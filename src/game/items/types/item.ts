@@ -27,14 +27,14 @@ export interface ModLimits {
 	maxSuffix: number;
 }
 
-export const MOD_LIMITS: Record<ItemRarity, ModLimits> = {
+export const MOD_LIMITS = {
 	normal: { totalMin: 0, totalMax: 0, maxPrefix: 0, maxSuffix: 0 },
 	magic: { totalMin: 1, totalMax: 2, maxPrefix: 2, maxSuffix: 2 },
 	rare: { totalMin: 3, totalMax: 4, maxPrefix: 2, maxSuffix: 2 },
 	legendary: { totalMin: 5, totalMax: 5, maxPrefix: 3, maxSuffix: 3 },
 	epic: { totalMin: 6, totalMax: 6, maxPrefix: 3, maxSuffix: 3 },
 	unique: { totalMin: 0, totalMax: 0, maxPrefix: 0, maxSuffix: 0 },
-};
+} satisfies Record<ItemRarity, ModLimits>;
 
 // ── Rolled results ──
 

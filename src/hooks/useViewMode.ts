@@ -19,20 +19,26 @@
 //  not all transitions.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useEffectEvent,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
 import { ACT_1, findNode } from "#/game/world";
 import type { Id } from "../../convex/_generated/dataModel";
+import type { useWorldMutations } from "./useWorldMutations";
 
 type ViewMode = "map" | "city" | "combat";
 
-type EnterCity = (args: { characterId: Id<"characters"> }) => Promise<unknown>;
-type EnterZone = (args: {
-	characterId: Id<"characters">;
-	zoneId: string;
-}) => Promise<unknown>;
-type ArriveAtTravel = (args: {
-	characterId: Id<"characters">;
-}) => Promise<unknown>;
+// The session-wrapped Convex mutations this hook drives; their results are
+// ignored, but typing them from their owner keeps the server shape honest.
+type WorldMutations = ReturnType<typeof useWorldMutations>;
+type EnterCity = WorldMutations["enterCity"];
+type EnterZone = WorldMutations["enterZone"];
+type ArriveAtTravel = WorldMutations["arriveAtTravel"];
 
 export function useViewMode({
 	characterId,
@@ -66,34 +72,47 @@ export function useViewMode({
 		travelDestination !== undefined && travelArrivesAt !== undefined;
 
 	// Latest-ref pattern so callers can pass `onEnterNewArea` inline without
-	// invalidating `enterDestination`'s memoization each render.
+	// invalidating `enterDestination`'s memoization each render. Synced in a
+	// layout effect (refs can't be written during render), which runs before
+	// any click handler or passive effect can call `enterDestination`.
 	const onEnterNewAreaRef = useRef(onEnterNewArea);
-	onEnterNewAreaRef.current = onEnterNewArea;
+	useLayoutEffect(() => {
+		onEnterNewAreaRef.current = onEnterNewArea;
+	});
 
-	const enterDestination = useCallback(
+	// The non-state half of entering a node: notify the route and tell the
+	// server. Split from the view switch so the auto-enter path can switch the
+	// view during render and run only these side effects after commit.
+	const notifyAndRequestEnter = useCallback(
 		(nodeId: string) => {
 			const node = findNode(ACT_1, nodeId);
 			if (!node) return;
 			onEnterNewAreaRef.current?.();
 			if (node.kind === "city") {
-				setView("city");
 				void enterCity({ characterId });
 			} else if (node.kind === "combat" || node.kind === "boss") {
-				setView("combat");
 				void enterZone({ characterId, zoneId: nodeId });
 			}
 		},
 		[characterId, enterCity, enterZone],
 	);
 
+	const enterDestination = useCallback(
+		(nodeId: string) => {
+			const nextView = viewForNode(nodeId);
+			if (nextView) setView(nextView);
+			notifyAndRequestEnter(nodeId);
+		},
+		[notifyAndRequestEnter],
+	);
+
 	// Refresh resilience: if we land on this view mid-travel (no client-side
-	// pendingArrival yet), seed it from the server so the auto-arrival effect
-	// triggers the correct view transition when the timer fires.
-	useEffect(() => {
-		if (travelDestination && !pendingArrival) {
-			setPendingArrival(travelDestination);
-		}
-	}, [travelDestination, pendingArrival]);
+	// pendingArrival yet), seed it from the server so the auto-enter step
+	// triggers the correct view transition when the timer fires. Adjusted
+	// during render; it converges because the guard fails once seeded.
+	if (travelDestination && !pendingArrival) {
+		setPendingArrival(travelDestination);
+	}
 
 	// Auto-arrival: schedule arriveAtTravel at travelArrivesAt. If we're already
 	// past the arrival time (long-tab-closed case), fire immediately.
@@ -111,13 +130,29 @@ export function useViewMode({
 	}, [isTraveling, travelArrivesAt, arriveAtTravel, characterId]);
 
 	// Auto-enter destination after the server confirms arrival. Detects the
-	// transition "was traveling → not traveling AND now at the pendingArrival".
-	useEffect(() => {
-		if (!pendingArrival || isTraveling) return;
-		if (currentLocation !== pendingArrival) return;
-		enterDestination(pendingArrival);
+	// transition "was traveling → not traveling AND now at the pendingArrival"
+	// during render, consumes the token there, and records the arrival as a
+	// fresh object so the effect below fires exactly once per arrival.
+	const [arrival, setArrival] = useState<{ nodeId: string } | null>(null);
+	if (pendingArrival && !isTraveling && currentLocation === pendingArrival) {
 		setPendingArrival(null);
-	}, [pendingArrival, isTraveling, currentLocation, enterDestination]);
+		const nextView = viewForNode(pendingArrival);
+		if (nextView) setView(nextView);
+		setArrival({ nodeId: pendingArrival });
+	}
+
+	// Entering calls server mutations, so it runs after commit. Read through an
+	// Effect Event so a new callback identity never re-enters the same arrival.
+	// The view itself switches during render (above), one commit before these
+	// callbacks run. Accepted: the parent's area-change resets (e.g. clearing
+	// the death log) land a frame later; nothing is lost, only briefly stale.
+	const requestArrivedEnter = useEffectEvent((nodeId: string) => {
+		notifyAndRequestEnter(nodeId);
+	});
+	useEffect(() => {
+		// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- the triggering "event" is Convex's reactive query pushing the new `currentLocation`; no client handler exists to call this from. Convex-transport-shaped: revisit in the Cloudflare migration, where arrival can be handled where the response arrives.
+		if (arrival) requestArrivedEnter(arrival.nodeId);
+	}, [arrival]);
 
 	return {
 		view,
@@ -127,4 +162,12 @@ export function useViewMode({
 		isTraveling,
 		enterDestination,
 	};
+}
+
+function viewForNode(nodeId: string): ViewMode | null {
+	const node = findNode(ACT_1, nodeId);
+	if (!node) return null;
+	if (node.kind === "city") return "city";
+	if (node.kind === "combat" || node.kind === "boss") return "combat";
+	return null;
 }

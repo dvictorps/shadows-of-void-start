@@ -67,6 +67,10 @@ If Convex ever ships a `v.unionLiteral([...]: readonly string[])` helper, swap i
 - A new template id (or monster id) requires lexicon coverage in *both* locales — the typed Records make missing entries a compile error.
 - The bestiary feature parked in `docs/plans/in-progress.md` (Future: rare-name bestiary) gets the locale-switch property for free: the bestiary row stores the spawn seed, not the rendered name, so re-opening the bestiary in a different locale shows the names in the active language.
 
+## Update (2026-11): hash consolidated
+
+`hashItemId` was replaced by `hashStringToUnit(id, salt)` in `src/lib/rng.ts` (FNV-1a over code points + murmur3 finalizer), shared with the combat popup offsets. The two independent indices now come from salts 0 and 1 instead of forward/reverse walks. Rendered rare names changed once as a result — acceptable because the Cloudflare migration starts from an empty database. The render-at-display decision itself is unchanged.
+
 ## Related
 
 - ADR [0002 — i18n systems](./0002-i18n-systems.md) explains *why* the lexicon system exists alongside paraglide.

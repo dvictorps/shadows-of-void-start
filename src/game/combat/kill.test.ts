@@ -57,7 +57,7 @@ describe("classifyKill", () => {
 		// recordKill falls back to currentLocation "city" → findNode may miss,
 		// leaving zoneKind undefined. A rare must not silently become a gauntlet
 		// rare just because the node didn't resolve.
-		const c = classifyKill("rare", undefined);
+		const c = classifyKill("rare");
 		expect(c.isBossNodeRareKill).toBe(false);
 		expect(c.isMinibossKill).toBe(true);
 		expect(c.grantsCampTier).toBe(true);
@@ -155,18 +155,17 @@ describe("tallyBossKill", () => {
 	it("legacy char (undefined prior total) re-derives the total from counts, not 0+1", () => {
 		// The regression this guards: a pre-backfill char with bossKillCounts
 		// already populated must not have its leaderboard total reset to 1.
-		expect(tallyBossKill("gralfor", { gralfor: 11 }, undefined)).toEqual({
+		expect(tallyBossKill("gralfor", { gralfor: 11 })).toEqual({
 			bossKillCounts: { gralfor: 12 },
 			totalBossKills: 12,
 		});
 	});
 
 	it("legacy char with multiple bosses sums all counts for the total", () => {
-		const { totalBossKills } = tallyBossKill(
-			"gralfor",
-			{ gralfor: 3, other_boss: 4 },
-			undefined,
-		);
+		const { totalBossKills } = tallyBossKill("gralfor", {
+			gralfor: 3,
+			other_boss: 4,
+		});
 		expect(totalBossKills).toBe(8); // (3+1) + 4
 	});
 

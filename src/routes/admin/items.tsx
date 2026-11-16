@@ -98,7 +98,7 @@ function ItemGeneratorPage() {
 
 			{items.length === 0 ? (
 				<p className="text-sm uppercase tracking-wider text-white/40">
-					Click "Generate" to create an item.
+					Click &quot;Generate&quot; to create an item.
 				</p>
 			) : (
 				<div className="flex-1 overflow-y-auto pr-2">

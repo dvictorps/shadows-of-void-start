@@ -87,7 +87,7 @@ Recompile paraglide:
 npx @inlang/paraglide-js compile --project ./project.inlang --outdir ./src/paraglide
 ```
 
-`translateEnemyName` resolves bosses via `m[boss.nameKey]()` — no extra wiring required as long as the key follows the `boss_<id>_name` shape and exists in both locale files.
+Then register the key in `BOSS_NAME_I18N` in `src/game/world/i18n.ts` (`boss_shade_of_the_first_name: m.boss_shade_of_the_first_name`). `translateEnemyName` resolves bosses through that table, not by indexing `m` with a string (`m` mixes zero-arg and required-input messages, so a dynamic lookup can't be typed). A key missing from the table renders the boss's `def.name` instead.
 
 ## Step 4 — Add the boss node to the act
 
@@ -153,4 +153,4 @@ Gauntlet rare kills use the same `rollMinibossDrops` as zone minibosses (2 items
 
 ## Gotcha: rarity is "unique", not a separate type
 
-Bosses use `rarity: "unique"` — the fourth tier in `MonsterRarity`. Code that needs to differentiate boss behavior (cinematic, stat-sheet tooltip, death sfx routing, drop table) branches on `enemy.rarity === "unique"` rather than reaching back into the registry. The boss-specific data (cinematic config, nameplate color) is fetched at the branch via `findBoss(enemy.def.id as BossId)`.
+Bosses use `rarity: "unique"` — the fourth tier in `MonsterRarity`. Code that needs to differentiate boss behavior (cinematic, stat-sheet tooltip, death sfx routing, drop table) branches on `enemy.rarity === "unique"` rather than reaching back into the registry. The boss-specific data (cinematic config, nameplate color) is fetched at the branch via `findBoss(enemy.def.id)` (it takes any string and returns null for non-boss ids).

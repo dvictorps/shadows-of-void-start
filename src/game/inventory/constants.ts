@@ -27,7 +27,7 @@ export function createInventorySlotAllocator(
 ): () => number {
 	const occupied = new Set<number>();
 	for (const it of existing) {
-		if (typeof it.inventorySlot === "number") occupied.add(it.inventorySlot);
+		if (it.inventorySlot !== undefined) occupied.add(it.inventorySlot);
 	}
 	let cursor = 0;
 	return () => {
@@ -53,7 +53,7 @@ export function createStashSlotAllocator(
 ): () => number {
 	const occupied = new Set<number>();
 	for (const it of existing) {
-		if (typeof it.stashSlot === "number") occupied.add(it.stashSlot);
+		if (it.stashSlot !== undefined) occupied.add(it.stashSlot);
 	}
 	let cursor = 0;
 	return () => {

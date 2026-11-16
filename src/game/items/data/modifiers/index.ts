@@ -1,3 +1,4 @@
+import { hasOwnKey, typedKeys } from "../../../typed-object";
 import type { Modifier, ModifierTier } from "../../types";
 import { ATTRIBUTE_MODIFIERS } from "./attributes";
 import { DEFENSE_MODIFIERS } from "./defense";
@@ -23,8 +24,25 @@ export const MODIFIERS = {
 
 export type ModifierId = Extract<keyof typeof MODIFIERS, string>;
 
+// Every key of the registry, typed. Callers iterate this instead of
+// `Object.keys(MODIFIERS)` so they get the literal union back.
+export const MODIFIER_IDS: readonly ModifierId[] = typedKeys(MODIFIERS);
+
+// Lookup through the `Modifier` contract. Indexing MODIFIERS directly yields a
+// union of per-entry literal shapes, which hides optional fields
+// (statEffect, weight, tags, restrictedTo*) that only some entries set.
 export function getModifier(id: ModifierId): Modifier {
 	return MODIFIERS[id];
+}
+
+export function isModifierId(id: string): id is ModifierId {
+	return hasOwnKey(MODIFIERS, id);
+}
+
+// Lookup for ids that crossed a persistence boundary (RolledMod.modifierId is
+// a plain string on stored items). Unknown/retired ids resolve to undefined.
+export function findModifier(id: string): Modifier | undefined {
+	return isModifierId(id) ? MODIFIERS[id] : undefined;
 }
 
 export function getModifierTierForItemLevel(

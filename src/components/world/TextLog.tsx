@@ -7,12 +7,12 @@ type Props = {
 	tone?: LogTone;
 };
 
-const TONE_CLASS: Record<LogTone, string> = {
+const TONE_CLASS = {
 	info: "text-white/80",
 	warning: "text-yellow-300",
 	success: "text-emerald-300",
 	danger: "text-red-400",
-};
+} satisfies Record<LogTone, string>;
 
 export default function TextLog({ message, tone = "info" }: Props) {
 	return (

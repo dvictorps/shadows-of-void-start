@@ -44,7 +44,8 @@ No React. No Convex. Same code runs on client and server (convex imports from he
 | `bosses/` | Act-boss configs (handcrafted, `rarity: "unique"`) — parallel registry to `monsters/`. See ADR 0008 for the rationale. | `data.ts` (BOSSES, findBoss), `types.ts` (BossConfig, BossTemplate, BossCinematicConfig), `gralfor.ts` (act-1 boss config) |
 | `classes/` | Character class definitions (Warrior/Rogue/Mage) | `data.ts` (CLASS_DEFINITIONS), `types.ts`, `i18n.ts` (`getClassDisplayName`) |
 | `combat/` | Damage/defense math, constants, per-weapon FX map, intro-stage types, pure mutation-decision helpers | `damage.ts`, `barrier.ts`, `leech.ts`, `kill.ts` (`classifyKill` / `resolveZoneProgress` / `tallyBossKill` — pure decisions extracted from `recordKill`), `potion.ts` (`resolvePotionUse` — extracted from `usePotion`), `vitals.ts` (`clampVital` / `resolveVitalSync` — extracted from `syncHp`), `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
-| `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `pickGendered`) |
+| `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `isGenderedForm`, `pickGendered`) |
+| `typed-object.ts` (file) | Typed `Object.keys` / own-key guard for the literal-keyed static tables | `typedKeys` (the one place an `Object.keys` cast lives), `hasOwnKey` (narrow a persisted string id to a table's keys) |
 | `inventory/` | Inventory + stash constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, STASH_MAX_SLOTS, slot-finding helpers) |
 | `items/` | Item generator, modifier data, equip helpers, lexicon | See below — the biggest subdir |
 | `loot/` | Drop tables | `drops.ts` (rollDrop, rollMonsterLevel, rollMinibossDrops, rollBossDrops) |
@@ -235,7 +236,7 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 | File | Purpose |
 |---|---|
 | `convex-errors.ts` | `convexErrorMessage(err, fallback)` — translates known server errors to PT via `translateServerError` |
-| `rng.ts` | `randInt`, `pickRandom`, `pickWeighted` — used by generator + monster rolls |
+| `rng.ts` | `randInt`, `pickRandom`, `pickWeighted` — used by generator + monster rolls; `hashStringToUnit(input, salt?)` — the one deterministic string→[0, 1) hash (rare item names, damage-popup offsets) |
 | `utils.ts` | `cn()` for classname merging |
 | `flash-toast.ts` | One-shot toast helper |
 | `auth-client.ts`, `auth-server.ts` | better-auth integration |

@@ -8,7 +8,7 @@ import type { GeneratedItem, ItemRarity } from "./types";
 // T1 (best) contributes 10; T10 (worst) contributes 1. Normal items have
 // no explicit mods → mod_quality_total = 0 → factor = 1.
 
-const BASE_RARITY_PRICE: Record<ItemRarity, number> = {
+const BASE_RARITY_PRICE = {
 	normal: 5,
 	magic: 20,
 	rare: 80,
@@ -19,7 +19,7 @@ const BASE_RARITY_PRICE: Record<ItemRarity, number> = {
 	// (Act 2+) the vendor pricing will likely use a per-unique override
 	// rather than this tier baseline.
 	unique: 200,
-};
+} satisfies Record<ItemRarity, number>;
 
 export function computeSellPrice(item: GeneratedItem): number {
 	const base = BASE_RARITY_PRICE[item.rarity];

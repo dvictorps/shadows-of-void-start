@@ -5,8 +5,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useMutation } from "convex/react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { findBoss } from "#/game/bosses";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
+import { findBoss, getBossConfig } from "#/game/bosses";
 import type { CombatPhase } from "#/game/combat/constants";
 import {
 	BOSS_INTRO_STAGE_MS_DEFAULT,
@@ -37,7 +43,7 @@ import {
 	findCharacter,
 } from "#/lib/optimistic-character";
 import { pickRandom } from "#/lib/rng";
-import { playKillSfx } from "#/lib/sfx";
+import { playKillSfx, playSfx } from "#/lib/sfx";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { BarrierApi } from "./useBarrier";
@@ -61,10 +67,6 @@ export type {
 
 type Params = {
 	characterId: Id<"characters">;
-	// Character level — used for the optimistic XP popup so the on-screen
-	// number matches what the server actually awards after the over-level
-	// penalty.
-	characterLevel: number;
 	stats: ComputedCharacterStats;
 	initialHp: number;
 	barrierApi: BarrierApi;
@@ -102,7 +104,6 @@ const NOOP_RESTORE = (_overrideMaxHp?: number) => {};
 
 export function useCombatLoop({
 	characterId,
-	characterLevel,
 	stats,
 	initialHp,
 	barrierApi,
@@ -145,10 +146,16 @@ export function useCombatLoop({
 	const lastKillWasMinibossRef = useRef(false);
 
 	// Refs the interval callbacks read directly for mid-tick state visibility.
+	// Mirrored after every commit by the layout effect below (refs can't be
+	// written during render). Layout effects run before any timer callback or
+	// passive effect can read them, and these timer-driven updates render and
+	// commit in one task, so readers see what a render-time write gave them.
 	const stateRef = useRef(state);
-	stateRef.current = state;
 	const enemyRef = useRef<Enemy | null>(enemy);
-	enemyRef.current = enemy;
+	useLayoutEffect(() => {
+		stateRef.current = state;
+		enemyRef.current = enemy;
+	});
 
 	const { withSession } = useSessionToken();
 
@@ -158,7 +165,16 @@ export function useCombatLoop({
 
 	const warmupActive = !!bossNode && !warmupDone;
 
-	const schedule = useEncounterSchedule({
+	const {
+		resetForMiniboss,
+		isAmbushPackActive,
+		cancelAmbush,
+		setCampSource,
+		rollSpawnRarity,
+		consumeAmbushSlot,
+		calmariaElapsedMs,
+		...schedule
+	} = useEncounterSchedule({
 		active,
 		encounterPlan,
 		serverCampThresholdsMs,
@@ -190,15 +206,20 @@ export function useCombatLoop({
 	// zones). For boss nodes we intercept that: instead of spawning a rare
 	// from the schedule, we flip to gauntlet mode and let the gauntlet
 	// spawner handle it.
+	// `warmupDone` is a latch (it stays true after the bar resets), so it
+	// can't be derived; it's set during render the moment the bar fills.
 	const warmupBudgetMs = (bossNode?.warmupSeconds ?? 0) * 1000;
-	useEffect(() => {
-		if (!bossNode || warmupDone || warmupBudgetMs <= 0) return;
-		if (schedule.calmariaElapsedMs >= warmupBudgetMs) {
-			setWarmupDone(true);
-		}
-	}, [bossNode, warmupDone, warmupBudgetMs, schedule.calmariaElapsedMs]);
+	if (
+		bossNode &&
+		!warmupDone &&
+		warmupBudgetMs > 0 &&
+		calmariaElapsedMs >= warmupBudgetMs
+	) {
+		setWarmupDone(true);
+	}
 
 	const consumeIncense = useMutation(
+		// oxlint-disable-next-line react/hooks -- `api.combat.useEtherealIncense` is the Convex server function's name (defined in convex/, out of scope and slated for the Cloudflare migration), not a React hook.
 		api.combat.useEtherealIncense,
 	).withOptimisticUpdate((localStore, args) => {
 		const char = findCharacter(localStore, args.characterId);
@@ -241,19 +262,20 @@ export function useCombatLoop({
 			const isBossKill = killed.rarity === "unique";
 			lastKillWasMinibossRef.current = isMinibossKill || isBossKill;
 			if (isMinibossKill) {
-				schedule.resetForMiniboss();
+				resetForMiniboss();
 			}
-			recordKill(
-				withSession({
-					characterId,
-					monsterId: killed.def.id,
-					monsterLevel: killed.level,
-					monsterRarity: killed.rarity,
-				}),
-			)
-				.then((result) => {
+			void (async () => {
+				try {
+					const result = await recordKill(
+						withSession({
+							characterId,
+							monsterId: killed.def.id,
+							monsterLevel: killed.level,
+							monsterRarity: killed.rarity,
+						}),
+					);
 					if (result.newMaxLife !== undefined) {
-						// Server-authoritative — kills the race between this `.then` and
+						// Server-authoritative — kills the race between this await and
 						// the reactive-query propagation that re-renders `stats` (closing
 						// over stale `stats` would set HP to oldMax = newMax - 10).
 						restoreToFullRef.current(result.newMaxLife);
@@ -262,20 +284,22 @@ export function useCombatLoop({
 					if (result.potionDropped) {
 						setLastKill({ xp: xpGained, potion: true });
 					}
-				})
-				.catch(() => {});
+				} catch {
+					// Fire-and-forget: a rejected kill record leaves local state as is.
+				}
+			})();
 		},
 		[
+			bossNode,
 			characterId,
-			characterLevel,
 			recordKill,
-			schedule.resetForMiniboss,
+			resetForMiniboss,
 			withSession,
 			barrierApi,
 		],
 	);
 
-	const { playerHp, usePotion, restoreToFull } = useCombatTick({
+	const { playerHp, drinkPotion, restoreToFull } = useCombatTick({
 		characterId,
 		active,
 		isEngaged: state === "engaged",
@@ -289,10 +313,18 @@ export function useCombatLoop({
 		pushEvent,
 		updateEnemy: updateEnemyForTick,
 	});
-	restoreToFullRef.current = restoreToFull;
+	useLayoutEffect(() => {
+		restoreToFullRef.current = restoreToFull;
+	});
 
 	// ── Activation transitions ──
+	// Stays an effect rather than a render-time adjustment: it resets refs
+	// (which can't be written during render) together with state, and it must
+	// land in the same post-commit flush as useEncounterSchedule's activation
+	// reset. Resetting `warmupDone` during render would let the warmup latch
+	// above re-fire against the previous visit's still-full calmaria bar.
 	const activeRef = useRef(active);
+	/* oxlint-disable you-might-not-need-an-effect/no-adjust-state-on-prop-change, you-might-not-need-an-effect/no-event-handler -- see the comment above: refs reset alongside state, and the flush must match the schedule's reset. */
 	useEffect(() => {
 		if (active && !activeRef.current) {
 			pendingIncenseRef.current = false;
@@ -302,7 +334,9 @@ export function useCombatLoop({
 			setRareIntroStage(null);
 			setBossIntroStage(null);
 			// Boss-node entry: reset warmup + gauntlet to fight 1.
+			// oxlint-disable-next-line you-might-not-need-an-effect/no-derived-state -- a reset of latched progress, not derived state; must share the flush with the schedule's bar reset (see above).
 			setWarmupDone(!bossNode?.warmupSeconds);
+			// oxlint-disable-next-line you-might-not-need-an-effect/no-derived-state -- gauntlet progress advances on kills, so it is not a function of `bossNode`; this only rewinds it on entry.
 			setGauntletFightIndex(
 				bossNode && bossNode.gauntlet.fights > 0 ? 1 : null,
 			);
@@ -311,6 +345,7 @@ export function useCombatLoop({
 		}
 		activeRef.current = active;
 	}, [active, bossNode]);
+	/* oxlint-enable you-might-not-need-an-effect/no-adjust-state-on-prop-change, you-might-not-need-an-effect/no-event-handler */
 
 	// Player chose "Seguir em frente" on the camp modal. Resume the loop.
 	// Server-side `inCamp` flips back to false via exitCamp so the bag-cap
@@ -348,7 +383,7 @@ export function useCombatLoop({
 			return;
 		// Ambush packs commit you to the burst — incense must wait until the
 		// last mob falls.
-		if (schedule.isAmbushPackActive()) return;
+		if (isAmbushPackActive()) return;
 
 		// The optimistic update on the mutation hook handles the
 		// localStore decrement; we only need to swallow the rejection.
@@ -363,8 +398,8 @@ export function useCombatLoop({
 		// Searching / victory — interrupt the next spawn and enter camp now.
 		// Cancels any in-flight ambush pack per CONTEXT.md → Incenso Etéreo
 		// ("the remaining mobs in the ambush pack do NOT spawn").
-		schedule.cancelAmbush();
-		schedule.setCampSource("incense");
+		cancelAmbush();
+		setCampSource("incense");
 		stateRef.current = "acampamento";
 		setState("acampamento");
 		// Persist the camp claim server-side so the bag mutations see the
@@ -375,9 +410,9 @@ export function useCombatLoop({
 		consumeIncense,
 		enterCampViaIncense,
 		incense,
-		schedule.isAmbushPackActive,
-		schedule.cancelAmbush,
-		schedule.setCampSource,
+		isAmbushPackActive,
+		cancelAmbush,
+		setCampSource,
 		withSession,
 	]);
 
@@ -423,11 +458,11 @@ export function useCombatLoop({
 		() => {
 			const rarity = warmupActive
 				? rollMonsterRarity()
-				: schedule.rollSpawnRarity();
+				: rollSpawnRarity();
 			const e = spawnMob(monsterPool, rarity);
 			if (!e) return;
 			commitEnemy(e);
-			schedule.consumeAmbushSlot();
+			consumeAmbushSlot();
 			if (rarity === "rare") {
 				setRareIntroStage("sprite");
 				stateRef.current = "rare_intro";
@@ -458,7 +493,7 @@ export function useCombatLoop({
 			const boss = findBoss(bossNode.bossId);
 			if (!boss) return;
 			const scaled = scaleMonsterStats(boss.template, boss.level);
-			commitEnemy({
+			const bossEnemy: Enemy = {
 				def: boss.template,
 				currentHp: scaled.hp,
 				currentBarrier: scaled.barrier,
@@ -467,10 +502,16 @@ export function useCombatLoop({
 				mods: [],
 				scaled,
 				nameSeed: { primary: 0, secondary: 0, epithet: 0 },
-			});
+			};
+			commitEnemy(bossEnemy);
 			setBossIntroStage("sprite");
 			stateRef.current = "boss_intro";
 			setState("boss_intro");
+			// Entry roar plays as the sprite stage begins, so it lands WHILE the
+			// boss materializes; the screenshake follows at the impact beat
+			// (CombatScene) for a two-phase buildup.
+			const bossConfig = getBossConfig(bossEnemy);
+			if (bossConfig) playSfx(bossConfig.cinematic.entrySfx, { volume: 0.8 });
 		},
 	);
 
@@ -557,8 +598,8 @@ export function useCombatLoop({
 			// The incense was already consumed; persist the camp claim now
 			// that the cinematic actually fires.
 			pendingIncenseRef.current = false;
-			schedule.cancelAmbush();
-			schedule.setCampSource("incense");
+			cancelAmbush();
+			setCampSource("incense");
 			stateRef.current = "acampamento";
 			setState("acampamento");
 			enterCampViaIncense(withSession({ characterId })).catch(() => {});
@@ -591,9 +632,9 @@ export function useCombatLoop({
 		ambushActive: schedule.ambushActive,
 		events,
 		lastKill,
-		usePotion,
+		drinkPotion,
 		triggerIncense,
-		calmariaElapsedMs: schedule.calmariaElapsedMs,
+		calmariaElapsedMs,
 		calmariaBudgetMs: schedule.calmariaBudgetMs,
 		campThresholdsMs: schedule.campThresholdsMs,
 		dismissMinibossModal,

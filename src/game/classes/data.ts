@@ -1,4 +1,5 @@
 import type { CharacterClassDefinition, CharacterClassId } from "./types";
+import { hasOwnKey } from "../typed-object";
 
 export const CLASS_DEFINITIONS = {
 	warrior: {
@@ -45,10 +46,6 @@ export function getClassDefinition(
 	return CLASS_DEFINITIONS[id];
 }
 
-function isClassId(id: string): id is CharacterClassId {
-	return Object.hasOwn(CLASS_DEFINITIONS, id);
-}
-
 /**
  * Safe lookup for a class id that may have come from persisted data.
  * Returns null if the id is unknown (e.g., a class was removed from game data
@@ -57,5 +54,5 @@ function isClassId(id: string): id is CharacterClassId {
 export function findClassDefinition(
 	id: string,
 ): CharacterClassDefinition | null {
-	return isClassId(id) ? CLASS_DEFINITIONS[id] : null;
+	return hasOwnKey(CLASS_DEFINITIONS, id) ? CLASS_DEFINITIONS[id] : null;
 }

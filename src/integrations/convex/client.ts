@@ -1,6 +1,6 @@
 import { ConvexQueryClient } from "@convex-dev/react-query";
 
-const CONVEX_URL = (import.meta as any).env.VITE_CONVEX_URL;
+const CONVEX_URL = import.meta.env.VITE_CONVEX_URL;
 if (!CONVEX_URL) {
 	console.error("missing envar VITE_CONVEX_URL");
 }

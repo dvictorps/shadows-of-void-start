@@ -1,7 +1,7 @@
 import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
-export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
+export const DEFENSE_MODIFIERS = {
 	// ── Local defense (adapts to armor base type at roll time) ──
 	localDefenseFlat: {
 		id: "localDefenseFlat",
@@ -222,4 +222,4 @@ export const DEFENSE_MODIFIERS: Record<string, Modifier> = {
 		tags: ["defense"],
 		tiers: createStandardTiers(2, 3, 6, 8),
 	},
-};
+} satisfies Record<string, Modifier>;

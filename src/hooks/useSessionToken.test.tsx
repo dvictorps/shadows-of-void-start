@@ -62,9 +62,9 @@ describe("useSessionToken", () => {
 
 describe("useSessionedMutation", () => {
 	it("injects the per-tab sessionToken into the wrapped mutation's args", async () => {
-		const mutation = vi.fn(
-			async (_args: { x: number; sessionToken: string }) => "ok",
-		);
+		const mutation = vi.fn<
+			(args: { x: number; sessionToken: string }) => Promise<string>
+		>(async (_args) => "ok");
 		const { result } = renderHook(() => useSessionedMutation(mutation), {
 			wrapper: ({ children }) => (
 				<SessionTokenProvider>{children}</SessionTokenProvider>

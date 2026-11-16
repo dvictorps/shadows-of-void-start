@@ -14,6 +14,7 @@ import {
 	Trophy,
 } from "lucide-react";
 import { useMemo } from "react";
+import { hasOwnKey } from "#/game/typed-object";
 import { type Act, isNodeAccessible, type WorldNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
 import { m } from "#/paraglide/messages";
@@ -35,21 +36,21 @@ type Props = {
 	onOpenLeaderboard?: () => void;
 };
 
-const NODE_ICONS: Record<WorldNode["kind"], LucideIcon> = {
+const NODE_ICONS = {
 	city: Home,
 	combat: Trees,
 	boss: Skull,
-};
+} satisfies Record<WorldNode["kind"], LucideIcon>;
 
 // Per-node-id icon overrides — themed to the zone's flavour. Falls back to
 // NODE_ICONS[kind] when no override is set.
-const NODE_ICON_OVERRIDES: Record<string, LucideIcon> = {
+const NODE_ICON_OVERRIDES = {
 	forest_profunda: TreePine,
 	pantano: Droplets,
 	cripta: Skull,
 	castelo: Castle,
 	fenda_vazio: Tornado,
-};
+} satisfies Record<string, LucideIcon>;
 
 export default function MapScene({
 	act,
@@ -66,9 +67,10 @@ export default function MapScene({
 	const edges = useMemo(() => buildEdges(act.nodes), [act.nodes]);
 	const connectedIds = useMemo(() => {
 		const currentNode = act.nodes.find((n) => n.id === currentLocationNodeId);
-		const ids = new Set(currentNode?.connections.map((c) => c.id) ?? []);
-		ids.add(currentLocationNodeId);
-		return ids;
+		return new Set([
+			...(currentNode?.connections.map((c) => c.id) ?? []),
+			currentLocationNodeId,
+		]);
 	}, [act.nodes, currentLocationNodeId]);
 
 	return (
@@ -136,7 +138,9 @@ function buildEdges(nodes: WorldNode[]) {
 	for (const node of nodes) {
 		for (const conn of node.connections) {
 			const otherId = conn.id;
-			const key = [node.id, otherId].sort().join("|");
+			// Order-independent pair key (same order `.sort()` would give).
+			const key =
+				node.id < otherId ? `${node.id}|${otherId}` : `${otherId}|${node.id}`;
 			if (drawn.has(key)) continue;
 			drawn.add(key);
 			const a = positions.get(node.id);
@@ -181,7 +185,9 @@ function MapNode({
 	onHover: () => void;
 	onLeave: () => void;
 }) {
-	const Icon = NODE_ICON_OVERRIDES[node.id] ?? NODE_ICONS[node.kind];
+	const Icon = hasOwnKey(NODE_ICON_OVERRIDES, node.id)
+		? NODE_ICON_OVERRIDES[node.id]
+		: NODE_ICONS[node.kind];
 	// Wind-crystal-reachable nodes (unlocked but not connected to currentLocation)
 	// get a cyan tint so the player knows the click will offer the crystal flow
 	// instead of just being a no-route dead-click.

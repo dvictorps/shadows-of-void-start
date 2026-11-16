@@ -27,13 +27,7 @@ const DROP_TYPE_WEIGHTS: Array<{ type: EquipmentType; weight: number }> = [
 
 // Drop probabilities & rarity distributions per mob rarity, mirroring the
 // CONTEXT.md Act 1 baseline table.
-const DROP_TABLE: Record<
-	MonsterRarity,
-	{
-		dropChance: number;
-		rarity: Array<{ rarity: ItemRarity; weight: number }>;
-	}
-> = {
+const DROP_TABLE = {
 	normal: {
 		dropChance: 0.3,
 		rarity: [
@@ -69,37 +63,44 @@ const DROP_TABLE: Record<
 			{ rarity: "rare", weight: 75 },
 		],
 	},
-};
+} satisfies Record<MonsterRarity, { dropChance: number; rarity: Array<{ rarity: ItemRarity; weight: number }>; }>;
 
 // chance = basePct% × (1 + magicFind / 100), chained per tier
-const PROMOTION_CHAIN: Partial<
-	Record<ItemRarity, { next: ItemRarity; basePct: number }>
-> = {
-	normal: { next: "magic", basePct: 10 },
-	magic: { next: "rare", basePct: 5 },
-	rare: { next: "legendary", basePct: 1 },
-	legendary: { next: "epic", basePct: 1 },
-};
+// Rarities absent from the map (epic, unique) are terminal.
+const PROMOTION_CHAIN: ReadonlyMap<
+	ItemRarity,
+	{ next: ItemRarity; basePct: number }
+> = new Map([
+	["normal", { next: "magic", basePct: 10 }],
+	["magic", { next: "rare", basePct: 5 }],
+	["rare", { next: "legendary", basePct: 1 }],
+	["legendary", { next: "epic", basePct: 1 }],
+]);
 
 export function promoteRarity(
 	rarity: ItemRarity,
 	magicFind: number,
 ): ItemRarity {
 	let current = rarity;
-	let step = PROMOTION_CHAIN[current];
+	let step = PROMOTION_CHAIN.get(current);
 	while (step) {
 		const chance = (step.basePct / 100) * (1 + magicFind / 100);
 		if (Math.random() >= chance) break;
 		current = step.next;
-		step = PROMOTION_CHAIN[current];
+		step = PROMOTION_CHAIN.get(current);
 	}
 	return current;
 }
 
-function pickRarity(distribution: { rarity: ItemRarity; weight: number }[]) {
+function pickRarity(
+	distribution: { rarity: ItemRarity; weight: number }[],
+): ItemRarity {
+	// "normal" only satisfies the type: every DROP_TABLE distribution is
+	// non-empty, so `.at(-1)` always resolves.
 	return (
 		pickWeighted(distribution, (e) => e.weight)?.rarity ??
-		distribution[distribution.length - 1].rarity
+		distribution.at(-1)?.rarity ??
+		"normal"
 	);
 }
 

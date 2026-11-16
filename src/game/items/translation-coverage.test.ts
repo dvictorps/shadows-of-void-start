@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MODIFIERS } from "./data/modifiers";
+import { getModifier, MODIFIER_IDS } from "./data/modifiers";
 import type {
 	PrefixModifierId,
 	SuffixModifierId,
@@ -15,16 +15,18 @@ import { PT_EXPLICIT_FORMATTERS } from "./mod-i18n";
 // (applicableTo: []) render via PT_IMPLICIT_PATTERNS (regex on description)
 // and are out of scope here.
 
-const ROLLABLE_EXPLICITS = Object.keys(MODIFIERS).filter(
-	(id) => MODIFIERS[id].applicableTo.length > 0,
+const ROLLABLE_EXPLICITS = MODIFIER_IDS.filter(
+	(id) => getModifier(id).applicableTo.length > 0,
 );
 
+// Runtime affixType is the source of truth; affix-ids.ts mirrors it at type
+// level. A drift between the two surfaces as a missing lexicon entry below.
 const ROLLABLE_PREFIXES = ROLLABLE_EXPLICITS.filter(
-	(id) => MODIFIERS[id].affixType === "prefix",
-) as PrefixModifierId[];
+	(id): id is PrefixModifierId => getModifier(id).affixType === "prefix",
+);
 const ROLLABLE_SUFFIXES = ROLLABLE_EXPLICITS.filter(
-	(id) => MODIFIERS[id].affixType === "suffix",
-) as SuffixModifierId[];
+	(id): id is SuffixModifierId => getModifier(id).affixType === "suffix",
+);
 
 describe("translation coverage", () => {
 	describe.each([
@@ -42,11 +44,11 @@ describe("translation coverage", () => {
 
 	describe("PT explicit formatters (mod-i18n)", () => {
 		it.each(ROLLABLE_EXPLICITS)("has formatter for %s", (id) => {
-			expect(PT_EXPLICIT_FORMATTERS[id]).toBeDefined();
+			expect(Object.hasOwn(PT_EXPLICIT_FORMATTERS, id)).toBe(true);
 		});
 
 		it("has no dead entries (every key resolves to a known modifier)", () => {
-			const knownIds = new Set(Object.keys(MODIFIERS));
+			const knownIds = new Set<string>(MODIFIER_IDS);
 			const deadKeys = Object.keys(PT_EXPLICIT_FORMATTERS).filter(
 				(key) => !knownIds.has(key),
 			);

@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ItemTooltip from "#/components/game/ItemTooltip";
 import { TEMPLATE_BY_ID } from "#/game/items/data/templates";
@@ -11,16 +11,16 @@ import type { EquipmentType, WeaponType } from "#/game/items/types/base";
 // slots is what draws the eye.
 export const SLOT_EMPTY = "border border-white/15 bg-black/40";
 
-export const RARITY_BORDER: Record<ItemRarity, string> = {
+export const RARITY_BORDER = {
 	normal: "border-[#3a4658]",
 	magic: "border-[#5577cc]",
 	rare: "border-[#b39800]",
 	legendary: "border-[#dc143c]",
 	epic: "border-[#1eff00]",
 	unique: "border-[#af6025]",
-};
+} satisfies Record<ItemRarity, string>;
 
-export const RARITY_GLOW: Record<ItemRarity, string> = {
+export const RARITY_GLOW = {
 	normal: "shadow-[inset_0_0_10px_rgba(60,130,200,0.18)]",
 	magic:
 		"shadow-[inset_0_0_14px_rgba(100,140,220,0.55),0_0_10px_rgba(100,140,220,0.35)]",
@@ -30,13 +30,13 @@ export const RARITY_GLOW: Record<ItemRarity, string> = {
 	epic: "shadow-[inset_0_0_16px_rgba(60,255,40,0.55),0_0_16px_rgba(60,255,40,0.55)] animate-[item-pulse_1.6s_ease-in-out_infinite]",
 	unique:
 		"shadow-[inset_0_0_14px_rgba(175,96,37,0.55),0_0_10px_rgba(175,96,37,0.45)]",
-};
+} satisfies Record<ItemRarity, string>;
 
 export const BROKEN_BORDER = "border-red-500";
 export const BROKEN_GLOW =
 	"shadow-[inset_0_0_12px_rgba(220,40,40,0.35),0_0_10px_rgba(220,40,40,0.35)]";
 
-const EQUIPMENT_EMOJI: Record<EquipmentType, string> = {
+const EQUIPMENT_EMOJI = {
 	weapon: "⚔️",
 	offhand: "🛡️",
 	tome: "📖",
@@ -48,9 +48,9 @@ const EQUIPMENT_EMOJI: Record<EquipmentType, string> = {
 	ring: "💍",
 	amulet: "📿",
 	belt: "🎗️",
-};
+} satisfies Record<EquipmentType, string>;
 
-const WEAPON_EMOJI_OVERRIDE: Record<WeaponType, string> = {
+const WEAPON_EMOJI_OVERRIDE = {
 	sword: "🗡️",
 	greatsword: "⚔️",
 	dagger: "🔪",
@@ -60,7 +60,7 @@ const WEAPON_EMOJI_OVERRIDE: Record<WeaponType, string> = {
 	twoHandedAxe: "🪓",
 	staff: "🦯",
 	wand: "🪄",
-};
+} satisfies Record<WeaponType, string>;
 
 type ItemIcon =
 	| { kind: "sprite"; src: string }
@@ -75,8 +75,7 @@ function iconFor(item: GeneratedItem): ItemIcon {
 	if (item.weaponType && WEAPON_EMOJI_OVERRIDE[item.weaponType]) {
 		return { kind: "emoji", char: WEAPON_EMOJI_OVERRIDE[item.weaponType] };
 	}
-	const equipmentType = item.equipmentType as EquipmentType;
-	return { kind: "emoji", char: EQUIPMENT_EMOJI[equipmentType] ?? "❓" };
+	return { kind: "emoji", char: EQUIPMENT_EMOJI[item.equipmentType] ?? "❓" };
 }
 
 type Props = {
@@ -122,6 +121,10 @@ function tooltipOverlapsAvoid(tooltipLeft: number, avoid: DOMRect): boolean {
 	return tooltipLeft < avoid.right && tooltipRight > avoid.left;
 }
 
+function isSquareSize(size: number | { w: number; h: number }): size is number {
+	return typeof size === "number";
+}
+
 function computeTooltipLeft(
 	cardRect: DOMRect,
 	avoid: DOMRect | null | undefined,
@@ -152,25 +155,19 @@ export default function ItemCard({
 	onClick,
 	avoidRect,
 }: Props) {
-	const width = typeof size === "number" ? size : size.w;
-	const height = typeof size === "number" ? size : size.h;
+	const width = isSquareSize(size) ? size : size.w;
+	const height = isSquareSize(size) ? size : size.h;
 	const cardRef = useRef<HTMLButtonElement>(null);
-	const [tooltipPos, setTooltipPos] = useState<{
-		left: number;
-		top: number;
-	} | null>(null);
+	// The card's rect, measured on hover. The tooltip position is derived from
+	// it at render time so a changed avoidRect (context menu opening/closing)
+	// repositions the tooltip without re-firing hover.
+	const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 	// Drop the tooltip the instant suppression kicks in (e.g. a drag starts).
-	if (suppressTooltip && tooltipPos) setTooltipPos(null);
-
-	// Reposition without re-firing hover — keeps the tooltip visible when a
-	// context menu opens/closes and only the avoidRect changed.
-	useEffect(() => {
-		if (!tooltipPos) return;
-		const rect = cardRef.current?.getBoundingClientRect();
-		if (!rect) return;
-		const left = computeTooltipLeft(rect, avoidRect, window.innerWidth);
-		if (left !== tooltipPos.left) setTooltipPos({ left, top: rect.top });
-	}, [avoidRect, tooltipPos]);
+	if (suppressTooltip && anchorRect) setAnchorRect(null);
+	const tooltipPos = anchorRect && {
+		left: computeTooltipLeft(anchorRect, avoidRect, window.innerWidth),
+		top: anchorRect.top,
+	};
 
 	if (!item) {
 		return (
@@ -182,11 +179,10 @@ export default function ItemCard({
 		if (suppressTooltip) return;
 		const rect = cardRef.current?.getBoundingClientRect();
 		if (!rect) return;
-		const left = computeTooltipLeft(rect, avoidRect, window.innerWidth);
-		setTooltipPos({ left, top: rect.top });
+		setAnchorRect(rect);
 	};
 
-	const handleLeave = () => setTooltipPos(null);
+	const handleLeave = () => setAnchorRect(null);
 
 	const cardClasses = [
 		"relative flex items-center justify-center rounded-md transition-colors",

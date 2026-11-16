@@ -45,10 +45,12 @@ export function monsterScaleFactor(level: number): number {
 	return MONSTER_SCALING_BASE ** (clamped - 1);
 }
 
-export function scaleRange(
-	range: { min: number; max: number },
-	factor: number,
-): { min: number; max: number } {
+export interface NumericRange {
+	min: number;
+	max: number;
+}
+
+export function scaleRange(range: NumericRange, factor: number): NumericRange {
 	const min = Math.max(0, Math.round(range.min * factor));
 	const max = Math.max(min, Math.round(range.max * factor));
 	return { min, max };

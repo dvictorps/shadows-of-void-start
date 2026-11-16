@@ -85,7 +85,7 @@ export function rollCampThresholdsMs(plan: ZoneEncounterPlan): number[] {
 		.map((fraction) =>
 			Math.round((fraction + randSymmetric(CAMP_JITTER)) * budgetMs),
 		)
-		.sort((a, b) => a - b);
+		.toSorted((a, b) => a - b);
 }
 
 // Same shape as CAMP_JITTER. Ambushes get a slightly wider scatter (±15%)
@@ -116,5 +116,5 @@ export function rollAmbushSchedule(plan: ZoneEncounterPlan): AmbushSchedule[] {
 			),
 			packSize: randInt(packSize.min, packSize.max),
 		}))
-		.sort((a, b) => a.thresholdMs - b.thresholdMs);
+		.toSorted((a, b) => a.thresholdMs - b.thresholdMs);
 }

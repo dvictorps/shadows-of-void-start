@@ -13,6 +13,12 @@ export function xpToNextLevel(level: number): number {
 	);
 }
 
+export interface XpGainResult {
+	level: number;
+	xp: number;
+	levelsGained: number;
+}
+
 /**
  * Apply an XP gain, levelling up as many times as the curve allows. Returns
  * the new level and xp values (xp resets to 0 each time we cross a threshold,
@@ -23,7 +29,7 @@ export function applyXpGain(
 	currentXp: number,
 	amount: number,
 	levelCap = 100,
-): { level: number; xp: number; levelsGained: number } {
+): XpGainResult {
 	let level = currentLevel;
 	let xp = currentXp + amount;
 	let levelsGained = 0;
@@ -36,14 +42,16 @@ export function applyXpGain(
 	return { level, xp, levelsGained };
 }
 
+export interface DeathXpPenaltyResult {
+	xp: number;
+	xpLost: number;
+}
+
 /**
  * Apply the death XP penalty. Currently a flat 5% of current XP within the
  * level. Floored at 0 — death never demotes the character.
  */
-export function applyDeathXpPenalty(currentXp: number): {
-	xp: number;
-	xpLost: number;
-} {
+export function applyDeathXpPenalty(currentXp: number): DeathXpPenaltyResult {
 	const xpLost = Math.floor(currentXp * 0.05);
 	return { xp: Math.max(0, currentXp - xpLost), xpLost };
 }

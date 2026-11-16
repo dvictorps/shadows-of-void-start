@@ -13,37 +13,51 @@
 // endpoint directly) needs server-side rate limiting; see
 // docs/security/threat-model.md.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+
+// A primitive boundary value (modal `isOpen`, the current view, ...);
+// compared with `!==`, so any change starts a new epoch.
+type ResetBoundary = boolean | string | number;
 
 export function useInFlight(
-	resetOn?: unknown,
+	resetOn?: ResetBoundary,
 ): [boolean, <T>(fn: () => Promise<T>) => Promise<T | undefined>] {
 	const [isPending, setIsPending] = useState(false);
-	// Read by `run` directly so a click arriving in the same tick as a
-	// previous one (before React has committed the setIsPending(true)) still
-	// observes the in-flight state. Mirrors the stateRef pattern used in
-	// useCombatLoop.
-	const pendingRef = useRef(false);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: setters are stable; only the dep change should clear.
-	useEffect(() => {
-		pendingRef.current = false;
+	// Each `resetOn` flip starts a new epoch. Clearing happens during render
+	// (React's "adjust state while rendering" pattern): the visible flag drops
+	// and the epoch bump hands out a fresh `run`, so a request still in flight
+	// from the previous epoch no longer blocks clicks.
+	const [epoch, setEpoch] = useState(0);
+	const [prevResetOn, setPrevResetOn] = useState(resetOn);
+	if (resetOn !== prevResetOn) {
+		setPrevResetOn(resetOn);
+		setEpoch((e) => e + 1);
 		setIsPending(false);
-	}, [resetOn]);
+	}
+
+	// Epoch of the request in flight, or null. Read by `run` directly so a
+	// click arriving in the same tick as a previous one (before React has
+	// committed the setIsPending(true)) still observes the in-flight state.
+	// Mirrors the stateRef pattern used in useCombatLoop.
+	const inFlightEpochRef = useRef<number | null>(null);
 
 	const run = useCallback(
 		async <T>(fn: () => Promise<T>): Promise<T | undefined> => {
-			if (pendingRef.current) return undefined;
-			pendingRef.current = true;
+			if (inFlightEpochRef.current === epoch) return undefined;
+			inFlightEpochRef.current = epoch;
 			setIsPending(true);
 			try {
 				return await fn();
 			} finally {
-				pendingRef.current = false;
-				setIsPending(false);
+				// A stale-epoch request settling must not release the guard (or
+				// clear the pending flag) of a request started after the reset.
+				if (inFlightEpochRef.current === epoch) {
+					inFlightEpochRef.current = null;
+					setIsPending(false);
+				}
 			}
 		},
-		[],
+		[epoch],
 	);
 
 	return [isPending, run];

@@ -9,12 +9,12 @@ export type {
 
 import type { MonsterRarity } from "../monsters/types";
 import { findBoss } from "./data";
-import type { BossConfig, BossId } from "./types";
+import type { BossConfig } from "./types";
 
 export function getBossConfig(enemy: {
 	def: { id: string };
 	rarity: MonsterRarity;
 }): BossConfig | null {
 	if (enemy.rarity !== "unique") return null;
-	return findBoss(enemy.def.id as BossId);
+	return findBoss(enemy.def.id);
 }

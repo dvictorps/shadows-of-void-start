@@ -48,7 +48,7 @@ When in doubt, **prefer updating an existing doc to creating a new one**. The or
 - **Backend:** Convex (database + auth)
 - **Build:** Vite + oxlint (lint) + oxfmt (format) + Vitest (testing). Lint config is `oxlint.config.ts`; the `anti-slop` and `you-might-not-need-an-effect` JS plugins are vendored under `tools/oxlint/`
 - **Path alias:** `#/*` → `./src/*` (client only — convex uses relative paths)
-- **Lint discipline:** the codebase has a recorded oxlint baseline debt (see `docs/plans/in-progress.md`). New files must pass `npx oxlint <file>` with zero errors, and don't add errors to files you touch. Don't run `npm run format` repo-wide until the line-ending policy in that same note is decided.
+- **Lint discipline:** `pnpm lint:errors` must stay at zero, and the lefthook pre-push gate enforces it. Inline `oxlint-disable` is only for a real external constraint, and the comment must say why the documented pattern does not apply. Otherwise fix the code. Don't run `npm run format` repo-wide until the line-ending policy in that same note is decided.
 
 ## Game Context
 

@@ -4,7 +4,7 @@ const MQ = "(max-height: 800px), (max-width: 1500px)";
 
 export function useCompactViewport(): boolean {
 	const [compact, setCompact] = useState(
-		() => typeof window !== "undefined" && window.matchMedia(MQ).matches,
+		() => globalThis.window !== undefined && window.matchMedia(MQ).matches,
 	);
 	useEffect(() => {
 		const mq = window.matchMedia(MQ);

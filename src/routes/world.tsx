@@ -27,7 +27,10 @@ import {
 	narrowEquippedSlot,
 } from "#/game/stats/types";
 import { ACT_1, findNode } from "#/game/world";
-import { DEFAULT_ENCOUNTER_PLAN } from "#/game/world/encounter-schedule";
+import {
+	DEFAULT_ENCOUNTER_PLAN,
+	type ZoneEncounterPlan,
+} from "#/game/world/encounter-schedule";
 import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
 import { useBarrier } from "#/hooks/useBarrier";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
@@ -48,14 +51,14 @@ const searchSchema = z.object({
 	characterId: z.string(),
 });
 
-const CONSUMABLE_DESCRIPTIONS: Record<ConsumableKey, () => string> = {
+const CONSUMABLE_DESCRIPTIONS = {
 	potion: m.consumable_desc_potion,
 	teleport: m.consumable_desc_teleport,
 	incense: m.incense_hint,
 	element_fire: m.element_desc_fire,
 	element_cold: m.element_desc_cold,
 	element_lightning: m.element_desc_lightning,
-};
+} satisfies Record<ConsumableKey, () => string>;
 
 export const Route = createFileRoute("/world")({
 	validateSearch: searchSchema,
@@ -71,6 +74,10 @@ function WorldView() {
 	const { characterId } = Route.useSearch();
 	const navigate = useNavigate();
 	const character = useQuery(api.characters.byId, {
+		// SAFETY: `Id<"characters">` is a compile-time brand over string; the
+		// URL value is checked server-side by byId's `v.id("characters")` arg
+		// validator, and an unknown-but-well-formed id resolves to `null`
+		// (→ redirect below).
 		id: characterId as Id<"characters">,
 	});
 
@@ -140,12 +147,11 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const [hasMatched, setHasMatched] = useState(false);
 	const [isClaiming, runClaim] = useInFlight();
 	const sessionLost = hasMatched && !tokenMatches;
+	// Latch during render: once our token has been seen winning, it stays won.
+	if (tokenMatches && !hasMatched) setHasMatched(true);
 	useEffect(() => {
-		if (tokenMatches) {
-			if (!hasMatched) setHasMatched(true);
-			return;
-		}
-		if (hasMatched || isClaiming) return;
+		// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- the claim fires on arriving at /world (refresh, bookmark, restored tab) with no prior claim; no user action starts it, so this is a mount-time sync with the server, which is what effects are for
+		if (tokenMatches || hasMatched || isClaiming) return;
 		void runClaim(() =>
 			claimSession({ characterId: character._id, sessionToken }),
 		);
@@ -320,13 +326,13 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	// bar fills during the warmup phase. No camps, no ambushes — the bar
 	// just marks progress toward the gauntlet. Regular zones use their own
 	// declared plan or the default.
-	const encounterPlan = useMemo(() => {
+	const encounterPlan = useMemo((): ZoneEncounterPlan => {
 		const warmup = currentNode?.bossNode?.warmupSeconds;
 		if (warmup) {
 			return {
 				calmariaBudgetSeconds: warmup,
 				gapBetweenSpawns: { min: 1.5, max: 3 },
-				campFractions: [] as number[],
+				campFractions: [],
 			};
 		}
 		return currentNode?.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN;
@@ -354,7 +360,6 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const combat = useCombatLoop({
 		characterId: character._id,
-		characterLevel: character.level,
 		stats,
 		initialHp: hp,
 		barrierApi,
@@ -538,22 +543,33 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			});
 		});
 
+	// A camp selection action that covers the whole bag empties it: the
+	// handler closes the exit modal right after firing the mutation — the
+	// same moment the optimistic update zeroes the bag, so the picker still
+	// "auto-closes the moment the bag goes to zero" (CONTEXT.md). `zoneBag`
+	// is the pre-mutation closure value and the selection is always a subset
+	// of it, so equal length = whole bag.
+	const selectionEmptiesBag = (ids: Id<"items">[]) =>
+		zoneBag !== undefined && ids.length === zoneBag.length;
+
 	const handlePickSelected = async (ids: Id<"items">[]) => {
 		// Camp: incremental pick. Modal stays open until bag empties.
 		// Non-camp: one-shot commit via exitZone — bag is wiped, modal closes.
 		// Routing here matches the server gate (pickFromBag rejects non-camp).
 		try {
 			if (combat.phase === "camp") {
-				await pickFromBag({
+				const pick = pickFromBag({
 					characterId: character._id,
 					itemIds: ids,
 				});
+				if (selectionEmptiesBag(ids)) void closeExit(true);
+				await pick;
 			} else {
 				await exitZone({
 					characterId: character._id,
 					keepIds: ids,
 				});
-				exitModal.close();
+				await closeExit(true);
 			}
 		} catch (err) {
 			toast.error(convexErrorMessage(err, m.inventory_full_error()));
@@ -563,10 +579,12 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const handleDiscardSelected = async (ids: Id<"items">[]) => {
 		// Camp-only action — the modal hides the button outside camp.
 		if (combat.phase !== "camp") return;
-		await discardFromBag({
+		const discard = discardFromBag({
 			characterId: character._id,
 			itemIds: ids,
 		});
+		if (selectionEmptiesBag(ids)) void closeExit(true);
+		await discard;
 	};
 
 	const handlePickAll = async (ids: Id<"items">[]) => {
@@ -575,7 +593,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 				characterId: character._id,
 				keepIds: ids,
 			});
-			exitModal.close();
+			await closeExit(true);
 		} catch (err) {
 			toast.error(convexErrorMessage(err, m.inventory_full_error()));
 		}
@@ -586,24 +604,33 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 			characterId: character._id,
 			keepIds: [],
 		});
-		exitModal.close();
+		await closeExit(true);
 	};
 
-	const handleCloseExit = async () => {
-		// All exit paths funnel here — the explicit Get-all / Discard-all
-		// handlers call exitModal.close() which fires this via onClose, and
-		// the modal also auto-closes when incremental picks empty the bag.
-		// When a stone was pending and the bag is empty, fire the stone.
-		// An empty close with a non-empty bag is a user cancel — clear the
-		// pending flag and leave the bag; the next enterZone purges any
-		// orphan session.
+	// Single close path for the exit modal: the user's own dismiss
+	// (`handleCloseExit`), the camp selection handlers that just emptied the
+	// bag, and the exitZone commits (non-camp pick, Get-all, Discard-all),
+	// which always wipe the bag. When a stone was pending and the bag is
+	// empty, fire the stone.
+	// A close with a non-empty bag is a user cancel — clear the pending flag
+	// and leave the bag; the next enterZone purges any orphan session.
+	// `bagEmptied` is passed in because the emptying callers still hold the
+	// pre-mutation `zoneBag` in their closure.
+	// Known gap, accepted: if the bag empties from outside these handlers
+	// while the modal is open (a server-side purge), the modal stays open on
+	// an empty list until the user dismisses it. The only such path today is
+	// another tab claiming the session, which already shows SessionLostModal.
+	const closeExit = async (bagEmptied: boolean) => {
 		const wasPendingStone = pendingStoneRef.current;
 		pendingStoneRef.current = false;
 		exitModal.close();
-		if (wasPendingStone && zoneBag && zoneBag.length === 0) {
+		if (wasPendingStone && bagEmptied) {
 			await fireStoneToCity();
 		}
 	};
+
+	const handleCloseExit = () =>
+		closeExit(zoneBag !== undefined && zoneBag.length === 0);
 
 	const handleSwitchElement = useCallback(
 		async (element: "fire" | "cold" | "lightning") => {
@@ -616,18 +643,12 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		[switchElement, character._id],
 	);
 
-	// Spam-click guard around `combat.usePotion`. The local `potions` count
+	// Spam-click guard around `combat.drinkPotion`. The local `potions` count
 	// already optimistically decrements, but a fast double-tap before the
 	// optimistic update reaches React can fire `consumePotion` twice and the
 	// second call gets rejected. `useInFlight` handles the early-return +
 	// try/finally; the button-disabled state ANDs in `!isUsingPotion`.
-	const handleUsePotion = () =>
-		// `combat.usePotion` is the consumer-facing potion action returned
-		// from `useCombatTick`. The `use` prefix is incidental — it's a
-		// regular async function, not a React hook. See the same alias
-		// rationale on `teleportStone` in useWorldMutations.ts.
-		// biome-ignore lint/correctness/useHookAtTopLevel: not a React hook.
-		runUsePotion(() => combat.usePotion());
+	const handleUsePotion = () => runUsePotion(() => combat.drinkPotion());
 
 	// Spam-click guard around `combat.triggerIncense`. Unlike potion/teleport,
 	// `triggerIncense` is synchronous (fires a mutation without awaiting),
@@ -642,10 +663,13 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 		combat.triggerIncense();
 	};
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: only the count change should clear the flag.
-	useEffect(() => {
+	// Any change to the incense count (optimistic decrement or revert) clears
+	// the flag — adjusted during render by comparing with the previous count.
+	const [prevIncense, setPrevIncense] = useState(combat.incense);
+	if (combat.incense !== prevIncense) {
+		setPrevIncense(combat.incense);
 		setIsUsingIncense(false);
-	}, [combat.incense]);
+	}
 
 	const handleLeaveWorld = async () => {
 		const ok = await confirm({

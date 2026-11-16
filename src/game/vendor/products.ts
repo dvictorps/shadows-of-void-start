@@ -5,6 +5,7 @@
 // usage mechanics.
 
 import { MAX_POTIONS } from "../combat/constants";
+import { hasOwnKey } from "../typed-object";
 
 export type VendorProductId = "potion" | "teleport_stone";
 
@@ -30,27 +31,33 @@ export interface VendorProduct {
 	cap?: number;
 }
 
-export const VENDOR_PRODUCTS: Record<VendorProductId, VendorProduct> = {
-	potion: {
-		id: "potion",
-		priceRubys: 10,
-		emoji: "🧪",
-		icon: "/assets/sprites/ui/pocaoCura.png",
-		counterField: "potions",
-		cap: MAX_POTIONS,
-	},
-	teleport_stone: {
-		id: "teleport_stone",
-		// Repriced 30 → 40 with the wind-crystal consolidation: stone now
-		// carries the wind crystal's "jump to any unlocked node" role too,
-		// so it's worth more per unit.
-		priceRubys: 40,
-		emoji: "🪨",
-		icon: "/assets/sprites/ui/pedraTeleporte.png",
-		counterField: "teleportStones",
-	},
+// Entries are typed through the VendorProduct contract (not inferred) so
+// callers read `cap` uniformly instead of getting a per-entry literal union.
+const POTION: VendorProduct = {
+	id: "potion",
+	priceRubys: 10,
+	emoji: "🧪",
+	icon: "/assets/sprites/ui/pocaoCura.png",
+	counterField: "potions",
+	cap: MAX_POTIONS,
 };
 
+const TELEPORT_STONE: VendorProduct = {
+	id: "teleport_stone",
+	// Repriced 30 → 40 with the wind-crystal consolidation: stone now
+	// carries the wind crystal's "jump to any unlocked node" role too,
+	// so it's worth more per unit.
+	priceRubys: 40,
+	emoji: "🪨",
+	icon: "/assets/sprites/ui/pedraTeleporte.png",
+	counterField: "teleportStones",
+};
+
+export const VENDOR_PRODUCTS = {
+	potion: POTION,
+	teleport_stone: TELEPORT_STONE,
+} satisfies Record<VendorProductId, VendorProduct>;
+
 export function findVendorProduct(id: string): VendorProduct | null {
-	return id in VENDOR_PRODUCTS ? VENDOR_PRODUCTS[id as VendorProductId] : null;
+	return hasOwnKey(VENDOR_PRODUCTS, id) ? VENDOR_PRODUCTS[id] : null;
 }

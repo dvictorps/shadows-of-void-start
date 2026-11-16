@@ -38,10 +38,10 @@ const VOLUME_STORAGE_KEY = "sfx.globalVolume";
 const VOLUME_EVENT = "sfx:volume";
 
 function readStoredVolume(): number {
-	if (typeof window === "undefined") return 1;
+	if (globalThis.window === undefined) return 1;
 	const raw = window.localStorage.getItem(VOLUME_STORAGE_KEY);
 	if (raw === null) return 1;
-	const n = Number.parseFloat(raw);
+	const n = Number(raw);
 	if (!Number.isFinite(n)) return 1;
 	return Math.max(0, Math.min(1, n));
 }
@@ -56,14 +56,14 @@ export function setGlobalSfxVolume(value: number): void {
 	const clamped = Math.max(0, Math.min(1, value));
 	if (clamped === globalVolume) return;
 	globalVolume = clamped;
-	if (typeof window !== "undefined") {
+	if (globalThis.window !== undefined) {
 		window.localStorage.setItem(VOLUME_STORAGE_KEY, String(clamped));
 		window.dispatchEvent(new CustomEvent(VOLUME_EVENT));
 	}
 }
 
 export function subscribeGlobalSfxVolume(listener: () => void): () => void {
-	if (typeof window === "undefined") return () => {};
+	if (globalThis.window === undefined) return () => {};
 	window.addEventListener(VOLUME_EVENT, listener);
 	return () => window.removeEventListener(VOLUME_EVENT, listener);
 }
@@ -115,7 +115,7 @@ function getFromPool(path: string, exclusive: boolean): HTMLAudioElement {
  * 0.9×–1.1× speed each call.
  */
 export function playSfx(path: string, opts: SfxOptions = {}): void {
-	if (typeof window === "undefined") return;
+	if (globalThis.window === undefined) return;
 	if (globalVolume <= 0) return;
 	const audio = getFromPool(`${SFX_BASE}/${path}`, opts.exclusive === true);
 	const base = opts.volume ?? 1;
@@ -127,22 +127,22 @@ export function playSfx(path: string, opts: SfxOptions = {}): void {
 
 // Several skeleton variants share one clip. Slime and lich currently have no
 // asset; the missing-key fallback in playMonsterDeathSfx leaves them silent.
-const MONSTER_DEATH_SOUNDS: Record<string, string> = {
-	morcego: "bat.wav",
-	olho_do_vazio: "eyeball.wav",
-	goblin: "goblin.wav",
-	macaco: "gorilla.wav",
-	esqueleto: "skeleton.wav",
-	esqueleto_armadurado: "skeleton.wav",
-	esqueleto_lanca: "skeleton.wav",
-	serpente: "snake.wav",
-	vampiro: "vampire.wav",
-	criatura_do_vazio: "voidcreature.wav",
-	zumbi: "zombie.wav",
-};
+const MONSTER_DEATH_SOUNDS = new Map([
+	["morcego", "bat.wav"],
+	["olho_do_vazio", "eyeball.wav"],
+	["goblin", "goblin.wav"],
+	["macaco", "gorilla.wav"],
+	["esqueleto", "skeleton.wav"],
+	["esqueleto_armadurado", "skeleton.wav"],
+	["esqueleto_lanca", "skeleton.wav"],
+	["serpente", "snake.wav"],
+	["vampiro", "vampire.wav"],
+	["criatura_do_vazio", "voidcreature.wav"],
+	["zumbi", "zombie.wav"],
+]);
 
 export function playMonsterDeathSfx(monsterId: string): void {
-	const file = MONSTER_DEATH_SOUNDS[monsterId];
+	const file = MONSTER_DEATH_SOUNDS.get(monsterId);
 	if (!file) return;
 	playSfx(`creatures/${file}`, { volume: 0.5 });
 }
