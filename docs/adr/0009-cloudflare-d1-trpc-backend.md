@@ -65,3 +65,15 @@ Because nothing is migrated, the schema is rebuilt clean: the legacy fields that
 - **No reactivity.** Every mutation must return the new state or invalidate the right query keys. Mostly single-player, so this is cheap; cross-session freshness (admin dashboard, leaderboard) becomes interval refetch.
 - **Free-plan CPU budget (10 ms per request, I/O wait excluded).** `recordKill` (drop rolls + item generation) is the hot path most likely to exceed it. Measure on staging before cutover; optimize the path before considering a paid plan.
 - **Integration tests change harness.** The queued `convex-test` harness is superseded by `@cloudflare/vitest-pool-workers` running procedures against a real local D1.
+
+## Update (2026-11-16, phase 1 shipped on `feat/cloudflare-phase-1`)
+
+Decisions made while building the skeleton that refine the text above:
+
+- **Server code lives in `src/server/`**, not a root `server/`, so it imports `src/game` through the `#/` alias like the rest of the app. The Worker entry is `src/server.ts`.
+- **`combatState` and `characterProgression` are folded back into `characters`.** Convex split them to keep reactive payloads small. D1 has no reactivity, and its Free quota counts rows written, so one row per kill beats three. The phase 2 `combatState` / `characterProgression` sub-routers keep their names but read and write columns of `characters`.
+- **`userRoles` becomes `user.role`**, a Better Auth `additionalFields` entry with `input: false`. The denormalized `characterCount` / `hardcoreCount` are dropped; the admin queries count with SQL.
+- **Leaderboard indexes are dropped.** `(hardcore, level, xp)` would cost an index write on every kill; the hourly cron scans `characters` instead. `equippedWeaponId` is also dropped (the `items` character index answers it).
+- **Game tables use integer primary keys** (rowid aliases, no extra index write per insert). Character and item ids become numbers on the client in phase 3.
+- **Passwords are hashed with native scrypt** (`node:crypto` in workerd), not Better Auth's pure-JS scrypt. Same parameters and format.
+- **Measured CPU on staging (Workers Free, 10 ms nominal):** sign-up ~106 ms, sign-in ~170–215 ms, `users.me` 4 ms with the session cookie cache (25 ms cold), SSR home ~29 ms. None was rejected, so the 10 ms limit isn't enforced per request as of today. If Cloudflare starts rejecting sign-in, the lever is the scrypt cost, not a paid plan.

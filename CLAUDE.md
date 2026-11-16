@@ -45,7 +45,7 @@ When in doubt, **prefer updating an existing doc to creating a new one**. The or
 ## Tech Stack
 
 - **Frontend:** React + TypeScript + Tailwind CSS + TanStack Router
-- **Backend:** Convex (database + auth)
+- **Backend:** migrating from Convex to one Cloudflare Worker: D1 + Drizzle, Better Auth, tRPC ([ADR 0009](./docs/adr/0009-cloudflare-d1-trpc-backend.md)). Auth already runs on D1 (`src/server/`); game data is still on Convex until phase 3
 - **Build:** Vite + oxlint (lint) + oxfmt (format) + Vitest (testing). Lint config is `oxlint.config.ts`; the `anti-slop` and `you-might-not-need-an-effect` JS plugins are vendored under `tools/oxlint/`
 - **Path alias:** `#/*` → `./src/*` (client only — convex uses relative paths)
 - **Lint discipline:** `pnpm lint:errors` must stay at zero, and the lefthook pre-push gate enforces it. Inline `oxlint-disable` is only for a real external constraint, and the comment must say why the documented pattern does not apply. Otherwise fix the code.

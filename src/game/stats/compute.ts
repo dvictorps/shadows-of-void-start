@@ -46,6 +46,7 @@ import type {
 	ComputedCharacterStats,
 	EquippedItem,
 	IncreasedPools,
+	SelectableElement,
 	StatEngineInput,
 	SwingProfile,
 } from "./types";
@@ -474,10 +475,10 @@ const ELEMENT_DISPLAY_NAME = {
 	fire: "Fire",
 	cold: "Cold",
 	lightning: "Lightning",
-} satisfies Record<"fire" | "cold" | "lightning", string>;
+} satisfies Record<SelectableElement, string>;
 
 interface BuildSwingOptions {
-	selectedElement?: "fire" | "cold" | "lightning";
+	selectedElement?: SelectableElement;
 	level?: number;
 }
 

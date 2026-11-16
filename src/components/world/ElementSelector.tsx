@@ -1,7 +1,10 @@
 import { Flame, Snowflake, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
-type Element = "fire" | "cold" | "lightning";
+import {
+	SELECTABLE_ELEMENTS,
+	type SelectableElement as Element,
+} from "#/game/stats/types";
 
 const ELEMENT_CONFIG = {
 	fire: {
@@ -25,7 +28,7 @@ const ELEMENT_CONFIG = {
 >;
 
 const COOLDOWN_MS = 5_000;
-const ELEMENTS: Element[] = ["fire", "cold", "lightning"];
+const ELEMENTS = SELECTABLE_ELEMENTS;
 
 type HoverKey = `element_${Element}`;
 

@@ -47,8 +47,13 @@ export interface StatEngineInput {
 	classDef: CharacterClassDefinition | null;
 	level: number;
 	equippedItems: EquippedItem[];
-	selectedElement?: "fire" | "cold" | "lightning";
+	selectedElement?: SelectableElement;
 }
+
+// Mage elemental attunement choices (CONTEXT.md → Elemental Attunement).
+// Also drives the D1 `characters.selected_element` column enum.
+export const SELECTABLE_ELEMENTS = ["fire", "cold", "lightning"] as const;
+export type SelectableElement = (typeof SELECTABLE_ELEMENTS)[number];
 
 // ── Resistance + element keys ──
 

@@ -119,6 +119,8 @@
 
 @theme inline {
   --font-sans: 'Jersey 25', ui-sans-serif, system-ui, sans-serif;
+  --tracking-display: 0.3em;
+  --color-selection: rgba(168, 85, 247, 0.32);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

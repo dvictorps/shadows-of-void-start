@@ -1,5 +1,6 @@
 import { ConvexError } from "convex/values";
 
+import { SERVER_ERRORS } from "#/lib/server-errors";
 import { m } from "#/paraglide/messages";
 
 /**
@@ -41,11 +42,11 @@ function tryTranslate(raw: string): string | null {
 
 	// Exact matches
 	switch (msg) {
-		case "Not authenticated":
+		case SERVER_ERRORS.notAuthenticated:
 			return m.error_not_authenticated();
-		case "Character not found":
+		case SERVER_ERRORS.characterNotFound:
 			return m.error_character_not_found();
-		case "Not your character":
+		case SERVER_ERRORS.notYourCharacter:
 			return m.error_not_your_character();
 		case "Item not found":
 			return m.error_item_not_found();
@@ -59,7 +60,7 @@ function tryTranslate(raw: string): string | null {
 			return m.name_cannot_be_empty();
 		case "You already have a character with this name":
 			return m.error_duplicate_name();
-		case "Session lost":
+		case SERVER_ERRORS.sessionLost:
 			return m.error_session_lost();
 	}
 

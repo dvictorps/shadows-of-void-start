@@ -1,4 +1,3 @@
-import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
@@ -11,14 +10,13 @@ import {
 	useRouteContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { createServerFn } from "@tanstack/react-start";
+import { ConvexProvider } from "convex/react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useEffect } from "react";
 
 import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
 import { SessionTokenProvider } from "#/hooks/useSessionToken";
-import { authClient } from "#/lib/auth-client";
-import { getToken } from "#/lib/auth-server";
+import { getSessionUser } from "#/lib/auth-session";
 import { consumeFlashToast } from "#/lib/flash-toast";
 import { getLocale } from "#/paraglide/runtime";
 
@@ -43,25 +41,14 @@ const CHROMELESS_ROUTES = new Set([
 	"/world",
 ]);
 
-const getAuth = createServerFn({ method: "GET" }).handler(async () => {
-	return await getToken();
-});
-
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-	beforeLoad: async (ctx) => {
+	beforeLoad: async () => {
 		if (globalThis.document !== undefined) {
 			document.documentElement.setAttribute("lang", getLocale());
 		}
 
-		const token = await getAuth();
-		if (token) {
-			ctx.context.convexQueryClient.serverHttpClient?.setAuth(token);
-		}
-
-		return {
-			isAuthenticated: !!token,
-			token,
-		};
+		const user = await getSessionUser();
+		return { isAuthenticated: user !== null, user };
 	},
 
 	head: () => ({
@@ -92,7 +79,7 @@ function NotFoundComponent() {
 	return (
 		<main className="flex h-screen items-center justify-center bg-black text-white">
 			<div className="text-center">
-				<h1 className="display-title text-4xl uppercase tracking-[0.3em]">
+				<h1 className="display-title text-4xl uppercase tracking-display">
 					404
 				</h1>
 				<p className="mt-3 text-sm uppercase tracking-wider text-white/60">
@@ -107,15 +94,11 @@ function RootComponent() {
 	const context = useRouteContext({ from: Route.id });
 
 	return (
-		<ConvexBetterAuthProvider
-			client={context.convexQueryClient.convexClient}
-			authClient={authClient}
-			initialToken={context.token}
-		>
+		<ConvexProvider client={context.convexQueryClient.convexClient}>
 			<RootDocument>
 				<Outlet />
 			</RootDocument>
-		</ConvexBetterAuthProvider>
+		</ConvexProvider>
 	);
 }
 
@@ -134,7 +117,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<head>
 				<HeadContent />
 			</head>
-			<body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(168,85,247,0.32)]">
+			<body className="font-sans antialiased wrap-anywhere selection:bg-selection">
 				<PostHogProvider>
 					<TanStackQueryProvider>
 						<ConfirmationProvider>
