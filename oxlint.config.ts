@@ -22,7 +22,6 @@ const GAME_IMPORT_ALLOWLIST = [
 // code meets the rule. The queue is docs/plans/in-progress.md.
 const COMPLEXITY_DEBT = [
 	"src/components/game/ItemTooltip.tsx",
-	"src/components/world/StashModal.tsx",
 	"src/components/world/StatusCard.tsx",
 	"src/game/items/equipment.ts",
 	"src/game/items/generator.ts",

@@ -1,6 +1,7 @@
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { ArrowLeftRight } from "lucide-react";
 
+import DragSlot from "#/components/game/DragSlot";
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
 import { Button } from "#/components/ui/button";
 import { describeBrokenReasons } from "#/game/stats/compute";
@@ -14,7 +15,6 @@ import {
 	SLOT_HIGHLIGHT_CLASS,
 	slotHighlight,
 } from "./drag";
-import DragSlot from "./DragSlot";
 
 const EQUIPMENT_SLOT_LAYOUT: Array<{
 	slot: EquippedSlot;
