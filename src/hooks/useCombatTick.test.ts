@@ -11,11 +11,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { EMPTY_ELEMENTAL_GAIN } from "#/game/combat/damage";
-import type { Enemy } from "#/game/combat/types";
-import type { MonsterDefinition } from "#/game/monsters/types";
-
-import { makeStats } from "./combat-test-fixtures";
+import { makeEnemy, makeStats } from "./combat-test-fixtures";
 import { useBarrier } from "./useBarrier";
 import { useCombatTick } from "./useCombatTick";
 
@@ -40,57 +36,6 @@ const NO_SERVER = {
 	syncVitals: async () => {},
 	consumePotion: async () => {},
 };
-
-// ── Fixtures ───────────────────────────────────────────────────────────────
-
-type EnemyOverrides = Partial<Omit<Enemy, "scaled">> & {
-	scaled?: Partial<Enemy["scaled"]>;
-};
-
-function makeEnemy(currentHp: number, overrides: EnemyOverrides = {}): Enemy {
-	const def: MonsterDefinition = {
-		id: "test-mob",
-		name: "Test Mob",
-		sprite: "x",
-		baseStats: {
-			hp: currentHp,
-			attackSpeed: 20, // matches tickRate so enemy swing fires on tick 1
-			physicalDamage: { min: 5, max: 5 },
-			elementalDamage: [],
-		},
-		xpReward: 1,
-		allowedRarities: ["normal"],
-	};
-	const { scaled: scaledOverrides, ...enemyOverrides } = overrides;
-	return {
-		def,
-		currentHp,
-		currentBarrier: 0,
-		level: 1,
-		rarity: "normal",
-		mods: [],
-		// Fresh `scaled` object per spawn (per the file's invariant comment).
-		scaled: {
-			level: 1,
-			hp: currentHp,
-			physicalDamage: { min: 5, max: 5 },
-			elementalDamage: [],
-			attackSpeed: 20,
-			xpReward: 1,
-			armor: 0,
-			evasion: 0,
-			accuracy: 1000,
-			resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
-			barrier: 0,
-			criticalChance: 0,
-			criticalMultiplier: 0,
-			gainAsExtraDamage: { ...EMPTY_ELEMENTAL_GAIN },
-			...scaledOverrides,
-		},
-		nameSeed: { primary: 0, secondary: 0, epithet: 0 },
-		...enemyOverrides,
-	};
-}
 
 // ── Test ───────────────────────────────────────────────────────────────────
 
