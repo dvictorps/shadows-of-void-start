@@ -55,8 +55,20 @@ When in doubt, **prefer updating an existing doc to creating a new one**. The or
   - `shadows/require-session-procedure` (`src/server/trpc/routers/**`): every `.mutation()` is built from `characterSessionProcedure` (threat #5). Exceptions: `adminProcedure`, and the named `allow` list in the config (`characters.create`, `characters.remove`, `characters.claimCharacterSession`). A new exception needs a comment there saying why.
   - `shadows/server-only-imports` (all of `src/` except `src/server`, `src/server.ts`, `src/routes/api` and `src/integrations/trpc/client.ts`): `#/server/**`, `drizzle-orm` and `@trpc/server` may only be imported with `import type`.
   - `shadows/no-unvalidated-json-parse` (everywhere): `JSON.parse` output goes straight into a zod `.parse()` / `.safeParse()`, or into a `: unknown` binding that is narrowed afterwards.
+  - `shadows/no-server-calls-in-components` (`src/components/**`): no value import of `#/integrations/trpc/*`, `@trpc/tanstack-react-query`, `@tanstack/react-query` or a `#/hooks/use*Mutations` bundle. The route or a hook makes the calls and passes data as props and calls as a `server` prop (see Scaling rules).
 - **Type-aware lint is on** (`options.typeAware` + `oxlint-tsgolint`). It enables the promise rules (`no-floating-promises`, `no-misused-promises`, `await-thenable`, `return-await`) plus `no-unsafe-*`, `no-deprecated`, `switch-exhaustiveness-check`, `only-throw-error` and `require-array-sort-compare`. The style-only type-aware rules are off, with the reason in the config. A fire-and-forget promise is marked `void` only when nothing can reject unhandled (the callee catches its own errors, or it's an animation's completion promise), with a comment. `no-misused-promises` skips JSX event attributes, so an async `onClick` / `onSubmit` handler must catch and toast its own errors.
 - **Package manager / formatting:** pnpm (`pnpm-lock.yaml`). Line endings are LF everywhere (`.gitattributes`). The lefthook pre-commit hook runs `oxlint --fix` and `oxfmt` on staged files, so don't hand-format.
+
+## Scaling rules (no new monoliths)
+
+Learned from the three refactors (`world.tsx`, `CombatScene`, `InventoryModal`). Each grew past 700 lines the same way: decisions inline in handlers and JSX, server calls inside the component (so it went untested, so nobody dared split it), subcomponents piling up in one file. A "don't grow this" comment at the top of the file did not stop any of them; lint did. Recipe: [docs/playbooks/adding-a-world-component.md](./docs/playbooks/adding-a-world-component.md).
+
+- **`complexity` ≤ 20 is an error, everywhere.** It is the measured gate. File size is not: a large static-data table, a cohesive tested engine module, or a ~700-line route of flat wiring is fine. Mixed concerns are not.
+- **Handlers dispatch; they don't decide.** A choice with more than two branches over game data goes to a pure function with a test: in `src/game` for a game rule, in a `.ts` beside the component for an interaction rule (`inventory-modal/drag.ts`, `combat-scene/reveal.ts`).
+- **Components don't call the server** (`shadows/no-server-calls-in-components`). Calls come in as a `server` prop typed by an interface the component declares (`Promise<object>` returns, like `InventoryServer` / `ExitFlowServer`), so the component test injects `vi.fn()` fakes.
+- **A component folder once there's a second subcomponent**: `Foo.tsx` composes, `foo/*` holds the pieces and the pure rules.
+- **New component, new test**, in the same PR, on the shared harness (`src/components/dom-test-utils.ts`, `src/components/world/item-test-fixtures.ts`).
+- **Debt is a shrink-only list.** `COMPLEXITY_DEBT` and `SERVER_CALLS_IN_COMPONENTS_DEBT` in `oxlint.config.ts` hold the files that still break a rule, at `warn`. A refactor PR removes its entry; nothing is ever added.
 
 ## Game Context
 

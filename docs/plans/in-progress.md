@@ -10,6 +10,23 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ## Next session — pick up here
 
+### REFACTOR GATE (owner, 2026-11-16): close 100% of this queue before any new mechanic or tuning request
+
+No new mechanic, balance change or adjustment request starts until every item below is done. Polish (native PT review, `TemplateBaseId` codegen, rare-name bestiary, admin-dashboard latency) is **out** of the 100%: the owner plays, feels and requests it after the gate. The gate is measured by lint: `complexity` ≤ 20 is an error, and the two shrink-only debt lists in `oxlint.config.ts` (`COMPLEXITY_DEBT`, `SERVER_CALLS_IN_COMPONENTS_DEBT`) must end empty. Each PR below removes its files from them. Rules: CLAUDE.md → Scaling rules; recipe: `docs/playbooks/adding-a-world-component.md`. Test-then-split for any untested component; splits stay lean ("só o que faz sentido pro fluxo").
+
+1. **Done (`chore/anti-monolith-rules`)** — `complexity` → error with `COMPLEXITY_DEBT` (9 files); new rule `shadows/no-server-calls-in-components` with `SERVER_CALLS_IN_COMPONENTS_DEBT` (2 files); Scaling rules in CLAUDE.md; the world-component playbook. No max-lines rule (owner call: size is a weak signal; complexity is the gate).
+2. **`fix/inventory-modal-oddities`** — the five pinned oddities in agent-ergonomics item 4.5 below.
+3. **`StashModal`** — test, then split (complexity 24 drag-end handler; 595 lines). Share `DragSlot` and the bag cell with `inventory-modal/` (note in item 4.4). 2 PRs.
+4. **`VendorModal`** — test, then split (520 lines). 1–2 PRs.
+5. **`ItemTooltip`** (complexity 64) — test, then split. 1–2 PRs.
+6. **`StatusCard`** (complexity 28) — test + refactor; reuse `combat-scene`'s consumable slot for its parallel copy. 1 PR.
+7. **`ShowStatsModal`** (385 lines) — test + lean split only if concerns are mixed. 1 PR.
+8. **Server calls out of `CreateCharacterModal` and `LeaderboardModal`** — `server` / data props, tests. 1 PR.
+9. **Combat hooks complexity** — `useCombatLoop` (31), `useCombatTick` (37, the tick handler); both already tested. 1 PR.
+10. **Engine and lib complexity** — `compute.ts` (`applyModifierValue` 62, `buildSwing` 22, `computeOnce` 23), `planEquip` 27, `computeWeaponStats` 27, `tryTranslate` 29 (lookup tables where it's a big switch); all tested. 1–2 PRs.
+11. **Design-system warnings to zero, then promote to error** — `react/forbid-elements` (26) and `shadcn/*` (~95) on admin, root modals and `src/components/ui`. 2–3 PRs.
+12. **Injected RNG in `generateItem` / `rollDrop`** — the follow-up in the post-migration section below. 1 PR.
+
 Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #47, split into `useCombatLoop` + `useCombatTick` + `useEncounterSchedule`). Camp/phase derivation (PR #48), thorns-reflect fix (PR #49), spam-click in-flight tracking (PR #50), the phase-arg dead-weight cleanup (PR #51), the `useInFlight` extraction (PR #52), and the single-active-session lock (`feat/single-active-session`) all shipped. The leaderboard hard-blocker is now cleared.
 
 **Monster crit + native monster barrier shipped together in PR #57** (`feat/monster-barrier-crit`), bundled with elemental-damage monster mods, rares bumped to 4 mods, and per-weapon hit FX. The PoE-style build-pressure loop is now live — both the highest-leverage gameplay debt and the mechanical follow-up are closed.
@@ -50,7 +67,7 @@ Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastruct
   1. **Clear the remaining oxlint warnings (227 as of 2026-11-15, 163 after phase 3, still 163 after `feat/lint-architecture`, 147 after `refactor/world-split`, 136 after `refactor/combat-scene-split`, 132 after `refactor/inventory-modal-split`)**, then promote the rules to `error` so the pre-push gate covers them:
      - `react/forbid-elements` (26; 18 in `src/components/world`): game-art buttons. Owner decision (2026-11-16): add game variants to `<Button>`. `variant="hud"` (square, white/40 border; disabled keeps pointer events so the TextLog still gets the hover) shipped on `refactor/world-split` with `size="hud"`; `refactor/combat-scene-split` added the sizes `hud-lg` (text actions), `hud-icon` (icon-only) and `hud-slot` (consumable art + count) and cleared `CombatScene`, `CampCinematic` and `ElementSelector`; `refactor/inventory-modal-split` cleared `InventoryModal`. Convert the rest onto these; add a variant only when the look really differs.
      - `shadcn/*` on app-shell UI: `src/routes/admin/**`, root `src/components/*` modals, and `src/components/ui` itself (sign-in and character-select done in phase 3).
-     - `complexity` (11; top: `src/game/stats/compute.ts` ×3, `src/game/items/generator.ts`; `WorldLayout` left the list on `refactor/world-split`, `CombatScene` on `refactor/combat-scene-split`, `InventoryModal` on `refactor/inventory-modal-split`). Pure refactors, and the `src/game` ones are covered by tests.
+     - `complexity` (11; an **error** since `chore/anti-monolith-rules`, with the offenders held at `warn` in `COMPLEXITY_DEBT`; top: `src/game/stats/compute.ts` ×3, `src/game/items/generator.ts`; `WorldLayout` left the list on `refactor/world-split`, `CombatScene` on `refactor/combat-scene-split`, `InventoryModal` on `refactor/inventory-modal-split`). Pure refactors, and the `src/game` ones are covered by tests.
   2. **Follow-ups the lint pass surfaced (not blocking):**
      - _Injected RNG in `src/game`._ Today every roll goes through `#/lib/rng` (enforced by `shadows/game-determinism`), but that module still reads `Math.random` itself. Some engine functions already take a `random: () => number` (`rollPlayerSwing`, `rollEnemyAttack`, `rollMonsterRarity`, `rollMonsterMods`, `resolveKill`); `generateItem` and `rollDrop` don't. Threading an `Rng` through them changes their signatures on the server and client sides, so it gets its own PR with tests. It also unlocks seeded, reproducible loot tests.
      - _D1 JSON columns are typed, not validated._ `items.data`, `zone_bag`, `boss_kill_counts` and the leaderboard entries decode through Drizzle's `text({ mode: "json" }).$type<>()`, which casts (ADR 0009 chose this to retire the hand-synced validator). `shadows/no-unvalidated-json-parse` guards hand-written `JSON.parse`, not these. Revisit if a stored shape changes without a migration.
@@ -58,7 +75,7 @@ Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastruct
 
 **Owner focus (2026-11-16): refactor before gameplay.** Code quality and navigability come first; gameplay feel gets feedback and tuning only after the refactor track is done and the owner has played a while. When a doc/code divergence needs a call in the meantime, take the pragmatic one (usually: the doc follows the shipped behavior) and note it for the gameplay-feel pass.
 
-Pick by appetite: risk-reduction = the `InventoryModal` oddity fixes (agent-ergonomics item 4.5; both test-then-split pairs done), then the rest of the post-migration lint/test priority; feature work = passive tree design pass; cleanup pass = lexicon/codegen pair; content polish = camp cinematic art + audio.
+Order: the REFACTOR GATE queue at the top of this section, item by item. Feature work (passive tree), cleanup (lexicon/codegen) and content polish (camp cinematic art + audio) wait until it is empty.
 
 ### world.tsx size — closed decision
 
