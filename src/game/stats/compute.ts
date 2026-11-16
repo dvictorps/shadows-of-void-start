@@ -6,22 +6,22 @@
 //  Sections (grep the headers to jump):
 //    ── Caps + weapon-archetype sets ──                  constants only
 //    ── Accumulator initialisers ──                      blankStats / blankIncreased
-//    ── Apply a single rolled mod ──                     applyModifierValue (the ~40-case switch)
+//    ── Apply a single rolled mod ──                     MOD_APPLIERS (one entry per modifier id)
 //    ── Per-element flat damage from gear ──             collectGlobalFlatDamage
 //    ── Apply one equipped item's contributions ──       applyItem, foldGlobalDefenseIncreases
 //    ── Determine combat path ──                         determinePath (attack/spell/unarmed)
-//    ── Build a swing profile from a weapon ──           buildSwing, addGearFlatToElements
+//    ── Build a swing profile from a weapon ──           buildSwing, convertToElement, addGearFlatToElements
 //    ── Base from class + level ──                       applyBase
 //    ── Apply caps and floors ──                         applyCaps (resists 75, block 75, …)
 //    ── Requirements check ──                            requirementsMet (level/str/dex/int)
-//    ── Single non-iterating pass ──                     computeOnce
+//    ── Single non-iterating pass ──                     computeOnce, buildSwings, tickRateFor
 //    ── Public: broken-state fixed-point ──              computeCharacterStats  ← entry
 //    ── Derived helpers for the UI panel ──              mitigation %, evasion %, DPS, …
 //    ── Broken state explanation ──                      describeBrokenReasons  ← UI helper
 //
 //  Common tasks:
-//    • Add a new modifier id          →  applyModifierValue switch + types.ts (if a new field is needed)
-//    • Add a stat field on the engine →  blankStats + ComputedCharacterStats in types.ts + the relevant case
+//    • Add a new modifier id          →  MOD_APPLIERS + types.ts (if a new field is needed)
+//    • Add a stat field on the engine →  blankStats + ComputedCharacterStats in types.ts + the relevant MOD_APPLIERS entry
 //    • Add a broken-state rule        →  the fixed-point loop inside computeCharacterStats
 //    • Add flat-to-attacks behaviour  →  collectGlobalFlatDamage + addGearFlatToElements
 //    • Change how a swing is damaged  →  see also `damage.ts:rollPlayerSwing`
@@ -43,7 +43,13 @@ import {
 	DUAL_WIELD_BLOCK_CHANCE_BONUS,
 } from "../combat/constants";
 import { isBow, isQuiver, isWeapon } from "../items/equipment";
-import type { GeneratedItem, RolledMod } from "../items/types";
+import {
+	DEFAULT_WEAPON_ATTACK_SPEED,
+	DEFAULT_WEAPON_CRIT_CHANCE,
+	type GeneratedItem,
+	type RolledMod,
+} from "../items/types";
+import { hasOwnKey } from "../typed-object";
 import type {
 	ComputedCharacterStats,
 	EquippedItem,
@@ -152,203 +158,190 @@ function applyMod(
 	applyModifierValue(stats, pcts, mod.modifierId, mod.value);
 }
 
-// Shared switch for any modifier-id-based stat application. Used by `applyMod`
-// (explicits) and `applyImplicit` (template implicits) so the engine handles
-// both through identical machinery — adding a new id only touches one place.
+type ModApplier = (
+	stats: ComputedCharacterStats,
+	pcts: DefensePcts,
+	v: number,
+) => void;
+
+// What each modifier id adds to the character. Used by `applyMod` (explicits)
+// and `applyImplicit` (template implicits) so both go through the same table;
+// adding a new id only touches one place. Ids with no entry add nothing here:
+//   - `blockChanceIncrease`: baked into the shield's
+//     computedDefenseStats.blockChance; it must stay out of the global
+//     accumulator to avoid a double count.
+//   - flat damage to attacks (`physicalDamageFlatGlobal`, `*DamageToAttacksFlat`,
+//     `*DamageToAttacksFlatGlobal`): summed by collectGlobalFlatDamage during
+//     swing assembly.
+//   - flat damage to spells (`coldDamageFlat` …): only rolls on caster
+//     weapons, already folded into the weapon's computed stats.
+//   - filler / reserved: `stunDurationIncrease`, `reducedAttributeRequirements`.
+const MOD_APPLIERS = {
+	// Attributes
+	strengthFlat: (s, _p, v) => {
+		s.attributes.strength += v;
+	},
+	dexterityFlat: (s, _p, v) => {
+		s.attributes.dexterity += v;
+	},
+	intelligenceFlat: (s, _p, v) => {
+		s.attributes.intelligence += v;
+	},
+	allAttributesFlat: (s, _p, v) => {
+		s.attributes.strength += v;
+		s.attributes.dexterity += v;
+		s.attributes.intelligence += v;
+	},
+
+	// Life / mana
+	healthFlat: (s, _p, v) => {
+		s.maxLife += v;
+	},
+	manaFlat: (s, _p, v) => {
+		s.maxMana += v;
+	},
+	healthRegenFlat: (s, _p, v) => {
+		s.lifeRegen += v;
+	},
+	manaRegenFlat: (s, _p, v) => {
+		s.manaRegen += v;
+	},
+
+	// Resistances
+	coldResistance: (s, _p, v) => {
+		s.resistances.cold += v;
+	},
+	fireResistance: (s, _p, v) => {
+		s.resistances.fire += v;
+	},
+	lightningResistance: (s, _p, v) => {
+		s.resistances.lightning += v;
+	},
+	voidResistance: (s, _p, v) => {
+		s.resistances.void += v;
+	},
+
+	// Global defenses (the % ones fold in after every flat value is summed)
+	armorFlat: (s, _p, v) => {
+		s.armor += v;
+	},
+	evasionFlat: (s, _p, v) => {
+		s.evasion += v;
+	},
+	barrierFlat: (s, _p, v) => {
+		s.maxBarrier += v;
+	},
+	accuracyFlat: (s, _p, v) => {
+		s.accuracy += v;
+	},
+	thornsDamageFlat: (s, _p, v) => {
+		s.thorns += v;
+	},
+	globalArmorIncrease: (_s, p, v) => {
+		p.armor += v;
+	},
+	globalEvasionIncrease: (_s, p, v) => {
+		p.evasion += v;
+	},
+	globalBarrierIncrease: (_s, p, v) => {
+		p.barrier += v;
+	},
+
+	// Global damage increased
+	globalPhysicalDamageIncrease: (s, _p, v) => {
+		s.increased.physical += v;
+	},
+	globalColdDamageIncrease: (s, _p, v) => {
+		s.increased.cold += v;
+	},
+	globalFireDamageIncrease: (s, _p, v) => {
+		s.increased.fire += v;
+	},
+	globalLightningDamageIncrease: (s, _p, v) => {
+		s.increased.lightning += v;
+	},
+	globalVoidDamageIncrease: (s, _p, v) => {
+		s.increased.void += v;
+	},
+	globalElementalDamageIncrease: (s, _p, v) => {
+		s.increased.elementalGlobal += v;
+	},
+	globalElementalDamageWithAttacksIncrease: (s, _p, v) => {
+		s.increased.elementalWithAttacks += v;
+	},
+	globalMeleeDamageIncrease: (s, _p, v) => {
+		s.increased.melee += v;
+	},
+	globalSpellDamageIncrease: (s, _p, v) => {
+		s.increased.spell += v;
+	},
+
+	// Speed
+	globalAttackSpeedIncrease: (s, _p, v) => {
+		s.increased.attackSpeed += v;
+	},
+	globalCastSpeedIncrease: (s, _p, v) => {
+		s.increased.castSpeed += v;
+	},
+
+	// Crit
+	globalCriticalChanceIncrease: (s, _p, v) => {
+		s.increased.criticalChance += v;
+	},
+	criticalStrikeMultiplierFlat: (s, _p, v) => {
+		s.bonusCritMultiplier += v;
+	},
+
+	// Utility
+	movementSpeedIncrease: (s, _p, v) => {
+		s.movementSpeed += v;
+	},
+	lifeGainOnHitFlat: (s, _p, v) => {
+		s.lifeGainOnHit += v;
+	},
+	manaGainOnHitFlat: (s, _p, v) => {
+		s.manaGainOnHit += v;
+	},
+	lifeOnKillFlat: (s, _p, v) => {
+		s.lifeOnKill += v;
+	},
+	manaOnKillFlat: (s, _p, v) => {
+		s.manaOnKill += v;
+	},
+	lifeLeechPercent: (s, _p, v) => {
+		s.lifeLeechPercent += v;
+	},
+
+	// MF (prefix + suffix variants both feed magicFind)
+	itemRarityIncreasePrefix: (s, _p, v) => {
+		s.magicFind += v;
+	},
+	itemRarityIncreaseSuffix: (s, _p, v) => {
+		s.magicFind += v;
+	},
+
+	tomeGainAsExtraCold: (s, _p, v) => {
+		s.gainAsExtraSpell.cold += v;
+	},
+	tomeGainAsExtraFire: (s, _p, v) => {
+		s.gainAsExtraSpell.fire += v;
+	},
+	tomeGainAsExtraLightning: (s, _p, v) => {
+		s.gainAsExtraSpell.lightning += v;
+	},
+	tomeGainAsExtraVoid: (s, _p, v) => {
+		s.gainAsExtraSpell.void += v;
+	},
+} satisfies Record<string, ModApplier>;
+
 function applyModifierValue(
 	stats: ComputedCharacterStats,
 	pcts: DefensePcts,
 	modifierId: string,
 	v: number,
 ): void {
-	switch (modifierId) {
-		// Attributes
-		case "strengthFlat":
-			stats.attributes.strength += v;
-			break;
-		case "dexterityFlat":
-			stats.attributes.dexterity += v;
-			break;
-		case "intelligenceFlat":
-			stats.attributes.intelligence += v;
-			break;
-		case "allAttributesFlat":
-			stats.attributes.strength += v;
-			stats.attributes.dexterity += v;
-			stats.attributes.intelligence += v;
-			break;
-
-		// Life / mana
-		case "healthFlat":
-			stats.maxLife += v;
-			break;
-		case "manaFlat":
-			stats.maxMana += v;
-			break;
-		case "healthRegenFlat":
-			stats.lifeRegen += v;
-			break;
-		case "manaRegenFlat":
-			stats.manaRegen += v;
-			break;
-
-		// Resistances
-		case "coldResistance":
-			stats.resistances.cold += v;
-			break;
-		case "fireResistance":
-			stats.resistances.fire += v;
-			break;
-		case "lightningResistance":
-			stats.resistances.lightning += v;
-			break;
-		case "voidResistance":
-			stats.resistances.void += v;
-			break;
-
-		// Global defenses
-		case "armorFlat":
-			stats.armor += v;
-			break;
-		case "evasionFlat":
-			stats.evasion += v;
-			break;
-		case "barrierFlat":
-			stats.maxBarrier += v;
-			break;
-		case "accuracyFlat":
-			stats.accuracy += v;
-			break;
-		case "thornsDamageFlat":
-			stats.thorns += v;
-			break;
-		case "blockChanceIncrease":
-			// Baked into the shield's computedDefenseStats.blockChance — must
-			// stay out of the global accumulator to avoid double-count.
-			break;
-
-		case "globalArmorIncrease":
-			pcts.armor += v;
-			break;
-		case "globalEvasionIncrease":
-			pcts.evasion += v;
-			break;
-		case "globalBarrierIncrease":
-			pcts.barrier += v;
-			break;
-
-		// Global damage increased
-		case "globalPhysicalDamageIncrease":
-			stats.increased.physical += v;
-			break;
-		case "globalColdDamageIncrease":
-			stats.increased.cold += v;
-			break;
-		case "globalFireDamageIncrease":
-			stats.increased.fire += v;
-			break;
-		case "globalLightningDamageIncrease":
-			stats.increased.lightning += v;
-			break;
-		case "globalVoidDamageIncrease":
-			stats.increased.void += v;
-			break;
-		case "globalElementalDamageIncrease":
-			stats.increased.elementalGlobal += v;
-			break;
-		case "globalElementalDamageWithAttacksIncrease":
-			stats.increased.elementalWithAttacks += v;
-			break;
-		case "globalMeleeDamageIncrease":
-			stats.increased.melee += v;
-			break;
-		case "globalSpellDamageIncrease":
-			stats.increased.spell += v;
-			break;
-
-		// Speed
-		case "globalAttackSpeedIncrease":
-			stats.increased.attackSpeed += v;
-			break;
-		case "globalCastSpeedIncrease":
-			stats.increased.castSpeed += v;
-			break;
-
-		// Crit
-		case "globalCriticalChanceIncrease":
-			stats.increased.criticalChance += v;
-			break;
-		case "criticalStrikeMultiplierFlat":
-			stats.bonusCritMultiplier += v;
-			break;
-
-		// Flat damage to attacks — these are summed into a per-element pool but
-		// physically attached to attack swings. We store them on the increased
-		// pool's host so the swing builder can read them later.
-		// To keep types clean, we route them through dedicated fields below.
-		case "physicalDamageFlatGlobal":
-		case "coldDamageToAttacksFlat":
-		case "fireDamageToAttacksFlat":
-		case "lightningDamageToAttacksFlat":
-		case "voidDamageToAttacksFlat":
-		case "coldDamageToAttacksFlatGlobal":
-		case "fireDamageToAttacksFlatGlobal":
-		case "lightningDamageToAttacksFlatGlobal":
-		case "voidDamageToAttacksFlatGlobal":
-			// Handled in collectGlobalFlatDamage during swing assembly.
-			break;
-
-		// Flat damage to spells — only rolls on caster weapons; folded into the
-		// weapon's computed stats already, NOT into character globals.
-		case "coldDamageFlat":
-		case "fireDamageFlat":
-		case "lightningDamageFlat":
-		case "voidDamageFlat":
-			break;
-
-		// Utility
-		case "movementSpeedIncrease":
-			stats.movementSpeed += v;
-			break;
-		case "lifeGainOnHitFlat":
-			stats.lifeGainOnHit += v;
-			break;
-		case "manaGainOnHitFlat":
-			stats.manaGainOnHit += v;
-			break;
-		case "lifeOnKillFlat":
-			stats.lifeOnKill += v;
-			break;
-		case "manaOnKillFlat":
-			stats.manaOnKill += v;
-			break;
-		case "lifeLeechPercent":
-			stats.lifeLeechPercent += v;
-			break;
-
-		// MF (prefix + suffix variants both feed magicFind)
-		case "itemRarityIncreasePrefix":
-		case "itemRarityIncreaseSuffix":
-			stats.magicFind += v;
-			break;
-
-		case "tomeGainAsExtraCold":
-			stats.gainAsExtraSpell.cold += v;
-			break;
-		case "tomeGainAsExtraFire":
-			stats.gainAsExtraSpell.fire += v;
-			break;
-		case "tomeGainAsExtraLightning":
-			stats.gainAsExtraSpell.lightning += v;
-			break;
-		case "tomeGainAsExtraVoid":
-			stats.gainAsExtraSpell.void += v;
-			break;
-
-		// Filler / reserved
-		case "stunDurationIncrease":
-		case "reducedAttributeRequirements":
-			break;
+	if (hasOwnKey(MOD_APPLIERS, modifierId)) {
+		MOD_APPLIERS[modifierId](stats, pcts, v);
 	}
 }
 
@@ -492,52 +485,79 @@ function buildSwing(
 	options?: BuildSwingOptions,
 ): SwingProfile {
 	const cs = item.computedStats;
-	const physBase = cs?.physicalDamage ?? {
-		min: item.baseStats.minDamage ?? 1,
-		max: item.baseStats.maxDamage ?? 1,
-	};
-	let phys =
-		path === "attack"
-			? {
-					min: physBase.min + gearFlat.physical,
-					max: physBase.max + gearFlat.physical,
-				}
-			: { ...physBase };
-	const weaponElem = cs?.elementalDamage ?? [];
-	const elem: SwingProfile["elementalDamage"] =
-		path === "attack"
-			? addGearFlatToElements(weaponElem, gearFlat)
-			: weaponElem.map((e) => ({ ...e }));
 	const baseAS =
 		path === "attack"
-			? (cs?.attackSpeed ?? item.baseStats.attackSpeed ?? 1.0)
+			? (cs?.attackSpeed ??
+				item.baseStats.attackSpeed ??
+				DEFAULT_WEAPON_ATTACK_SPEED)
 			: BASE_CAST_SPEED;
-
-	if (path === "spell" && options?.selectedElement) {
-		const elementName = ELEMENT_DISPLAY_NAME[options.selectedElement];
-		const lvl = options.level ?? 1;
-		const convertedMin = phys.min + lvl;
-		const convertedMax = phys.max + lvl * 2;
-
-		const existing = elem.find((e) => e.element === elementName);
-		if (existing) {
-			existing.min += convertedMin;
-			existing.max += convertedMax;
-		} else {
-			elem.push({ element: elementName, min: convertedMin, max: convertedMax });
-		}
-		phys = { min: 0, max: 0 };
-	}
-
 	return {
 		source,
 		itemId: item.id,
 		weaponType: item.weaponType ?? "sword",
-		physicalDamage: phys,
-		elementalDamage: elem,
-		baseCritChance: cs?.criticalChance ?? item.baseStats.criticalChance ?? 5,
+		...swingDamage(item, gearFlat, path, options),
+		baseCritChance:
+			cs?.criticalChance ??
+			item.baseStats.criticalChance ??
+			DEFAULT_WEAPON_CRIT_CHANCE,
 		baseAttackSpeed: baseAS,
 	};
+}
+
+// A swing's damage lines: an attack adds the gear's flat-to-attacks on top
+// of the weapon; a spell takes the weapon's lines as they are, converted to
+// the selected element when one is picked.
+function swingDamage(
+	item: GeneratedItem,
+	gearFlat: GearFlatDamage,
+	path: "attack" | "spell",
+	options?: BuildSwingOptions,
+): Pick<SwingProfile, "physicalDamage" | "elementalDamage"> {
+	const cs = item.computedStats;
+	const physBase = cs?.physicalDamage ?? {
+		min: item.baseStats.minDamage ?? 1,
+		max: item.baseStats.maxDamage ?? 1,
+	};
+	const weaponElem = cs?.elementalDamage ?? [];
+	if (path === "attack") {
+		return {
+			physicalDamage: {
+				min: physBase.min + gearFlat.physical,
+				max: physBase.max + gearFlat.physical,
+			},
+			elementalDamage: addGearFlatToElements(weaponElem, gearFlat),
+		};
+	}
+	const elem = weaponElem.map((e) => ({ ...e }));
+	if (!options?.selectedElement) {
+		return { physicalDamage: { ...physBase }, elementalDamage: elem };
+	}
+	convertToElement(
+		physBase,
+		elem,
+		ELEMENT_DISPLAY_NAME[options.selectedElement],
+		options.level ?? 1,
+	);
+	return { physicalDamage: { min: 0, max: 0 }, elementalDamage: elem };
+}
+
+// A caster's selected element: the weapon's physical converts into it, plus
+// `level` min / `2 × level` max, merged into an existing line of that element.
+function convertToElement(
+	phys: SwingProfile["physicalDamage"],
+	elem: SwingProfile["elementalDamage"],
+	elementName: string,
+	level: number,
+): void {
+	const convertedMin = phys.min + level;
+	const convertedMax = phys.max + level * 2;
+	const existing = elem.find((e) => e.element === elementName);
+	if (existing) {
+		existing.min += convertedMin;
+		existing.max += convertedMax;
+	} else {
+		elem.push({ element: elementName, min: convertedMin, max: convertedMax });
+	}
 }
 
 function addGearFlatToElements(
@@ -629,6 +649,50 @@ function requirementsMet(
 	return unmetRequirement(item, stats, level) === null;
 }
 
+// The swings a path makes: the main hand, plus the off hand when it swings
+// too (an attack dual wield, or wand + wand; staves are 2H, and caster dual
+// wield gets no implicits).
+function buildSwings(
+	path: ComputedCharacterStats["path"],
+	mainHand: GeneratedItem | null,
+	offHand: GeneratedItem | null,
+	isAttackDW: boolean,
+	gearFlat: GearFlatDamage,
+	spellOpts: BuildSwingOptions,
+): SwingProfile[] {
+	if (!mainHand) return [];
+	if (path === "attack") {
+		const main = buildSwing(mainHand, "mainHand", gearFlat, "attack");
+		return isAttackDW && offHand
+			? [main, buildSwing(offHand, "offHand", gearFlat, "attack")]
+			: [main];
+	}
+	if (path !== "spell") return [];
+	const main = buildSwing(mainHand, "mainHand", gearFlat, "spell", spellOpts);
+	return offHand?.weaponType === "wand"
+		? [main, buildSwing(offHand, "offHand", gearFlat, "spell", spellOpts)]
+		: [main];
+}
+
+// Swings per second: the swings' average base speed × the path's
+// `% increased` speed × the attack dual-wield "more" multiplier.
+function tickRateFor(
+	stats: ComputedCharacterStats,
+	isAttackDW: boolean,
+): number {
+	const speedMultiplier =
+		stats.path === "spell"
+			? 1 + stats.increased.castSpeed / 100
+			: 1 + stats.increased.attackSpeed / 100;
+	const swingCount = stats.swings.length;
+	const averagedBase =
+		swingCount > 0
+			? stats.swings.reduce((sum, s) => sum + s.baseAttackSpeed, 0) / swingCount
+			: 0;
+	const dwMoreMult = isAttackDW ? DUAL_WIELD_AS_MORE_MULT : 1;
+	return averagedBase * speedMultiplier * dwMoreMult;
+}
+
 // ── Single non-iterating pass given a fixed set of "live" items ──
 
 function computeOnce(
@@ -671,39 +735,18 @@ function computeOnce(
 		),
 	);
 
-	if (stats.path === "attack" && mainHand) {
-		stats.swings.push(buildSwing(mainHand, "mainHand", gearFlat, "attack"));
-		if (isAttackDW && offHand) {
-			stats.swings.push(buildSwing(offHand, "offHand", gearFlat, "attack"));
-		}
-	} else if (stats.path === "spell" && mainHand) {
-		const spellOpts: BuildSwingOptions = {
+	stats.swings = buildSwings(
+		stats.path,
+		mainHand,
+		offHand,
+		isAttackDW,
+		gearFlat,
+		{
 			selectedElement: input.selectedElement,
 			level: input.level,
-		};
-		stats.swings.push(
-			buildSwing(mainHand, "mainHand", gearFlat, "spell", spellOpts),
-		);
-		// Staves are 2H and can't sit in the off-hand slot — only wand+wand.
-		// Caster dual-wield gets no implicits.
-		if (offHand && offHandType === "wand") {
-			stats.swings.push(
-				buildSwing(offHand, "offHand", gearFlat, "spell", spellOpts),
-			);
-		}
-	}
-
-	const speedMultiplier =
-		stats.path === "spell"
-			? 1 + stats.increased.castSpeed / 100
-			: 1 + stats.increased.attackSpeed / 100;
-	const swingCount = stats.swings.length;
-	const averagedBase =
-		swingCount > 0
-			? stats.swings.reduce((sum, s) => sum + s.baseAttackSpeed, 0) / swingCount
-			: 0;
-	const dwMoreMult = isAttackDW ? DUAL_WIELD_AS_MORE_MULT : 1;
-	stats.tickRate = averagedBase * speedMultiplier * dwMoreMult;
+		},
+	);
+	stats.tickRate = tickRateFor(stats, isAttackDW);
 
 	return stats;
 }

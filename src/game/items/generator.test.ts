@@ -7,7 +7,12 @@ import {
 	getSynergyWeight,
 	SPELL_FLAT_TO_ELEMENT,
 } from "./generator";
-import type { GeneratedItem, ItemRarity, RolledMod } from "./types";
+import {
+	DEFAULT_WEAPON_CRIT_CHANCE,
+	type GeneratedItem,
+	type ItemRarity,
+	type RolledMod,
+} from "./types";
 
 // ── Helpers ──
 
@@ -398,7 +403,8 @@ describe("attack weapon computed stats", () => {
 		const critMod = withCrit.explicits.find(
 			(m) => m.modifierId === "criticalChanceIncrease",
 		)!;
-		const base = withCrit.baseStats.criticalChance ?? 5;
+		const base =
+			withCrit.baseStats.criticalChance ?? DEFAULT_WEAPON_CRIT_CHANCE;
 		const expected = Math.round(base * (1 + critMod.value / 100) * 10) / 10;
 		expect(withCrit.computedStats!.criticalChance).toBe(expected);
 	});

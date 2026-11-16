@@ -71,12 +71,12 @@ This is what forces the lexicon to cover your mod — step 4 won't compile until
 
 ## Step 3 — Teach the stat engine to consume it (global mods only)
 
-If it's a global mod (`isGlobalStat: true`), add a case in the `applyMod()` switch in `src/game/stats/compute.ts`:
+If it's a global mod (`isGlobalStat: true`), add an entry to the `MOD_APPLIERS` table in `src/game/stats/compute.ts` (an id with no entry adds nothing to the character):
 
 ```ts
-case "myNewStatIncrease":
-    stats.increased.someField += v;
-    return;
+myNewStatIncrease: (s, _p, v) => {
+    s.increased.someField += v;
+},
 ```
 
 If the field doesn't exist yet on `ComputedCharacterStats`, add it in `src/game/stats/types.ts` and default it in `blankStats()` in `compute.ts`.

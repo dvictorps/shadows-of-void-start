@@ -121,7 +121,7 @@ See `docs/playbooks/i18n-which-system.md` for the broader decision tree (paragli
 
 ### `src/game/stats/compute.ts` — the stat engine
 
-The spine of every gameplay calculation. Read this if you're touching anything that reads character stats. Pure function, fixed-point cascade for broken-state detection, applies a single switch per modifier id.
+The spine of every gameplay calculation. Read this if you're touching anything that reads character stats. Pure function, fixed-point cascade for broken-state detection, applies one `MOD_APPLIERS` table entry per modifier id.
 
 ### `src/game/stats/dps.ts` — DPS estimator
 

@@ -34,7 +34,7 @@ Living examples: `src/components/world/InventoryModal.tsx` + `inventory-modal/`,
 
 ## Debt lists
 
-`oxlint.config.ts` holds one shrink-only list, `COMPLEXITY_DEBT`: files that still break the complexity rule and are held at `warn` until their refactor lands. A refactor PR removes its file from the list. Never add one: new code meets the rules. Its sibling for server calls emptied (REFACTOR GATE item 8), so `shadows/no-server-calls-in-components` has no exceptions.
+There are no debt lists: `complexity` and `shadows/no-server-calls-in-components` are errors on every file (`COMPLEXITY_DEBT` emptied on REFACTOR GATE item 10, its server-call sibling on item 8). New code meets the rules; don't bring a list back.
 
 ## Validation
 

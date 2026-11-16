@@ -148,6 +148,12 @@ export type BaseStatKey =
 	| "barrier"
 	| "blockChance";
 
+// The crit chance (%) and attack speed (swings/s) an attack weapon has when
+// its template leaves them out. Not CRIT_CHANCE_FLOOR: same value today, but
+// that one is the combat floor, this one a template default.
+export const DEFAULT_WEAPON_CRIT_CHANCE = 5;
+export const DEFAULT_WEAPON_ATTACK_SPEED = 1;
+
 // ── Equipment groups (single source of truth for applicableTo) ──
 
 export const EQUIPMENT_GROUPS = {

@@ -16,18 +16,6 @@ const GAME_IMPORT_ALLOWLIST = [
 	"#/paraglide",
 ];
 
-// SHRINK-ONLY debt list for the complexity rule (CLAUDE.md → Scaling rules).
-// Each file here still breaks it and is held at `warn` until its refactor
-// lands; the refactor PR removes the entry. Never add a file: new code meets
-// the rule. The queue is docs/plans/in-progress.md. (Its sibling for
-// no-server-calls-in-components emptied and is gone: that rule is an error
-// on every component.)
-const COMPLEXITY_DEBT = [
-	"src/game/items/equipment.ts",
-	"src/game/items/generator.ts",
-	"src/game/stats/compute.ts",
-	"src/lib/server-error-message.ts",
-];
 // What a component may not import (value imports; `import type` is fine).
 const SERVER_CALL_MODULES = {
 	modules: [
@@ -106,8 +94,7 @@ export default defineConfig({
 			},
 		],
 		// The anti-monolith gate (CLAUDE.md → Scaling rules): a function over 20
-		// is a decision that belongs in a pure, tested module. Files still over
-		// it are listed in COMPLEXITY_DEBT below.
+		// is a decision that belongs in a pure, tested module. No exceptions.
 		complexity: ["error", { max: 20 }],
 		"import/max-dependencies": "off",
 		"no-inline-comments": "off",
@@ -345,10 +332,6 @@ export default defineConfig({
 			rules: {
 				"shadows/no-server-calls-in-components": ["error", SERVER_CALL_MODULES],
 			},
-		},
-		{
-			files: COMPLEXITY_DEBT,
-			rules: { complexity: ["warn", { max: 20 }] },
 		},
 	],
 });
