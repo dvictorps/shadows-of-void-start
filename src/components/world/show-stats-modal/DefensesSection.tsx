@@ -24,7 +24,10 @@ export function DefensesSection({
 	return (
 		<section>
 			<SectionHeading>{m.stats_section_defenses()}</SectionHeading>
-			<Row label={m.stats_life()} value={`${currentLife} / ${stats.maxLife}`} />
+			<Row
+				label={m.stats_life()}
+				value={`${Math.ceil(currentLife)} / ${stats.maxLife}`}
+			/>
 			{stats.maxBarrier > 0 && (
 				<Row
 					label={m.stats_barrier()}

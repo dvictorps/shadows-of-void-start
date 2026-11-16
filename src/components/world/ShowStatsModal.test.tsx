@@ -164,11 +164,9 @@ describe("ShowStatsModal — defenses", () => {
 		expect(value(defenses(), m.stats_life())).toBe("60 / 100");
 	});
 
-	it("shows fractional life as is", () => {
-		// Pinned oddity: life is not rounded (the barrier next to it is), so a
-		// regen tick in combat shows its decimals.
+	it("rounds fractional life up, like the health globe", () => {
 		setup({ currentLife: 42.35 });
-		expect(value(defenses(), m.stats_life())).toBe("42.35 / 100");
+		expect(value(defenses(), m.stats_life())).toBe("43 / 100");
 	});
 
 	it("shows the barrier rounded, only with a max barrier", () => {
@@ -307,15 +305,17 @@ describe("ShowStatsModal — offense", () => {
 		);
 		expect(value(main, m.element_physical())).toBe("3 – 7");
 		expect(value(off, m.element_physical())).toBe("1 – 2");
-		// Pinned oddity: the hand abbreviations are hard-coded English.
 		expect(
-			within(s).getByText(m.stats_dual_wield_pattern({ pattern: "MH + OH" })),
+			within(s).getByText(
+				m.stats_dual_wield_pattern({
+					pattern: `${m.stats_main_hand_short()} + ${m.stats_off_hand_short()}`,
+				}),
+			),
 		).toBeTruthy();
 		expect(within(s).getByText(m.stats_dual_wield_bonus())).toBeTruthy();
 	});
 
-	it("reads crit chance from the main hand only", () => {
-		// Pinned oddity: a dual wielder's off-hand crit is not shown anywhere.
+	it("shows each hand's crit chance when dual wielding", () => {
 		setup({
 			stats: makeStats({
 				swings: [
@@ -325,7 +325,7 @@ describe("ShowStatsModal — offense", () => {
 			}),
 		});
 		expect(value(offenseAttack(), m.stats_crit_chance())).toBe(
-			`${effectiveCritChance(5, 0).toFixed(1)}%`,
+			`${effectiveCritChance(5, 0).toFixed(1)}% / ${effectiveCritChance(9, 0).toFixed(1)}%`,
 		);
 	});
 
@@ -382,9 +382,7 @@ describe("ShowStatsModal — offense", () => {
 		expect(block.textContent).not.toContain("+8%");
 	});
 
-	it("leaves out the melee, spell and attack-elemental pools", () => {
-		// Pinned oddity: `increased.melee` (Strength's bonus), `spell` and
-		// `elementalWithAttacks` feed the DPS but have no row.
+	it("lists the attack-only pools for an attacker", () => {
 		const base = makeStats().increased;
 		setup({
 			stats: makeStats({
@@ -392,7 +390,30 @@ describe("ShowStatsModal — offense", () => {
 				increased: { ...base, melee: 11, spell: 22, elementalWithAttacks: 33 },
 			}),
 		});
-		expect(increasedBlock(offenseAttack())).toBeNull();
+		const block = narrow(increasedBlock(offenseAttack()), HTMLElement);
+		expect(block.textContent).toContain(`${m.stats_increased_melee()}+11%`);
+		expect(block.textContent).toContain(
+			`${m.stats_increased_elemental_attacks()}+33%`,
+		);
+		expect(block.textContent).not.toContain("+22%");
+	});
+
+	it("lists the spell pool, not the attack ones, for a caster", () => {
+		const base = makeStats().increased;
+		setup({
+			stats: makeStats({
+				path: "spell",
+				swings: [swing()],
+				increased: { ...base, melee: 11, spell: 22, elementalWithAttacks: 33 },
+			}),
+		});
+		const block = narrow(
+			increasedBlock(section(m.stats_section_offense_spell())),
+			HTMLElement,
+		);
+		expect(block.textContent).toBe(
+			`${m.stats_increased_header()}${m.stats_increased_spell()}+22%`,
+		);
 	});
 });
 
