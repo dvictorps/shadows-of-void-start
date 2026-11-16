@@ -26,8 +26,6 @@ const COMPLEXITY_DEBT = [
 	"src/game/items/equipment.ts",
 	"src/game/items/generator.ts",
 	"src/game/stats/compute.ts",
-	"src/hooks/useCombatLoop.ts",
-	"src/hooks/useCombatTick.ts",
 	"src/lib/server-error-message.ts",
 ];
 // What a component may not import (value imports; `import type` is fine).
