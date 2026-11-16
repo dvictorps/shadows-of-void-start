@@ -306,6 +306,8 @@
 	"error_unequip_failed": "Falha ao desequipar",
 	"error_swap_hands_failed": "Falha ao trocar as mãos",
 	"error_reorder_failed": "Falha ao reorganizar",
+	"error_deposit_failed": "Falha ao depositar",
+	"error_withdraw_failed": "Falha ao retirar",
 	"broken_missing_level": "Falta nível {value}",
 	"broken_missing_strength": "Falta {value} de Força",
 	"broken_missing_dexterity": "Falta {value} de Destreza",

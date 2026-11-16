@@ -3,6 +3,8 @@
 
 import type { ItemRow } from "#/lib/api-types";
 
+import type { SlotMove } from "../reorder-or-toast";
+
 /** A grid of the stash modal: the character's bag or the account stash. */
 export type StashSide = "inventory" | "stash";
 
@@ -15,11 +17,7 @@ export const DROP_ID_PREFIX = {
 export type DropTargetData = { kind: StashSide; slot: number };
 export type DragSourceData = { kind: StashSide; itemId: number };
 
-export type StashMove = {
-	itemId: number;
-	targetSlot: number;
-	swapWithItemId?: number;
-};
+export type StashMove = SlotMove;
 
 /** The call a drop makes. */
 export type StashDropAction =

@@ -10,6 +10,7 @@ import CityScene from "#/components/world/CityScene";
 import { CombatPane } from "#/components/world/CombatPane";
 import type { ConsumableKey } from "#/components/world/CombatScene";
 import LeaderboardModal from "#/components/world/LeaderboardModal";
+import { reorderOrToast } from "#/components/world/reorder-or-toast";
 import SessionClaimFailedModal from "#/components/world/SessionClaimFailedModal";
 import SessionLostModal from "#/components/world/SessionLostModal";
 import ShowStatsModal from "#/components/world/ShowStatsModal";
@@ -617,14 +618,10 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 						itemIds,
 					});
 				}}
-				onReorderStash={({ itemId, targetSlot, swapWithItemId }) => {
-					void reorderStash({
-						characterId: character.id,
-						itemId,
-						targetSlot,
-						swapWithItemId,
-					});
-				}}
+				// Safe to `void`: reorderOrToast never rejects.
+				onReorderStash={(move) =>
+					void reorderOrToast(reorderStash, character.id, move)
+				}
 				inventoryServer={inventoryServer}
 			/>
 			<LeaderboardModal
