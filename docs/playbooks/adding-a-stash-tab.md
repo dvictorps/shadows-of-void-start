@@ -54,7 +54,7 @@ Before coding, resolve these:
 ```bash
 npx tsc --noEmit
 npx vitest run src/game/items/    # stash transitions must not break item identity
-npx biome check src/
+npx oxlint src/
 npx convex dev --once             # schema additions
 ```
 

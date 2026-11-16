@@ -91,7 +91,7 @@ Pure combat tests (`src/game/combat/*.test.ts`) pass `random: () => 0.5` to forc
 npx tsc --noEmit
 npx vitest run src/game/combat/
 npx vitest run src/game/stats/
-npx biome check src/hooks/ src/game/combat/
+npx oxlint src/hooks/ src/game/combat/
 ```
 
 Then `npm run dev`, kill at least 5 mobs to verify victory transitions work, take damage to barrier to verify the regen ticks back up while above zero and a break triggers the 10s cooldown, and use a potion mid-combat to verify the optimistic update doesn't conflict with HP sync.

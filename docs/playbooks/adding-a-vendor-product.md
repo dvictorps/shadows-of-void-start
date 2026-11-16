@@ -78,7 +78,7 @@ Plus the EN equivalents. Reference them in `VendorModal.tsx` (per-product label)
 ```bash
 npx tsc --noEmit
 npx vitest run
-npx biome check src/
+npx oxlint src/
 npx convex dev --once
 ```
 

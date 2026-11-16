@@ -30,7 +30,7 @@ Every playbook ends with the same validation sequence — you should always run 
 ```bash
 npx tsc --noEmit       # type-check
 npx vitest run         # all tests
-npx biome check src/   # lint + format
+npx oxlint src/        # lint (oxfmt formats)
 ```
 
 If your change touched convex code, also verify the dev server doesn't reject the schema:
