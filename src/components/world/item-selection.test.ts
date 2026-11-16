@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { allSelected, toggleAll, toggleId } from "./selection";
+import { allSelected, toggleAll, toggleId } from "./item-selection";
 
 const ITEMS = [{ id: 1 }, { id: 2 }];
 

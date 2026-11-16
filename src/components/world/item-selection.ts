@@ -1,4 +1,5 @@
-// The stash modal's selection rules. Pure, tested in selection.test.ts.
+// Selection rules for the item modals (the stash; the vendor uses `toggleId`).
+// Pure, tested in item-selection.test.ts.
 
 /** `selected` with `id` flipped. */
 export function toggleId(

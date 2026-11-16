@@ -8,6 +8,7 @@ import { Button } from "#/components/ui/button";
 import type { ItemRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
 
+import { allSelected } from "../item-selection";
 import {
 	DROP_ID_PREFIX,
 	type DragSourceData,
@@ -15,7 +16,6 @@ import {
 	slotOf,
 	type StashSide,
 } from "./drag";
-import { allSelected } from "./selection";
 
 const COLUMNS = 8;
 const SELECTED_RING = "ring-2 ring-sky-400/80";

@@ -1,3 +1,4 @@
+import RubyIcon from "#/components/game/RubyIcon";
 import Tooltip from "#/components/ui/tooltip";
 
 type Props = {
@@ -17,12 +18,7 @@ export default function RubyCounter({ rubys }: Props) {
 				aria-label={`${rubys} rubys`}
 				className="absolute right-3 bottom-3 inline-flex h-10 items-center gap-1.5 rounded-md border border-white/40 bg-black px-3 text-white/80"
 			>
-				<img
-					src="/assets/sprites/ui/moedaRubi.png"
-					alt=""
-					draggable={false}
-					className="pointer-events-none h-6 w-6 select-none object-contain"
-				/>
+				<RubyIcon className="h-6 w-6" />
 				<span className="display-title text-sm tabular-nums tracking-wider">
 					{rubys}
 				</span>
