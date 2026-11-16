@@ -27,7 +27,7 @@
 //    • Add a new local statEffect →  case in computeWeaponStats or computeArmorStats
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { chance, randInt, randomId, randomUnit } from "#/lib/rng";
+import { chance, defaultRng, randInt, type Rng } from "#/lib/rng";
 
 import {
 	findModifier,
@@ -59,17 +59,21 @@ import {
 
 // ── RNG helpers ──
 // Non-empty variants of `#/lib/rng`'s pickers (every call site here has
-// already guarded the length), drawing from the same `randomUnit` seam.
+// already guarded the length), drawing from the item's `rng`.
 
-function pickRandom<T>(arr: T[]): T {
-	return arr[Math.floor(randomUnit() * arr.length)];
+function pickRandom<T>(arr: T[], rng: Rng): T {
+	return arr[Math.floor(rng.unit() * arr.length)];
 }
 
-function pickWeighted<T>(items: T[], getWeight: (item: T) => number): T {
+function pickWeighted<T>(
+	items: T[],
+	getWeight: (item: T) => number,
+	rng: Rng,
+): T {
 	const totalWeight = items.reduce((sum, item) => sum + getWeight(item), 0);
-	let roll = randomUnit() * totalWeight;
+	let roll = rng.unit() * totalWeight;
 	// Float drift can leave `roll` a hair above 0 after the loop; fall back to
-	// the last item, same as the old `items[items.length - 1]`.
+	// the last item.
 	let last = items[0];
 	for (const item of items) {
 		roll -= getWeight(item);
@@ -411,9 +415,12 @@ const EPIC_MIN_TIER = 4;
 
 // ── Rolling logic ──
 
-function rollImplicits(template: EquipmentTemplate): RolledImplicit[] {
+function rollImplicits(
+	template: EquipmentTemplate,
+	rng: Rng,
+): RolledImplicit[] {
 	return template.implicits.map((imp) => {
-		const value = randInt(imp.minValue, imp.maxValue);
+		const value = randInt(imp.minValue, imp.maxValue, rng);
 		return {
 			modifierId: imp.modifierId,
 			description: formatDescription(imp.displayFormat, value),
@@ -426,11 +433,12 @@ function rollExplicits(
 	rarity: ItemRarity,
 	template: EquipmentTemplate,
 	itemLevel: number,
+	rng: Rng,
 ): RolledMod[] {
 	const limits = MOD_LIMITS[rarity];
 	if (limits.totalMax === 0) return [];
 
-	const totalTarget = randInt(limits.totalMin, limits.totalMax);
+	const totalTarget = randInt(limits.totalMin, limits.totalMax, rng);
 	const availableModifiers = getModifiersForTemplate(template);
 
 	// Epic: use deterministic mod patterns
@@ -442,7 +450,7 @@ function rollExplicits(
 	let suffixTarget: number;
 
 	if (rarity === "legendary") {
-		if (chance(0.5)) {
+		if (chance(0.5, rng)) {
 			prefixTarget = 3;
 			suffixTarget = 2;
 		} else {
@@ -455,7 +463,7 @@ function rollExplicits(
 	} else {
 		const maxP = Math.min(totalTarget, limits.maxPrefix);
 		const minP = Math.max(0, totalTarget - limits.maxSuffix);
-		prefixTarget = randInt(minP, maxP);
+		prefixTarget = randInt(minP, maxP, rng);
 		suffixTarget = totalTarget - prefixTarget;
 	}
 
@@ -504,15 +512,19 @@ function rollExplicits(
 		const eligible = getEligible(affixType);
 		if (eligible.length === 0) return false;
 
-		const modId = pickWeighted(eligible, (id) => {
-			const m = getModifier(id);
-			return getSynergyWeight(
-				m.weight ?? DEFAULT_MODIFIER_WEIGHT,
-				m.tags ?? [],
-				rolledTags,
-				synergyMultiplier,
-			);
-		});
+		const modId = pickWeighted(
+			eligible,
+			(id) => {
+				const m = getModifier(id);
+				return getSynergyWeight(
+					m.weight ?? DEFAULT_MODIFIER_WEIGHT,
+					m.tags ?? [],
+					rolledTags,
+					synergyMultiplier,
+				);
+			},
+			rng,
+		);
 		const mod = getModifier(modId);
 		let tier = tierCache.get(modId)!;
 
@@ -541,11 +553,11 @@ function rollExplicits(
 		let maxValue: number | undefined;
 
 		if (isFlatDamage) {
-			maxValue = randInt(tier.valueRange[0], tier.valueRange[1]);
+			maxValue = randInt(tier.valueRange[0], tier.valueRange[1], rng);
 			minValue = Math.round(maxValue / 2);
 			value = maxValue;
 		} else {
-			value = randInt(tier.valueRange[0], tier.valueRange[1]);
+			value = randInt(tier.valueRange[0], tier.valueRange[1], rng);
 		}
 
 		mods.push({
@@ -754,28 +766,34 @@ export interface GenerateItemOptions {
 	templateId?: string;
 }
 
-export function generateItem(options: GenerateItemOptions): GeneratedItem {
+/** Rolls a new item. `rng` defaults to the ambient source; tests pass
+ * `seededRng(seed)` for a reproducible item. */
+export function generateItem(
+	options: GenerateItemOptions,
+	rng: Rng = defaultRng,
+): GeneratedItem {
 	const itemLevel = Math.min(
 		100,
-		Math.max(1, options.itemLevel ?? randInt(1, 100)),
+		Math.max(1, options.itemLevel ?? randInt(1, 100, rng)),
 	);
 
 	let template: EquipmentTemplate;
 	if (options.templateId) {
 		template =
-			TEMPLATE_BY_ID.get(options.templateId) ?? pickRandom(EQUIPMENT_TEMPLATES);
+			TEMPLATE_BY_ID.get(options.templateId) ??
+			pickRandom(EQUIPMENT_TEMPLATES, rng);
 	} else {
 		const eligible = EQUIPMENT_TEMPLATES.filter(
 			(t) => t.dropLevel <= itemLevel,
 		);
 		template =
 			eligible.length > 0
-				? pickRandom(eligible)
-				: pickRandom(EQUIPMENT_TEMPLATES);
+				? pickRandom(eligible, rng)
+				: pickRandom(EQUIPMENT_TEMPLATES, rng);
 	}
 
-	const implicits = rollImplicits(template);
-	const explicits = rollExplicits(options.rarity, template, itemLevel);
+	const implicits = rollImplicits(template, rng);
+	const explicits = rollExplicits(options.rarity, template, itemLevel, rng);
 	const baseStats = { ...template.baseStats };
 
 	const isWeapon = "minDamage" in baseStats;
@@ -790,7 +808,7 @@ export function generateItem(options: GenerateItemOptions): GeneratedItem {
 	);
 
 	return {
-		id: randomId(),
+		id: rng.id(),
 		templateId: template.id,
 		nameBase: template.nameBase,
 		nameModifier: template.nameModifier,

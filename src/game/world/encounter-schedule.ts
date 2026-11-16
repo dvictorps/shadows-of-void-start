@@ -12,7 +12,7 @@
 // encounters before the miniboss, and the gap range each one is rolled
 // from.
 
-import { randInt, randSymmetric } from "../../lib/rng";
+import { defaultRng, randInt, randSymmetric, type Rng } from "../../lib/rng";
 import type { WorldNode } from "./types";
 
 export interface ZoneEncounterPlan {
@@ -103,11 +103,14 @@ const CAMP_JITTER = 0.1;
  * thresholds (ms) where each camp will fire. Called once per zone activation
  * so the same camp anchor can fire at slightly different times across runs.
  */
-export function rollCampThresholdsMs(plan: ZoneEncounterPlan): number[] {
+export function rollCampThresholdsMs(
+	plan: ZoneEncounterPlan,
+	rng: Rng = defaultRng,
+): number[] {
 	const budgetMs = plan.calmariaBudgetSeconds * 1000;
 	return plan.campFractions
 		.map((fraction) =>
-			Math.round((fraction + randSymmetric(CAMP_JITTER)) * budgetMs),
+			Math.round((fraction + randSymmetric(CAMP_JITTER, rng)) * budgetMs),
 		)
 		.toSorted((a, b) => a - b);
 }

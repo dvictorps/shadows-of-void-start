@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { hashStringToUnit } from "./rng";
+import {
+	chance,
+	hashStringToUnit,
+	pickWeighted,
+	randInt,
+	seededRng,
+} from "./rng";
 
 describe("hashStringToUnit", () => {
 	it("is deterministic for the same input and salt", () => {
@@ -38,5 +44,51 @@ describe("hashStringToUnit", () => {
 			expect(count).toBeGreaterThan(20);
 			expect(count).toBeLessThan(60);
 		}
+	});
+});
+
+describe("seededRng", () => {
+	it("repeats the same floats and ids for the same seed", () => {
+		const a = seededRng(42);
+		const b = seededRng(42);
+		const draws = (r: ReturnType<typeof seededRng>) => [
+			r.unit(),
+			r.unit(),
+			r.id(),
+			r.unit(),
+		];
+		expect(draws(a)).toEqual(draws(b));
+	});
+
+	it("gives a different stream for a different seed", () => {
+		expect(seededRng(1).unit()).not.toBe(seededRng(2).unit());
+	});
+
+	it("stays in [0, 1) and spreads across it", () => {
+		const r = seededRng(7);
+		const values = Array.from({ length: 2000 }, () => r.unit());
+		expect(Math.min(...values)).toBeGreaterThanOrEqual(0);
+		expect(Math.max(...values)).toBeLessThan(1);
+		const low = values.filter((v) => v < 0.5).length;
+		expect(low).toBeGreaterThan(900);
+		expect(low).toBeLessThan(1100);
+	});
+
+	it("makes UUID v4-shaped ids", () => {
+		expect(seededRng(3).id()).toMatch(
+			/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+		);
+	});
+
+	it("drives the helpers when passed in", () => {
+		const roll = (seed: number) => {
+			const r = seededRng(seed);
+			return [
+				randInt(1, 100, r),
+				chance(0.5, r),
+				pickWeighted(["a", "b", "c"], () => 1, r),
+			];
+		};
+		expect(roll(9)).toEqual(roll(9));
 	});
 });

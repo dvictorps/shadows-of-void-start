@@ -1,5 +1,7 @@
 import { assert, describe, expect, it } from "vitest";
 
+import { seededRng } from "#/lib/rng";
+
 import { findModifier, getModifier } from "./data/modifiers";
 import { EQUIPMENT_TEMPLATES } from "./data/templates";
 import {
@@ -1589,5 +1591,19 @@ describe("attribute requirements", () => {
 		});
 		expect(item.requirements!.int).toBeDefined();
 		expect(item.requirements!.int).toBeGreaterThan(0);
+	});
+});
+
+describe("generateItem — injected rng", () => {
+	it("rolls the same item, id included, for the same seed", () => {
+		const roll = () =>
+			generateItem({ rarity: "legendary", itemLevel: 60 }, seededRng(1234));
+		expect(roll()).toEqual(roll());
+	});
+
+	it("rolls different items for different seeds", () => {
+		const a = generateItem({ rarity: "rare" }, seededRng(1));
+		const b = generateItem({ rarity: "rare" }, seededRng(2));
+		expect(a).not.toEqual(b);
 	});
 });

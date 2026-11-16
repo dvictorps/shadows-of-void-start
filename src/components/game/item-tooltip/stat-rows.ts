@@ -2,6 +2,7 @@
 // the value already formatted and a flag for "a local mod changed this"
 // (painted blue). Pure, tested in stat-rows.test.ts; StatBlock renders them.
 
+import { elementName } from "#/game/combat/element-name";
 import { weaponArchetype } from "#/game/items/equipment";
 import {
 	DEFAULT_WEAPON_ATTACK_SPEED,
@@ -16,18 +17,8 @@ export type StatRow = {
 	modified: boolean;
 };
 
-// Keyed by the open `element: string` the computed item stats carry; a Map
-// keeps the lookup honest about unknown keys (falls back to the raw name).
-const ELEMENT_NAME = new Map<string, () => string>([
-	["Cold", m.element_cold],
-	["Fire", m.element_fire],
-	["Lightning", m.element_lightning],
-	["Void", m.element_void],
-]);
-
 function elementDamageLabel(element: string): string {
-	const name = ELEMENT_NAME.get(element)?.() ?? element;
-	return m.tooltip_damage_line({ element: name });
+	return m.tooltip_damage_line({ element: elementName(element) });
 }
 
 function isSpellWeapon(item: GeneratedItem): boolean {

@@ -1,3 +1,4 @@
+import { elementName } from "#/game/combat/element-name";
 import {
 	effectiveCritChance,
 	isAttackDualWielding,
@@ -102,33 +103,18 @@ function SwingDamage({ swing, label }: { swing: SwingProfile; label: string }) {
 				{label}
 			</div>
 			<Row
-				label={m.element_physical()}
+				label={elementName("physical")}
 				value={`${swing.physicalDamage.min} – ${swing.physicalDamage.max}`}
 			/>
 			{swing.elementalDamage.map((e) => (
 				<Row
 					key={e.element}
-					label={elementLabel(e.element)}
+					label={elementName(e.element)}
 					value={`${e.min} – ${e.max}`}
 				/>
 			))}
 		</div>
 	);
-}
-
-function elementLabel(element: string): string {
-	switch (element) {
-		case "Cold":
-			return m.element_cold();
-		case "Fire":
-			return m.element_fire();
-		case "Lightning":
-			return m.element_lightning();
-		case "Void":
-			return m.element_void();
-		default:
-			return element;
-	}
 }
 
 function IncreasedRows({ stats }: { stats: ComputedCharacterStats }) {
