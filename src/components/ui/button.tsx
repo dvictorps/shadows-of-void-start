@@ -28,8 +28,11 @@ const buttonVariants = cva(
 				// Inline text link in the void purple (pair with size="inline").
 				voidLink: "text-void underline hover:text-void/80",
 				// Square-cornered control floating over the game art (the world
-				// map's back button). Pair with size="hud" and `caps`.
-				hud: "rounded-none border border-white/40 bg-black text-white/80 hover:border-white hover:bg-white/10 hover:text-white",
+				// map's back button, the combat HUD, the camp and zone-complete
+				// panels). Pair with one of the hud* sizes (+ `caps` for labels).
+				// Disabled keeps pointer events: an empty consumable or a locked
+				// element still reports its hover to the world's TextLog.
+				hud: "rounded-none border border-white/40 bg-black text-white/80 hover:border-white hover:bg-white/10 hover:text-white disabled:pointer-events-auto disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black",
 			},
 			size: {
 				default: "h-9 px-4 py-2 has-[>svg]:px-3",
@@ -46,6 +49,13 @@ const buttonVariants = cva(
 				inline: "h-auto p-0",
 				// The small label of the HUD controls over the game art.
 				hud: "h-auto gap-1.5 px-3 py-1.5 text-2xs",
+				// The combat HUD's text actions (Retreat, the camp and
+				// zone-complete panel choices).
+				"hud-lg": "h-auto px-4 py-2.5 [&_svg:not([class*='size-'])]:size-5",
+				// An icon-only HUD control (the loot bag, the mage's elements).
+				"hud-icon": "h-auto p-2.5 [&_svg:not([class*='size-'])]:size-5",
+				// A consumable slot: the item art with its count badge.
+				"hud-slot": "relative size-20 p-0",
 			},
 			// The uppercase, tracked label of the stark app-shell buttons.
 			caps: {

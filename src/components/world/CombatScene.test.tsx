@@ -693,11 +693,14 @@ describe("CombatScene — consumables", () => {
 });
 
 describe("CombatScene — mage element selector", () => {
-	// The element buttons have no accessible name; their lucide icon is the
-	// only handle on them.
-	function elementButton(icon: "flame" | "snowflake" | "zap") {
+	const ELEMENT_NAME = {
+		flame: m.element_fire(),
+		snowflake: m.element_cold(),
+		zap: m.element_lightning(),
+	};
+	function elementButton(icon: keyof typeof ELEMENT_NAME) {
 		return narrow(
-			document.querySelector(`.lucide-${icon}`)?.closest("button"),
+			screen.getByRole("button", { name: ELEMENT_NAME[icon] }),
 			HTMLButtonElement,
 		);
 	}
@@ -715,7 +718,9 @@ describe("CombatScene — mage element selector", () => {
 			selectedElement: "fire",
 			onSwitchElement: vi.fn<SwitchElement>(),
 		});
-		expect(document.querySelector(".lucide-flame")).toBeNull();
+		expect(
+			screen.queryByRole("button", { name: ELEMENT_NAME.flame }),
+		).toBeNull();
 	});
 
 	it("switches to another element and reports the hover", () => {
