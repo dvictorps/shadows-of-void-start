@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
 // Threat #5: the auto-claim on arriving at /world, the "seen winning" latch,
-// and no re-claim after a takeover (two tabs would ping-pong forever).
+// no re-claim after a takeover (two tabs would ping-pong forever), and the
+// failure latch: a rejected claim waits for a manual retry instead of
+// re-firing in a loop.
 //
-// The fake claim stays pending until the test settles it, the way the real
-// one is followed by the character row carrying our token. A claim that
-// settles while the row still shows another token re-fires on the next
-// render (see docs/plans/in-progress.md), so no test leaves one in that state.
+// The fake claim stays pending until the test settles it: `settle` resolves
+// it, the way the real one is followed by the character row carrying our
+// token, and `fail` rejects it, the way a network or server error does.
 
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -19,12 +20,14 @@ type Props = { matches: boolean; id: number };
 
 function setup(matches: boolean) {
 	let settle = () => {};
+	let fail = (_error: Error) => {};
 	const claim = vi.fn<
 		(args: { characterId: number; sessionToken: string }) => Promise<object>
 	>(
 		() =>
-			new Promise<object>((resolve) => {
+			new Promise<object>((resolve, reject) => {
 				settle = () => resolve({});
+				fail = reject;
 			}),
 	);
 	const hook = renderHook(
@@ -37,7 +40,12 @@ function setup(matches: boolean) {
 			}),
 		{ initialProps: { matches, id: 3 } },
 	);
-	return { claim, hook, settle: () => settle() };
+	return {
+		claim,
+		hook,
+		settle: () => settle(),
+		fail: (error: Error) => fail(error),
+	};
 }
 
 describe("useSessionClaim", () => {
@@ -83,5 +91,46 @@ describe("useSessionClaim", () => {
 		expect(claim).toHaveBeenCalledTimes(1);
 		hook.rerender({ matches: true, id: 4 });
 		await act(async () => settle());
+	});
+
+	it("latches a rejected claim instead of re-firing it", async () => {
+		const { claim, hook, fail } = setup(false);
+		await act(async () => {});
+		const error = new Error("network down");
+		await act(async () => fail(error));
+		// Re-renders (the 50ms combat tick) must not start another claim.
+		for (let i = 0; i < 5; i++) {
+			hook.rerender({ matches: false, id: 3 });
+			await act(async () => {});
+		}
+		expect(claim).toHaveBeenCalledTimes(1);
+		expect(hook.result.current.claimFailure).toEqual({ error });
+		expect(hook.result.current.sessionLost).toBe(false);
+	});
+
+	it("claims again on retry, and a successful retry clears the failure", async () => {
+		const { claim, hook, settle, fail } = setup(false);
+		await act(async () => {});
+		await act(async () => fail(new Error("network down")));
+		act(() => hook.result.current.retryClaim());
+		await act(async () => {});
+		expect(claim).toHaveBeenCalledTimes(2);
+		expect(hook.result.current.claimFailure).toBeNull();
+		hook.rerender({ matches: true, id: 3 });
+		await act(async () => settle());
+		expect(claim).toHaveBeenCalledTimes(2);
+		expect(hook.result.current.claimFailure).toBeNull();
+		expect(hook.result.current.sessionLost).toBe(false);
+	});
+
+	it("clears the failure once our token shows (the write landed, the response was lost)", async () => {
+		const { claim, hook, fail } = setup(false);
+		await act(async () => {});
+		await act(async () => fail(new Error("response lost")));
+		hook.rerender({ matches: true, id: 3 });
+		await act(async () => {});
+		expect(hook.result.current.claimFailure).toBeNull();
+		expect(hook.result.current.sessionLost).toBe(false);
+		expect(claim).toHaveBeenCalledTimes(1);
 	});
 });
