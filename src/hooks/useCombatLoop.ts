@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Combat orchestrator. Owns the state machine + spawn/victory delays + the
-//  recordKill / incense / camp calls (useCombatMutations). Tick mechanics
+//  recordKill / incense / camp calls (`server`: the route passes
+//  useCombatMutations, tests pass fakes). Tick mechanics
 //  live in `useCombatTick`; encounter scheduling in `useEncounterSchedule`.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ import { pickRandom } from "#/lib/rng";
 import { playKillSfx, playSfx } from "#/lib/sfx";
 
 import type { BarrierApi } from "./useBarrier";
-import { useCombatMutations } from "./useCombatMutations";
+import type { CombatMutations } from "./useCombatMutations";
 import { useCombatTick, type Vitals } from "./useCombatTick";
 import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
 import { useDelay } from "./useDelay";
@@ -59,8 +60,32 @@ export type {
 	RareIntroStage,
 };
 
+type ArgsOf<Name extends keyof CombatMutations> = Parameters<
+	CombatMutations[Name]
+>[0];
+
+/**
+ * The server calls the loop makes, as it uses them: only `recordKill`'s answer
+ * is read, the rest are fire-and-forget. The route passes `useCombatMutations`;
+ * tests pass fakes (no module mocking).
+ */
+export interface CombatServer {
+	recordKill: (args: ArgsOf<"recordKill">) => Promise<{
+		potionDropped: boolean;
+		newMaxLife?: number;
+		newMaxBarrier?: number;
+	}>;
+	syncHp: (args: ArgsOf<"syncHp">) => Promise<object>;
+	consumePotion: (args: ArgsOf<"consumePotion">) => Promise<object>;
+	consumeIncense: (args: ArgsOf<"consumeIncense">) => Promise<object>;
+	enterCamp: (args: ArgsOf<"enterCamp">) => Promise<object>;
+	enterCampViaIncense: (args: ArgsOf<"enterCampViaIncense">) => Promise<object>;
+	exitCamp: (args: ArgsOf<"exitCamp">) => Promise<object>;
+}
+
 type Params = {
 	characterId: number;
+	server: CombatServer;
 	stats: ComputedCharacterStats;
 	initialHp: number;
 	barrierApi: BarrierApi;
@@ -100,6 +125,7 @@ const NOOP = () => {};
 
 export function useCombatLoop({
 	characterId,
+	server,
 	stats,
 	initialHp,
 	barrierApi,
@@ -161,7 +187,7 @@ export function useCombatLoop({
 		enterCamp,
 		enterCampViaIncense,
 		exitCamp: exitCampMutation,
-	} = useCombatMutations({ characterId, maxHp: stats.maxLife });
+	} = server;
 
 	const warmupActive = !!bossNode && !warmupDone;
 

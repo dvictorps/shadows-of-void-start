@@ -34,6 +34,7 @@ import { translateNodeDescription, translateNodeName } from "#/game/world/i18n";
 import { useBarrier } from "#/hooks/useBarrier";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
+import { useCombatMutations } from "#/hooks/useCombatMutations";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useInFlight } from "#/hooks/useInFlight";
@@ -368,8 +369,13 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		}
 	}, [respawnDead, character.id, setView, setPendingArrival]);
 
+	const combatServer = useCombatMutations({
+		characterId: character.id,
+		maxHp: stats.maxLife,
+	});
 	const combat = useCombatLoop({
 		characterId: character.id,
+		server: combatServer,
 		stats,
 		initialHp: hp,
 		barrierApi,
