@@ -29,10 +29,11 @@ describe("characters", () => {
 		expect(row.zoneBag).toEqual([]);
 
 		const gear = await db.select().from(items).where(eq(items.characterId, id));
-		expect(gear.map((g) => g.equippedSlot).toSorted()).toEqual([
-			"chestplate",
-			"weapon",
-		]);
+		expect(
+			gear
+				.map((g) => g.equippedSlot ?? "")
+				.toSorted((x, y) => x.localeCompare(y)),
+		).toEqual(["chestplate", "weapon"]);
 		expect(gear.every((g) => g.authUserId === account.session.user.id)).toBe(
 			true,
 		);

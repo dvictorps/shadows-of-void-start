@@ -15,9 +15,10 @@ import { m } from "#/paraglide/messages";
 
 export const Route = createFileRoute("/admin/admins")({
 	loader: ({ context }) =>
-		context.queryClient.ensureQueryData(
-			adminTabQueries(context.trpc).listAdmins,
-		),
+		context.queryClient.query({
+			...adminTabQueries(context.trpc).listAdmins,
+			staleTime: "static",
+		}),
 	component: AdminAdminsPage,
 });
 

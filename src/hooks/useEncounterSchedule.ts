@@ -15,6 +15,7 @@ import {
 	rollSpawnGapMs,
 	type ZoneEncounterPlan,
 } from "#/game/world/encounter-schedule";
+import { chance } from "#/lib/rng";
 
 import { useTicker } from "./useTicker";
 
@@ -36,7 +37,7 @@ type Params = {
 	// Held by the state machine; set true between miniboss kill and the
 	// victory-delay transition. Checked at the top of each calmaria tick. A
 	// ref (not state) so flips don't trigger renders.
-	postMinibossPauseRef: React.MutableRefObject<boolean>;
+	postMinibossPauseRef: React.RefObject<boolean>;
 	// Fires with the crossed threshold's index so the parent can call
 	// `enterCamp(thresholdIndex)` against the server.
 	onCampTriggered: (thresholdIndex: number) => void;
@@ -187,7 +188,7 @@ export function useEncounterSchedule({
 	const rollSpawnRarity = useCallback((): MonsterRarity => {
 		if (calmariaElapsedMsRef.current >= calmariaBudgetMs) return "rare";
 		if (ambushPlan && ambushPackRemainingRef.current > 0) {
-			return Math.random() < ambushPlan.magicChance ? "magic" : "normal";
+			return chance(ambushPlan.magicChance) ? "magic" : "normal";
 		}
 		return rollMonsterRarity();
 	}, [calmariaBudgetMs, ambushPlan]);

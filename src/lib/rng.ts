@@ -1,9 +1,29 @@
+// The one place the game reads an ambient random source. `src/game` may not
+// call `Math.random` / `crypto.randomUUID` itself (lint rule
+// `shadows/game-determinism`), so every roll goes through here: one seam a
+// test, or a future seeded RNG, can replace.
+
+/** Uniform float in [0, 1). The default `random` source for engine functions that take one. */
+export function randomUnit(): number {
+	return Math.random();
+}
+
+/** True with probability `probability` (0–1). */
+export function chance(probability: number): boolean {
+	return randomUnit() < probability;
+}
+
+/** A fresh random id (UUID v4), for entities the engine creates (rolled items). */
+export function randomId(): string {
+	return crypto.randomUUID();
+}
+
 /**
  * Inclusive integer in [min, max]. Used by item rolls, damage rolls, and
  * monster pool picks — kept central so the math doesn't drift.
  */
 export function randInt(min: number, max: number): number {
-	return Math.floor(Math.random() * (max - min + 1)) + min;
+	return Math.floor(randomUnit() * (max - min + 1)) + min;
 }
 
 /**
@@ -11,7 +31,7 @@ export function randInt(min: number, max: number): number {
  * on SFX, camp-threshold scatter, etc.
  */
 export function randSymmetric(magnitude: number): number {
-	return (Math.random() * 2 - 1) * magnitude;
+	return (randomUnit() * 2 - 1) * magnitude;
 }
 
 /**
@@ -20,7 +40,7 @@ export function randSymmetric(magnitude: number): number {
  */
 export function pickRandom<T>(arr: readonly T[]): T | undefined {
 	if (arr.length === 0) return undefined;
-	return arr[Math.floor(Math.random() * arr.length)];
+	return arr[Math.floor(randomUnit() * arr.length)];
 }
 
 /**
@@ -34,7 +54,7 @@ export function pickWeighted<T>(
 	if (items.length === 0) return undefined;
 	const totalWeight = items.reduce((sum, item) => sum + getWeight(item), 0);
 	if (totalWeight <= 0) return undefined;
-	let roll = Math.random() * totalWeight;
+	let roll = randomUnit() * totalWeight;
 	for (const item of items) {
 		roll -= getWeight(item);
 		if (roll <= 0) return item;

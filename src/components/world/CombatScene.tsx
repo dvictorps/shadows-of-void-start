@@ -284,7 +284,8 @@ export default function CombatScene({
 				? "brightness(1) saturate(1) hue-rotate(0deg)"
 				: "brightness(1) saturate(1) blur(4px)",
 		});
-		enemyControls.start({
+		// Fire-and-forget: `start` resolves when the animation ends; nothing waits on it.
+		void enemyControls.start({
 			opacity: 1,
 			scale: 1,
 			y: 0,
@@ -296,13 +297,13 @@ export default function CombatScene({
 	useEffect(() => {
 		if (!lastDamagingHit) return;
 		const amp = lastDamagingHit.isCrit ? 6 : 4;
-		enemyControls.start({
+		void enemyControls.start({
 			x: [0, -amp, amp, -Math.round(amp * 0.7), Math.round(amp * 0.5), 0],
 			transition: { duration: 0.2, times: [0, 0.2, 0.4, 0.6, 0.8, 1] },
 		});
 		// Brief solid-red flash via the masked overlay. Opacity drives it so
 		// the underlying sprite shows back through as the flash fades.
-		redFlashControls.start({
+		void redFlashControls.start({
 			opacity: [0, 1, 0],
 			transition: { duration: 0.22, times: [0, 0.18, 1], ease: "easeOut" },
 		});
@@ -311,7 +312,7 @@ export default function CombatScene({
 	useEffect(() => {
 		// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- the sprite's `animate` is bound to `enemyControls`, which the entrance (set+start on null→enemy) and hit shake also drive imperatively; framer-motion can't mix a controls object with a declarative target on one element, and the victory transition happens in useCombatLoop's tick, not a UI event here
 		if (state !== "victory" || !enemy) return;
-		enemyControls.start({
+		void enemyControls.start({
 			opacity: 0,
 			y: isStagedEnemy ? 0 : 8,
 			filter: isStagedEnemy

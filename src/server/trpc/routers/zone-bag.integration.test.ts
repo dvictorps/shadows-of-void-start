@@ -75,10 +75,12 @@ describe("zone bag", () => {
 		expect(exit).toMatchObject({ kept: 3, discarded: 7 });
 		const inventory = await inventoryOf(hero.characterId);
 		// The response carries the new rows, so the client needs no refetch.
-		expect(exit.items.map((i) => i.id).toSorted()).toEqual(
-			inventory.map((i) => i.id).toSorted(),
+		expect(exit.items.map((i) => i.id).toSorted((x, y) => x - y)).toEqual(
+			inventory.map((i) => i.id).toSorted((x, y) => x - y),
 		);
-		expect(inventory.map((i) => i.inventorySlot).toSorted()).toEqual([0, 1, 2]);
+		expect(
+			inventory.map((i) => i.inventorySlot ?? -1).toSorted((x, y) => x - y),
+		).toEqual([0, 1, 2]);
 		expect(inventory[0]?.data).toEqual(bag[0]?.data);
 		expect(inventory[0]?.droppedFrom).toBe("goblin");
 
@@ -120,7 +122,7 @@ describe("zone bag", () => {
 			account.caller.items.pickFromBag({ ...hero, itemIds: [a ?? ""] }),
 			account.caller.items.pickFromBag({ ...hero, itemIds: [a ?? ""] }),
 		]);
-		expect(picks.map((p) => p.kept).toSorted()).toEqual([0, 1]);
+		expect(picks.map((p) => p.kept).toSorted((x, y) => x - y)).toEqual([0, 1]);
 		expect(await inventoryOf(hero.characterId)).toHaveLength(1);
 
 		expect(

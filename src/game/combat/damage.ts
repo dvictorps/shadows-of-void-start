@@ -1,4 +1,4 @@
-import { randInt } from "../../lib/rng";
+import { randInt, randomUnit } from "../../lib/rng";
 import type { MonsterElementDamage } from "../monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "../stats/types";
 import {
@@ -108,7 +108,7 @@ export function rollPlayerSwing({
 	swing,
 	stats,
 	defender,
-	random = Math.random,
+	random = randomUnit,
 }: PlayerSwingArgs): RolledSwing {
 	const isAttack = stats.path === "attack";
 	const isSpell = stats.path === "spell";
@@ -253,7 +253,7 @@ export function rollEnemyAttack({
 	enemyCriticalChance = 5,
 	enemyCriticalMultiplier = 50,
 	enemyGainAsExtra,
-	random = Math.random,
+	random = randomUnit,
 }: EnemyAttackArgs): RolledSwing {
 	const hit = random() <= hitChance(enemyAccuracy, defender.evasion);
 	if (!hit) {

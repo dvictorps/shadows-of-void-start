@@ -14,7 +14,7 @@ import { useTicker } from "./useTicker";
 
 export type BarrierApi = {
 	barrier: BarrierState;
-	barrierRef: React.MutableRefObject<BarrierState>;
+	barrierRef: React.RefObject<BarrierState>;
 	applyDamage: (rawDamage: number) => { lifeOverflow: number };
 	/** Snap to full. `overrideMax` wins the level-up reactive-query race. */
 	restoreToFull: (overrideMax?: number) => void;

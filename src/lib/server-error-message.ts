@@ -1,4 +1,4 @@
-import { TRPCClientError } from "@trpc/client";
+import { isTRPCClientError, type TRPCClientError } from "@trpc/client";
 
 import { SERVER_ERRORS } from "#/lib/server-errors";
 import { m } from "#/paraglide/messages";
@@ -13,7 +13,9 @@ import type { AppRouter } from "#/server/trpc/router";
 export function isServerRuleError(
 	cause: unknown,
 ): cause is TRPCClientError<AppRouter> {
-	if (!(cause instanceof TRPCClientError)) return false;
+	// `isTRPCClientError<AppRouter>` types `data` from the router; a bare
+	// `instanceof` leaves it as `any`.
+	if (!isTRPCClientError<AppRouter>(cause)) return false;
 	const code = cause.data?.code;
 	return code !== undefined && code !== "INTERNAL_SERVER_ERROR";
 }

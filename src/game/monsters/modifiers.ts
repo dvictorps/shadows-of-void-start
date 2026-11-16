@@ -1,3 +1,5 @@
+import { randomUnit } from "#/lib/rng";
+
 import { typedKeys } from "../typed-object";
 import { type ScaledMonsterStats, scaleRange } from "./scaling";
 import type { MonsterRarity } from "./types";
@@ -233,7 +235,7 @@ const MAGIC_SPAWN_CHANCE = 0.1;
 const AFFIX_CAP = 2;
 
 export function rollMonsterRarity(
-	random: () => number = Math.random,
+	random: () => number = randomUnit,
 ): MonsterRarity {
 	return random() < MAGIC_SPAWN_CHANCE ? "magic" : "normal";
 }
@@ -257,7 +259,7 @@ export function modCountForRarity(rarity: MonsterRarity): number {
 
 export function rollMonsterMods(
 	count: number,
-	random: () => number = Math.random,
+	random: () => number = randomUnit,
 ): MonsterModId[] {
 	if (count <= 0) return [];
 	const pool = [...ALL_MONSTER_MOD_IDS];

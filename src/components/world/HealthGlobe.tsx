@@ -59,7 +59,8 @@ export default function HealthGlobe({
 	useEffect(() => {
 		// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- replaying the same keyframes on every hit needs framer-motion's imperative controls: a declarative `animate` with an unchanged target won't re-run, and a `key` remount would reset the HP/barrier fills' CSS height transitions on every hit
 		if (hitToken === null) return;
-		controls.start({
+		// Fire-and-forget: `start` resolves when the shake ends; nothing waits on it.
+		void controls.start({
 			x: [0, -2, 2, -1.5, 1, 0],
 			transition: { duration: 0.18, times: [0, 0.2, 0.4, 0.6, 0.8, 1] },
 		});

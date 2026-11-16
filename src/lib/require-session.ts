@@ -13,9 +13,10 @@ export async function requireSession(context: {
 	queryClient: QueryClient;
 	trpc: TRPC;
 }) {
-	const me = await context.queryClient.ensureQueryData(
-		context.trpc.users.getUserRole.queryOptions(),
-	);
+	const me = await context.queryClient.query({
+		...context.trpc.users.getUserRole.queryOptions(),
+		staleTime: "static",
+	});
 	if (!me) throw redirect({ to: "/sign-in" });
 	return me;
 }

@@ -120,7 +120,8 @@ export async function commitBagPicks(
 				and json_extract(e.value, '$.bagId') = ${bagId}`)
 			.returning();
 	});
-	if (!first) {
+	// `first` is a query builder (a thenable), so test for "no picks" explicitly.
+	if (first === undefined) {
 		await update;
 		return [];
 	}

@@ -1,3 +1,5 @@
+import { randomUnit } from "#/lib/rng";
+
 import { findBoss } from "../bosses/data";
 import type { BossId } from "../bosses/types";
 import type { GeneratedItem } from "../items/types";
@@ -115,7 +117,7 @@ export function resolveKill(params: {
 	random?: () => number;
 }): KillOutcome {
 	const { character, target, gain, levelUpStats } = params;
-	const random = params.random ?? Math.random;
+	const random = params.random ?? randomUnit;
 
 	const zone = findNode(ACT_1, character.currentLocation);
 	const kill = classifyKill(params.monsterRarity, zone?.kind);
