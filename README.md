@@ -43,6 +43,15 @@ pnpm lint     # Lint with oxlint
 pnpm format   # Format with oxfmt
 ```
 
+### Deploying
+
+The app is one Cloudflare Worker with a D1 database per environment (see `docs/adr/0009-cloudflare-d1-trpc-backend.md`).
+
+```bash
+pnpm db:migrate:staging && pnpm deploy:staging        # staging, from any branch
+pnpm db:migrate:production && pnpm deploy:production  # production, from master after merging dev
+```
+
 ## About the Project
 
 Shadows of Void is a browser-based ARPG where combat is resolved automatically through stat checks — no manual aiming or clicking on enemies. Players focus entirely on build crafting: choosing their class, allocating passive skills, and hunting for powerful gear. The core loop is loot-driven: items are procedurally generated with randomized modifiers, rarity tiers, and base types that scale with content difficulty.
