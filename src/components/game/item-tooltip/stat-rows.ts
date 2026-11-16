@@ -3,7 +3,11 @@
 // (painted blue). Pure, tested in stat-rows.test.ts; StatBlock renders them.
 
 import { weaponArchetype } from "#/game/items/equipment";
-import type { GeneratedItem } from "#/game/items/types";
+import {
+	DEFAULT_WEAPON_ATTACK_SPEED,
+	DEFAULT_WEAPON_CRIT_CHANCE,
+	type GeneratedItem,
+} from "#/game/items/types";
 import { m } from "#/paraglide/messages";
 
 export type StatRow = {
@@ -11,11 +15,6 @@ export type StatRow = {
 	value: string;
 	modified: boolean;
 };
-
-// The crit and speed an attack weapon falls back to when its template
-// leaves them out (the generator's defaults).
-const DEFAULT_CRIT = 5;
-const DEFAULT_ATTACK_SPEED = 1;
 
 // Keyed by the open `element: string` the computed item stats carry; a Map
 // keeps the lookup honest about unknown keys (falls back to the raw name).
@@ -73,7 +72,8 @@ export function attackWeaponRows(item: GeneratedItem): StatRow[] {
 			value: `${crit.toFixed(1)}%`,
 			modified:
 				computed != null &&
-				computed.criticalChance !== (stats.criticalChance ?? DEFAULT_CRIT),
+				computed.criticalChance !==
+					(stats.criticalChance ?? DEFAULT_WEAPON_CRIT_CHANCE),
 		});
 	}
 	const speed = computed?.attackSpeed ?? stats.attackSpeed;
@@ -83,7 +83,8 @@ export function attackWeaponRows(item: GeneratedItem): StatRow[] {
 			value: speed.toFixed(2),
 			modified:
 				computed != null &&
-				computed.attackSpeed !== (stats.attackSpeed ?? DEFAULT_ATTACK_SPEED),
+				computed.attackSpeed !==
+					(stats.attackSpeed ?? DEFAULT_WEAPON_ATTACK_SPEED),
 		});
 	}
 	return rows;

@@ -49,7 +49,13 @@ import type {
 	RolledImplicit,
 	RolledMod,
 } from "./types";
-import { DEFAULT_MODIFIER_WEIGHT, EQUIPMENT_GROUPS, MOD_LIMITS } from "./types";
+import {
+	DEFAULT_MODIFIER_WEIGHT,
+	DEFAULT_WEAPON_ATTACK_SPEED,
+	DEFAULT_WEAPON_CRIT_CHANCE,
+	EQUIPMENT_GROUPS,
+	MOD_LIMITS,
+} from "./types";
 
 // ── RNG helpers ──
 // Non-empty variants of `#/lib/rng`'s pickers (every call site here has
@@ -582,28 +588,35 @@ function rollExplicits(
 
 // ── Compute weapon stats (base + local mods via statEffect) ──
 
-export function computeWeaponStats(
+type WeaponElementalDamage = ComputedWeaponStats["elementalDamage"][number];
+
+/** The base physical plus the local weapon mods: flat physical, the
+ * `% increased` pools and the flat elemental (spell flats included) lines. */
+function sumLocalWeaponMods(
 	baseStats: Partial<Record<BaseStatKey, number>>,
 	explicits: RolledMod[],
-): ComputedWeaponStats {
-	let minPhys = baseStats.minDamage ?? 0;
-	let maxPhys = baseStats.maxDamage ?? 0;
-	let physIncrease = 0;
-	let atkSpeed = baseStats.attackSpeed ?? 1;
-	let atkSpeedIncrease = 0;
-	let critChance = baseStats.criticalChance ?? 5;
-	let critIncrease = 0;
-
-	const elementalDamage: { element: string; min: number; max: number }[] = [];
+) {
+	const elementalDamage: WeaponElementalDamage[] = [];
+	const sum = {
+		minPhys: baseStats.minDamage ?? 0,
+		maxPhys: baseStats.maxDamage ?? 0,
+		physIncrease: 0,
+		atkSpeedIncrease: 0,
+		critIncrease: 0,
+		elementalDamage,
+	};
+	const addElemental = (element: string, mod: RolledMod) => {
+		elementalDamage.push({
+			element,
+			min: mod.minValue ?? mod.value,
+			max: mod.maxValue ?? mod.value,
+		});
+	};
 
 	for (const mod of explicits) {
 		const spellElement = SPELL_FLAT_TO_ELEMENT.get(mod.modifierId);
 		if (spellElement) {
-			elementalDamage.push({
-				element: spellElement,
-				min: mod.minValue ?? mod.value,
-				max: mod.maxValue ?? mod.value,
-			});
+			addElemental(spellElement, mod);
 			continue;
 		}
 
@@ -611,30 +624,23 @@ export function computeWeaponStats(
 		if (!modifier?.statEffect || modifier.isGlobalStat) continue;
 
 		const { target, operation, element } = modifier.statEffect;
-
 		switch (target) {
 			case "physicalDamage":
 				if (operation === "flat") {
-					minPhys += mod.minValue ?? mod.value;
-					maxPhys += mod.maxValue ?? mod.value;
+					sum.minPhys += mod.minValue ?? mod.value;
+					sum.maxPhys += mod.maxValue ?? mod.value;
 				} else {
-					physIncrease += mod.value;
+					sum.physIncrease += mod.value;
 				}
 				break;
 			case "attackSpeed":
-				atkSpeedIncrease += mod.value;
+				sum.atkSpeedIncrease += mod.value;
 				break;
 			case "criticalChance":
-				critIncrease += mod.value;
+				sum.critIncrease += mod.value;
 				break;
 			case "elementalDamage":
-				if (element) {
-					elementalDamage.push({
-						element,
-						min: mod.minValue ?? mod.value,
-						max: mod.maxValue ?? mod.value,
-					});
-				}
+				if (element) addElemental(element, mod);
 				break;
 			case "defense":
 			case "blockChance":
@@ -642,26 +648,38 @@ export function computeWeaponStats(
 				break;
 		}
 	}
+	return sum;
+}
+
+export function computeWeaponStats(
+	baseStats: Partial<Record<BaseStatKey, number>>,
+	explicits: RolledMod[],
+): ComputedWeaponStats {
+	const sum = sumLocalWeaponMods(baseStats, explicits);
+	let { minPhys, maxPhys } = sum;
+	let atkSpeed = baseStats.attackSpeed ?? DEFAULT_WEAPON_ATTACK_SPEED;
+	let critChance = baseStats.criticalChance ?? DEFAULT_WEAPON_CRIT_CHANCE;
 
 	// Apply %increased physical damage: base+flat → ×(1 + %inc)
-	if (physIncrease > 0) {
-		minPhys = Math.round(minPhys * (1 + physIncrease / 100));
-		maxPhys = Math.round(maxPhys * (1 + physIncrease / 100));
+	if (sum.physIncrease > 0) {
+		minPhys = Math.round(minPhys * (1 + sum.physIncrease / 100));
+		maxPhys = Math.round(maxPhys * (1 + sum.physIncrease / 100));
 	}
 
 	// Apply %increased attack speed
-	if (atkSpeedIncrease > 0) {
-		atkSpeed = Math.round(atkSpeed * (1 + atkSpeedIncrease / 100) * 100) / 100;
+	if (sum.atkSpeedIncrease > 0) {
+		atkSpeed =
+			Math.round(atkSpeed * (1 + sum.atkSpeedIncrease / 100) * 100) / 100;
 	}
 
 	// Apply %increased critical strike chance (multiplicative, not flat)
-	if (critIncrease > 0) {
-		critChance = critChance * (1 + critIncrease / 100);
+	if (sum.critIncrease > 0) {
+		critChance = critChance * (1 + sum.critIncrease / 100);
 	}
 
 	return {
 		physicalDamage: { min: minPhys, max: maxPhys },
-		elementalDamage,
+		elementalDamage: sum.elementalDamage,
 		attackSpeed: atkSpeed,
 		criticalChance: Math.round(critChance * 10) / 10,
 	};

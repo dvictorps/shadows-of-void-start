@@ -120,75 +120,81 @@ export function planEquip({
 	targetSlot,
 	currentEquipped,
 }: EquipPlanInput): EquipPlan {
-	const valid = validSlotsForItem(item);
-	if (!valid.includes(targetSlot)) {
+	if (!validSlotsForItem(item).includes(targetSlot)) {
 		return { displaced: [], reject: "wrong-slot" };
 	}
 
-	const occupant = currentEquipped.find((eq) => eq.slot === targetSlot);
 	const mainHand = currentEquipped.find((eq) => eq.slot === "weapon");
 	const offHand = currentEquipped.find((eq) => eq.slot === "offhand");
 
-	const displaced: EquipPlan["displaced"] = [];
-
+	let displaced: EquipPlan["displaced"] = [];
 	if (targetSlot === "weapon") {
-		// 2H weapon to main: normally displaces any off-hand. Bow + quiver is
-		// the lone exception that survives the displacement.
-		if (isTwoHanded(item) && offHand) {
-			const bowAcceptsQuiver = isBow(item) && isQuiver(offHand.item);
-			if (!bowAcceptsQuiver) displaced.push(offHand);
-		}
-		// 1H weapon to main: a quiver in the off-hand is now an orphan
-		// (quiver requires a bow specifically). Auto-displace it.
-		if (!isTwoHanded(item) && offHand && isQuiver(offHand.item)) {
-			displaced.push(offHand);
-		}
-		// 2H non-bow to main while quiver was off: the off-hand displacement
-		// above already covers this (any off-hand goes when a non-bow 2H lands).
-	}
-
-	if (targetSlot === "offhand") {
-		if (isQuiver(item)) {
-			// Quiver requires a bow main hand. No auto-equip-bow magic — the
-			// player must already have a bow (or sequence the equips).
-			if (!mainHand || !isBow(mainHand.item)) {
-				return { displaced: [], reject: "needs-bow" };
-			}
-		} else {
-			// Non-quiver to off-hand: displace 2H main (bow included, since
-			// non-quiver off-hands can't coexist with bow).
-			if (mainHand && isTwoHanded(mainHand.item)) {
-				displaced.push(mainHand);
-			}
-			if (isWeapon(item)) {
-				const newMainHand = displaced.some((d) => d.slot === "weapon")
-					? null
-					: (mainHand ?? null);
-				if (!newMainHand) {
-					return { displaced: [], reject: "needs-main-hand" };
-				}
-				const newArch = weaponArchetype(item);
-				const mainArch = weaponArchetype(newMainHand.item);
-				if (!newArch || !mainArch || newArch !== mainArch) {
-					return { displaced: [], reject: "mixed-archetype" };
-				}
-			} else if (
-				item.equipmentType !== "offhand" &&
-				item.equipmentType !== "tome"
-			) {
-				return { displaced: [], reject: "offhand-not-weapon" };
-			}
-		}
+		displaced = displacedByMainHand(item, offHand);
+	} else if (targetSlot === "offhand") {
+		const plan = planOffHand(item, mainHand);
+		if (plan.reject) return plan;
+		displaced = plan.displaced;
 	}
 
 	// The current target-slot occupant always displaces too (unless it's
 	// already in our displaced set — like if equipping to off-hand and main
 	// hand was 2H, the off-hand might be empty, so no double-add).
+	const occupant = currentEquipped.find((eq) => eq.slot === targetSlot);
 	if (occupant && !displaced.some((d) => d.slot === occupant.slot)) {
 		displaced.push(occupant);
 	}
 
 	return { displaced };
+}
+
+type Equipped = EquipPlan["displaced"][number];
+
+/** What a weapon going into the main hand pushes out of the off-hand. */
+function displacedByMainHand(
+	item: GeneratedItem,
+	offHand: Equipped | undefined,
+): EquipPlan["displaced"] {
+	if (!offHand) return [];
+	const quiverOff = isQuiver(offHand.item);
+	// 2H to main: normally displaces any off-hand. Bow + quiver is the lone
+	// exception that survives.
+	if (isTwoHanded(item)) return isBow(item) && quiverOff ? [] : [offHand];
+	// 1H to main: a quiver in the off-hand is now an orphan (quiver requires
+	// a bow specifically). Auto-displace it.
+	return quiverOff ? [offHand] : [];
+}
+
+/** Whether `item` may go into the off-hand, and the 2H main it pushes out. */
+function planOffHand(
+	item: GeneratedItem,
+	mainHand: Equipped | undefined,
+): EquipPlan {
+	if (isQuiver(item)) {
+		// Quiver requires a bow main hand. No auto-equip-bow magic — the
+		// player must already have a bow (or sequence the equips).
+		return mainHand && isBow(mainHand.item)
+			? { displaced: [] }
+			: { displaced: [], reject: "needs-bow" };
+	}
+	// Non-quiver to off-hand: displace a 2H main (bow included, since
+	// non-quiver off-hands can't coexist with a bow).
+	const twoHandedMain =
+		mainHand && isTwoHanded(mainHand.item) ? mainHand : undefined;
+	if (isWeapon(item)) {
+		const keptMain = twoHandedMain ? undefined : mainHand;
+		if (!keptMain) return { displaced: [], reject: "needs-main-hand" };
+		const newArch = weaponArchetype(item);
+		const mainArch = weaponArchetype(keptMain.item);
+		if (!newArch || !mainArch || newArch !== mainArch) {
+			return { displaced: [], reject: "mixed-archetype" };
+		}
+	} else if (
+		item.equipmentType !== "offhand" &&
+		item.equipmentType !== "tome"
+	) {
+		return { displaced: [], reject: "offhand-not-weapon" };
+	}
+	return { displaced: twoHandedMain ? [twoHandedMain] : [] };
 }
 
 // Shared client + server — the server mutation calls this too. Keep pure.

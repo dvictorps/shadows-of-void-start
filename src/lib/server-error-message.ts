@@ -1,5 +1,6 @@
 import { isTRPCClientError, type TRPCClientError } from "@trpc/client";
 
+import { hasOwnKey } from "#/game/typed-object";
 import { SERVER_ERRORS } from "#/lib/server-errors";
 import { m } from "#/paraglide/messages";
 import type { AppRouter } from "#/server/trpc/router";
@@ -49,79 +50,79 @@ export function translateServerError(raw: string): string {
 	return result ?? raw;
 }
 
-function tryTranslate(raw: string): string | null {
-	const msg = raw.trim();
+const EXACT = {
+	[SERVER_ERRORS.notAuthenticated]: m.error_not_authenticated,
+	[SERVER_ERRORS.characterNotFound]: m.error_character_not_found,
+	[SERVER_ERRORS.notYourCharacter]: m.error_not_your_character,
+	[SERVER_ERRORS.itemNotFound]: m.error_item_not_found,
+	[SERVER_ERRORS.notYourItem]: m.error_not_your_item,
+	[SERVER_ERRORS.itemNotInInventory]: m.error_item_not_in_inventory,
+	[SERVER_ERRORS.slotEmpty]: m.error_slot_empty,
+	[SERVER_ERRORS.nameEmpty]: m.name_cannot_be_empty,
+	[SERVER_ERRORS.duplicateName]: m.error_duplicate_name,
+	[SERVER_ERRORS.sessionLost]: m.error_session_lost,
+} satisfies Record<string, () => string>;
 
-	// Exact matches
-	switch (msg) {
-		case SERVER_ERRORS.notAuthenticated:
-			return m.error_not_authenticated();
-		case SERVER_ERRORS.characterNotFound:
-			return m.error_character_not_found();
-		case SERVER_ERRORS.notYourCharacter:
-			return m.error_not_your_character();
-		case SERVER_ERRORS.itemNotFound:
-			return m.error_item_not_found();
-		case SERVER_ERRORS.notYourItem:
-			return m.error_not_your_item();
-		case SERVER_ERRORS.itemNotInInventory:
-			return m.error_item_not_in_inventory();
-		case SERVER_ERRORS.slotEmpty:
-			return m.error_slot_empty();
-		case SERVER_ERRORS.nameEmpty:
-			return m.name_cannot_be_empty();
-		case SERVER_ERRORS.duplicateName:
-			return m.error_duplicate_name();
-		case SERVER_ERRORS.sessionLost:
-			return m.error_session_lost();
-	}
+const REQUIREMENT = {
+	Level: m.error_requirement_level,
+	Strength: m.error_requirement_strength,
+	Dexterity: m.error_requirement_dexterity,
+	Intelligence: m.error_requirement_intelligence,
+} satisfies Record<string, (p: { value: number }) => string>;
 
-	// Substring / parametric matches
-	if (msg.includes("wrong-slot")) return m.error_wrong_slot();
-	if (msg.includes("mixed-archetype")) return m.error_mixed_archetype();
-	if (msg.includes("needs-main-hand")) return m.error_needs_main_hand();
-	if (msg.includes("needs-bow")) return m.error_needs_bow();
-	if (msg.includes("offhand-not-weapon")) return m.error_offhand_not_weapon();
-	if (msg.includes("zone-locked")) return m.error_zone_locked();
-	if (
+// Rejection codes the message carries verbatim (planEquip's `reject`,
+// zone-locked). Tried in order after the exact matches.
+const SUBSTRING = [
+	["wrong-slot", m.error_wrong_slot],
+	["mixed-archetype", m.error_mixed_archetype],
+	["needs-main-hand", m.error_needs_main_hand],
+	["needs-bow", m.error_needs_bow],
+	["offhand-not-weapon", m.error_offhand_not_weapon],
+	["zone-locked", m.error_zone_locked],
+] as const;
+
+// Tried in order after the substrings; the first one that answers wins.
+// Each returns null when the message isn't its own.
+const PATTERNS: readonly ((msg: string) => string | null)[] = [
+	(msg) =>
 		msg.toLowerCase().includes("inventory") &&
 		/full|overflow|free a slot/i.test(msg)
-	)
-		return m.error_inventory_overflow();
-
+			? m.error_inventory_overflow()
+			: null,
 	// Bag retention cap (non-camp exitZone with too many keepIds). Pull the
 	// cap number out so the UI can show "you can take N right now".
-	const capMatch = msg.match(/Phase cap exceeded: kept \d+ > cap (\d+)/);
-	if (capMatch) {
-		return m.error_phase_cap_exceeded({ cap: Number(capMatch[1]) });
+	(msg) => {
+		const cap = msg.match(/Phase cap exceeded: kept \d+ > cap (\d+)/)?.[1];
+		return cap ? m.error_phase_cap_exceeded({ cap: Number(cap) }) : null;
+	},
+	(msg) => (msg.includes("is camp-only") ? m.error_pick_camp_only() : null),
+	(msg) => {
+		const req = msg.match(
+			/(Level|Strength|Dexterity|Intelligence)\s+(\d+)\s+required/,
+		);
+		if (!req || !hasOwnKey(REQUIREMENT, req[1])) return null;
+		return REQUIREMENT[req[1]]({ value: Number(req[2]) });
+	},
+	(msg) => {
+		const max = msg.match(/Name must be at most (\d+) characters/)?.[1];
+		return max ? m.error_name_too_long({ max: Number(max) }) : null;
+	},
+	(msg) => {
+		const max = msg.match(/Max (\d+) characters per account/)?.[1];
+		return max ? m.error_max_characters({ max: Number(max) }) : null;
+	},
+	(msg) => (msg.startsWith("Unknown class") ? m.error_unknown_class() : null),
+];
+
+function tryTranslate(raw: string): string | null {
+	const msg = raw.trim();
+	if (hasOwnKey(EXACT, msg)) return EXACT[msg]();
+	for (const [needle, message] of SUBSTRING) {
+		if (msg.includes(needle)) return message();
 	}
-	if (msg.includes("is camp-only")) return m.error_pick_camp_only();
-
-	const reqMatch = msg.match(
-		/(Level|Strength|Dexterity|Intelligence)\s+(\d+)\s+required/,
-	);
-	if (reqMatch) {
-		const value = Number(reqMatch[2]);
-		switch (reqMatch[1]) {
-			case "Level":
-				return m.error_requirement_level({ value });
-			case "Strength":
-				return m.error_requirement_strength({ value });
-			case "Dexterity":
-				return m.error_requirement_dexterity({ value });
-			case "Intelligence":
-				return m.error_requirement_intelligence({ value });
-		}
+	for (const pattern of PATTERNS) {
+		const translated = pattern(msg);
+		if (translated !== null) return translated;
 	}
-
-	const nameMatch = msg.match(/Name must be at most (\d+) characters/);
-	if (nameMatch) return m.error_name_too_long({ max: Number(nameMatch[1]) });
-
-	const maxCharsMatch = msg.match(/Max (\d+) characters per account/);
-	if (maxCharsMatch)
-		return m.error_max_characters({ max: Number(maxCharsMatch[1]) });
-
-	if (msg.startsWith("Unknown class")) return m.error_unknown_class();
-
 	return null;
 }

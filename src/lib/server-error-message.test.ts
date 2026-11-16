@@ -1,0 +1,90 @@
+// What each server error string translates to: the exact matches from
+// SERVER_ERRORS, the substring and parametric ones (wording kept inline at
+// the throw site), and the raw passthrough for anything unknown.
+
+import { describe, expect, it } from "vitest";
+
+import { m } from "#/paraglide/messages";
+
+import { translateServerError } from "./server-error-message";
+import { SERVER_ERRORS } from "./server-errors";
+
+describe("translateServerError — exact matches", () => {
+	it.each([
+		[SERVER_ERRORS.notAuthenticated, m.error_not_authenticated()],
+		[SERVER_ERRORS.characterNotFound, m.error_character_not_found()],
+		[SERVER_ERRORS.notYourCharacter, m.error_not_your_character()],
+		[SERVER_ERRORS.itemNotFound, m.error_item_not_found()],
+		[SERVER_ERRORS.notYourItem, m.error_not_your_item()],
+		[SERVER_ERRORS.itemNotInInventory, m.error_item_not_in_inventory()],
+		[SERVER_ERRORS.slotEmpty, m.error_slot_empty()],
+		[SERVER_ERRORS.nameEmpty, m.name_cannot_be_empty()],
+		[SERVER_ERRORS.duplicateName, m.error_duplicate_name()],
+		[SERVER_ERRORS.sessionLost, m.error_session_lost()],
+	])("%s", (raw, expected) => {
+		expect(translateServerError(raw)).toBe(expected);
+	});
+
+	it("trims before matching", () => {
+		expect(translateServerError(`  ${SERVER_ERRORS.slotEmpty}\n`)).toBe(
+			m.error_slot_empty(),
+		);
+	});
+});
+
+describe("translateServerError — substring and parametric matches", () => {
+	it.each([
+		["Cannot equip: wrong-slot", m.error_wrong_slot()],
+		["Cannot equip: mixed-archetype", m.error_mixed_archetype()],
+		["Cannot equip: needs-main-hand", m.error_needs_main_hand()],
+		["Cannot equip: needs-bow", m.error_needs_bow()],
+		["Cannot equip: offhand-not-weapon", m.error_offhand_not_weapon()],
+		["zone-locked: act1_2", m.error_zone_locked()],
+		["Inventory full — free a slot first", m.error_inventory_overflow()],
+		["Inventory overflow — free a slot first", m.error_inventory_overflow()],
+		["Inventory overflow: 61 > 60", m.error_inventory_overflow()],
+		[
+			"Phase cap exceeded: kept 9 > cap 4 for phase combat",
+			m.error_phase_cap_exceeded({ cap: 4 }),
+		],
+		[
+			"pickFromBag is camp-only — must commit via exitZone",
+			m.error_pick_camp_only(),
+		],
+		["Level 12 required", m.error_requirement_level({ value: 12 })],
+		["Strength 30 required", m.error_requirement_strength({ value: 30 })],
+		["Dexterity 25 required", m.error_requirement_dexterity({ value: 25 })],
+		[
+			"Intelligence 40 required",
+			m.error_requirement_intelligence({ value: 40 }),
+		],
+		["Name must be at most 20 characters", m.error_name_too_long({ max: 20 })],
+		["Max 6 characters per account", m.error_max_characters({ max: 6 })],
+		["Unknown class: bard", m.error_unknown_class()],
+	])("%s", (raw, expected) => {
+		expect(translateServerError(raw)).toBe(expected);
+	});
+
+	it("checks the slot rejections before the inventory wording", () => {
+		expect(translateServerError("Inventory wrong-slot overflow")).toBe(
+			m.error_wrong_slot(),
+		);
+	});
+
+	it("needs both 'inventory' and a full / overflow word for the overflow message", () => {
+		expect(translateServerError("Inventory locked")).toBe("Inventory locked");
+		expect(translateServerError("Stash full")).toBe("Stash full");
+	});
+});
+
+describe("translateServerError — unknown", () => {
+	it("passes an unknown message through untouched", () => {
+		expect(translateServerError("  Not enough rubys ")).toBe(
+			"  Not enough rubys ",
+		);
+	});
+
+	it("never matches an object prototype name", () => {
+		expect(translateServerError("toString")).toBe("toString");
+	});
+});

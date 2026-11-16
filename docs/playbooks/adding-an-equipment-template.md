@@ -70,7 +70,7 @@ Add an entry to the exported array:
 
 The exact compile-checked shape lives in [`_examples/template-example.ts`](./_examples/template-example.ts) — if the playbook drifts, that sentinel fails `tsc` and forces a sync.
 
-`baseStats` is a `Partial<Record<BaseStatKey, number>>` (`src/game/items/types/base.ts`): `minDamage`, `maxDamage`, `attackSpeed`, `criticalChance`, `armor`, `evasion`, `barrier`, `blockChance` (shields). A typo in a key fails at compile time. On staff and wand the header shows spell damage and crit only, and `attackSpeed` is ignored (`CONTEXT.md` → Caster weapons).
+`baseStats` is a `Partial<Record<BaseStatKey, number>>` (`src/game/items/types/base.ts`): `minDamage`, `maxDamage`, `attackSpeed`, `criticalChance`, `armor`, `evasion`, `barrier`, `blockChance` (shields). A typo in a key fails at compile time. On staff and wand the header shows spell damage and crit only, and `attackSpeed` is ignored (`CONTEXT.md` → Caster weapons). A weapon that leaves out `criticalChance` or `attackSpeed` gets `DEFAULT_WEAPON_CRIT_CHANCE` (5) / `DEFAULT_WEAPON_ATTACK_SPEED` (1) from `src/game/items/types/base.ts`, the one source the generator, the stat engine and the tooltip share.
 
 `nameBase` and `nameModifier` are checked against the literal unions in `src/game/items/lexicon/template-ids.ts`. A typo or unknown id fails at compile time — you don't need to memorize them, just try and let TS guide you.
 
