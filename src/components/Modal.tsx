@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+
 import { m } from "#/paraglide/messages";
 
 type ModalProps = {

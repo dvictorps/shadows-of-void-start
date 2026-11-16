@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+
 import type { ItemRarity } from "#/game/items/types";
 
 // Keyed by ItemRarity (the superset). MonsterRarity overlaps on

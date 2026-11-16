@@ -16,6 +16,7 @@ import {
 	useState,
 } from "react";
 import { createPortal } from "react-dom";
+
 import { getBossConfig } from "#/game/bosses";
 import type { MonsterRarity } from "#/game/monsters";
 import { translateEnemyName } from "#/game/world/i18n";
@@ -28,6 +29,7 @@ import type {
 } from "#/hooks/useCombatLoop";
 import { hashStringToUnit } from "#/lib/rng";
 import { m } from "#/paraglide/messages";
+
 import CampCinematic from "./CampCinematic";
 import ElementSelector from "./ElementSelector";
 import HealthGlobe from "./HealthGlobe";
@@ -318,7 +320,6 @@ export default function CombatScene({
 			transition: { duration: 0.5, ease: "easeIn" },
 		});
 	}, [state, enemy, enemyControls, isStagedEnemy]);
-
 
 	// Boss intro screenshake — fires at the impact beat. Shakes the entire
 	// combat section (arena, HP globe, time bar) via a CSS keyframe class

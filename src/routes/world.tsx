@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+
 import CityScene from "#/components/world/CityScene";
 import CombatScene, {
 	type ConsumableKey,
@@ -44,6 +45,7 @@ import { useViewMode } from "#/hooks/useViewMode";
 import { useWorldMutations } from "#/hooks/useWorldMutations";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { m } from "#/paraglide/messages";
+
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 
@@ -232,11 +234,17 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 
 	const hp = combatState?.hpCurrent ?? character.hpCurrent ?? maxHp;
 	const potions = combatState?.potions ?? character.potions ?? 0;
-	const incense = combatState?.etherealIncense ?? character.etherealIncense ?? 0;
-	const barrier = combatState?.barrierCurrent ?? character.barrierCurrent ?? stats.maxBarrier;
+	const incense =
+		combatState?.etherealIncense ?? character.etherealIncense ?? 0;
+	const barrier =
+		combatState?.barrierCurrent ?? character.barrierCurrent ?? stats.maxBarrier;
 	const xp = combatState?.xp ?? character.xp ?? 0;
-	const zoneSession = combatState?.currentZoneSession ?? character.currentZoneSession;
-	const campThresholds = combatState?.campThresholdsMs ?? character.campThresholdsMs ?? EMPTY_THRESHOLDS;
+	const zoneSession =
+		combatState?.currentZoneSession ?? character.currentZoneSession;
+	const campThresholds =
+		combatState?.campThresholdsMs ??
+		character.campThresholdsMs ??
+		EMPTY_THRESHOLDS;
 
 	const barrierApi = useBarrier({
 		maxBarrier: stats.maxBarrier,
@@ -300,9 +308,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	const wantsBag = view === "combat" || exitModal.isOpen;
 	const zoneBag = useQuery(
 		api.items.zoneBag,
-		wantsBag && zoneSession
-			? { zoneSession }
-			: "skip",
+		wantsBag && zoneSession ? { zoneSession } : "skip",
 	);
 
 	const equippedBySlot = useMemo<
@@ -406,9 +412,7 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 	);
 	const completedZoneIds = useMemo(
 		() =>
-			new Set(
-				progression?.completedZones ?? character.completedZones ?? [],
-			),
+			new Set(progression?.completedZones ?? character.completedZones ?? []),
 		[progression?.completedZones, character.completedZones],
 	);
 
@@ -935,7 +939,12 @@ function WorldLayout({ character }: { character: Doc<"characters"> }) {
 					});
 				}}
 				onReorderStash={({ itemId, targetSlot, swapWithItemId }) => {
-					void reorderStash({ characterId: character._id, itemId, targetSlot, swapWithItemId });
+					void reorderStash({
+						characterId: character._id,
+						itemId,
+						targetSlot,
+						swapWithItemId,
+					});
 				}}
 			/>
 			<LeaderboardModal

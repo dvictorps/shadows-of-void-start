@@ -14,6 +14,7 @@ import {
 	Trophy,
 } from "lucide-react";
 import { useMemo } from "react";
+
 import { hasOwnKey } from "#/game/typed-object";
 import { type Act, isNodeAccessible, type WorldNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";

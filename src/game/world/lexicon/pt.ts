@@ -4,6 +4,7 @@
 // and ungendered in EN, or even a different gender in another language.
 
 import type { MonsterId } from "#/game/monsters";
+
 import type {
 	GenderedForm,
 	GenderedNoun,

@@ -1,4 +1,5 @@
 import { assert, describe, expect, it } from "vitest";
+
 import { findModifier, getModifier } from "./data/modifiers";
 import { EQUIPMENT_TEMPLATES } from "./data/templates";
 import {
@@ -390,7 +391,10 @@ describe("attack weapon computed stats", () => {
 				!i.explicits.some((m) => m.modifierId === "physicalDamageFlat") &&
 				i.computedStats,
 		);
-		assert(withCrit, "no sword rolled criticalChanceIncrease without flat phys");
+		assert(
+			withCrit,
+			"no sword rolled criticalChanceIncrease without flat phys",
+		);
 		const critMod = withCrit.explicits.find(
 			(m) => m.modifierId === "criticalChanceIncrease",
 		)!;
@@ -559,11 +563,19 @@ describe("restrictedToArmorType modifier filter", () => {
 				itemLevel: 80,
 			});
 
-			expect(allExplicitModIds(silkGloves).has("physicalDamageFlatGlobal")).toBe(true);
-			expect(allExplicitModIds(leatherGloves).has("physicalDamageFlatGlobal")).toBe(false);
-			expect(allExplicitModIds(plateGloves).has("physicalDamageFlatGlobal")).toBe(false);
+			expect(
+				allExplicitModIds(silkGloves).has("physicalDamageFlatGlobal"),
+			).toBe(true);
+			expect(
+				allExplicitModIds(leatherGloves).has("physicalDamageFlatGlobal"),
+			).toBe(false);
+			expect(
+				allExplicitModIds(plateGloves).has("physicalDamageFlatGlobal"),
+			).toBe(false);
 			// Rings have no armorType → restriction is a no-op.
-			expect(allExplicitModIds(rings).has("physicalDamageFlatGlobal")).toBe(true);
+			expect(allExplicitModIds(rings).has("physicalDamageFlatGlobal")).toBe(
+				true,
+			);
 		} finally {
 			target.restrictedToArmorType = original;
 		}
@@ -617,10 +629,18 @@ describe("tomeGainAsExtra scope", () => {
 			templateId: "amber_amulet",
 			itemLevel: 80,
 		});
-		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(lapis).has(id))).toBe(true);
-		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(gold).has(id))).toBe(false);
-		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(jade).has(id))).toBe(false);
-		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(amber).has(id))).toBe(false);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(lapis).has(id))).toBe(
+			true,
+		);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(gold).has(id))).toBe(
+			false,
+		);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(jade).has(id))).toBe(
+			false,
+		);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(amber).has(id))).toBe(
+			false,
+		);
 	});
 
 	it("silk gloves can roll tomeGainAsExtra; leather and plate cannot", () => {
@@ -639,9 +659,15 @@ describe("tomeGainAsExtra scope", () => {
 			templateId: "plate_gloves_t1",
 			itemLevel: 80,
 		});
-		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(silk).has(id))).toBe(true);
-		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(leather).has(id))).toBe(false);
-		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(plate).has(id))).toBe(false);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(silk).has(id))).toBe(
+			true,
+		);
+		expect(
+			TOME_GAIN_MODS.some((id) => allExplicitModIds(leather).has(id)),
+		).toBe(false);
+		expect(TOME_GAIN_MODS.some((id) => allExplicitModIds(plate).has(id))).toBe(
+			false,
+		);
 	});
 
 	it("staves can roll tomeGainAsExtra", () => {
@@ -1459,8 +1485,12 @@ describe("staff vs wand base damage parity", () => {
 			const staff = EQUIPMENT_TEMPLATES.find((t) => t.id === `staff_t${tier}`);
 			expect(wand).toBeDefined();
 			expect(staff).toBeDefined();
-			expect(staff!.baseStats.minDamage).toBe((wand!.baseStats.minDamage ?? 0) * 2);
-			expect(staff!.baseStats.maxDamage).toBe((wand!.baseStats.maxDamage ?? 0) * 2);
+			expect(staff!.baseStats.minDamage).toBe(
+				(wand!.baseStats.minDamage ?? 0) * 2,
+			);
+			expect(staff!.baseStats.maxDamage).toBe(
+				(wand!.baseStats.maxDamage ?? 0) * 2,
+			);
 		}
 	});
 });

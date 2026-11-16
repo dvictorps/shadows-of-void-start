@@ -1,4 +1,5 @@
 import { m } from "#/paraglide/messages";
+
 import { findClassDefinition } from "./data";
 import type { CharacterClassId } from "./types";
 

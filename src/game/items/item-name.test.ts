@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { overwriteGetLocale } from "#/paraglide/runtime";
+
 import { translateItemName, translateTemplateName } from "./item-name";
 import type { GeneratedItem, RolledMod } from "./types";
 

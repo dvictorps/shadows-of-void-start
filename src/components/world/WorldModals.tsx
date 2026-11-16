@@ -7,6 +7,7 @@ import VendorModal from "#/components/world/VendorModal";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import type { VendorProductId } from "#/game/vendor/products";
 import type { ModalHandle } from "#/hooks/useModal";
+
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 export function WorldModals({
@@ -74,7 +75,11 @@ export function WorldModals({
 		targetSlot: number;
 		swapWithItemId?: Id<"items">;
 	}) => void;
-	onReorderStash: (args: { itemId: Id<"items">; targetSlot: number; swapWithItemId?: Id<"items"> }) => void;
+	onReorderStash: (args: {
+		itemId: Id<"items">;
+		targetSlot: number;
+		swapWithItemId?: Id<"items">;
+	}) => void;
 }) {
 	return (
 		<>

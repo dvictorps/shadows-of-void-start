@@ -39,21 +39,21 @@ For game design rules (what stats mean, what's allowed where, why), read [CONTEX
 
 No React. No Convex. Same code runs on client and server (convex imports from here directly with relative paths). Pure functions, structured data, deterministic.
 
-| Directory | What lives there | Key files |
-|---|---|---|
-| `bosses/` | Act-boss configs (handcrafted, `rarity: "unique"`) — parallel registry to `monsters/`. See ADR 0008 for the rationale. | `data.ts` (BOSSES, findBoss), `types.ts` (BossConfig, BossTemplate, BossCinematicConfig), `gralfor.ts` (act-1 boss config) |
-| `classes/` | Character class definitions (Warrior/Rogue/Mage) | `data.ts` (CLASS_DEFINITIONS), `types.ts`, `i18n.ts` (`getClassDisplayName`) |
-| `combat/` | Damage/defense math, constants, per-weapon FX map, intro-stage types, pure mutation-decision helpers | `damage.ts`, `barrier.ts`, `leech.ts`, `kill.ts` (`classifyKill` / `resolveZoneProgress` / `tallyBossKill` — pure decisions extracted from `recordKill`), `potion.ts` (`resolvePotionUse` — extracted from `usePotion`), `vitals.ts` (`clampVital` / `resolveVitalSync` — extracted from `syncHp`), `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
-| `i18n/` | Naming-lexicon primitives shared by all locales | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `isGenderedForm`, `pickGendered`) |
-| `typed-object.ts` (file) | Typed `Object.keys` / own-key guard for the literal-keyed static tables | `typedKeys` (the one place an `Object.keys` cast lives), `hasOwnKey` (narrow a persisted string id to a table's keys) |
-| `inventory/` | Inventory + stash constants + helpers | `constants.ts` (INVENTORY_MAX_SLOTS, STASH_MAX_SLOTS, slot-finding helpers) |
-| `items/` | Item generator, modifier data, equip helpers, lexicon | See below — the biggest subdir |
-| `loot/` | Drop tables | `drops.ts` (rollDrop, rollMonsterLevel, rollMinibossDrops, rollBossDrops) |
-| `monsters/` | Monster definitions, modifier pool, instance-level scaler | `data.ts`, `types.ts`, `modifiers.ts` (pool + roll), `scaling.ts` (geometric 1.06^L) |
-| `progression/` | XP curves, death penalty | `levels.ts` (xpToNextLevel, applyXpGain, applyDeathXpPenalty) |
-| `stats/` | The stat engine | `compute.ts` (computeCharacterStats), `types.ts` (EquippedSlot, narrowEquippedSlot, ComputedCharacterStats) |
-| `vendor/` | Vendor catalog data | `products.ts` (`VENDOR_PRODUCTS`, `VendorProductId`) |
-| `world/` | Acts, zones, node graph, zone-name i18n, monster-name lexicon, travel + encounter-schedule helpers | `act-1.ts`, `index.ts`, `types.ts`, `i18n.ts`, `travel.ts`, `encounter-schedule.ts`, `lexicon/{en,pt,types}.ts` |
+| Directory                | What lives there                                                                                                       | Key files                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bosses/`                | Act-boss configs (handcrafted, `rarity: "unique"`) — parallel registry to `monsters/`. See ADR 0008 for the rationale. | `data.ts` (BOSSES, findBoss), `types.ts` (BossConfig, BossTemplate, BossCinematicConfig), `gralfor.ts` (act-1 boss config)                                                                                                                                                                                                                                                                   |
+| `classes/`               | Character class definitions (Warrior/Rogue/Mage)                                                                       | `data.ts` (CLASS_DEFINITIONS), `types.ts`, `i18n.ts` (`getClassDisplayName`)                                                                                                                                                                                                                                                                                                                 |
+| `combat/`                | Damage/defense math, constants, per-weapon FX map, intro-stage types, pure mutation-decision helpers                   | `damage.ts`, `barrier.ts`, `leech.ts`, `kill.ts` (`classifyKill` / `resolveZoneProgress` / `tallyBossKill` — pure decisions extracted from `recordKill`), `potion.ts` (`resolvePotionUse` — extracted from `usePotion`), `vitals.ts` (`clampVital` / `resolveVitalSync` — extracted from `syncHp`), `constants.ts`, `weapon-fx.ts`, `types.ts` (CombatState, RareIntroStage, BossIntroStage) |
+| `i18n/`                  | Naming-lexicon primitives shared by all locales                                                                        | `lexicon-shared.ts` (`GrammaticalGender`, `GenderedForm`, `isGenderedForm`, `pickGendered`)                                                                                                                                                                                                                                                                                                  |
+| `typed-object.ts` (file) | Typed `Object.keys` / own-key guard for the literal-keyed static tables                                                | `typedKeys` (the one place an `Object.keys` cast lives), `hasOwnKey` (narrow a persisted string id to a table's keys)                                                                                                                                                                                                                                                                        |
+| `inventory/`             | Inventory + stash constants + helpers                                                                                  | `constants.ts` (INVENTORY_MAX_SLOTS, STASH_MAX_SLOTS, slot-finding helpers)                                                                                                                                                                                                                                                                                                                  |
+| `items/`                 | Item generator, modifier data, equip helpers, lexicon                                                                  | See below — the biggest subdir                                                                                                                                                                                                                                                                                                                                                               |
+| `loot/`                  | Drop tables                                                                                                            | `drops.ts` (rollDrop, rollMonsterLevel, rollMinibossDrops, rollBossDrops)                                                                                                                                                                                                                                                                                                                    |
+| `monsters/`              | Monster definitions, modifier pool, instance-level scaler                                                              | `data.ts`, `types.ts`, `modifiers.ts` (pool + roll), `scaling.ts` (geometric 1.06^L)                                                                                                                                                                                                                                                                                                         |
+| `progression/`           | XP curves, death penalty                                                                                               | `levels.ts` (xpToNextLevel, applyXpGain, applyDeathXpPenalty)                                                                                                                                                                                                                                                                                                                                |
+| `stats/`                 | The stat engine                                                                                                        | `compute.ts` (computeCharacterStats), `types.ts` (EquippedSlot, narrowEquippedSlot, ComputedCharacterStats)                                                                                                                                                                                                                                                                                  |
+| `vendor/`                | Vendor catalog data                                                                                                    | `products.ts` (`VENDOR_PRODUCTS`, `VendorProductId`)                                                                                                                                                                                                                                                                                                                                         |
+| `world/`                 | Acts, zones, node graph, zone-name i18n, monster-name lexicon, travel + encounter-schedule helpers                     | `act-1.ts`, `index.ts`, `types.ts`, `i18n.ts`, `travel.ts`, `encounter-schedule.ts`, `lexicon/{en,pt,types}.ts`                                                                                                                                                                                                                                                                              |
 
 ### `src/game/items/` — item subsystem detail
 
@@ -105,12 +105,12 @@ items/
 
 Item display names compose at render time from `(nameBase, nameModifier)` tuples on each template. Two locales today (en, pt) sharing a single contract in `types.ts`. Adding a new locale = one new file under this directory.
 
-| File | Role |
-|---|---|
-| `template-ids.ts` | Literal-union sources of truth: `TemplateBaseId` (~55 bases) and `TemplateModifierId` (~80 modifiers). Templates and lexicons reference these unions — missing entries fail at compile. |
-| `types.ts` | `ItemNameLexicon` interface. `bases` keyed by `TemplateBaseId`, `modifiers` keyed by `TemplateModifierId`, `prefixForms`/`suffixPhrases` keyed by `PrefixModifierId`/`SuffixModifierId`. |
-| `en.ts` | English entries. Bases as `{ name: string }`. Modifiers as flat strings. |
-| `pt.ts` | Portuguese entries. Bases as `{ name, gender: "m" \| "f" }`. Modifiers as `string` (invariant phrase) or `{ m, f }` (gendered adjective). |
+| File              | Role                                                                                                                                                                                     |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `template-ids.ts` | Literal-union sources of truth: `TemplateBaseId` (~55 bases) and `TemplateModifierId` (~80 modifiers). Templates and lexicons reference these unions — missing entries fail at compile.  |
+| `types.ts`        | `ItemNameLexicon` interface. `bases` keyed by `TemplateBaseId`, `modifiers` keyed by `TemplateModifierId`, `prefixForms`/`suffixPhrases` keyed by `PrefixModifierId`/`SuffixModifierId`. |
+| `en.ts`           | English entries. Bases as `{ name: string }`. Modifiers as flat strings.                                                                                                                 |
+| `pt.ts`           | Portuguese entries. Bases as `{ name, gender: "m" \| "f" }`. Modifiers as `string` (invariant phrase) or `{ m, f }` (gendered adjective).                                                |
 
 See `docs/playbooks/i18n-which-system.md` for the broader decision tree (paraglide vs lexicon vs `mod-i18n.ts`).
 
@@ -126,21 +126,21 @@ Single source of truth for the "if all hits land" damage-per-second number rende
 
 ## `convex/` — server (Convex backend)
 
-| File | Concern |
-|---|---|
-| `schema.ts` | Six tables: `userRoles`, `characters`, `items`, `characterProgression` (append-only `unlockedNodes` / `completedZones` / `bossKillCounts`, split off `characters` — see `_shared/character.ts → loadOrCreateProgression`), `combatState` (per-character HP / barrier / xp / potions / zone-session snapshot — see `loadOrCreateCombatState`), `leaderboardSnapshot`. Stash items are NOT a separate table — they live in `items` keyed by the `by_stash` index. Indexes by `authUserId`, `characterId+locationKind`, `zoneSession`, `stash`, `category+mode`. `characters` carries `activeSessionToken` / `activeSessionAt` — see `loadOwnedCharacterWithSession` |
-| `characters.ts` | Character CRUD only — `list`, `create`, `remove`, `byId`, `claimCharacterSession` (stamps the active-session UUID; called by `/character-select` Play and by `/world`'s reconciliation effect). Normalizes legacy docs with defaults on read |
-| `combat.ts` | Combat + travel mutations: `recordKill`, `usePotion`, `useEtherealIncense`, `syncHp`, `respawnDead`, `enterZone`, `enterCity`, `startTravel`, `arriveAtTravel`, `useTeleportStone`, `switchElement`. Every state-mutating mutation accepts a `sessionToken` arg threaded through `loadOwnedCharacterWithSession`. Largest convex file (~800 lines) |
-| `items.ts` | Item lifecycle mutations: `exitZone`, `pickFromBag` / `discardFromBag` / `discardFromInventory`, `equipItem` / `unequipItem`, `reorderInventory`, and the `zoneBag` / `inventory` / `equipped` queries. Mutations carry `sessionToken`; the read-only queries deliberately do not — a stale tab can still observe its character coherently |
-| `stash.ts` | Shared stash mutations: `depositToStash`, `withdrawFromStash`, `reorderStash`. Account-scoped, mode-isolated (softcore/hardcore). Carries `sessionToken` |
-| `vendor.ts` | Vendor mutations: `vendorBuy` (potions for Rubys), `vendorSellMany` (gear for Rubys). Both carry `sessionToken` |
-| `admin.ts` | Admin-only queries (`pulse`, `listUsers`, `listAdmins`, `listRecentItems`) powering `/admin`. Each handler starts with `assertAdmin(ctx)` — route guards are UX, not security |
-| `itemValidator.ts` | Convex validator for the `GeneratedItem` shape in `items.data` |
-| `_shared/character.ts` | Cross-mutation helpers: `loadOwnedCharacter`, `loadOwnedCharacterWithSession` (single-active-session guard — see [threat-model.md → Threat #5](./security/threat-model.md)), `loadEquippedSet`, etc. The ownership check used by every state-mutating mutation |
-| `leaderboard.ts` | Leaderboard snapshot compute (internal mutation) + `getSnapshot` query. Called by the 5-minute cron |
-| `crons.ts` | Convex cron jobs — leaderboard snapshot every 5 minutes |
-| `auth.ts`, `auth.config.ts`, `users.ts` | better-auth integration + user role queries (`assertAdmin`, role grant/revoke) |
-| `http.ts` | Auth callback routes |
+| File                                    | Concern                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schema.ts`                             | Six tables: `userRoles`, `characters`, `items`, `characterProgression` (append-only `unlockedNodes` / `completedZones` / `bossKillCounts`, split off `characters` — see `_shared/character.ts → loadOrCreateProgression`), `combatState` (per-character HP / barrier / xp / potions / zone-session snapshot — see `loadOrCreateCombatState`), `leaderboardSnapshot`. Stash items are NOT a separate table — they live in `items` keyed by the `by_stash` index. Indexes by `authUserId`, `characterId+locationKind`, `zoneSession`, `stash`, `category+mode`. `characters` carries `activeSessionToken` / `activeSessionAt` — see `loadOwnedCharacterWithSession` |
+| `characters.ts`                         | Character CRUD only — `list`, `create`, `remove`, `byId`, `claimCharacterSession` (stamps the active-session UUID; called by `/character-select` Play and by `/world`'s reconciliation effect). Normalizes legacy docs with defaults on read                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `combat.ts`                             | Combat + travel mutations: `recordKill`, `usePotion`, `useEtherealIncense`, `syncHp`, `respawnDead`, `enterZone`, `enterCity`, `startTravel`, `arriveAtTravel`, `useTeleportStone`, `switchElement`. Every state-mutating mutation accepts a `sessionToken` arg threaded through `loadOwnedCharacterWithSession`. Largest convex file (~800 lines)                                                                                                                                                                                                                                                                                                                |
+| `items.ts`                              | Item lifecycle mutations: `exitZone`, `pickFromBag` / `discardFromBag` / `discardFromInventory`, `equipItem` / `unequipItem`, `reorderInventory`, and the `zoneBag` / `inventory` / `equipped` queries. Mutations carry `sessionToken`; the read-only queries deliberately do not — a stale tab can still observe its character coherently                                                                                                                                                                                                                                                                                                                        |
+| `stash.ts`                              | Shared stash mutations: `depositToStash`, `withdrawFromStash`, `reorderStash`. Account-scoped, mode-isolated (softcore/hardcore). Carries `sessionToken`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `vendor.ts`                             | Vendor mutations: `vendorBuy` (potions for Rubys), `vendorSellMany` (gear for Rubys). Both carry `sessionToken`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `admin.ts`                              | Admin-only queries (`pulse`, `listUsers`, `listAdmins`, `listRecentItems`) powering `/admin`. Each handler starts with `assertAdmin(ctx)` — route guards are UX, not security                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `itemValidator.ts`                      | Convex validator for the `GeneratedItem` shape in `items.data`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `_shared/character.ts`                  | Cross-mutation helpers: `loadOwnedCharacter`, `loadOwnedCharacterWithSession` (single-active-session guard — see [threat-model.md → Threat #5](./security/threat-model.md)), `loadEquippedSet`, etc. The ownership check used by every state-mutating mutation                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `leaderboard.ts`                        | Leaderboard snapshot compute (internal mutation) + `getSnapshot` query. Called by the 5-minute cron                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `crons.ts`                              | Convex cron jobs — leaderboard snapshot every 5 minutes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `auth.ts`, `auth.config.ts`, `users.ts` | better-auth integration + user role queries (`assertAdmin`, role grant/revoke)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `http.ts`                               | Auth callback routes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not the `#/` alias — that's a Convex bundler quirk. Don't mix.
 
@@ -150,96 +150,96 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 
 ## `src/components/` — UI
 
-| File / dir | Role |
-|---|---|
-| `Modal.tsx` | Generic modal shell (dismissible flag, ESC handling) |
-| `Toaster.tsx` | Sonner wrapper — styled with Jersey 25 + uppercase tracking |
-| `Footer.tsx`, `Header.tsx` | Page chrome (only on splash) |
-| `CreateCharacterModal.tsx` | Used by character-select |
-| `ConfirmationModal.tsx` | Generic confirm dialog (used via `useConfirmationModal`) |
-| `game/ItemCard.tsx` | Shared item visual — rarity glow, broken state badge, tooltip portal |
-| `game/ItemTooltip.tsx` | The big tooltip — name, header stats, defenses, implicits, explicits |
-| `world/` | Everything inside the `/world` route |
-| `ui/` | Radix-ui-based primitives (Button, Input, Label, Select, etc) |
+| File / dir                 | Role                                                                 |
+| -------------------------- | -------------------------------------------------------------------- |
+| `Modal.tsx`                | Generic modal shell (dismissible flag, ESC handling)                 |
+| `Toaster.tsx`              | Sonner wrapper — styled with Jersey 25 + uppercase tracking          |
+| `Footer.tsx`, `Header.tsx` | Page chrome (only on splash)                                         |
+| `CreateCharacterModal.tsx` | Used by character-select                                             |
+| `ConfirmationModal.tsx`    | Generic confirm dialog (used via `useConfirmationModal`)             |
+| `game/ItemCard.tsx`        | Shared item visual — rarity glow, broken state badge, tooltip portal |
+| `game/ItemTooltip.tsx`     | The big tooltip — name, header stats, defenses, implicits, explicits |
+| `world/`                   | Everything inside the `/world` route                                 |
+| `ui/`                      | Radix-ui-based primitives (Button, Input, Label, Select, etc)        |
 
 ### `src/components/world/` — world view internals
 
-| File | Role |
-|---|---|
-| `MapScene.tsx` | Act DAG rendering, hoverable nodes |
-| `CombatScene.tsx` | Enemy display, HP bars, **floating damage popups** (framer-motion) |
-| `CityScene.tsx` | City hub placeholder |
-| `CampCinematic.tsx` | Inline camp cinematic — text fade-in, ambient SFX, two-button modal (Retornar / Seguir). See CONTEXT.md → Acampamento |
-| `HitFx.tsx` | Weapon-archetype-aware hit effects (slash / impact / magic) layered over the enemy on each player swing |
-| `EquipmentPanel.tsx` | Right-side paper doll (always-visible) |
-| `StatusCard.tsx` | Right-side stat readout + Show button + potion + HP globe |
-| `HealthGlobe.tsx` | Animated HP/barrier orb |
-| `TextLog.tsx` | Status line (priority chain: death → +XP → low HP → zone name) |
-| `MonsterTooltip.tsx` | Hover tooltip over the enemy sprite — translated name + mod descriptions |
-| `RubyCounter.tsx` | Display-only ruby balance pinned bottom-right of the equipment panel |
-| `TravelProgressBar.tsx` | Bottom-of-view bar during travel — survives refresh via `travelArrivesAt` |
-| `InventoryModal.tsx` | The big one — drag-drop equip, click dropdown, 60-slot grid |
-| `ItemContextMenu.tsx` | Popover menu for click-to-equip |
-| `BagPreviewModal.tsx` | Read-only loot bag during combat |
-| `ExitZoneModal.tsx` | Post-retreat loot picker (5 buttons, selection grid) |
-| `VendorModal.tsx` | Per-act vendor — buy consumables / sell inventory gear for Rubys |
-| `ShowStatsModal.tsx` | Full character sheet (4 sections, PoE-style) |
-| `ElementSelector.tsx` | Mage elemental attunement selector — fire/cold/lightning buttons with glow + 5s cooldown overlay |
-| `LeaderboardModal.tsx` | Leaderboard modal — level/boss-kills tabs, softcore/hardcore toggle, class filter, fallen heroes |
-| `SettingsModal.tsx` | Language dropdown + SFX volume slider |
-| `SessionLostModal.tsx` | Non-dismissible takeover modal — fires when another tab/device rotates the active-session token. Refresh button reloads the page to re-claim |
-| `StashModal.tsx` | Shared stash modal — side-by-side inventory + stash grids with drag-and-drop (dnd-kit), shift-click transfer, bulk select/deposit/withdraw |
-| `WorldModals.tsx` | Sibling that owns the modal mount-points (BagPreview / ExitZone / Inventory / Vendor / Stash / Settings) — keeps `world.tsx` lean |
-| `InventoryButton.tsx` | Backpack icon button on EquipmentPanel |
+| File                    | Role                                                                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MapScene.tsx`          | Act DAG rendering, hoverable nodes                                                                                                           |
+| `CombatScene.tsx`       | Enemy display, HP bars, **floating damage popups** (framer-motion)                                                                           |
+| `CityScene.tsx`         | City hub placeholder                                                                                                                         |
+| `CampCinematic.tsx`     | Inline camp cinematic — text fade-in, ambient SFX, two-button modal (Retornar / Seguir). See CONTEXT.md → Acampamento                        |
+| `HitFx.tsx`             | Weapon-archetype-aware hit effects (slash / impact / magic) layered over the enemy on each player swing                                      |
+| `EquipmentPanel.tsx`    | Right-side paper doll (always-visible)                                                                                                       |
+| `StatusCard.tsx`        | Right-side stat readout + Show button + potion + HP globe                                                                                    |
+| `HealthGlobe.tsx`       | Animated HP/barrier orb                                                                                                                      |
+| `TextLog.tsx`           | Status line (priority chain: death → +XP → low HP → zone name)                                                                               |
+| `MonsterTooltip.tsx`    | Hover tooltip over the enemy sprite — translated name + mod descriptions                                                                     |
+| `RubyCounter.tsx`       | Display-only ruby balance pinned bottom-right of the equipment panel                                                                         |
+| `TravelProgressBar.tsx` | Bottom-of-view bar during travel — survives refresh via `travelArrivesAt`                                                                    |
+| `InventoryModal.tsx`    | The big one — drag-drop equip, click dropdown, 60-slot grid                                                                                  |
+| `ItemContextMenu.tsx`   | Popover menu for click-to-equip                                                                                                              |
+| `BagPreviewModal.tsx`   | Read-only loot bag during combat                                                                                                             |
+| `ExitZoneModal.tsx`     | Post-retreat loot picker (5 buttons, selection grid)                                                                                         |
+| `VendorModal.tsx`       | Per-act vendor — buy consumables / sell inventory gear for Rubys                                                                             |
+| `ShowStatsModal.tsx`    | Full character sheet (4 sections, PoE-style)                                                                                                 |
+| `ElementSelector.tsx`   | Mage elemental attunement selector — fire/cold/lightning buttons with glow + 5s cooldown overlay                                             |
+| `LeaderboardModal.tsx`  | Leaderboard modal — level/boss-kills tabs, softcore/hardcore toggle, class filter, fallen heroes                                             |
+| `SettingsModal.tsx`     | Language dropdown + SFX volume slider                                                                                                        |
+| `SessionLostModal.tsx`  | Non-dismissible takeover modal — fires when another tab/device rotates the active-session token. Refresh button reloads the page to re-claim |
+| `StashModal.tsx`        | Shared stash modal — side-by-side inventory + stash grids with drag-and-drop (dnd-kit), shift-click transfer, bulk select/deposit/withdraw   |
+| `WorldModals.tsx`       | Sibling that owns the modal mount-points (BagPreview / ExitZone / Inventory / Vendor / Stash / Settings) — keeps `world.tsx` lean            |
+| `InventoryButton.tsx`   | Backpack icon button on EquipmentPanel                                                                                                       |
 
 ---
 
 ## `src/routes/` — TanStack file-based routes
 
-| Route | Concern |
-|---|---|
-| `__root.tsx` | Layout shell + Toaster + ConfirmationProvider |
-| `index.tsx` | Splash screen ("Shadows of Void" title) |
-| `sign-in.tsx` | better-auth UI |
-| `character-select.tsx` | Roster + create modal + play button + delete confirm |
-| `world.tsx` | **Orchestrator** — wires `useBarrier` + `useCombatLoop` + `useWorldMutations` + `useViewMode` + `WorldModals` together and resolves the priority TextLog. ~937 lines (was 740 after PR #45 + #52 split the original 900-line monolith; grew back with `useBarrier` and post-#64 QoL/balance work — see the in-progress "world.tsx size" note) |
-| `admin.tsx`, `admin/items.tsx` | Admin dashboard (only admins see) |
-| `api/auth/$.ts` | better-auth fallback route |
+| Route                          | Concern                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `__root.tsx`                   | Layout shell + Toaster + ConfirmationProvider                                                                                                                                                                                                                                                                                                 |
+| `index.tsx`                    | Splash screen ("Shadows of Void" title)                                                                                                                                                                                                                                                                                                       |
+| `sign-in.tsx`                  | better-auth UI                                                                                                                                                                                                                                                                                                                                |
+| `character-select.tsx`         | Roster + create modal + play button + delete confirm                                                                                                                                                                                                                                                                                          |
+| `world.tsx`                    | **Orchestrator** — wires `useBarrier` + `useCombatLoop` + `useWorldMutations` + `useViewMode` + `WorldModals` together and resolves the priority TextLog. ~937 lines (was 740 after PR #45 + #52 split the original 900-line monolith; grew back with `useBarrier` and post-#64 QoL/balance work — see the in-progress "world.tsx size" note) |
+| `admin.tsx`, `admin/items.tsx` | Admin dashboard (only admins see)                                                                                                                                                                                                                                                                                                             |
+| `api/auth/$.ts`                | better-auth fallback route                                                                                                                                                                                                                                                                                                                    |
 
 ---
 
 ## `src/hooks/` — React hooks
 
-| Hook | Purpose |
-|---|---|
-| `useCombatLoop.ts` | State-machine orchestrator (search → engaged → victory). Owns the spawn loop + zone-bag side effects. ~600 lines (split shipped in PR #47 into the three hooks below; `useBarrier` extracted after that) |
-| `useCombatTick.ts` | Engaged-state combat tick (50ms): leech heal → life regen → player swing → enemy swing → thorns. Owns player vitals (HP, leech, dead) + the 10s `syncHp` + the potion mutation. Barrier writes route through `useBarrier`'s shared `applyDamage`. ~550 lines |
-| `useBarrier.ts` | Player `BarrierState` owner across all views (map / combat / city / travel). 100ms refill ticker, `applyDamage` (wraps `damageBarrier` with the +50% multiplier), `restoreToFull` for city entry + level-up. Single source of truth — replaces the prior dual-ref pattern. ~100 lines |
-| `useEncounterSchedule.ts` | Per-activation encounter pacing — calmaria time bar, camp threshold rolls, ambush packs, gap rolls, next-spawn rarity decision. 218 lines |
-| `useWorldMutations.ts` | Optimistic mutation bundle for the `/world` route (enterZone, exitZone, pickFromBag, equipItem, etc). See [ADR 0001](./adr/0001-optimistic-mutations.md) |
-| `useCompactViewport.ts` | `matchMedia("(max-height: 800px)")` hook — returns `true` on short viewports (1366×768). Used by world layout, EquipmentPanel, StatusCard, StashModal |
-| `useViewMode.ts` | View-mode state machine (`"map" | "city" | "combat"`) + the pendingArrival token + the auto-arrival / refresh-resilience effects |
-| `useInFlight.ts` | Spam-click protection: `run(fn)` is a no-op while an earlier call is in flight. Used by every modal action button and world mutation site |
-| `useSessionToken.tsx` | Per-tab single-active-session token + `withSession(args)` helper. `SessionTokenProvider` mounted in `__root.tsx`; mutations thread the token to close Threat #5. Refresh = fresh UUID = re-claim |
-| `useSfxVolume.ts` | `useSyncExternalStore` binding for the global SFX volume (consumed by HUD + settings + HitFx) |
-| `useCachedQuery.ts` | localStorage-backed wrapper around `useQuery` (cache version-tagged) |
-| `useConfirmationModal.tsx` | Promise-returning confirm() — works because of the ConfirmationProvider in `__root.tsx` |
-| `useModal.ts` | Open/close state for a single modal |
-| `useDamageEvents.ts` | Floating damage queue (timed cleanup, used by CombatScene) |
-| `useDelay.ts` | One-shot setTimeout wrapped |
-| `useTicker.ts` | Repeating setInterval wrapped |
+| Hook                       | Purpose                                                                                                                                                                                                                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useCombatLoop.ts`         | State-machine orchestrator (search → engaged → victory). Owns the spawn loop + zone-bag side effects. ~600 lines (split shipped in PR #47 into the three hooks below; `useBarrier` extracted after that)                                                                              |
+| `useCombatTick.ts`         | Engaged-state combat tick (50ms): leech heal → life regen → player swing → enemy swing → thorns. Owns player vitals (HP, leech, dead) + the 10s `syncHp` + the potion mutation. Barrier writes route through `useBarrier`'s shared `applyDamage`. ~550 lines                          |
+| `useBarrier.ts`            | Player `BarrierState` owner across all views (map / combat / city / travel). 100ms refill ticker, `applyDamage` (wraps `damageBarrier` with the +50% multiplier), `restoreToFull` for city entry + level-up. Single source of truth — replaces the prior dual-ref pattern. ~100 lines |
+| `useEncounterSchedule.ts`  | Per-activation encounter pacing — calmaria time bar, camp threshold rolls, ambush packs, gap rolls, next-spawn rarity decision. 218 lines                                                                                                                                             |
+| `useWorldMutations.ts`     | Optimistic mutation bundle for the `/world` route (enterZone, exitZone, pickFromBag, equipItem, etc). See [ADR 0001](./adr/0001-optimistic-mutations.md)                                                                                                                              |
+| `useCompactViewport.ts`    | `matchMedia("(max-height: 800px)")` hook — returns `true` on short viewports (1366×768). Used by world layout, EquipmentPanel, StatusCard, StashModal                                                                                                                                 |
+| `useViewMode.ts`           | View-mode state machine (`"map"                                                                                                                                                                                                                                                       | "city" | "combat"`) + the pendingArrival token + the auto-arrival / refresh-resilience effects |
+| `useInFlight.ts`           | Spam-click protection: `run(fn)` is a no-op while an earlier call is in flight. Used by every modal action button and world mutation site                                                                                                                                             |
+| `useSessionToken.tsx`      | Per-tab single-active-session token + `withSession(args)` helper. `SessionTokenProvider` mounted in `__root.tsx`; mutations thread the token to close Threat #5. Refresh = fresh UUID = re-claim                                                                                      |
+| `useSfxVolume.ts`          | `useSyncExternalStore` binding for the global SFX volume (consumed by HUD + settings + HitFx)                                                                                                                                                                                         |
+| `useCachedQuery.ts`        | localStorage-backed wrapper around `useQuery` (cache version-tagged)                                                                                                                                                                                                                  |
+| `useConfirmationModal.tsx` | Promise-returning confirm() — works because of the ConfirmationProvider in `__root.tsx`                                                                                                                                                                                               |
+| `useModal.ts`              | Open/close state for a single modal                                                                                                                                                                                                                                                   |
+| `useDamageEvents.ts`       | Floating damage queue (timed cleanup, used by CombatScene)                                                                                                                                                                                                                            |
+| `useDelay.ts`              | One-shot setTimeout wrapped                                                                                                                                                                                                                                                           |
+| `useTicker.ts`             | Repeating setInterval wrapped                                                                                                                                                                                                                                                         |
 
 ---
 
 ## `src/lib/` — small utilities
 
-| File | Purpose |
-|---|---|
-| `convex-errors.ts` | `convexErrorMessage(err, fallback)` — translates known server errors to PT via `translateServerError` |
-| `rng.ts` | `randInt`, `pickRandom`, `pickWeighted` — used by generator + monster rolls; `hashStringToUnit(input, salt?)` — the one deterministic string→[0, 1) hash (rare item names, damage-popup offsets) |
-| `utils.ts` | `cn()` for classname merging |
-| `flash-toast.ts` | One-shot toast helper |
-| `auth-client.ts`, `auth-server.ts` | better-auth integration |
+| File                               | Purpose                                                                                                                                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `convex-errors.ts`                 | `convexErrorMessage(err, fallback)` — translates known server errors to PT via `translateServerError`                                                                                            |
+| `rng.ts`                           | `randInt`, `pickRandom`, `pickWeighted` — used by generator + monster rolls; `hashStringToUnit(input, salt?)` — the one deterministic string→[0, 1) hash (rare item names, damage-popup offsets) |
+| `utils.ts`                         | `cn()` for classname merging                                                                                                                                                                     |
+| `flash-toast.ts`                   | One-shot toast helper                                                                                                                                                                            |
+| `auth-client.ts`, `auth-server.ts` | better-auth integration                                                                                                                                                                          |
 
 ---
 
@@ -254,23 +254,23 @@ Convex imports from `src/game/*` use **relative paths** (`../src/game/...`), not
 
 ## Where to look when you ask…
 
-| Question | Start here |
-|---|---|
-| "How does crit work?" | `CONTEXT.md` → Combat Resolution → Damage formula. Code: `src/game/combat/damage.ts:rollPlayerSwing` |
-| "How do I add a new modifier?" | `docs/playbooks/adding-a-modifier.md` |
-| "Why does the inventory feel snappy?" | `docs/adr/0001-optimistic-mutations.md` |
-| "Why three i18n systems instead of one?" | `docs/adr/0002-i18n-systems.md` |
-| "Why aren't item / monster names cached?" | `docs/adr/0003-render-at-display-names.md` |
-| "Why is class/monster/template data in `src/game/` and not in the DB?" | `docs/adr/0004-static-data-conventions.md` |
-| "Where are the rules for what rolls on a belt?" | `CONTEXT.md` → Equipment Slots → Belt |
-| "What's an EquippedSlot?" | `src/game/stats/types.ts:EQUIPPED_SLOTS` + `narrowEquippedSlot` |
-| "Which Convex file owns this mutation?" | See the `convex/` table above — `characters.ts` (CRUD), `combat.ts` (combat + travel), `items.ts` (lifecycle + queries), `vendor.ts` (buy/sell) |
-| "What does the stat engine actually do?" | `src/game/stats/compute.ts` + tests in `compute.test.ts` |
-| "How does dual-wield work?" | `CONTEXT.md` → Dual-wielding |
-| "Why doesn't this Convex error look like English?" | `src/lib/convex-errors.ts:translateServerError` |
-| "How are item tooltip mod lines translated?" | `src/game/items/mod-i18n.ts` |
-| "How are item names rendered (per locale)?" | `src/game/items/item-name.ts` + `lexicon/{en,pt}.ts` |
-| "Which i18n system should I use for new strings?" | `docs/playbooks/i18n-which-system.md` |
-| "How do I add a new vendor consumable?" | `docs/playbooks/adding-a-vendor-product.md` |
-| "How do I start the skill / passive tree / stash system?" | `docs/playbooks/adding-a-skill.md` (or `-passive`, `-stash-tab`) — stubs that list the open questions |
-| "Why does this playbook example match the current types?" | `docs/playbooks/_examples/` — sentinel files type-checked by `tsc --noEmit` |
+| Question                                                               | Start here                                                                                                                                      |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| "How does crit work?"                                                  | `CONTEXT.md` → Combat Resolution → Damage formula. Code: `src/game/combat/damage.ts:rollPlayerSwing`                                            |
+| "How do I add a new modifier?"                                         | `docs/playbooks/adding-a-modifier.md`                                                                                                           |
+| "Why does the inventory feel snappy?"                                  | `docs/adr/0001-optimistic-mutations.md`                                                                                                         |
+| "Why three i18n systems instead of one?"                               | `docs/adr/0002-i18n-systems.md`                                                                                                                 |
+| "Why aren't item / monster names cached?"                              | `docs/adr/0003-render-at-display-names.md`                                                                                                      |
+| "Why is class/monster/template data in `src/game/` and not in the DB?" | `docs/adr/0004-static-data-conventions.md`                                                                                                      |
+| "Where are the rules for what rolls on a belt?"                        | `CONTEXT.md` → Equipment Slots → Belt                                                                                                           |
+| "What's an EquippedSlot?"                                              | `src/game/stats/types.ts:EQUIPPED_SLOTS` + `narrowEquippedSlot`                                                                                 |
+| "Which Convex file owns this mutation?"                                | See the `convex/` table above — `characters.ts` (CRUD), `combat.ts` (combat + travel), `items.ts` (lifecycle + queries), `vendor.ts` (buy/sell) |
+| "What does the stat engine actually do?"                               | `src/game/stats/compute.ts` + tests in `compute.test.ts`                                                                                        |
+| "How does dual-wield work?"                                            | `CONTEXT.md` → Dual-wielding                                                                                                                    |
+| "Why doesn't this Convex error look like English?"                     | `src/lib/convex-errors.ts:translateServerError`                                                                                                 |
+| "How are item tooltip mod lines translated?"                           | `src/game/items/mod-i18n.ts`                                                                                                                    |
+| "How are item names rendered (per locale)?"                            | `src/game/items/item-name.ts` + `lexicon/{en,pt}.ts`                                                                                            |
+| "Which i18n system should I use for new strings?"                      | `docs/playbooks/i18n-which-system.md`                                                                                                           |
+| "How do I add a new vendor consumable?"                                | `docs/playbooks/adding-a-vendor-product.md`                                                                                                     |
+| "How do I start the skill / passive tree / stash system?"              | `docs/playbooks/adding-a-skill.md` (or `-passive`, `-stash-tab`) — stubs that list the open questions                                           |
+| "Why does this playbook example match the current types?"              | `docs/playbooks/_examples/` — sentinel files type-checked by `tsc --noEmit`                                                                     |

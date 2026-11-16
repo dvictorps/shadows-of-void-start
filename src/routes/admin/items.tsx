@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+
 import ItemTooltip from "#/components/game/ItemTooltip";
 import { generateItem } from "#/game/items/generator";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";

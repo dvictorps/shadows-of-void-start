@@ -63,7 +63,10 @@ const DROP_TABLE = {
 			{ rarity: "rare", weight: 75 },
 		],
 	},
-} satisfies Record<MonsterRarity, { dropChance: number; rarity: Array<{ rarity: ItemRarity; weight: number }>; }>;
+} satisfies Record<
+	MonsterRarity,
+	{ dropChance: number; rarity: Array<{ rarity: ItemRarity; weight: number }> }
+>;
 
 // chance = basePct% × (1 + magicFind / 100), chained per tier
 // Rarities absent from the map (epic, unique) are terminal.

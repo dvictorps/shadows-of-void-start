@@ -1,5 +1,5 @@
-import { GRALFOR } from "./gralfor";
 import { hasOwnKey } from "../typed-object";
+import { GRALFOR } from "./gralfor";
 import type { BossConfig, BossId } from "./types";
 
 // Registry of every boss. Parallel to MONSTERS in ../monsters/data.ts —

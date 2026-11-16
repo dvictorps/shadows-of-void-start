@@ -10,19 +10,19 @@ Snapshot of the game's anti-cheat posture as of `feat/vendor-economy` (May 2026)
 
 These are server-authoritative for both the VALUE and the CALCULATION. The client cannot fabricate.
 
-| Surface | Where | Protection |
-|---|---|---|
-| Cross-character access | every mutation | `authComponent.getAuthUser(ctx)` + `loadOwnedCharacter(authUserId, characterId)` verify the caller owns the character |
-| Cross-character items | item ops | `item.characterId === args.characterId` + `locationKind` check |
-| HP cap | `syncHp`, `enterCity`, `respawnDead`, `usePotion`, `recordKill` (level-up) | All clamp to `stats.maxLife` computed via the stat engine (post the silent-defense fix); client never decides max |
-| XP per kill | `recordKill` | Reads `monster.xpReward` from game data; client only sends `monsterId` |
-| Drop generation | `recordKill` → `rollDrop` | Server-side roll; client never decides rarity or template |
-| Travel time | `startTravel` → `computeTravelTime(distance, stats.movementSpeed)` | Distance lives in node data; movement speed comes from the engine; client only sends destination |
-| Travel arrival timing | `arriveAtTravel` | Server validates `Date.now() >= travelArrivesAt - 1000ms` (1s grace for clock skew). Cannot arrive >1s early |
-| Sell price | `vendorSell` / `vendorSellMany` → `computeSellPrice(item.data)` | Server-side computation from item snapshot; client never decides price |
-| Equip requirements | `equipItem` | Strict req check against stats computed *without* the new item — broken-state cascade prevents self-sustaining equips |
-| Vendor purchases | `vendorBuy` | Server reads price from catalog data; deducts rubys; respects potion cap |
-| Item ownership trail | items table lifecycle | Stable item id across `zoneBag → inventory → equipped → stash`; deletes are explicit |
+| Surface                | Where                                                                      | Protection                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Cross-character access | every mutation                                                             | `authComponent.getAuthUser(ctx)` + `loadOwnedCharacter(authUserId, characterId)` verify the caller owns the character |
+| Cross-character items  | item ops                                                                   | `item.characterId === args.characterId` + `locationKind` check                                                        |
+| HP cap                 | `syncHp`, `enterCity`, `respawnDead`, `usePotion`, `recordKill` (level-up) | All clamp to `stats.maxLife` computed via the stat engine (post the silent-defense fix); client never decides max     |
+| XP per kill            | `recordKill`                                                               | Reads `monster.xpReward` from game data; client only sends `monsterId`                                                |
+| Drop generation        | `recordKill` → `rollDrop`                                                  | Server-side roll; client never decides rarity or template                                                             |
+| Travel time            | `startTravel` → `computeTravelTime(distance, stats.movementSpeed)`         | Distance lives in node data; movement speed comes from the engine; client only sends destination                      |
+| Travel arrival timing  | `arriveAtTravel`                                                           | Server validates `Date.now() >= travelArrivesAt - 1000ms` (1s grace for clock skew). Cannot arrive >1s early          |
+| Sell price             | `vendorSell` / `vendorSellMany` → `computeSellPrice(item.data)`            | Server-side computation from item snapshot; client never decides price                                                |
+| Equip requirements     | `equipItem`                                                                | Strict req check against stats computed _without_ the new item — broken-state cascade prevents self-sustaining equips |
+| Vendor purchases       | `vendorBuy`                                                                | Server reads price from catalog data; deducts rubys; respects potion cap                                              |
+| Item ownership trail   | items table lifecycle                                                      | Stable item id across `zoneBag → inventory → equipped → stash`; deletes are explicit                                  |
 
 If a future change is about to weaken any of these, treat it like a regression and flag it.
 
@@ -43,7 +43,11 @@ The architecture is **server-authoritative for values** but **client-authoritati
 An attacker (or a player with a debugger) can:
 
 ```js
-setInterval(() => convex.mutation("combat:recordKill", { characterId, monsterId: "goblin" }), 1)
+setInterval(
+	() =>
+		convex.mutation("combat:recordKill", { characterId, monsterId: "goblin" }),
+	1,
+);
 ```
 
 → accumulates `monster.xpReward` per call, plus runs the drop roll + potion-drop roll each time. Levels to cap in minutes. Stockpiles potions and gear.
@@ -52,10 +56,13 @@ setInterval(() => convex.mutation("combat:recordKill", { characterId, monsterId:
 
 ### 2. `syncHp` god mode (HIGH severity)
 
-`syncHp({ characterId, hpCurrent })` clamps to `[0, maxLife]` but accepts any value in that range — including a value *higher* than the character's actual HP. The server has no concept of "expected HP" because combat ticks live client-side.
+`syncHp({ characterId, hpCurrent })` clamps to `[0, maxLife]` but accepts any value in that range — including a value _higher_ than the character's actual HP. The server has no concept of "expected HP" because combat ticks live client-side.
 
 ```js
-setInterval(() => convex.mutation("combat:syncHp", { characterId, hpCurrent: 99999 }), 100)
+setInterval(
+	() => convex.mutation("combat:syncHp", { characterId, hpCurrent: 99999 }),
+	100,
+);
 ```
 
 → permanent full HP, never dies, never loses XP from death.
@@ -72,7 +79,7 @@ setInterval(() => convex.mutation("combat:syncHp", { characterId, hpCurrent: 999
 
 ```js
 // Player is actually in combat — bag should cap at 30%
-convex.mutation("items:exitZone", { characterId, keepIds, phase: "camp" })
+convex.mutation("items:exitZone", { characterId, keepIds, phase: "camp" });
 // → server accepts phase: "camp", skips the 30% cap, lets the player keep 100%
 ```
 
@@ -107,9 +114,9 @@ Per-tab consequences when N tabs overlap:
 - `syncHp` races — last-writer-wins every 10s. HP becomes incoherent: a healthy tab can resurrect a "dead" tab's character mid-tick.
 - `usePotion` / `useEtherealIncense` — server clamps the count at 0 correctly, but optimistic local counts diverge per tab. The user sees ghosts.
 
-Severity changes with the leaderboard. **Today (pre-ranking)**: bounded to weird bugs for a single character, no cross-player effect — same posture as the other threats above. **The day ranking ships**: any leaderboard entry built on multi-tab gameplay is fraudulent *by construction* — even **without intent**. A casual player who leaves the game open on phone + desktop is double-billing. Ranks become unsignal.
+Severity changes with the leaderboard. **Today (pre-ranking)**: bounded to weird bugs for a single character, no cross-player effect — same posture as the other threats above. **The day ranking ships**: any leaderboard entry built on multi-tab gameplay is fraudulent _by construction_ — even **without intent**. A casual player who leaves the game open on phone + desktop is double-billing. Ranks become unsignal.
 
-Cost amplifier: multi-tab abuse also multiplies the user's Convex function-call cost. A determined exploiter with 5 tabs makes their own character account for 5× quota. Layer 1 rate limits help, but per-tab limits don't fire against the same character — the spam is *distributed* across legitimate-looking sessions.
+Cost amplifier: multi-tab abuse also multiplies the user's Convex function-call cost. A determined exploiter with 5 tabs makes their own character account for 5× quota. Layer 1 rate limits help, but per-tab limits don't fire against the same character — the spam is _distributed_ across legitimate-looking sessions.
 
 **Why it worked**: nothing on the character doc identified the session that was currently driving it.
 
@@ -138,12 +145,12 @@ Cheapest. Doesn't fix the trust issue, just slows abuse to human speed.
 
 ```ts
 lastActionAt: v.optional(
-  v.object({
-    recordKill: v.optional(v.number()),
-    syncHp: v.optional(v.number()),
-    vendorBuy: v.optional(v.number()),
-  })
-)
+	v.object({
+		recordKill: v.optional(v.number()),
+		syncHp: v.optional(v.number()),
+		vendorBuy: v.optional(v.number()),
+	}),
+);
 ```
 
 **Mutation changes**:
@@ -170,13 +177,13 @@ Server tracks the active enemy. `recordKill` validates against it.
 
 ```ts
 activeEnemy: v.optional(
-  v.object({
-    monsterId: v.string(),
-    instanceLevel: v.number(),
-    currentHp: v.number(),
-    spawnedAt: v.number(),
-  })
-)
+	v.object({
+		monsterId: v.string(),
+		instanceLevel: v.number(),
+		currentHp: v.number(),
+		spawnedAt: v.number(),
+	}),
+);
 ```
 
 **Mutation changes**:
@@ -217,10 +224,10 @@ This is the "thin client" architecture that PoE / D4 / etc. use. It makes cheati
 
 ## Triggers — when to start each layer
 
-| Layer | Trigger |
-|---|---|
-| Layer 1 | Public beta / open testing OR any user-facing concern about cheating |
-| Layer 2 | Leaderboards land, OR trade between players ships, OR any feature where one player's progress affects another's |
+| Layer   | Trigger                                                                                                                                          |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Layer 1 | Public beta / open testing OR any user-facing concern about cheating                                                                             |
+| Layer 2 | Leaderboards land, OR trade between players ships, OR any feature where one player's progress affects another's                                  |
 | Layer 3 | Competitive mode (e.g., HC race), OR significant trade economy where cheats translate to real-world value, OR repeated Layer 2 bypasses observed |
 
 The architecture is currently fine for "MVP closed development". Don't preemptively spend Layer 2/3 budget — wait for the trigger and ship the layer that matches the threat.
@@ -229,10 +236,10 @@ The architecture is currently fine for "MVP closed development". Don't preemptiv
 
 These close a specific exploit without depending on the broader rate-limit / session-combat infrastructure. Each is independent; ship in any order.
 
-| Fix | Closes | Status |
-|---|---|---|
-| Server-authoritative camp/phase derivation | Threat #3 (`phase` arg trust) | ✅ **Shipped** in PR #48 + PR #51 — `derivePhaseFromCharacter` reads server state; `phase` arg removed from all mutations. |
-| Single active session per character | Threat #5 (multi-tab) | ✅ **Shipped** in `feat/single-active-session` — `activeSessionToken` on `characters`, `claimCharacterSession` mutation, `loadOwnedCharacterWithSession` helper threaded through every state-mutating mutation, client-side `SessionTokenProvider` + `useSessionToken` + `SessionLostModal`. |
+| Fix                                        | Closes                        | Status                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server-authoritative camp/phase derivation | Threat #3 (`phase` arg trust) | ✅ **Shipped** in PR #48 + PR #51 — `derivePhaseFromCharacter` reads server state; `phase` arg removed from all mutations.                                                                                                                                                                   |
+| Single active session per character        | Threat #5 (multi-tab)         | ✅ **Shipped** in `feat/single-active-session` — `activeSessionToken` on `characters`, `claimCharacterSession` mutation, `loadOwnedCharacterWithSession` helper threaded through every state-mutating mutation, client-side `SessionTokenProvider` + `useSessionToken` + `SessionLostModal`. |
 
 ---
 

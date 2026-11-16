@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { type MonsterRarity, rollMonsterRarity } from "#/game/monsters";
 import type { CampSource } from "#/game/world";
 import {
@@ -14,6 +15,7 @@ import {
 	rollSpawnGapMs,
 	type ZoneEncounterPlan,
 } from "#/game/world/encounter-schedule";
+
 import { useTicker } from "./useTicker";
 
 // Calmaria ticker is intentionally coarser than the combat tick — the bar
@@ -140,51 +142,47 @@ export function useEncounterSchedule({
 	// transition so the drained bar doesn't gain a tick before reset commits.
 	// The flag is checked inside the tick (not in the `active` argument) so
 	// the ref is never read during render; a held tick is a no-op.
-	useTicker(
-		active && isSearching,
-		CALMARIA_TICK_MS,
-		() => {
-			if (postMinibossPauseRef.current) return;
-			const next = calmariaElapsedMsRef.current + CALMARIA_TICK_MS;
-			calmariaElapsedMsRef.current = next;
-			setCalmariaElapsedMs(next);
+	useTicker(active && isSearching, CALMARIA_TICK_MS, () => {
+		if (postMinibossPauseRef.current) return;
+		const next = calmariaElapsedMsRef.current + CALMARIA_TICK_MS;
+		calmariaElapsedMsRef.current = next;
+		setCalmariaElapsedMs(next);
 
-			// Camp fires only if the budget hasn't filled yet — at the budget
-			// boundary the boss-spawn check wins on the next spawn instead.
-			const currentCampIndex = nextCampIndexRef.current;
-			const nextCampThreshold = campThresholdsMsRef.current[currentCampIndex];
-			if (
-				nextCampThreshold !== undefined &&
-				next >= nextCampThreshold &&
-				next < calmariaBudgetMs
-			) {
-				nextCampIndexRef.current = currentCampIndex + 1;
-				setCampSource("baked");
-				// Pass the index of the threshold the player just crossed so the
-				// parent can call enterCamp(thresholdIndex) against the server.
-				onCampTriggered(currentCampIndex);
-				return;
-			}
+		// Camp fires only if the budget hasn't filled yet — at the budget
+		// boundary the boss-spawn check wins on the next spawn instead.
+		const currentCampIndex = nextCampIndexRef.current;
+		const nextCampThreshold = campThresholdsMsRef.current[currentCampIndex];
+		if (
+			nextCampThreshold !== undefined &&
+			next >= nextCampThreshold &&
+			next < calmariaBudgetMs
+		) {
+			nextCampIndexRef.current = currentCampIndex + 1;
+			setCampSource("baked");
+			// Pass the index of the threshold the player just crossed so the
+			// parent can call enterCamp(thresholdIndex) against the server.
+			onCampTriggered(currentCampIndex);
+			return;
+		}
 
-			// Ambush trigger — checked after camps so a co-located camp wins.
-			const nextAmbush = ambushScheduleRef.current[nextAmbushIndexRef.current];
-			if (
-				ambushPlan &&
-				nextAmbush !== undefined &&
-				next >= nextAmbush.thresholdMs &&
-				next < calmariaBudgetMs &&
-				ambushPackRemainingRef.current === 0
-			) {
-				nextAmbushIndexRef.current += 1;
-				ambushPackRemainingRef.current = nextAmbush.packSize;
-				setAmbushActive(true);
-				// Collapse the search gap so the first ambush mob fires almost
-				// immediately. Subsequent spawns use the in-pack gap (set in
-				// the post-spawn re-roll above).
-				setNextSpawnGapMs(ambushPlan.gapWithinPackMs);
-			}
-		},
-	);
+		// Ambush trigger — checked after camps so a co-located camp wins.
+		const nextAmbush = ambushScheduleRef.current[nextAmbushIndexRef.current];
+		if (
+			ambushPlan &&
+			nextAmbush !== undefined &&
+			next >= nextAmbush.thresholdMs &&
+			next < calmariaBudgetMs &&
+			ambushPackRemainingRef.current === 0
+		) {
+			nextAmbushIndexRef.current += 1;
+			ambushPackRemainingRef.current = nextAmbush.packSize;
+			setAmbushActive(true);
+			// Collapse the search gap so the first ambush mob fires almost
+			// immediately. Subsequent spawns use the in-pack gap (set in
+			// the post-spawn re-roll above).
+			setNextSpawnGapMs(ambushPlan.gapWithinPackMs);
+		}
+	});
 
 	const rollSpawnRarity = useCallback((): MonsterRarity => {
 		if (calmariaElapsedMsRef.current >= calmariaBudgetMs) return "rare";

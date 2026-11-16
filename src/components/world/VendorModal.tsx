@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
@@ -12,9 +13,10 @@ import {
 	type VendorProductId,
 } from "#/game/vendor/products";
 import { useInFlight } from "#/hooks/useInFlight";
-import { m } from "#/paraglide/messages";
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
+import { m } from "#/paraglide/messages";
+
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const ITEM_SLOT_SIZE = 88;
 
@@ -302,9 +304,13 @@ function BuyCard({
 }) {
 	const STEPPER_MAX = 99;
 	const capRemaining =
-		product.cap !== undefined ? Math.max(0, product.cap - currentCount) : STEPPER_MAX;
+		product.cap !== undefined
+			? Math.max(0, product.cap - currentCount)
+			: STEPPER_MAX;
 	const maxAfford =
-		product.priceRubys > 0 ? Math.floor(rubys / product.priceRubys) : STEPPER_MAX;
+		product.priceRubys > 0
+			? Math.floor(rubys / product.priceRubys)
+			: STEPPER_MAX;
 	const maxQty = Math.min(STEPPER_MAX, capRemaining, maxAfford);
 	const atCap = capRemaining === 0;
 	const [qty, setQty] = useState(1);

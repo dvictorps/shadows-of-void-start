@@ -627,10 +627,7 @@ function computeOnce(
 
 	const mainHand = live.find((eq) => eq.slot === "weapon")?.item ?? null;
 	const offHand = live.find((eq) => eq.slot === "offhand")?.item ?? null;
-	stats.path = determinePath(
-		mainHand,
-		input.classDef?.id,
-	);
+	stats.path = determinePath(mainHand, input.classDef?.id);
 	const offHandType = offHand?.weaponType;
 	// Source of truth for "is this attack dual-wielding?". The public
 	// `isAttackDualWielding(stats)` helper below re-derives the same answer from
@@ -705,9 +702,7 @@ export function computeCharacterStats(
 
 	for (let i = 0; i <= maxIterations; i++) {
 		const brokenIds = broken;
-		const live = input.equippedItems.filter(
-			(eq) => !brokenIds.has(eq.item.id),
-		);
+		const live = input.equippedItems.filter((eq) => !brokenIds.has(eq.item.id));
 		stats = computeOnce(input, live);
 
 		const newBroken = new Set(broken);

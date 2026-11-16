@@ -1,6 +1,7 @@
 import { useMutation } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
+
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
@@ -10,6 +11,7 @@ import { getClassDisplayName } from "#/game/classes/i18n";
 import type { CharacterClassId } from "#/game/classes/types";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { m } from "#/paraglide/messages";
+
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 

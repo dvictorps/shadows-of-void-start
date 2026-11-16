@@ -125,8 +125,14 @@ export default defineConfig({
 			"warn",
 			{
 				forbid: [
-					{ element: "button", message: "Use <Button> from #/components/ui/button." },
-					{ element: "select", message: "Use <Select> from #/components/ui/select." },
+					{
+						element: "button",
+						message: "Use <Button> from #/components/ui/button.",
+					},
+					{
+						element: "select",
+						message: "Use <Select> from #/components/ui/select.",
+					},
 					{
 						element: "textarea",
 						message: "Use <Textarea> from #/components/ui/textarea.",

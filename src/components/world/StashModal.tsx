@@ -12,6 +12,7 @@ import {
 } from "@dnd-kit/core";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
@@ -22,9 +23,10 @@ import {
 import type { GeneratedItem } from "#/game/items/types";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { useInFlight } from "#/hooks/useInFlight";
-import { m } from "#/paraglide/messages";
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
+import { m } from "#/paraglide/messages";
+
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const SLOT_SIZE_DEFAULT = 76;
 const SLOT_SIZE_COMPACT = 64;
@@ -54,7 +56,11 @@ type Props = {
 		targetSlot: number;
 		swapWithItemId?: Id<"items">;
 	}) => void;
-	onReorderStash: (args: { itemId: Id<"items">; targetSlot: number; swapWithItemId?: Id<"items"> }) => void;
+	onReorderStash: (args: {
+		itemId: Id<"items">;
+		targetSlot: number;
+		swapWithItemId?: Id<"items">;
+	}) => void;
 };
 
 export default function StashModal({
@@ -91,8 +97,7 @@ export default function StashModal({
 	const inventoryBySlot = useMemo(() => {
 		const map = new Map<number, Doc<"items">>();
 		for (const item of inventoryItems) {
-			if (item.inventorySlot !== undefined)
-				map.set(item.inventorySlot, item);
+			if (item.inventorySlot !== undefined) map.set(item.inventorySlot, item);
 		}
 		return map;
 	}, [inventoryItems]);
@@ -135,7 +140,9 @@ export default function StashModal({
 		if (source.kind === "inventory" && target.kind === "inventory") {
 			const doc = inventoryItems.find((it) => it._id === source.itemId);
 			if (!doc || doc.inventorySlot === target.slot) return;
-			const occupant = inventoryItems.find((it) => it.inventorySlot === target.slot && it._id !== source.itemId);
+			const occupant = inventoryItems.find(
+				(it) => it.inventorySlot === target.slot && it._id !== source.itemId,
+			);
 			onReorderInventory({
 				itemId: source.itemId,
 				targetSlot: target.slot,
@@ -146,8 +153,14 @@ export default function StashModal({
 		if (source.kind === "stash" && target.kind === "stash") {
 			const doc = stashItems.find((it) => it._id === source.itemId);
 			if (!doc || doc.stashSlot === target.slot) return;
-			const stashOccupant = stashItems.find((it) => it.stashSlot === target.slot && it._id !== source.itemId);
-			onReorderStash({ itemId: source.itemId, targetSlot: target.slot, swapWithItemId: stashOccupant?._id });
+			const stashOccupant = stashItems.find(
+				(it) => it.stashSlot === target.slot && it._id !== source.itemId,
+			);
+			onReorderStash({
+				itemId: source.itemId,
+				targetSlot: target.slot,
+				swapWithItemId: stashOccupant?._id,
+			});
 			return;
 		}
 
@@ -585,7 +598,6 @@ function isDropTarget(d: unknown): d is DropTargetData {
 	if (typeof d !== "object" || d === null) return false;
 	if (!("kind" in d) || !("slot" in d)) return false;
 	return (
-		(d.kind === "inventory" || d.kind === "stash") &&
-		typeof d.slot === "number"
+		(d.kind === "inventory" || d.kind === "stash") && typeof d.slot === "number"
 	);
 }

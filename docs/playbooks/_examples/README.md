@@ -22,13 +22,13 @@ goes stale.
 
 ## Map
 
-| Sentinel | Validates |
-|---|---|
-| `modifier-example.ts` | `adding-a-modifier.md` step 1 (modifier definition shape) |
+| Sentinel              | Validates                                                            |
+| --------------------- | -------------------------------------------------------------------- |
+| `modifier-example.ts` | `adding-a-modifier.md` step 1 (modifier definition shape)            |
 | `template-example.ts` | `adding-an-equipment-template.md` step 1 (template definition shape) |
-| `monster-example.ts` | `adding-a-monster.md` step 1 (monster definition shape) |
-| `zone-example.ts` | `adding-a-zone.md` step 1 (world node shape) |
-| `class-example.ts` | `adding-a-class.md` step 1 (class definition shape) |
+| `monster-example.ts`  | `adding-a-monster.md` step 1 (monster definition shape)              |
+| `zone-example.ts`     | `adding-a-zone.md` step 1 (world node shape)                         |
+| `class-example.ts`    | `adding-a-class.md` step 1 (class definition shape)                  |
 
 ## Maintenance
 

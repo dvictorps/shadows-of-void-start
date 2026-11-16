@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { findMonster, type MonsterModId } from "#/game/monsters";
 import { overwriteGetLocale } from "#/paraglide/runtime";
+
 import {
 	type NameableEnemy,
 	type RareNameSeed,

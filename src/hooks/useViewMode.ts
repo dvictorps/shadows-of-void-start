@@ -27,7 +27,9 @@ import {
 	useRef,
 	useState,
 } from "react";
+
 import { ACT_1, findNode } from "#/game/world";
+
 import type { Id } from "../../convex/_generated/dataModel";
 import type { useWorldMutations } from "./useWorldMutations";
 

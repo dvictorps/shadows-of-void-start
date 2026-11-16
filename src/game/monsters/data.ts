@@ -1,5 +1,5 @@
-import type { MonsterDefinition } from "./types";
 import { hasOwnKey } from "../typed-object";
+import type { MonsterDefinition } from "./types";
 
 export const MONSTERS = {
 	// Early-zone monsters (lvl 1-4): physical softened, elemental stripped.

@@ -1,5 +1,6 @@
 import { motion, useAnimationControls } from "framer-motion";
 import { useEffect } from "react";
+
 import { BARRIER_REFILL_DELAY_SECONDS } from "#/game/combat/constants";
 
 type Props = {
@@ -50,10 +51,7 @@ export default function HealthGlobe({
 	const refillProgress = showRefill
 		? Math.max(
 				0,
-				Math.min(
-					1,
-					1 - barrierRefillRemaining / BARRIER_REFILL_DELAY_SECONDS,
-				),
+				Math.min(1, 1 - barrierRefillRemaining / BARRIER_REFILL_DELAY_SECONDS),
 			)
 		: 0;
 

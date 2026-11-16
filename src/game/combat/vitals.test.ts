@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { clampVital, resolveVitalSync } from "./vitals";
 
 describe("clampVital", () => {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { getModifier, MODIFIER_IDS } from "./data/modifiers";
 import type {
 	PrefixModifierId,

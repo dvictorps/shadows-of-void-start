@@ -1,6 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
+
 import ItemTooltip from "#/components/game/ItemTooltip";
 import { TEMPLATE_BY_ID } from "#/game/items/data/templates";
 import { translateItemName } from "#/game/items/item-name";
@@ -234,8 +235,7 @@ export default function ItemCard({
 						// render them at half scale so they don't visually dominate the
 						// grid. Belts are jewelry for stat purposes but render full-scale.
 						const isTinyJewelry =
-							item.equipmentType === "ring" ||
-							item.equipmentType === "amulet";
+							item.equipmentType === "ring" || item.equipmentType === "amulet";
 						return (
 							<img
 								src={icon.src}

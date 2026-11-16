@@ -25,7 +25,7 @@ code_review:
   max_review_comments: 8
 
   pull_request_opened:
-    help: false        # we don't need the meta-help message on every PR
-    summary: true      # the PR summary is useful for distilling intent
+    help: false # we don't need the meta-help message on every PR
+    summary: true # the PR summary is useful for distilling intent
     code_review: true
-    include_drafts: false  # drafts are work-in-progress, no need to review yet
+    include_drafts: false # drafts are work-in-progress, no need to review yet

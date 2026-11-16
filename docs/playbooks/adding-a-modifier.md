@@ -60,10 +60,10 @@ Open `src/game/items/data/modifiers/affix-ids.ts` and add your id to either `Pre
 
 ```ts
 export type PrefixModifierId = Extract<
-    ModifierId,
-    | "localDefenseFlat"
-    // …existing…
-    | "myNewStatIncrease"               // add here
+	ModifierId,
+	| "localDefenseFlat"
+	// …existing…
+	| "myNewStatIncrease" // add here
 >;
 ```
 
@@ -136,6 +136,7 @@ npx vitest run src/game/items/item-name.test.ts
 ```
 
 Tests will catch:
+
 - "no decimals in rolled values"
 - "prefix/suffix limits per rarity"
 - "magic items compose with the right affix order"

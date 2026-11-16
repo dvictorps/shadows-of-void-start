@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+
 import { type HitFxKind, WEAPON_FX } from "#/game/combat/weapon-fx";
 import type { WeaponType } from "#/game/items/types/base";
 

@@ -11,7 +11,9 @@ export interface GenderedForm {
 	f: string;
 }
 
-export function isGenderedForm(form: string | GenderedForm): form is GenderedForm {
+export function isGenderedForm(
+	form: string | GenderedForm,
+): form is GenderedForm {
 	return typeof form !== "string";
 }
 

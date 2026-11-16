@@ -1,6 +1,6 @@
 # Adding a vendor product
 
-The vendor sells consumables (and only consumables — gear is sold *to* the vendor, not bought *from* it). Each product is one entry in `src/game/vendor/products.ts`, plus a counter field on the character document, plus optional sprite/i18n.
+The vendor sells consumables (and only consumables — gear is sold _to_ the vendor, not bought _from_ it). Each product is one entry in `src/game/vendor/products.ts`, plus a counter field on the character document, plus optional sprite/i18n.
 
 The catalog today: **Life Potion** (capped at 10) and **Teleport Stone** (uncapped). Adding a third product follows the pattern below.
 

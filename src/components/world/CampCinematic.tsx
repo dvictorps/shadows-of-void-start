@@ -4,6 +4,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+
 import type { CampSource } from "#/game/world";
 import { translateCampLines } from "#/game/world/i18n";
 import { playSfx } from "#/lib/sfx";

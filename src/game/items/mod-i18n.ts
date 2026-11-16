@@ -1,4 +1,5 @@
 import { getLocale } from "#/paraglide/runtime";
+
 import { findModifier, type ModifierId } from "./data/modifiers";
 import { type DEFENSE_LABELS, resolveDefenseFormat } from "./generator";
 import type { GeneratedItem, RolledImplicit, RolledMod } from "./types";

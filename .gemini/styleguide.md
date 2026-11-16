@@ -100,7 +100,7 @@ them is a real finding, not a stylistic preference.
   #45 + #52) split the file into four contiguous sections —
   composition (queries + memos + hooks), handlers, derivations
   (text-log / travel-overlay), and JSX. The original problem was
-  concerns *interleaved* inside the same scope, not raw line count.
+  concerns _interleaved_ inside the same scope, not raw line count.
   Flag a PR that re-mixes concerns (e.g., business logic inside JSX, a
   new mutation hook called inline outside the composition block, fetch
   or state-of-truth derivation in a handler). Do NOT flag growth that

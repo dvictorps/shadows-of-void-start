@@ -8,6 +8,7 @@ import { getBossConfig } from "#/game/bosses";
 import { WEAPON_FX } from "#/game/combat/weapon-fx";
 import type { WeaponType } from "#/game/items/types/base";
 import type { MonsterRarity } from "#/game/monsters/types";
+
 import { randSymmetric } from "./rng";
 
 type SfxOptions = {

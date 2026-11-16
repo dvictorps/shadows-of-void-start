@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
+
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useInFlight } from "#/hooks/useInFlight";
-import { m } from "#/paraglide/messages";
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
+import { m } from "#/paraglide/messages";
+
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const ITEM_SLOT_SIZE = 96;
 

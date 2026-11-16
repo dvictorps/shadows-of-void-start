@@ -1,5 +1,5 @@
-import type { CharacterClassDefinition, CharacterClassId } from "./types";
 import { hasOwnKey } from "../typed-object";
+import type { CharacterClassDefinition, CharacterClassId } from "./types";
 
 export const CLASS_DEFINITIONS = {
 	warrior: {

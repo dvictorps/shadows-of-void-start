@@ -32,24 +32,29 @@ Open `src/game/items/starter-gear.ts`:
 
 ```ts
 const blessedHammer: GeneratedItem = {
-    id: "starter:blessed_hammer",
-    templateId: "blessed_hammer",
-    templateName: "Blessed Hammer",
-    equipmentType: "weapon",
-    weaponType: "mace",
-    rarity: "normal",
-    name: "Blessed Hammer",
-    itemLevel: 1,
-    baseStats: { minDamage: 2, maxDamage: 6, attackSpeed: 1.1, criticalChance: 5 },
-    implicits: [],
-    explicits: [],
-    // computedStats mirrors baseStats since starters have no rolled mods.
-    computedStats: {
-        physicalDamage: { min: 2, max: 6 },
-        elementalDamage: [],
-        attackSpeed: 1.1,
-        criticalChance: 5,
-    },
+	id: "starter:blessed_hammer",
+	templateId: "blessed_hammer",
+	templateName: "Blessed Hammer",
+	equipmentType: "weapon",
+	weaponType: "mace",
+	rarity: "normal",
+	name: "Blessed Hammer",
+	itemLevel: 1,
+	baseStats: {
+		minDamage: 2,
+		maxDamage: 6,
+		attackSpeed: 1.1,
+		criticalChance: 5,
+	},
+	implicits: [],
+	explicits: [],
+	// computedStats mirrors baseStats since starters have no rolled mods.
+	computedStats: {
+		physicalDamage: { min: 2, max: 6 },
+		elementalDamage: [],
+		attackSpeed: 1.1,
+		criticalChance: 5,
+	},
 };
 ```
 
@@ -101,6 +106,7 @@ npx oxlint src/
 ```
 
 Then `npm run dev`, open the character-select modal, scroll the class list, verify:
+
 - Name renders in PT and EN (toggle locale via settings modal).
 - Description renders correctly.
 - After creating, the starter weapon shows in the paper doll and the items table query returns it as equipped.

@@ -5,7 +5,9 @@
 
 // Keys of a table declared as an object literal in source (no class
 // instances, no prototype tricks, no runtime-added keys).
-export function typedKeys<T extends object>(table: T): Array<Extract<keyof T, string>> {
+export function typedKeys<T extends object>(
+	table: T,
+): Array<Extract<keyof T, string>> {
 	// SAFETY: Object.keys returns the own enumerable string keys. For the
 	// object-literal tables this is used on, those are exactly the declared
 	// keys; TS types Object.keys as string[] only because object types are open.

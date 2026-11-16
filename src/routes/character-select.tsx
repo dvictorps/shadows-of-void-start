@@ -4,6 +4,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { toast } from "sonner";
+
 import CreateCharacterModal from "#/components/CreateCharacterModal";
 import { Button } from "#/components/ui/button";
 import { getClassDisplayName } from "#/game/classes/i18n";
@@ -16,6 +17,7 @@ import { authClient } from "#/lib/auth-client";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { queueFlashToast } from "#/lib/flash-toast";
 import { m } from "#/paraglide/messages";
+
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 

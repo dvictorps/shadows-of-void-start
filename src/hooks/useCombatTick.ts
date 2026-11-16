@@ -21,6 +21,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+
 import {
 	type BarrierState,
 	damageBarrier,
@@ -37,8 +38,13 @@ import type { LeechInstance } from "#/game/combat/leech";
 import { createLeechInstance, tickLeechInstances } from "#/game/combat/leech";
 import type { Enemy } from "#/game/combat/types";
 import type { ComputedCharacterStats } from "#/game/stats/types";
-import { applyCharacterDelta, applyCombatStateDelta, findCharacter } from "#/lib/optimistic-character";
+import {
+	applyCharacterDelta,
+	applyCombatStateDelta,
+	findCharacter,
+} from "#/lib/optimistic-character";
 import { playPlayerSwingSfx, playSfx } from "#/lib/sfx";
+
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { BarrierApi } from "./useBarrier";
@@ -172,7 +178,9 @@ export function useCombatTick({
 					hpCurrent: Math.min(maxHp, currentHp + heal),
 				});
 			}
-			const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+			const csData = localStore.getQuery(api.combatState.byCharacterId, {
+				characterId: args.characterId,
+			});
 			if (csData) {
 				const currentHp = args.clientHp ?? csData.hpCurrent;
 				applyCombatStateDelta(localStore, args.characterId, {

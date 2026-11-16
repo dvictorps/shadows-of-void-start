@@ -19,6 +19,7 @@ import { useMutation } from "convex/react";
 import { ArrowLeftRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+
 import ItemCard, { SLOT_EMPTY } from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import ItemContextMenu, {
@@ -47,6 +48,7 @@ import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useSessionToken } from "#/hooks/useSessionToken";
 import { convexErrorMessage } from "#/lib/convex-errors";
 import { m } from "#/paraglide/messages";
+
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
@@ -323,8 +325,7 @@ export default function InventoryModal({
 	const inventoryBySlot = useMemo(() => {
 		const map = new Map<number, Doc<"items">>();
 		for (const item of inventory) {
-			if (item.inventorySlot !== undefined)
-				map.set(item.inventorySlot, item);
+			if (item.inventorySlot !== undefined) map.set(item.inventorySlot, item);
 		}
 		return map;
 	}, [inventory]);

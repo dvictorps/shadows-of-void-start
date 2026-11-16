@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { scaleMonsterStats } from "../monsters/scaling";
 import { typedKeys } from "../typed-object";
 import { BOSSES, findBoss } from "./data";

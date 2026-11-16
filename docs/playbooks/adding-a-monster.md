@@ -52,8 +52,8 @@ To wire the localization:
 
 ```ts
 const MONSTER_I18N: Record<MonsterId, () => string> = {
-    // …existing…
-    stone_goblin: m.monster_stone_goblin,
+	// …existing…
+	stone_goblin: m.monster_stone_goblin,
 };
 ```
 

@@ -2,12 +2,7 @@ import Modal from "#/components/Modal";
 import { Slider } from "#/components/ui/slider";
 import { useSfxVolume } from "#/hooks/useSfxVolume";
 import { m } from "#/paraglide/messages";
-import {
-	getLocale,
-	isLocale,
-	locales,
-	setLocale,
-} from "#/paraglide/runtime";
+import { getLocale, isLocale, locales, setLocale } from "#/paraglide/runtime";
 
 type Props = {
 	isOpen: boolean;

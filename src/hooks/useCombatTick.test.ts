@@ -11,10 +11,12 @@
 import { act, renderHook } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { EMPTY_ELEMENTAL_GAIN } from "#/game/combat/damage";
 import type { Enemy } from "#/game/combat/types";
 import type { MonsterDefinition } from "#/game/monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
+
 import { SessionTokenProvider } from "./useSessionToken";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────

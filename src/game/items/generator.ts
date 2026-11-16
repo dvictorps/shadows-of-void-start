@@ -165,10 +165,7 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 
 		// Slot-conditional implicit gate (ADR 0007). Only narrows amulets —
 		// the slot where attribute-typed implicits live. Other slots pass.
-		if (
-			mod.restrictedToImplicitMod &&
-			template.equipmentType === "amulet"
-		) {
+		if (mod.restrictedToImplicitMod && template.equipmentType === "amulet") {
 			const hasImplicit = template.implicits.some(
 				(imp) => imp.modifierId === mod.restrictedToImplicitMod,
 			);

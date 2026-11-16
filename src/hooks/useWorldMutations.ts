@@ -11,6 +11,7 @@
 import type { OptimisticLocalStore } from "convex/browser";
 import { useMutation } from "convex/react";
 import type { FunctionArgs } from "convex/server";
+
 import { teleportStoneTravelSeconds } from "#/game/combat/constants";
 import {
 	bySlotAsc,
@@ -22,7 +23,12 @@ import { computeSellPrice } from "#/game/items/sell-price";
 import { findVendorProduct } from "#/game/vendor/products";
 import { ACT_1, findNode } from "#/game/world";
 import { computeTravelTime } from "#/game/world/travel";
-import { applyCharacterDelta, applyCombatStateDelta, findCharacter } from "#/lib/optimistic-character";
+import {
+	applyCharacterDelta,
+	applyCombatStateDelta,
+	findCharacter,
+} from "#/lib/optimistic-character";
+
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { useSessionedMutation } from "./useSessionToken";
@@ -121,7 +127,6 @@ export function useWorldMutations({
 }: {
 	movementSpeed: number;
 }) {
-
 	const enterCity = useSessionedMutation(useMutation(api.combat.enterCity));
 	const enterZone = useSessionedMutation(useMutation(api.combat.enterZone));
 
@@ -211,12 +216,18 @@ export function useWorldMutations({
 				if (rubys < totalCost) return;
 
 				if (product.counterField === "potions") {
-					const csData = localStore.getQuery(api.combatState.byCharacterId, { characterId: args.characterId });
+					const csData = localStore.getQuery(api.combatState.byCharacterId, {
+						characterId: args.characterId,
+					});
 					const currentCount = csData?.potions ?? char.potions ?? 0;
 					const newCount = currentCount + qty;
 					if (product.cap !== undefined && newCount > product.cap) return;
-					applyCharacterDelta(localStore, args.characterId, { rubys: rubys - totalCost });
-					applyCombatStateDelta(localStore, args.characterId, { potions: newCount });
+					applyCharacterDelta(localStore, args.characterId, {
+						rubys: rubys - totalCost,
+					});
+					applyCombatStateDelta(localStore, args.characterId, {
+						potions: newCount,
+					});
 				} else {
 					const currentCount = char[product.counterField] ?? 0;
 					const newCount = currentCount + qty;

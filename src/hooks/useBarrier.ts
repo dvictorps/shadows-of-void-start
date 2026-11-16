@@ -1,6 +1,7 @@
 // Player BarrierState owner across map / combat / city / travel. See ADR 0005.
 
 import { useCallback, useRef, useState } from "react";
+
 import {
 	type BarrierState,
 	damageBarrier,
@@ -8,6 +9,7 @@ import {
 	rescaleBarrier,
 	tickBarrier,
 } from "#/game/combat/barrier";
+
 import { useTicker } from "./useTicker";
 
 export type BarrierApi = {
@@ -90,7 +92,10 @@ export function useBarrier({
 	});
 
 	const applyDamage = useCallback((rawDamage: number) => {
-		const { state, lifeOverflow } = damageBarrier(barrierRef.current, rawDamage);
+		const { state, lifeOverflow } = damageBarrier(
+			barrierRef.current,
+			rawDamage,
+		);
 		if (state !== barrierRef.current) {
 			barrierRef.current = state;
 			setBarrier(state);

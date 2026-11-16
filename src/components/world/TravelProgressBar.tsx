@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
+
 import { m } from "#/paraglide/messages";
 
 type Props = {
@@ -46,10 +47,7 @@ export default function TravelProgressBar({
 					</span>
 				</div>
 				<div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-					<div
-						className="h-full w-full bg-white"
-						style={animationStyle}
-					/>
+					<div className="h-full w-full bg-white" style={animationStyle} />
 				</div>
 			</div>
 		</div>

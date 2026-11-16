@@ -10,33 +10,33 @@ Create `src/game/bosses/<bossId>.ts`. Each boss is one file.
 import type { BossConfig } from "./types";
 
 export const SHADE_OF_THE_FIRST: BossConfig = {
-    id: "shade_of_the_first",
-    nameKey: "boss_shade_of_the_first_name",   // paraglide key (see Step 3)
-    nameplateColor: "#aa66ff",                  // chosen per boss — distinct from rare yellow
-    nameplateShadow:
-        "0 0 22px rgba(170, 102, 255, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
-    level: 30,                                  // fixed — overrides node level ±1 scaling
-    template: {
-        id: "shade_of_the_first",
-        name: "Shade of the First",             // canonical fallback
-        sprite: "/assets/sprites/bosses/shade.png",
-        baseStats: {
-            hp: 400,
-            attackSpeed: 1.1,
-            physicalDamage: { min: 0, max: 0 },
-            elementalDamage: [{ element: "Cold", min: 18, max: 30 }],
-            resistances: { cold: 50, fire: -25, lightning: 0, void: 0 },
-        },
-        xpReward: 90,
-        allowedRarities: ["unique"],            // always — boss templates can't roll other rarities
-    },
-    cinematic: {
-        spriteFadeInMs: 900,                    // boss-tunable; defaults to 900
-        entrySfx: "bosses/shade.wav",           // path under public/assets/sounds/sfx/
-        sfxBeatMs: 600,                         // pause between sfx + name reveal
-        screenshake: { amplitudePx: 14, durationMs: 400 },
-        deathSfx: "bosses/shadedead.wav",
-    },
+	id: "shade_of_the_first",
+	nameKey: "boss_shade_of_the_first_name", // paraglide key (see Step 3)
+	nameplateColor: "#aa66ff", // chosen per boss — distinct from rare yellow
+	nameplateShadow:
+		"0 0 22px rgba(170, 102, 255, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
+	level: 30, // fixed — overrides node level ±1 scaling
+	template: {
+		id: "shade_of_the_first",
+		name: "Shade of the First", // canonical fallback
+		sprite: "/assets/sprites/bosses/shade.png",
+		baseStats: {
+			hp: 400,
+			attackSpeed: 1.1,
+			physicalDamage: { min: 0, max: 0 },
+			elementalDamage: [{ element: "Cold", min: 18, max: 30 }],
+			resistances: { cold: 50, fire: -25, lightning: 0, void: 0 },
+		},
+		xpReward: 90,
+		allowedRarities: ["unique"], // always — boss templates can't roll other rarities
+	},
+	cinematic: {
+		spriteFadeInMs: 900, // boss-tunable; defaults to 900
+		entrySfx: "bosses/shade.wav", // path under public/assets/sounds/sfx/
+		sfxBeatMs: 600, // pause between sfx + name reveal
+		screenshake: { amplitudePx: 14, durationMs: 400 },
+		deathSfx: "bosses/shadedead.wav",
+	},
 };
 ```
 
@@ -54,8 +54,8 @@ import { SHADE_OF_THE_FIRST } from "./shade";
 import type { BossConfig, BossId } from "./types";
 
 export const BOSSES: Record<BossId, BossConfig> = {
-    gralfor: GRALFOR,
-    shade_of_the_first: SHADE_OF_THE_FIRST,
+	gralfor: GRALFOR,
+	shade_of_the_first: SHADE_OF_THE_FIRST,
 };
 ```
 
@@ -69,7 +69,7 @@ export type BossId = "gralfor" | "shade_of_the_first";
 
 ## Step 3 — Localize the name (PoE-style unique convention)
 
-Boss names go through paraglide like any other display string, **but** by convention the **proper-noun part stays identical across locales** — only the epithet translates. Like *Headhunter* in PoE staying *Headhunter* in every locale while *Kaom's Heart* becomes *Coração de Kaom*.
+Boss names go through paraglide like any other display string, **but** by convention the **proper-noun part stays identical across locales** — only the epithet translates. Like _Headhunter_ in PoE staying _Headhunter_ in every locale while _Kaom's Heart_ becomes _Coração de Kaom_.
 
 Add the key to **both** locales:
 
@@ -116,7 +116,7 @@ Open the relevant act file (e.g. `src/game/world/act-1.ts`). Add a `kind: "boss"
 
 Add the zone name + description keys to both locale files (`zone_shade_lair`, `zone_shade_lair_description`).
 
-**Which fields drive what (this trips people up):** spawns come from `bossNode.gauntlet.monsterPool` — that's the required one. The **node-level** `monsterPool` is *optional* and does NOT drive boss-node spawns; it feeds sprite preloading (`world.tsx` reads `currentNode.monsterPool`), so mirror the gauntlet pool there to avoid a sprite pop-in on the first rare. `warmupSeconds` (optional) becomes the calmaria/time-bar budget during the pre-gauntlet warmup; omit it and the boss node uses the default plan. There is no `encounterPlan` on a boss node — camps and ambushes are gated off automatically inside `kind: "boss"` nodes. (The real `gralfor` node in `act-1.ts` carries both `monsterPool` and `warmupSeconds`, so don't be surprised when you see them.)
+**Which fields drive what (this trips people up):** spawns come from `bossNode.gauntlet.monsterPool` — that's the required one. The **node-level** `monsterPool` is _optional_ and does NOT drive boss-node spawns; it feeds sprite preloading (`world.tsx` reads `currentNode.monsterPool`), so mirror the gauntlet pool there to avoid a sprite pop-in on the first rare. `warmupSeconds` (optional) becomes the calmaria/time-bar budget during the pre-gauntlet warmup; omit it and the boss node uses the default plan. There is no `encounterPlan` on a boss node — camps and ambushes are gated off automatically inside `kind: "boss"` nodes. (The real `gralfor` node in `act-1.ts` carries both `monsterPool` and `warmupSeconds`, so don't be surprised when you see them.)
 
 ## Step 5 — Drop in the assets
 

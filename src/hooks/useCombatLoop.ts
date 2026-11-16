@@ -12,6 +12,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+
 import { findBoss, getBossConfig } from "#/game/bosses";
 import type { CombatPhase } from "#/game/combat/constants";
 import {
@@ -44,6 +45,7 @@ import {
 } from "#/lib/optimistic-character";
 import { pickRandom } from "#/lib/rng";
 import { playKillSfx, playSfx } from "#/lib/sfx";
+
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { BarrierApi } from "./useBarrier";
@@ -456,9 +458,7 @@ export function useCombatLoop({
 		active && state === "searching" && (!bossNode || warmupActive),
 		schedule.nextSpawnGapMs,
 		() => {
-			const rarity = warmupActive
-				? rollMonsterRarity()
-				: rollSpawnRarity();
+			const rarity = warmupActive ? rollMonsterRarity() : rollSpawnRarity();
 			const e = spawnMob(monsterPool, rarity);
 			if (!e) return;
 			commitEnemy(e);

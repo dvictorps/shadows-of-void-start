@@ -61,14 +61,14 @@ Then wire it into the `NODE_I18N` lookup table in `src/game/world/i18n.ts`:
 
 ```ts
 const NODE_I18N: Record<
-    string,
-    { name: () => string; description?: () => string }
+	string,
+	{ name: () => string; description?: () => string }
 > = {
-    // …existing entries…
-    shadow_glade: {
-        name: m.zone_shadow_glade,
-        description: m.zone_shadow_glade_description,
-    },
+	// …existing entries…
+	shadow_glade: {
+		name: m.zone_shadow_glade,
+		description: m.zone_shadow_glade_description,
+	},
 };
 ```
 

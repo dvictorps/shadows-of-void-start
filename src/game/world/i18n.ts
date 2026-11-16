@@ -15,6 +15,7 @@ import {
 } from "#/game/monsters";
 import { m } from "#/paraglide/messages";
 import { getLocale, type Locale } from "#/paraglide/runtime";
+
 import {
 	type GenderedForm,
 	isGenderedForm,
@@ -84,9 +85,7 @@ const NODE_I18N = {
  * render even before translations land.
  */
 export function translateNodeName(node: WorldNode): string {
-	return hasOwnKey(NODE_I18N, node.id)
-		? NODE_I18N[node.id].name()
-		: node.name;
+	return hasOwnKey(NODE_I18N, node.id) ? NODE_I18N[node.id].name() : node.name;
 }
 
 /**
@@ -292,8 +291,7 @@ function renderPt(
 ): string {
 	const lex = lexiconPt;
 	const genders = lex.monsterGender;
-	const gender =
-		genders && hasOwnKey(genders, def.id) ? genders[def.id] : "m";
+	const gender = genders && hasOwnKey(genders, def.id) ? genders[def.id] : "m";
 	const { prefixIds, suffixIds, resists } = partitionMods(mods);
 	const adjectives = prefixIds.map((id) =>
 		pickGendered(lex.prefixAdj[id], gender),

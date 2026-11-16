@@ -8,7 +8,7 @@
 > - One slot, one item (no grid-tetris).
 > - 60 slots per tab. Additional tabs purchased with Rubys.
 
-This playbook covers adding the *first* tab (default tab on character creation) — and any subsequent tabs unlocked via vendor purchase. The two flows share the same underlying `stash` table and slot vocabulary; they differ in how the tab is created.
+This playbook covers adding the _first_ tab (default tab on character creation) — and any subsequent tabs unlocked via vendor purchase. The two flows share the same underlying `stash` table and slot vocabulary; they differ in how the tab is created.
 
 ## Decide first
 

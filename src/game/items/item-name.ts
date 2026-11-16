@@ -2,6 +2,7 @@ import { pickGendered } from "#/game/i18n/lexicon-shared";
 import { hasOwnKey } from "#/game/typed-object";
 import { hashStringToUnit } from "#/lib/rng";
 import { getLocale } from "#/paraglide/runtime";
+
 import { lexiconEn } from "./lexicon/en";
 import { lexiconPt } from "./lexicon/pt";
 import type { BaseEntry, ItemNameLexicon } from "./lexicon/types";
@@ -80,8 +81,7 @@ function findBaseEntry(
 	item: GeneratedItem,
 	lex: ItemNameLexicon,
 ): BaseEntry | undefined {
-	if (!item.nameBase || !hasOwnKey(lex.bases, item.nameBase))
-		return undefined;
+	if (!item.nameBase || !hasOwnKey(lex.bases, item.nameBase)) return undefined;
 	return lex.bases[item.nameBase];
 }
 
