@@ -2,7 +2,7 @@ pre-commit:
   commands:
     lint:
       glob: "*.{js,ts,cjs,mjs,cts,mts,jsx,tsx}"
-      run: pnpm exec oxlint --fix {staged_files}
+      run: pnpm exec oxlint --fix --disable-nested-config {staged_files}
       stage_fixed: true
     format:
       glob: "*.{js,ts,cjs,mjs,cts,mts,jsx,tsx,json,jsonc,css,md,yml,yaml,toml}"
