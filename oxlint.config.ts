@@ -21,7 +21,6 @@ const GAME_IMPORT_ALLOWLIST = [
 // refactor lands; the refactor PR removes the entry. Never add a file: new
 // code meets the rule. The queue is docs/plans/in-progress.md.
 const COMPLEXITY_DEBT = [
-	"src/components/world/StatusCard.tsx",
 	"src/game/items/equipment.ts",
 	"src/game/items/generator.ts",
 	"src/game/stats/compute.ts",

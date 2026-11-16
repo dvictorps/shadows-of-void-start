@@ -61,6 +61,9 @@ const buttonVariants = cva(
 				"hud-icon": "h-auto p-2.5 [&_svg:not([class*='size-'])]:size-5",
 				// A consumable slot: the item art with its count badge.
 				"hud-slot": "relative size-20 p-0",
+				// The sidebar status card's smaller slots (wide / compact).
+				"hud-slot-md": "relative h-16 w-16 p-0",
+				"hud-slot-sm": "relative h-11 w-11 p-0",
 			},
 			// The uppercase, tracked label of the stark app-shell buttons.
 			caps: {

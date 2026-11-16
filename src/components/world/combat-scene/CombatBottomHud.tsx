@@ -2,11 +2,11 @@ import { AnimatePresence } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { type ReactNode, useMemo } from "react";
 
-import { Button } from "#/components/ui/button";
 import type { SelectableElement } from "#/game/stats/types";
 import type { DamageEvent } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 
+import { ConsumableSlot } from "../ConsumableSlot";
 import ElementSelector from "../ElementSelector";
 import HealthGlobe from "../HealthGlobe";
 import FloatingDamage from "./FloatingDamage";
@@ -87,6 +87,8 @@ export default function CombatBottomHud({
 		[playerEvents],
 	);
 	const onHover: HoverReporter = (key) => onConsumableHover?.(key);
+	const hoverAs = (key: ConsumableKey) => (hovered: boolean) =>
+		onHover(hovered ? key : null);
 
 	return (
 		<div
@@ -127,40 +129,41 @@ export default function CombatBottomHud({
 
 			{/* Teleport stone — sends to city by default from the HUD (panic
 			 * exit). Non-city destinations are picked from the map view. */}
-			<ConsumableSlot
-				hoverKey="teleport"
-				label="Use teleport stone"
-				count={teleportStones}
-				disabled={!canUseTeleportStone}
-				onUse={onUseTeleportStone}
-				onHover={onHover}
-			>
-				<SlotArt src="/assets/sprites/ui/pedraTeleporte.png" />
-			</ConsumableSlot>
+			<SlotCell>
+				<ConsumableSlot
+					label="Use teleport stone"
+					count={teleportStones}
+					disabled={!canUseTeleportStone}
+					onUse={onUseTeleportStone}
+					onHover={hoverAs("teleport")}
+					art="/assets/sprites/ui/pedraTeleporte.png"
+				/>
+			</SlotCell>
 
 			{/* Incenso Etéreo — invokes a camp on demand. Blocked during boss
 			 * fight / camp / boss intro (see useCombatLoop.triggerIncense). */}
-			<ConsumableSlot
-				hoverKey="incense"
-				label={m.incense_use_aria()}
-				count={incense}
-				disabled={!canUseIncense}
-				onUse={onUseIncense}
-				onHover={onHover}
-			>
-				<Sparkles className="pointer-events-none size-10 text-purple-300/80" />
-			</ConsumableSlot>
+			<SlotCell>
+				<ConsumableSlot
+					label={m.incense_use_aria()}
+					count={incense}
+					disabled={!canUseIncense}
+					onUse={onUseIncense}
+					onHover={hoverAs("incense")}
+				>
+					<Sparkles className="pointer-events-none size-10 text-purple-300/80" />
+				</ConsumableSlot>
+			</SlotCell>
 
-			<ConsumableSlot
-				hoverKey="potion"
-				label="Use potion"
-				count={potions}
-				disabled={!canUsePotion}
-				onUse={onUsePotion}
-				onHover={onHover}
-			>
-				<SlotArt src="/assets/sprites/ui/pocaoCura.png" />
-			</ConsumableSlot>
+			<SlotCell>
+				<ConsumableSlot
+					label="Use potion"
+					count={potions}
+					disabled={!canUsePotion}
+					onUse={onUsePotion}
+					onHover={hoverAs("potion")}
+					art="/assets/sprites/ui/pocaoCura.png"
+				/>
+			</SlotCell>
 		</div>
 	);
 }
@@ -189,52 +192,8 @@ function XpBar({ xp, xpNeeded }: { xp: number; xpNeeded: number }) {
 	);
 }
 
-function ConsumableSlot({
-	hoverKey,
-	label,
-	count,
-	disabled,
-	onUse,
-	onHover,
-	children,
-}: {
-	hoverKey: ConsumableKey;
-	label: string;
-	count: number;
-	disabled: boolean;
-	onUse: () => void;
-	onHover: HoverReporter;
-	children: ReactNode;
-}) {
-	return (
-		<div className="flex flex-col items-center gap-1">
-			<Button
-				variant="hud"
-				size="hud-slot"
-				onClick={onUse}
-				onMouseEnter={() => onHover(hoverKey)}
-				onMouseLeave={() => onHover(null)}
-				onFocus={() => onHover(hoverKey)}
-				onBlur={() => onHover(null)}
-				disabled={disabled}
-				aria-label={label}
-			>
-				{children}
-				<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-[10px] leading-tight text-white">
-					{count}
-				</span>
-			</Button>
-		</div>
-	);
-}
-
-function SlotArt({ src }: { src: string }) {
-	return (
-		<img
-			src={src}
-			alt=""
-			draggable={false}
-			className="pointer-events-none h-14 w-14 select-none object-contain"
-		/>
-	);
+// Each slot keeps its own column wrapper: CombatScene.test finds the bottom
+// HUD (to check its fade) as the potion button's grandparent.
+function SlotCell({ children }: { children: ReactNode }) {
+	return <div className="flex flex-col items-center gap-1">{children}</div>;
 }
