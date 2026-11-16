@@ -21,6 +21,8 @@ const config = defineConfig({
 					exclude: [
 						...configDefaults.exclude,
 						"tools/**",
+						// Agent worktrees are full repo copies.
+						".claude/**",
 						"**/*.integration.test.ts",
 					],
 				},
