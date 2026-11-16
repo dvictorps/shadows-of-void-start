@@ -28,7 +28,8 @@ Living examples: `src/components/world/InventoryModal.tsx` + `inventory-modal/`,
 5. Write the component test next to it (`Foo.test.tsx`, jsdom): props in, `vi.fn()` fakes for `server` and callbacks, no `vi.mock`. Reuse the harness:
    - `narrow` from `src/components/dom-test-utils.ts`;
    - item and row builders from `src/components/world/item-test-fixtures.ts`;
-   - drag-and-drop through dnd-kit's real `PointerSensor`, framer-motion on fake timers, sonner and the confirmation provider for real: the recipes are in `docs/plans/in-progress.md` → agent-ergonomics item 4 and the headers of `CombatScene.test.tsx` / `InventoryModal.test.tsx`.
+   - drag-and-drop through dnd-kit's real `PointerSensor` on `src/components/world/dnd-test-harness.ts` (`installDragHarness()`, `drag`, `startDrag`);
+   - framer-motion on fake timers, sonner and the confirmation provider for real: the recipes are in `docs/plans/in-progress.md` → agent-ergonomics item 4 and the headers of `CombatScene.test.tsx` / `InventoryModal.test.tsx`.
 6. Add the files to `docs/codebase-map.md`.
 
 ## Debt lists
