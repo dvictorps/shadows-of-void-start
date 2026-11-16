@@ -127,7 +127,7 @@ function BuyCard({
 
 function buyLabel(atCap: boolean, qty: number): string {
 	if (atCap) return m.vendor_buy_at_cap();
-	if (qty > 1) return `${m.vendor_buy_action()} x${qty}`;
+	if (qty > 1) return m.vendor_buy_action_qty({ qty });
 	return m.vendor_buy_action();
 }
 

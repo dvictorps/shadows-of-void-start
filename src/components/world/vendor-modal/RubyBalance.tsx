@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import RubyIcon from "#/components/game/RubyIcon";
 import Tooltip from "#/components/ui/tooltip";
+import { m } from "#/paraglide/messages";
 
 export type RubyDelta = { id: string; amount: number; sign: "+" | "-" };
 
@@ -17,7 +18,7 @@ export default function RubyBalance({
 	deltas: readonly RubyDelta[];
 }) {
 	return (
-		<Tooltip content="Rubis — moeda do jogo">
+		<Tooltip content={m.ruby_tooltip()}>
 			<div className="display-title relative flex items-center justify-end gap-2 px-1 text-xl uppercase tracking-[0.15em] text-yellow-300 tabular-nums">
 				<RubyIcon className="h-6 w-6" />
 				{rubys}

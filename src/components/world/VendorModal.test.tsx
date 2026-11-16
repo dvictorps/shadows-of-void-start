@@ -29,6 +29,7 @@ import { MAX_POTIONS } from "#/game/combat/constants";
 import { computeSellPrice } from "#/game/items/sell-price";
 import type { GeneratedItem } from "#/game/items/types";
 import { VENDOR_PRODUCTS } from "#/game/vendor/products";
+import { SERVER_ERRORS } from "#/lib/server-errors";
 import { m } from "#/paraglide/messages";
 
 import { card, nameOf } from "./dnd-test-harness";
@@ -180,15 +181,12 @@ describe("VendorModal — header", () => {
 		expect(balance().textContent).toContain("321");
 	});
 
-	it("labels the balance with a fixed Portuguese tooltip", async () => {
-		// Pinned oddity: the text is hard-coded, outside paraglide.
+	it("labels the balance with the localized tooltip", async () => {
 		setup();
 		await act(async () => {
 			fireEvent.focus(narrow(balance().firstElementChild, HTMLElement));
 		});
-		expect(screen.getAllByText("Rubis — moeda do jogo").length).toBeGreaterThan(
-			0,
-		);
+		expect(screen.getAllByText(m.ruby_tooltip()).length).toBeGreaterThan(0);
 	});
 });
 
@@ -211,10 +209,9 @@ describe("VendorModal — buy cards", () => {
 		await press(plus(c));
 		await press(plus(c));
 		expect(c.textContent).toContain(String(POTION_PRICE * 3));
-		// Pinned oddity: the multiplier is glued to the label, not a message param.
-		expect(buyButton(c).textContent).toBe(`${m.vendor_buy_action()} x3`);
+		expect(buyButton(c).textContent).toBe(m.vendor_buy_action_qty({ qty: 3 }));
 		await press(minus(c));
-		expect(buyButton(c).textContent).toBe(`${m.vendor_buy_action()} x2`);
+		expect(buyButton(c).textContent).toBe(m.vendor_buy_action_qty({ qty: 2 }));
 	});
 
 	it("stops the stepper at what the balance affords", async () => {
@@ -222,7 +219,7 @@ describe("VendorModal — buy cards", () => {
 		const c = stoneCard();
 		await press(plus(c));
 		expect(plus(c).disabled).toBe(true);
-		expect(buyButton(c).textContent).toBe(`${m.vendor_buy_action()} x2`);
+		expect(buyButton(c).textContent).toBe(m.vendor_buy_action_qty({ qty: 2 }));
 	});
 
 	it("stops the stepper at the product cap", async () => {
@@ -248,10 +245,10 @@ describe("VendorModal — buy cards", () => {
 		const t = setup({ rubys: STONE_PRICE * 5 });
 		const c = stoneCard();
 		for (let i = 0; i < 4; i++) await press(plus(c));
-		expect(buyButton(c).textContent).toBe(`${m.vendor_buy_action()} x5`);
+		expect(buyButton(c).textContent).toBe(m.vendor_buy_action_qty({ qty: 5 }));
 		t.update({ rubys: STONE_PRICE * 2 });
 		expect(buyButton(stoneCard()).textContent).toBe(
-			`${m.vendor_buy_action()} x2`,
+			m.vendor_buy_action_qty({ qty: 2 }),
 		);
 	});
 });
@@ -282,24 +279,23 @@ describe("VendorModal — buying", () => {
 		expect(buyButton(potionCard()).disabled).toBe(false);
 	});
 
-	it("gives the cost back and toasts the raw error message on a failure", async () => {
-		// Pinned oddity: `err.message` as is, not through serverErrorMessage.
+	it("gives the cost back and toasts a crash with the buy message", async () => {
 		const t = setup();
 		t.onBuy.mockRejectedValue(new Error("boom"));
 		await press(buyButton(stoneCard()));
-		expect(await screen.findByText("boom")).toBeTruthy();
+		expect(await screen.findByText(m.vendor_buy_failed())).toBeTruthy();
+		expect(screen.queryByText("boom")).toBeNull();
 		expect(within(balance()).getByText(`+${STONE_PRICE}`)).toBeTruthy();
 	});
 
-	it("shows a rule error untranslated", async () => {
-		// Pinned oddity: the server's English, not the localized message.
+	it("translates a rule error", async () => {
 		const t = setup();
-		t.onBuy.mockRejectedValue(ruleError("Not enough rubys"));
+		t.onBuy.mockRejectedValue(ruleError(SERVER_ERRORS.characterNotFound));
 		await press(buyButton(stoneCard()));
-		expect(await screen.findByText("Not enough rubys")).toBeTruthy();
+		expect(await screen.findByText(m.error_character_not_found())).toBeTruthy();
 	});
 
-	it("falls back to the buy message when the failure carries none", async () => {
+	it("toasts the buy message for a rejection that isn't an Error", async () => {
 		const t = setup();
 		t.onBuy.mockRejectedValue("offline");
 		await press(buyButton(stoneCard()));
@@ -401,20 +397,30 @@ describe("VendorModal — selling", () => {
 		expect(sellButton().disabled).toBe(false);
 	});
 
-	it("puts the pick back, takes the total back and toasts the raw error on a failure", async () => {
-		// Pinned oddity: `err.message` as is, not through serverErrorMessage.
+	it("puts the pick back, takes the total back and toasts a crash with the sell message", async () => {
 		const a = sword();
 		const t = setup({ inventoryItems: [inventoryRow(1, a, 0)] });
 		t.onSellMany.mockRejectedValue(new Error("boom"));
 		await openSell();
 		await press(card(a));
 		await press(sellButton());
-		expect(await screen.findByText("boom")).toBeTruthy();
+		expect(await screen.findByText(m.vendor_sell_failed())).toBeTruthy();
+		expect(screen.queryByText("boom")).toBeNull();
 		expect(isSelected(a)).toBe(true);
 		expect(within(balance()).getByText(`-${computeSellPrice(a)}`)).toBeTruthy();
 	});
 
-	it("falls back to the sell message when the failure carries none", async () => {
+	it("translates a rule error on a failed sale", async () => {
+		const a = sword();
+		const t = setup({ inventoryItems: [inventoryRow(1, a, 0)] });
+		t.onSellMany.mockRejectedValue(ruleError(SERVER_ERRORS.characterNotFound));
+		await openSell();
+		await press(card(a));
+		await press(sellButton());
+		expect(await screen.findByText(m.error_character_not_found())).toBeTruthy();
+	});
+
+	it("toasts the sell message for a rejection that isn't an Error", async () => {
 		const a = sword();
 		const t = setup({ inventoryItems: [inventoryRow(1, a, 0)] });
 		t.onSellMany.mockRejectedValue("offline");
