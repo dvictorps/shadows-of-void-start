@@ -9,7 +9,6 @@
 // future refactor that re-introduces the snapshot read fails loudly.
 
 import { act, renderHook } from "@testing-library/react";
-import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EMPTY_ELEMENTAL_GAIN } from "#/game/combat/damage";
@@ -17,29 +16,8 @@ import type { Enemy } from "#/game/combat/types";
 import type { MonsterDefinition } from "#/game/monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
 
-import { SessionTokenProvider } from "./useSessionToken";
-
-// ── Mocks ──────────────────────────────────────────────────────────────────
-// `useCombatTick` calls `useMutation(api.combat.syncHp)` and `.usePotion`.
-// In tests there's no Convex client; stub the hook out with a no-op callable
-// that still exposes `.withOptimisticUpdate` (used for the potion mutation).
-// This is the last module mock in the file. The Cloudflare migration
-// (ADR 0009) replaces the Convex transport, and the mutation gets injected
-// through `deps` like the dice and audio below.
-// oxlint-disable-next-line anti-slop/no-module-mocking -- no injectable seam for `useMutation` yet; Convex transport is replaced by the Cloudflare migration.
-vi.mock("convex/react", () => {
-	const noop = Object.assign(
-		async () => {
-			/* no-op */
-		},
-		{ withOptimisticUpdate: () => noop },
-	);
-	return { useMutation: () => noop };
-});
-
-// Imported AFTER the Convex mock so the hook closure picks it up.
-const { useCombatTick } = await import("./useCombatTick");
-const { useBarrier } = await import("./useBarrier");
+import { useBarrier } from "./useBarrier";
+import { useCombatTick } from "./useCombatTick";
 
 type TickParams = Parameters<typeof useCombatTick>[0];
 type CombatTickDeps = NonNullable<TickParams["deps"]>;
@@ -56,9 +34,12 @@ const TEST_DEPS: CombatTickDeps = {
 	playPlayerSwingSfx: () => {},
 };
 
-// SAFETY: `Id<"characters">` is a branded string; the id is only forwarded to
-// the stubbed `useMutation` above, which never resolves it against a table.
-const TEST_CHARACTER_ID = "test-char" as TickParams["characterId"];
+// The server calls are parameters of the hook; these tests exercise the tick
+// math, so they never resolve anything.
+const NO_SERVER = {
+	syncVitals: async () => {},
+	consumePotion: async () => {},
+};
 
 // ── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -218,34 +199,28 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 		const onPlayerDeath = vi.fn<TickParams["onPlayerDeath"]>();
 		const pushEvent = vi.fn<TickParams["pushEvent"]>();
 
-		renderHook(
-			() => {
-				const stats = makeStats({ thorns: THORNS });
-				const barrierApi = useBarrier({
-					maxBarrier: stats.maxBarrier,
-					active: true,
-				});
-				return useCombatTick({
-					characterId: TEST_CHARACTER_ID,
-					active: true,
-					isEngaged: true,
-					enemy: latestEnemy,
-					stats,
-					initialHp: 100,
-					potions: 0,
-					barrierApi,
-					onPlayerDeath,
-					resolveKill,
-					pushEvent,
-					updateEnemy,
-					deps: TEST_DEPS,
-				});
-			},
-			{
-				wrapper: ({ children }) =>
-					createElement(SessionTokenProvider, null, children),
-			},
-		);
+		renderHook(() => {
+			const stats = makeStats({ thorns: THORNS });
+			const barrierApi = useBarrier({
+				maxBarrier: stats.maxBarrier,
+				active: true,
+			});
+			return useCombatTick({
+				...NO_SERVER,
+				active: true,
+				isEngaged: true,
+				enemy: latestEnemy,
+				stats,
+				initialHp: 100,
+				potions: 0,
+				barrierApi,
+				onPlayerDeath,
+				resolveKill,
+				pushEvent,
+				updateEnemy,
+				deps: TEST_DEPS,
+			});
+		});
 
 		// One 50ms tick → both progress refs reach exactly 1.0 → both swings
 		// fire in the same callback invocation.
@@ -279,34 +254,28 @@ function renderRegenHook({
 	maxLife: number;
 	initialHp: number;
 }) {
-	return renderHook(
-		() => {
-			const stats = makeStats({ lifeRegen, maxLife });
-			const barrierApi = useBarrier({
-				maxBarrier: stats.maxBarrier,
-				active: true,
-			});
-			return useCombatTick({
-				characterId: TEST_CHARACTER_ID,
-				active: true,
-				isEngaged: false,
-				enemy: null,
-				stats,
-				initialHp,
-				potions: 0,
-				barrierApi,
-				onPlayerDeath: vi.fn<TickParams["onPlayerDeath"]>(),
-				resolveKill: vi.fn<TickParams["resolveKill"]>(),
-				pushEvent: vi.fn<TickParams["pushEvent"]>(),
-				updateEnemy: vi.fn<TickParams["updateEnemy"]>(),
-				deps: TEST_DEPS,
-			});
-		},
-		{
-			wrapper: ({ children }) =>
-				createElement(SessionTokenProvider, null, children),
-		},
-	);
+	return renderHook(() => {
+		const stats = makeStats({ lifeRegen, maxLife });
+		const barrierApi = useBarrier({
+			maxBarrier: stats.maxBarrier,
+			active: true,
+		});
+		return useCombatTick({
+			...NO_SERVER,
+			active: true,
+			isEngaged: false,
+			enemy: null,
+			stats,
+			initialHp,
+			potions: 0,
+			barrierApi,
+			onPlayerDeath: vi.fn<TickParams["onPlayerDeath"]>(),
+			resolveKill: vi.fn<TickParams["resolveKill"]>(),
+			pushEvent: vi.fn<TickParams["pushEvent"]>(),
+			updateEnemy: vi.fn<TickParams["updateEnemy"]>(),
+			deps: TEST_DEPS,
+		});
+	});
 }
 
 describe("useCombatTick — life regen modifier", () => {

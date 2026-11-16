@@ -61,9 +61,9 @@ export function useEncounterSchedule({
 
 	// Camp thresholds are now server-rolled (enterZone persists them on the
 	// character). We mirror the latest value into a ref so the ticker — which
-	// reads via a ref to avoid stale closures — sees updates from Convex's
-	// reactive query without re-subscribing. The state copy drives the bar
-	// marker render.
+	// reads via a ref to avoid stale closures — sees the new thresholds that
+	// enterZone / recordKill write into the character cache. The state copy
+	// drives the bar marker render.
 	const campThresholdsMsRef = useRef<readonly number[]>(serverCampThresholdsMs);
 	useEffect(() => {
 		campThresholdsMsRef.current = serverCampThresholdsMs;
@@ -109,7 +109,7 @@ export function useEncounterSchedule({
 	// owned by the server: enterZone rolls them on entry, and recordKill on a
 	// miniboss reroll them + resets zoneStartedAt per CONTEXT.md → Zone
 	// Miniboss ("the bar resets to 0 and the schedule is rerolled"). The
-	// reactive `serverCampThresholdsMs` prop carries the new values into the
+	// `serverCampThresholdsMs` prop (from the cached character) carries the new values into the
 	// ref via the effect above, so this client-side reset only needs to clear
 	// the consumed-index counter. Activation additionally resets campSource
 	// ("baked") above this call.

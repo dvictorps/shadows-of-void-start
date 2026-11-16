@@ -14,9 +14,8 @@ import {
 } from "#/game/vendor/products";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
+import type { ItemRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
-
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const ITEM_SLOT_SIZE = 88;
 
@@ -28,9 +27,9 @@ type Props = {
 	rubys: number;
 	potions: number;
 	teleportStones: number;
-	inventoryItems: Doc<"items">[];
+	inventoryItems: ItemRow[];
 	onBuy: (productId: VendorProductId, quantity: number) => Promise<void>;
-	onSellMany: (itemIds: Id<"items">[]) => Promise<void>;
+	onSellMany: (itemIds: number[]) => Promise<void>;
 };
 
 type RubyDelta = { id: string; amount: number; sign: "+" | "-" };
@@ -48,7 +47,7 @@ export default function VendorModal({
 	onSellMany,
 }: Props) {
 	const [tab, setTab] = useState<Tab>("buy");
-	const [selected, setSelected] = useState<Set<string>>(new Set());
+	const [selected, setSelected] = useState<Set<number>>(new Set());
 	const [rubyDeltas, setRubyDeltas] = useState<RubyDelta[]>([]);
 	// Per-product spam-click guard. Server-side rate limiting is the real
 	// hardening — see docs/security/threat-model.md.
@@ -74,7 +73,7 @@ export default function VendorModal({
 		}, RUBY_DELTA_LIFETIME_MS);
 	};
 
-	const toggle = (id: string) => {
+	const toggle = (id: number) => {
 		setSelected((prev) => {
 			const next = new Set(prev);
 			if (next.has(id)) next.delete(id);
@@ -108,9 +107,7 @@ export default function VendorModal({
 	// `now` ticker on the seconds-remaining counter elsewhere in the world
 	// view) doesn't re-walk the inventory + recompute every sell price.
 	const { selectedItems, selectedTotal } = useMemo(() => {
-		const items = inventoryItems.filter((it) =>
-			selected.has(it._id.toString()),
-		);
+		const items = inventoryItems.filter((it) => selected.has(it.id));
 		const total = items.reduce((sum, it) => sum + computeSellPrice(it.data), 0);
 		return { selectedItems: items, selectedTotal: total };
 	}, [inventoryItems, selected]);
@@ -118,7 +115,7 @@ export default function VendorModal({
 	const handleSellSelected = async () => {
 		if (selectedItems.length === 0) return;
 		const total = selectedTotal;
-		const itemIds = selectedItems.map((it) => it._id);
+		const itemIds = selectedItems.map((it) => it.id);
 		const previousSelection = new Set(selected);
 		await runSell(async () => {
 			pushRubyDelta(total, "+");
@@ -420,10 +417,10 @@ function SellTab({
 	onSell,
 	isSelling,
 }: {
-	inventoryItems: Doc<"items">[];
-	selected: Set<string>;
-	setSelected: (next: Set<string>) => void;
-	toggle: (id: string) => void;
+	inventoryItems: ItemRow[];
+	selected: Set<number>;
+	setSelected: (next: Set<number>) => void;
+	toggle: (id: number) => void;
 	selectedCount: number;
 	selectedTotal: number;
 	onSell: () => Promise<void>;
@@ -443,7 +440,7 @@ function SellTab({
 		if (allSelected) {
 			setSelected(new Set());
 		} else {
-			setSelected(new Set(inventoryItems.map((it) => it._id.toString())));
+			setSelected(new Set(inventoryItems.map((it) => it.id)));
 		}
 	};
 
@@ -462,14 +459,14 @@ function SellTab({
 			</div>
 			<div className="fancy-scroll flex max-h-[50vh] min-h-[20vh] flex-1 flex-wrap content-start gap-3 overflow-y-auto pr-3">
 				{inventoryItems.map((item) => {
-					const isSelected = selected.has(item._id.toString());
+					const isSelected = selected.has(item.id);
 					return (
 						<ItemCard
-							key={item._id}
+							key={item.id}
 							item={item.data}
 							size={ITEM_SLOT_SIZE}
 							selected={isSelected}
-							onClick={() => toggle(item._id.toString())}
+							onClick={() => toggle(item.id)}
 						/>
 					);
 				})}

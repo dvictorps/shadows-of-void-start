@@ -35,7 +35,7 @@ export const auth = betterAuth({
 	},
 	user: {
 		additionalFields: {
-			// Replaces Convex's `userRoles`. `input: false` keeps sign-up from
+			// The account's role (user / admin). `input: false` keeps sign-up from
 			// setting it. Promote admins with SQL (`wrangler d1 execute`).
 			role: {
 				type: [...schema.USER_ROLES],

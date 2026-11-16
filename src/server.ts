@@ -5,7 +5,7 @@ import { computeLeaderboardSnapshot } from "./server/leaderboard";
 
 // Worker entry (wrangler.jsonc → `main`). TanStack Start serves every HTTP
 // request; the extra `scheduled` export receives the Cron Trigger that
-// replaces convex/crons.ts.
+// runs the leaderboard snapshot.
 export default {
 	// Start reads bindings through `cloudflare:workers`, so it only needs the
 	// request (its second parameter is Start's own options, not `env`).

@@ -76,3 +76,10 @@ This rule doesn't sanction caching arbitrarily. The two existing instances were 
 - ADR [0001 — Optimistic mutations](./0001-optimistic-mutations.md) — performance contract for player-state changes (orthogonal to this ADR but uses the same `src/game/` helpers from the client side).
 - ADR [0003 — Render-at-display naming](./0003-render-at-display-names.md) — covers the literal-union widening trade-off at the Convex boundary for `nameBase` / `nameModifier`.
 - The stub playbooks for queued domains ([`adding-a-skill.md`](../playbooks/adding-a-skill.md), [`adding-a-passive.md`](../playbooks/adding-a-passive.md), [`adding-a-stash-tab.md`](../playbooks/adding-a-stash-tab.md)) flag the schema design questions each new system needs to resolve under this ADR's rules.
+
+## Update (2026-11-16, Cloudflare migration)
+
+Read `convex/schema.ts` above as `src/server/db/game-schema.ts` (D1 via Drizzle, [ADR 0009](./0009-cloudflare-d1-trpc-backend.md)); the rules are unchanged. Two details moved:
+
+- **Ids stay strings in the DB**, now as plain `text` columns with no CHECK constraint (`classId` is `text().$type<CharacterClassId>()`), so adding a class or monster still touches only `src/game/`. The reason is no longer a validator limitation but the migration cost: an enum in SQL would need a migration per new id.
+- **Every procedure validates static-data ids** with the matching `findX()` helper (or a Zod enum built from the game constants, e.g. `z.enum(MONSTER_RARITIES)`) and rejects unknown ones with a `TRPCError` (`fail()`), not a `ConvexError`.

@@ -14,6 +14,19 @@ import type { WorldNode } from "./types";
 
 type Decision<Value> = { ok: false; error: string } | ({ ok: true } & Value);
 
+/**
+ * The zone-visit columns that exit, death, re-entry and teleport clear. The
+ * server adds the bag to it (`CLEARED_ZONE`); the client patches its cached
+ * character with it, so a new visit column can't be missed on one side.
+ */
+export const CLEARED_VISIT = {
+	currentZoneSession: null,
+	zoneStartedAt: null,
+	campThresholdsMs: null,
+	inCamp: false,
+	lastCampIndex: null,
+} as const;
+
 export interface Whereabouts {
 	currentLocation: string;
 	travelDestination: string | null;

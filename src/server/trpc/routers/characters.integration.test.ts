@@ -87,16 +87,6 @@ describe("characters", () => {
 		expect(
 			await account.caller.characters.byId({ id: foreign.characterId }),
 		).toBeNull();
-		expect(
-			await account.caller.characterProgression.byCharacterId({
-				characterId: foreign.characterId,
-			}),
-		).toBeNull();
-		expect(
-			await account.caller.combatState.byCharacterId({
-				characterId: foreign.characterId,
-			}),
-		).toBeNull();
 	});
 
 	it("removes a character and cascades its items, but not another account's", async () => {

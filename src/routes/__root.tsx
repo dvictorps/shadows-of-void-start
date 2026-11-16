@@ -1,4 +1,3 @@
-import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
@@ -7,16 +6,13 @@ import {
 	Outlet,
 	Scripts,
 	useLocation,
-	useRouteContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { ConvexProvider } from "convex/react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useEffect } from "react";
 
 import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
 import { SessionTokenProvider } from "#/hooks/useSessionToken";
-import { getSessionUser } from "#/lib/auth-session";
 import { consumeFlashToast } from "#/lib/flash-toast";
 import { getLocale } from "#/paraglide/runtime";
 
@@ -25,13 +21,13 @@ import Header from "../components/Header";
 import Toaster from "../components/Toaster";
 import PostHogProvider from "../integrations/posthog/provider";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
-import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
+import type { TRPC } from "../integrations/trpc/client";
 
 import appCss from "../styles.css?url";
 
 interface MyRouterContext {
 	queryClient: QueryClient;
-	convexQueryClient: ConvexQueryClient;
+	trpc: TRPC;
 }
 
 const CHROMELESS_ROUTES = new Set([
@@ -42,13 +38,12 @@ const CHROMELESS_ROUTES = new Set([
 ]);
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-	beforeLoad: async () => {
+	// The session is checked by the routes that need it (`requireSession` in
+	// world / admin), from the query cache, not on every navigation here.
+	beforeLoad: () => {
 		if (globalThis.document !== undefined) {
 			document.documentElement.setAttribute("lang", getLocale());
 		}
-
-		const user = await getSessionUser();
-		return { isAuthenticated: user !== null, user };
 	},
 
 	head: () => ({
@@ -91,14 +86,10 @@ function NotFoundComponent() {
 }
 
 function RootComponent() {
-	const context = useRouteContext({ from: Route.id });
-
 	return (
-		<ConvexProvider client={context.convexQueryClient.convexClient}>
-			<RootDocument>
-				<Outlet />
-			</RootDocument>
-		</ConvexProvider>
+		<RootDocument>
+			<Outlet />
+		</RootDocument>
 	);
 }
 
@@ -119,30 +110,28 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body className="font-sans antialiased wrap-anywhere selection:bg-selection">
 				<PostHogProvider>
-					<TanStackQueryProvider>
-						<ConfirmationProvider>
-							<SessionTokenProvider>
-								<TooltipPrimitive.Provider delayDuration={150}>
-									{!chromeless && <Header />}
-									{children}
-									{showFooter && <Footer />}
-								</TooltipPrimitive.Provider>
-							</SessionTokenProvider>
-						</ConfirmationProvider>
-						<Toaster />
-						<TanStackDevtools
-							config={{
-								position: "bottom-right",
-							}}
-							plugins={[
-								{
-									name: "Tanstack Router",
-									render: <TanStackRouterDevtoolsPanel />,
-								},
-								TanStackQueryDevtools,
-							]}
-						/>
-					</TanStackQueryProvider>
+					<ConfirmationProvider>
+						<SessionTokenProvider>
+							<TooltipPrimitive.Provider delayDuration={150}>
+								{!chromeless && <Header />}
+								{children}
+								{showFooter && <Footer />}
+							</TooltipPrimitive.Provider>
+						</SessionTokenProvider>
+					</ConfirmationProvider>
+					<Toaster />
+					<TanStackDevtools
+						config={{
+							position: "bottom-right",
+						}}
+						plugins={[
+							{
+								name: "Tanstack Router",
+								render: <TanStackRouterDevtoolsPanel />,
+							},
+							TanStackQueryDevtools,
+						]}
+					/>
 				</PostHogProvider>
 				<Scripts />
 			</body>

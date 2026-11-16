@@ -1,8 +1,7 @@
-// Pure potion-drink resolution, extracted from `convex/combat.ts:usePotion`.
-// The mutation stays the auth/IO boundary; the heal math and the two refusal
-// cases (no potions, already full) live here so they can be unit-tested
-// without a Convex runtime. See docs/codebase-map.md → convex testing
-// convention.
+// Pure potion-drink resolution behind `combat.consumePotion`. The procedure
+// stays the auth/IO boundary; the heal math and the two refusal cases (no
+// potions, already full) live here so they can be unit-tested without a
+// database. See docs/codebase-map.md → testing convention.
 
 import { POTION_HEAL_FRACTION } from "./constants";
 import { clampVital } from "./vitals";

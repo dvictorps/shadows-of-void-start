@@ -15,7 +15,7 @@ import { inInventoryOf, inStash, loadInventorySlots } from "../../item-reads";
 import { fail, notFound } from "../errors";
 import { characterSessionProcedure, router } from "../init";
 
-// Mirrors convex/stash.ts. The stash belongs to the account, one per mode
+// The stash belongs to the account, one per mode
 // (softcore / hardcore), and is only reachable from the city. Items keep
 // their id across inventory ⇄ stash.
 

@@ -75,7 +75,7 @@ Pure combat tests (`src/game/combat/*.test.ts`) pass `random: () => 0.5` to forc
 
 ## What's safe to change
 
-- **Pure functions** in `src/game/combat/damage.ts`, `barrier.ts`, `leech.ts` — changing these is mechanically safe as long as the existing tests pass. They have no React or Convex dependency.
+- **Pure functions** in `src/game/combat/damage.ts`, `barrier.ts`, `leech.ts` — changing these is mechanically safe as long as the existing tests pass. They have no React or IO dependency.
 - **The damage formula** — read `CONTEXT.md` → "Damage formula" first. The formula is documented; if you change it, update the doc.
 - **The state machine transitions** — guarded but careful. Adding a new state (e.g. `stunned`) means adding ref tracking and respecting the activation transition.
 

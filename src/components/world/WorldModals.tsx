@@ -7,8 +7,7 @@ import VendorModal from "#/components/world/VendorModal";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import type { VendorProductId } from "#/game/vendor/products";
 import type { ModalHandle } from "#/hooks/useModal";
-
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
+import type { BagEntry, ItemRow } from "#/lib/api-types";
 
 export function WorldModals({
 	bagModal,
@@ -46,39 +45,39 @@ export function WorldModals({
 	vendorModal: ModalHandle;
 	stashModal: ModalHandle;
 	settingsModal: ModalHandle;
-	zoneBag: Doc<"items">[];
+	zoneBag: BagEntry[];
 	exitKeepCap: number;
 	onExitClose: () => void;
-	onPickSelected: (ids: Id<"items">[]) => void | Promise<void>;
-	onDiscardSelected: (ids: Id<"items">[]) => void | Promise<void>;
-	onPickAll: (ids: Id<"items">[]) => void | Promise<void>;
+	onPickSelected: (ids: string[]) => void | Promise<void>;
+	onDiscardSelected: (ids: string[]) => void | Promise<void>;
+	onPickAll: (ids: string[]) => void | Promise<void>;
 	onDiscardAll: () => void | Promise<void>;
 	stats: ComputedCharacterStats;
-	characterId: Id<"characters">;
+	characterId: number;
 	characterLevel: number;
-	equippedItems: Doc<"items">[];
-	inventoryItems: Doc<"items">[];
-	stashItems: Doc<"items">[];
+	equippedItems: ItemRow[];
+	inventoryItems: ItemRow[];
+	stashItems: ItemRow[];
 	rubys: number;
 	potions: number;
 	teleportStones: number;
 	onVendorBuy: (productId: VendorProductId, quantity: number) => Promise<void>;
-	onVendorSellMany: (itemIds: Id<"items">[]) => Promise<void>;
+	onVendorSellMany: (itemIds: number[]) => Promise<void>;
 	onStashDeposit: (
-		itemIds: Id<"items">[],
+		itemIds: number[],
 	) => Promise<{ deposited: number; failed: number }>;
 	onStashWithdraw: (
-		itemIds: Id<"items">[],
+		itemIds: number[],
 	) => Promise<{ withdrawn: number; failed: number }>;
 	onReorderInventory: (args: {
-		itemId: Id<"items">;
+		itemId: number;
 		targetSlot: number;
-		swapWithItemId?: Id<"items">;
+		swapWithItemId?: number;
 	}) => void;
 	onReorderStash: (args: {
-		itemId: Id<"items">;
+		itemId: number;
 		targetSlot: number;
-		swapWithItemId?: Id<"items">;
+		swapWithItemId?: number;
 	}) => void;
 }) {
 	return (

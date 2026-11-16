@@ -10,14 +10,14 @@ import {
 
 import type { BossId } from "#/game/bosses/types";
 import type { CharacterClassId } from "#/game/classes/types";
+import { STASH_MODES } from "#/game/inventory/stash-mode";
 import type { GeneratedItem } from "#/game/items/types";
 import { EQUIPPED_SLOTS, SELECTABLE_ELEMENTS } from "#/game/stats/types";
 
 import { user } from "./auth-schema";
 
-// Game tables, rebuilt clean from `convex/schema.ts` (ADR 0009: no data
-// migration, so no lazy-migration fallbacks and no optional-for-legacy
-// fields).
+// Game tables (ADR 0009). Built clean with no data migration, so there are
+// no lazy-migration fallbacks and no optional-for-legacy fields.
 //
 // Write budget: D1 Free allows 100k rows written per day, and every index
 // whose columns a write touches costs one more row written. So the rules are:
@@ -25,23 +25,20 @@ import { user } from "./auth-schema";
 //   - Integer primary keys alias SQLite's rowid, which needs no separate index.
 //     Text keys would add one index write per insert.
 //   - The character's combat state and progression live on the `characters`
-//     row. Convex split them into `combatState` / `characterProgression` to
+//     row. The old backend split them into separate tables to
 //     keep reactive payloads small; without reactivity the split only turns
 //     one row written per kill into three.
 //   - The zone bag is a JSON column on `characters`, not `items` rows. A drop
 //     rides on the character row the kill already writes, and a discarded
 //     drop costs nothing; only a picked-up item becomes an `items` row.
 // Structured data is a JSON text column typed with `$type<>()` from
-// `src/game`, so the game types stay the single source (this retires the
-// hand-synced `convex/itemValidator.ts`).
+// `src/game`, so the game types stay the single source.
 
-export const STASH_MODES = ["softcore", "hardcore"] as const;
-export type StashMode = (typeof STASH_MODES)[number];
-
-/** A character's stash is the account's stash for its mode. */
-export function stashModeOf(character: { hardcore: boolean }): StashMode {
-	return character.hardcore ? "hardcore" : "softcore";
-}
+export {
+	STASH_MODES,
+	type StashMode,
+	stashModeOf,
+} from "#/game/inventory/stash-mode";
 export const ITEM_LOCATION_KINDS = ["inventory", "equipped", "stash"] as const;
 export const LEADERBOARD_CATEGORIES = ["level", "bossKills"] as const;
 
@@ -158,8 +155,8 @@ export const characters = sqliteTable(
 		cachedMagicFind: real().notNull().default(0),
 		cachedMovementSpeed: real().notNull().default(0),
 	},
-	// Only index: the character list per account. The Convex leaderboard
-	// indexes are gone; (hardcore, level, xp) would cost a write on every kill.
+	// Only index: the character list per account. Leaderboard indexes are
+	// left out on purpose: (hardcore, level, xp) would cost a write on every kill.
 	(t) => [index("characters_auth_user_id_idx").on(t.authUserId)],
 );
 

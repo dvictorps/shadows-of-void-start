@@ -76,3 +76,7 @@ If Convex ever ships a `v.unionLiteral([...]: readonly string[])` helper, swap i
 - ADR [0002 — i18n systems](./0002-i18n-systems.md) explains _why_ the lexicon system exists alongside paraglide.
 - Playbook [`i18n-which-system.md`](../playbooks/i18n-which-system.md) is the decision tree for new strings.
 - The `mod.description` field on `RolledMod` (and the `templateName` / `name` legacy fields on `GeneratedItem`) are pre-render artifacts retained for back-compat with rows from before the refactor. New rolls omit them. See `convex/itemValidator.ts` field-level comments.
+
+## Update (2026-11-16, Cloudflare migration)
+
+The Convex validator boundary described in "The Convex-validator widening" is gone. Items are a JSON column typed with `$type<GeneratedItem>()` (`src/server/db/game-schema.ts`, [ADR 0009](./0009-cloudflare-d1-trpc-backend.md)), so there is no second, hand-synced shape (`convex/itemValidator.ts` was deleted) and nothing at the persistence boundary widens or narrows the type. `nameBase` / `nameModifier` stay `string` on `GeneratedItem` only because rows rolled under an older template set may carry ids the unions no longer list. Item data is never accepted from the client, so the lexicon files remain where the literal unions are enforced. The render-at-display decision itself is unchanged.

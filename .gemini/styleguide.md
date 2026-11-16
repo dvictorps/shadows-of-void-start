@@ -8,9 +8,9 @@ what counts as a real finding and what counts as noise.
 
 **Default posture**: assume the author had a reason for every decision.
 The author runs an internal senior-style review pass on every PR before
-yours and routinely makes deliberate trade-offs (skip TanStack Query because
-Convex's reactive layer is more powerful for game state; widen a type at the
-Convex boundary because Convex validators can't express literal unions; keep
+yours and routinely makes deliberate trade-offs (write mutation results into
+the query cache instead of invalidating, because every refetch spends the
+Workers Free request quota; keep
 two parallel i18n tables because a future contributor might "unify" them and
 break gender concord). Your review should ask **"is this done well?"** —
 not **"does this match a generic pattern?"**.
@@ -70,11 +70,10 @@ them is a real finding, not a stylistic preference.
   and are composed at render time by `src/game/items/item-name.ts`. If a PR
   adds a `name` field back to a template, modifier, or `GeneratedItem` field
   read at render time, that's a regression — flag it.
-- **Path alias `#/` is client-only.** Convex's tsconfig has no `paths`, so
-  any `#/...` import in a file Convex pulls transitively (anywhere reachable
-  from `convex/*.ts`) silently breaks `convex dev` typecheck. Use relative
-  paths in those files. PR #43 (commit c582bd2) fixed an instance — don't
-  reintroduce.
+- **No reactivity on the backend (ADR 0009).** Every tRPC mutation must
+  write its result into the react-query cache or invalidate the right query
+  keys; a mutation that does neither leaves the UI stale. The gameplay-loop
+  mutations in ADR 0001 must also be optimistic (`onMutate` + rollback).
 - **Modifier id naming**: suffix matches math. `*Flat` adds. `*Increase` enters
   the increased pool. `*More` cascades multiplicatively. Renaming a suffix
   without changing `modifierType` is a bug.
@@ -127,19 +126,12 @@ inapplicable to this project. Don't flag.
   zero or one time (e.g., a `{value}` placeholder in a modifier
   displayFormat). The project audits these — the single-occurrence case is
   the norm. (PR #39 review comment that was rejected.)
-- **"You should use TanStack Query directly instead of Convex's `useQuery`"**.
-  Convex's reactive queries are intentionally chosen for live game state.
-  TanStack Query is present for QueryClient setup only.
 - **"Consider extracting this to a utility"** for one-shot logic. The
   project rejects premature abstractions — three similar lines beats a
   one-use helper.
 - **"Add error handling"** for scenarios that can't happen given upstream
   invariants. Validate only at system boundaries (user input, external
   APIs).
-- **"This `as` cast is unsafe"** at the Convex boundary specifically.
-  Convex validators store literal-union fields as plain strings; the
-  in-process types narrow them back via `as`. This is documented in
-  `convex/itemValidator.ts` and `src/game/items/item-name.ts`.
 - **Stylistic nits about comment density / variable names / file
   organization** that don't reference a specific failure mode. The project
   has its own conventions in `CLAUDE.md`.
@@ -176,7 +168,7 @@ reserved for game-domain proper nouns (`Acampamento`, `Incenso Etéreo`,
 If your review surfaces a real issue but no playbook / CONTEXT entry /
 ADR covers it, say so explicitly. Example:
 
-> "The Convex `useQuery` pattern in `world.tsx:331` doesn't match the
+> "The `useQuery` pattern in `world.tsx:331` doesn't match the
 > optimistic-update recipe used elsewhere in the file. CLAUDE.md doesn't
 > document the trade-off. Either align with the existing pattern or add
 > an ADR explaining why this case differs."

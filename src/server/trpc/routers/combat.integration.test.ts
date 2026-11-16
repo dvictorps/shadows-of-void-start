@@ -38,6 +38,36 @@ describe("combat", () => {
 		expect(result.newMaxLife).toBe(row.cachedMaxLife);
 	});
 
+	it("syncs the client's HP on an ordinary kill, clamped, and returns the patch", async () => {
+		const account = await createAccount();
+		const hero = await createPlayableCharacter(account);
+		const { cachedMaxLife } = await readCharacter(hero.characterId);
+		const kill = {
+			...hero,
+			monsterId: "goblin",
+			monsterLevel: 1,
+			monsterRarity: "normal" as const,
+		};
+
+		const hurt = await account.caller.combat.recordKill({
+			...kill,
+			clientHp: 12.7,
+		});
+		expect(hurt.character.hpCurrent).toBe(12);
+		expect((await readCharacter(hero.characterId)).hpCurrent).toBe(12);
+
+		await account.caller.combat.recordKill({ ...kill, clientHp: 99_999 });
+		expect((await readCharacter(hero.characterId)).hpCurrent).toBe(
+			cachedMaxLife,
+		);
+
+		// Without client vitals the stored HP is left alone.
+		await patchCharacter(hero.characterId, { hpCurrent: 5 });
+		const silent = await account.caller.combat.recordKill(kill);
+		expect(silent.character).not.toHaveProperty("hpCurrent");
+		expect((await readCharacter(hero.characterId)).hpCurrent).toBe(5);
+	});
+
 	it("rejects unknown monsters", async () => {
 		const account = await createAccount();
 		const hero = await createPlayableCharacter(account);

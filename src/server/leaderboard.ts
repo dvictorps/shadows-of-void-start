@@ -10,7 +10,7 @@ import {
 } from "./db/schema";
 
 // Hourly leaderboard snapshot (ADR 0006), run by the Worker's `scheduled`
-// handler (src/server.ts). Replaces convex/leaderboard.ts:computeSnapshot.
+// handler (src/server.ts).
 // There is no leaderboard index (it would cost a write on every kill), so one
 // query scans `characters` once an hour and ranks both categories per mode
 // with window functions; then the four snapshot rows are upserted.

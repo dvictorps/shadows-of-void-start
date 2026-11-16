@@ -8,9 +8,9 @@ import {
 } from "../../db/schema";
 import { publicProcedure, router } from "../init";
 
-// Mirrors convex/leaderboard.ts:getSnapshot. The snapshot is written by the
+// The snapshot is written by the
 // hourly cron (src/server/leaderboard.ts); clients refetch on an interval
-// instead of subscribing (ADR 0009). Public, like the Convex query.
+// instead of subscribing (ADR 0009). Public.
 export const leaderboardRouter = router({
 	getSnapshot: publicProcedure
 		.input(

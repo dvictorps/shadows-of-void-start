@@ -44,7 +44,7 @@ Replace the binary 6s-timer-then-full-refill mechanic with a **continuous regen 
 - **Monster barrier (queued in `docs/plans/in-progress.md`) reuses the same mechanic.** When that feature lands, monsters get the same regen + cooldown shape — no second implementation. The placeholder in `monsterAdditionalBarrier` that folds barrier into HP can switch to a real barrier pool with `damageBarrier()` + `tickBarrier()` reused unchanged.
 - **`CONTEXT.md` → Combat Resolution → Barrier is the single source of truth** for the user-facing semantics. The historical instant-refill model is recorded there as a footnote (and in this ADR's Context section) so future passes don't accidentally roll the change back.
 - **Stat panel UI reads cooldown state, not "recovery remaining".** The label changes from "Recuperando…" / "X.Xs" to "Em recarga" / "X.Xs" (or equivalent), and the in-tooltip language follows.
-- **No migration required for character documents.** Barrier state lives on the in-process `BarrierState` object inside the combat loop, not in the Convex schema — the rename is local to `src/game/`.
+- **No migration required for character documents.** Barrier state lives on the in-process `BarrierState` object inside the combat loop, not in the database schema — the rename is local to `src/game/`.
 
 ## Update (2026-05-26)
 

@@ -8,6 +8,7 @@ import type { GeneratedItem } from "../items/types";
 import { computeStatCache, type StatCache } from "../stats/cache";
 import type { EquippedItem, SelectableElement } from "../stats/types";
 import { hasOwnKey } from "../typed-object";
+import { defaultElementFor } from "./attunement";
 import { CLASS_DEFINITIONS } from "./data";
 import type { CharacterClassId } from "./types";
 
@@ -82,8 +83,7 @@ export function planNewCharacter(
 		return { ok: false, error: SERVER_ERRORS.duplicateName };
 	}
 
-	const selectedElement: SelectableElement | null =
-		request.classId === "mage" ? "fire" : null;
+	const selectedElement = defaultElementFor(request.classId);
 	const items = starterItems(request.classId);
 	const stats = computeStatCache(
 		{ classId: request.classId, level: 1, selectedElement },

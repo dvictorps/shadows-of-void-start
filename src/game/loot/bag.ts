@@ -49,7 +49,7 @@ export function resolveBagExit(params: {
 /**
  * Camp pick-up: moves bag items to the inventory while the zone goes on.
  * Unknown ids are skipped and the pick stops quietly when the inventory is
- * full, like the Convex mutation did.
+ * full.
  */
 export function resolveBagPick(params: {
 	bagIds: readonly string[];

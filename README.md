@@ -6,8 +6,8 @@ An online Action RPG with automatic stat-check combat, deep itemization, and inf
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+)
-- npm
+- [Node.js](https://nodejs.org/) (v22+)
+- pnpm
 
 ### Installation
 
@@ -19,40 +19,26 @@ cd shadows-of-void
 # Install dependencies
 pnpm install
 
-# Set up environment variables
-cp .env.local.example .env.local
-# Fill in your Convex and auth credentials (see below)
+# Local secrets for the Worker (Better Auth)
+cp .dev.vars.example .dev.vars
+
+# Create the local D1 database
+pnpm db:migrate:local
 ```
 
 ### Running the Project
 
-You need two terminals running simultaneously:
-
 ```bash
-# Terminal 1 — Start the Convex backend
-npx convex dev
-
-# Terminal 2 — Start the dev server
 pnpm dev
 ```
 
-The app will be available at `http://localhost:3002`.
-
-### Environment Variables
-
-Create a `.env.local` file with:
-
-```
-VITE_CONVEX_URL=<your-convex-url>
-CONVEX_DEPLOYMENT=<your-convex-deployment>
-BETTER_AUTH_SECRET=<generate with: npx @better-auth/cli secret>
-```
+One process serves everything: the app, the tRPC API (`/api/trpc`) and auth (`/api/auth`), on a local D1 under `.wrangler/`. The app will be available at `http://localhost:3002`.
 
 ### Other Commands
 
 ```bash
 pnpm build    # Production build
-pnpm test     # Run tests (Vitest)
+pnpm test     # Run tests (Vitest: unit + workerd integration)
 pnpm lint     # Lint with oxlint
 pnpm format   # Format with oxfmt
 ```
@@ -72,7 +58,7 @@ The project is in early development. Here's what's already built:
 - **Procedural Item Generator** — Full item generation engine with 10 modifier tiers, 5 rarity levels, prefix/suffix system, local/global stat resolution, and weighted modifier rolling. Covers 9 weapon types, 4 armor slots (3 variants each), shields, and jewelry.
 - **Item Tooltip UI** — Rich tooltip display with color-coded stats, rarity-specific styling (glows, ornaments), and modifier formatting.
 - **Equipment Base Progression** — 21-tier base item progression for weapons and armor, 8 tiers for jewelry, all level-gated.
-- **Authentication System** — User registration and login via Better Auth + Convex.
+- **Authentication System** — User registration and login via Better Auth on D1.
 - **Admin Panel** — Admin interface for item generation testing and inspection.
 - **Internationalization** — i18n support via Paraglide (English/Portuguese).
 - **71+ Unit Tests** — Comprehensive test suite covering the item generation system.
@@ -118,7 +104,7 @@ A trade system allowing players to exchange items with each other, creating a pl
 ## Tech Stack
 
 - **Frontend:** React 19 + TypeScript + Tailwind CSS 4 + TanStack Router/Start
-- **Backend:** Convex (database + serverless functions)
+- **Backend:** one Cloudflare Worker — D1 (SQLite) + Drizzle, tRPC
 - **Auth:** Better Auth
 - **Build:** Vite + oxlint (lint) + oxfmt (format) + Vitest (testing)
 - **i18n:** Paraglide

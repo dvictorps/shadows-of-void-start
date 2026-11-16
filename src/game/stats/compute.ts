@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Stat engine — turns a character + equipped gear into ComputedCharacterStats.
-//  Pure (no React, no Convex); runs on both client and server. The public
+//  Pure (no React, no IO); runs on both client and server. The public
 //  entry point is `computeCharacterStats`; everything else is internal.
 //
 //  Sections (grep the headers to jump):

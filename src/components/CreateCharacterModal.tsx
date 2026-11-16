@@ -1,4 +1,4 @@
-import { useMutation } from "convex/react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -9,11 +9,9 @@ import { Label } from "#/components/ui/label";
 import { CLASS_DEFINITIONS } from "#/game/classes/data";
 import { getClassDisplayName } from "#/game/classes/i18n";
 import type { CharacterClassId } from "#/game/classes/types";
-import { convexErrorMessage } from "#/lib/convex-errors";
+import { useTRPC } from "#/integrations/trpc/client";
+import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
-
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 
 const MAX_NAME_LENGTH = 20;
 
@@ -34,7 +32,7 @@ const ATTRIBUTE_LABEL = {
 type Props = {
 	isOpen: boolean;
 	onClose: () => void;
-	onCreated: (id: Id<"characters">) => void;
+	onCreated: (id: number) => void;
 };
 
 export default function CreateCharacterModal({
@@ -42,7 +40,18 @@ export default function CreateCharacterModal({
 	onClose,
 	onCreated,
 }: Props) {
-	const createCharacter = useMutation(api.characters.create);
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	// The new row (with its starter stats) comes from the server, so the list
+	// is refetched rather than predicted.
+	const { mutateAsync: createCharacter } = useMutation(
+		trpc.characters.create.mutationOptions({
+			onSuccess: () =>
+				queryClient.invalidateQueries({
+					queryKey: trpc.characters.list.queryKey(),
+				}),
+		}),
+	);
 	const [name, setName] = useState("");
 	const [classId, setClassId] = useState<CharacterClassId>("warrior");
 	const [hardcore, setHardcore] = useState(false);
@@ -75,7 +84,7 @@ export default function CreateCharacterModal({
 			reset();
 			onCreated(id);
 		} catch (err) {
-			toast.error(convexErrorMessage(err, m.failed_to_create_character()));
+			toast.error(serverErrorMessage(err, m.failed_to_create_character()));
 			setSubmitting(false);
 		}
 	};

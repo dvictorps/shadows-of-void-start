@@ -1,23 +1,39 @@
-import { ConvexError } from "convex/values";
+import { TRPCClientError } from "@trpc/client";
 
 import { SERVER_ERRORS } from "#/lib/server-errors";
 import { m } from "#/paraglide/messages";
+import type { AppRouter } from "#/server/trpc/router";
+
+// Procedures throw `TRPCError` with fixed message strings
+// (src/server/trpc/errors.ts); this table translates them. Exact-match strings
+// live in `SERVER_ERRORS`, shared with the server.
+
+/** True when the server answered with a rule violation (not a crash or a
+ * network failure), so the message is one of ours and safe to show. */
+export function isServerRuleError(
+	cause: unknown,
+): cause is TRPCClientError<AppRouter> {
+	if (!(cause instanceof TRPCClientError)) return false;
+	const code = cause.data?.code;
+	return code !== undefined && code !== "INTERNAL_SERVER_ERROR";
+}
+
+/** True when another tab or device took over the character (threat #5). */
+export function isSessionLost(cause: unknown): boolean {
+	return (
+		isServerRuleError(cause) && cause.message === SERVER_ERRORS.sessionLost
+	);
+}
 
 /**
- * Extracts a user-presentable string from an unknown error thrown by a Convex
- * query/mutation. ConvexError carries its payload on `.data` — we route it
- * through translateServerError() to surface a localized message; non-Convex
- * errors fall back to the caller-provided default.
+ * A localized message for an error thrown by a tRPC call (`cause` is the
+ * catch-clause value). Rule violations are translated; crashes and network
+ * failures show `fallback`.
  */
-// oxlint-disable-next-line anti-slop/no-unknown-parameters -- this IS the decoder for catch-clause values, which the language types as `unknown`; it narrows via instanceof before reading anything.
-export function convexErrorMessage(err: unknown, fallback: string): string {
-	if (err instanceof ConvexError) {
-		return translateServerError(String(err.data));
-	}
-	if (err instanceof Error) {
-		return translateServerError(err.message) ?? fallback;
-	}
-	return fallback;
+export function serverErrorMessage(cause: unknown, fallback: string): string {
+	return isServerRuleError(cause)
+		? translateServerError(cause.message)
+		: fallback;
 }
 
 /**
@@ -32,13 +48,7 @@ export function translateServerError(raw: string): string {
 }
 
 function tryTranslate(raw: string): string | null {
-	// Strip Convex's stack-trace decorations so the patterns match cleanly.
-	const msg = raw
-		.replace(/^\[CONVEX [^\]]+\]\s*/, "")
-		.replace(/^Uncaught (?:Convex)?Error:\s*/i, "")
-		.replace(/\bConvexError:\s*/, "")
-		.replace(/\s+at handler[\s\S]*$/, "")
-		.trim();
+	const msg = raw.trim();
 
 	// Exact matches
 	switch (msg) {

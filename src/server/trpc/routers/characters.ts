@@ -8,8 +8,8 @@ import { assertOwnsCharacter } from "../character-session";
 import { fail } from "../errors";
 import { authedProcedure, CHARACTER_COLUMNS, router } from "../init";
 
-// Mirrors convex/characters.ts. `combatState` and `characterProgression` are
-// columns of this row now, so create / remove touch one table plus the
+// Character CRUD and the session claim. The combat state and progression are
+// columns of this row, so create / remove touch one table plus the
 // starter items.
 
 const characterIdInput = z.object({ id: z.number().int().positive() });

@@ -64,7 +64,7 @@ export function useBarrier({
 	}
 
 	// Cold-start race: useState runs once at mount. When combatState arrives
-	// from Convex after that (initialBarrier transitions from undefined to a
+	// from the character query after that (initialBarrier transitions from undefined to a
 	// real value), `useState` would silently drop it and the periodic syncHp
 	// would then overwrite the server with the local default. Pull the new
 	// value in on prop change, clamped to current max. The mount value is

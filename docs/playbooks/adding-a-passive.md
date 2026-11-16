@@ -36,7 +36,7 @@ Before coding, resolve these:
 
 - **`src/game/world/types.ts`** (`WorldNode` + `NodeConnection`) — graph with positioned nodes, edges with weight (`distance`). Identical pattern works for a passive tree (nodes are skills, edges are travel, "distance" maps to allocation order).
 - **`src/game/stats/compute.ts`** — the stat engine. Passives plug in here. Read `applyMod` for the modifier vocabulary you'll likely reuse.
-- **`convex/characters.ts`** — character mutations. A `allocatePassive(characterId, nodeId)` mutation joins the existing crowd (equip / unequip / consumePotion shape).
+- **`src/server/trpc/routers/`** — character procedures. An `allocatePassive(characterId, nodeId)` procedure joins the existing crowd (equip / unequip / consumePotion shape); follow [adding-a-procedure.md](./adding-a-procedure.md).
 
 ## ADR-worthy decisions to capture as you go
 
@@ -53,7 +53,7 @@ npx vitest run src/game/passives/
 npx vitest run src/game/stats/    # passive allocation must compose with items
 npx vitest run src/game/items/    # don't regress item-driven stats
 npx oxlint src/
-npx convex dev --once             # schema additions
+pnpm db:generate && pnpm db:migrate:local   # schema additions
 ```
 
 Then `npm run dev`: open the tree, allocate a node, verify the stat panel reflects it, equip an item with the same stat, verify they sum correctly.

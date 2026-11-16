@@ -66,3 +66,14 @@ The combination is acceptable because:
 Future mutations on the gameplay loop must follow this pattern. The PR template (when one exists) should ask: "Is this a player-state mutation? If yes, where is the optimistic handler?"
 
 The localStorage cache (`useCachedQuery`) is the _next_ layer below — it makes cold reloads also feel instant. The two layers compose: optimism handles "I just did this", cache handles "I just opened the page".
+
+## Update (2026-11-16, Cloudflare migration phase 3)
+
+The backend moved to tRPC on D1 ([ADR 0009](./0009-cloudflare-d1-trpc-backend.md)). The must / must-not lists above still hold; the mechanism changed:
+
+- **Optimistic body**: react-query `onMutate` writes the predicted state with `setQueryData`, after `cache.snapshot(keys)` cancels in-flight fetches of those keys and saves them (`src/lib/world-cache.ts`). The bodies live in `src/hooks/useWorldMutations.ts`, `useInventoryMutations.ts` and `useCombatMutations.ts` (no longer inline in `world.tsx` / `InventoryModal.tsx`).
+- **Rollback is hand-written**: Convex re-applied optimistic layers over incoming server state and dropped them on rejection. React-query doesn't, so `rollbackOnError` restores the snapshot and then refetches the same keys, because another write (a kill during a failed potion) may have landed on them meanwhile.
+- **No reactivity, so success writes too**: every mutation, optimistic or not, writes the server's answer into the cache in `onSuccess` (or invalidates). Server-only mutations (`recordKill`, `respawnDead`, `enterZone`, `enterCity`) do only that.
+- **Bag → inventory is not predicted any more**: `exitZone` / `pickFromBag` empty the bag optimistically, but the kept items get their ids on the server (the zone bag is a JSON column, ADR 0009 phase 2), so the inventory takes the rows the procedure returns instead of guessing. This is rule 2 (fail closed) applied to ids.
+- **Mirror, don't reimplement, now literally:** the optimistic bodies call the same pure decisions the procedures call (`resolveEquip` / `resolveUnequip`, `resolvePurchase`, `resolveTravelStart` / `resolveTeleport`, `resolvePotionUse`, `moveToSlot` for reorders), so a move the server refuses is never painted.
+- The `vendorBuy`, `vendorSellMany`, stash, travel and incense mutations stay optimistic, as they were on Convex.

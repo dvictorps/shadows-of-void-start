@@ -29,7 +29,7 @@
 			"migrations_dir": "drizzle",
 		},
 	],
-	// Leaderboard snapshot (replaces convex/crons.ts). Hourly, same as Convex.
+	// Leaderboard snapshot (ADR 0006), hourly.
 	"triggers": { "crons": ["0 * * * *"] },
 
 	"env": {

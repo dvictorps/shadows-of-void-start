@@ -12,9 +12,6 @@ export const Route = createFileRoute("/sign-in")({
 	component: SignInPage,
 });
 
-const INPUT_CLASS =
-	"border-neutral-800 bg-neutral-950/80 text-white placeholder:text-neutral-500 focus-visible:border-purple-500/70 focus-visible:ring-purple-500/30";
-
 function SignInPage() {
 	const [isSignUp, setIsSignUp] = useState(false);
 	const [email, setEmail] = useState("");
@@ -52,9 +49,9 @@ function SignInPage() {
 
 	return (
 		<main className="min-h-screen bg-black text-white">
-			<div className="mx-auto flex min-h-screen max-w-[1400px] flex-col items-center justify-center gap-16 px-6 py-12 md:flex-row md:justify-between md:gap-32 md:px-20">
+			<div className="mx-auto flex min-h-screen max-w-350 flex-col items-center justify-center gap-16 px-6 py-12 md:flex-row md:justify-between md:gap-32 md:px-20">
 				<div className="flex w-full items-center justify-center md:flex-1 md:justify-start">
-					<h1 className="display-title text-glow-purple text-center text-6xl uppercase leading-[0.95] md:text-left md:text-8xl">
+					<h1 className="display-title glow-purple text-center text-6xl uppercase leading-display md:text-left md:text-8xl">
 						Shadows
 						<br />
 						of Void
@@ -80,7 +77,6 @@ function SignInPage() {
 										onChange={(e) => setName(e.target.value)}
 										placeholder="Name"
 										required
-										className={INPUT_CLASS}
 									/>
 								</div>
 							)}
@@ -96,7 +92,6 @@ function SignInPage() {
 									onChange={(e) => setEmail(e.target.value)}
 									placeholder="Email"
 									required
-									className={INPUT_CLASS}
 								/>
 							</div>
 
@@ -112,11 +107,10 @@ function SignInPage() {
 									placeholder="Password"
 									required
 									minLength={8}
-									className={INPUT_CLASS}
 								/>
 							</div>
 
-							{error && <p className="text-sm text-red-400">{error}</p>}
+							{error && <p className="text-sm text-destructive">{error}</p>}
 
 							<Button
 								type="submit"
@@ -132,18 +126,19 @@ function SignInPage() {
 							</Button>
 						</form>
 
-						<p className="text-center text-sm text-neutral-400">
+						<p className="text-center text-sm text-muted-foreground">
 							{isSignUp ? "Have an account?" : "No account?"}{" "}
-							<button
+							<Button
 								type="button"
+								variant="voidLink"
+								size="inline"
 								onClick={() => {
 									setIsSignUp(!isSignUp);
 									setError("");
 								}}
-								className="font-medium text-purple-400 underline hover:text-purple-300"
 							>
 								{isSignUp ? "Sign in" : "Sign up"}
-							</button>
+							</Button>
 						</p>
 					</div>
 				</div>

@@ -3,9 +3,12 @@ import type { SQLiteUpdateSetSource } from "drizzle-orm/sqlite-core";
 
 import type { GeneratedItem } from "#/game/items/types";
 import { typedKeys } from "#/game/typed-object";
+import { CLEARED_VISIT } from "#/game/world/zone-actions";
 
 import type { Database } from "./db/client";
 import { characters, items, type ZoneBagEntry } from "./db/schema";
+
+type ItemRow = typeof items.$inferSelect;
 
 // The zone bag lives in `characters.zone_bag` as a JSON array (see the
 // game-schema.ts header for the write-budget reason). Everything that edits
@@ -66,8 +69,9 @@ export interface BagPick {
 
 /**
  * Copies the picked entries from the bag into the inventory, then applies
- * `bagUpdate` to the character row, in one batch. Returns how many items were
- * really inserted.
+ * `bagUpdate` to the character row, in one batch. Returns the items really
+ * inserted, so the client can put them in its inventory cache with their new
+ * ids (there is no reactivity to tell it).
  *
  * Each INSERT only matches while its entry is still in the bag of the same
  * zone session, so the order matters: inserts first, then the update that
@@ -82,7 +86,7 @@ export async function commitBagPicks(
 	zoneSession: string,
 	picks: BagPick[],
 	bagUpdate: SQLiteUpdateSetSource<typeof characters>,
-): Promise<number> {
+): Promise<ItemRow[]> {
 	const update = db
 		.update(characters)
 		.set(bagUpdate)
@@ -104,23 +108,28 @@ export async function commitBagPicks(
 			droppedFrom: sql`json_extract(e.value, '$.droppedFrom')`,
 			droppedFromLevel: sql`json_extract(e.value, '$.droppedFromLevel')`,
 		} satisfies Record<keyof typeof items.$inferSelect, SQL>;
-		return db.insert(items).select(sql`
+		return db
+			.insert(items)
+			.select(sql`
 			select ${sql.join(
 				ITEM_COLUMNS.map((key) => values[key]),
 				sql`, `,
 			)}
 			from characters c, json_each(c.zone_bag) e
 			where c.id = ${characterId} and c.current_zone_session = ${zoneSession}
-				and json_extract(e.value, '$.bagId') = ${bagId}`);
+				and json_extract(e.value, '$.bagId') = ${bagId}`)
+			.returning();
 	});
 	if (!first) {
 		await update;
-		return 0;
+		return [];
 	}
 	const results = await db.batch([first, ...rest, update]);
+	// Each INSERT … RETURNING yields its row, or nothing when its entry was
+	// already gone; the last result is the UPDATE.
 	return results
 		.slice(0, picks.length)
-		.reduce((sum, result) => sum + result.meta.changes, 0);
+		.flatMap((rows) => (Array.isArray(rows) ? rows : []));
 }
 
 /** WHERE clause for a write that only applies to this zone visit. */
@@ -145,15 +154,10 @@ export async function loadBagIds(
 	return rows.map((row) => row.bagId);
 }
 
-// Zone-visit columns reset by exit, death, re-entry and teleport (Convex's
-// `clearCombatZoneState`). Clearing the bag here is what wipes unclaimed
-// drops, at no extra row written. `currentZoneKills` is reset separately
-// where the old code did.
+// `CLEARED_VISIT` (shared with the client's cache) plus the bag. Clearing
+// the bag here is what wipes unclaimed drops, at no extra row written.
+// `currentZoneKills` is reset separately by the procedures that need it.
 export const CLEARED_ZONE = {
-	currentZoneSession: null,
-	zoneStartedAt: null,
-	campThresholdsMs: null,
-	inCamp: false,
-	lastCampIndex: null,
+	...CLEARED_VISIT,
 	zoneBag: [],
 } satisfies Partial<typeof characters.$inferInsert>;

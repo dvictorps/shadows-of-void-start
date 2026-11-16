@@ -1,10 +1,8 @@
-// Pure vital-clamping + HP/barrier write-back decisions, extracted from
-// `convex/combat.ts` (`syncHp`, and reused by `usePotion`). The mutation stays
+// Pure vital-clamping + HP/barrier write-back decisions behind `syncHp`,
+// `consumePotion` and the vitals `recordKill` carries. The procedures stay
 // the auth/IO boundary; "given the client-reported vitals and the
-// authoritative caps, what should actually be stored" lives here so it can be
-// unit-tested without a Convex runtime (the mutation opens with a better-auth
-// read that `convex-test` can't satisfy — see docs/codebase-map.md → convex
-// testing convention).
+// authoritative caps, what should actually be stored" lives here so it can
+// be unit-tested without a database.
 
 /**
  * Clamp a client-reported vital to `[0, max]` and floor it to an integer. The

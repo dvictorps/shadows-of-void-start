@@ -1,6 +1,6 @@
 // Per-tab session token — closes Threat #5 in docs/security/threat-model.md.
 // A UUID generated once per Provider mount lives in a Context; every
-// state-mutating Convex call threads it through via `withSession`. The
+// state-mutating tRPC call threads it through via `withSession`. The
 // server stamps the token on `claimCharacterSession` and rejects every
 // mutation whose `sessionToken` doesn't match. Refreshing the tab remounts
 // the root, generates a fresh UUID, and the character-select Play button
@@ -38,7 +38,7 @@ export type WithSession<A> = A & { sessionToken: string };
 
 // Hook returns the token plus a `withSession(args)` helper. The helper is
 // the recommended call shape for mutations called directly via useMutation
-// inside hooks/components — every Convex mutation call site reads as
+// inside hooks/components — every such call site reads as
 // `await something(withSession({ characterId, ... }))`. For hooks that
 // expose a bundle of pre-wrapped mutations (see `useWorldMutations`), use
 // `useSessionedMutation` below instead so the public signature stays
@@ -62,7 +62,7 @@ export function useSessionToken(): {
 	);
 }
 
-// Wraps a Convex mutation function so the per-tab session token is injected
+// Wraps a mutation function (`mutateAsync`) so the per-tab session token is injected
 // automatically — the returned callable has the same args shape minus
 // `sessionToken`. Idiomatic for hooks that expose a bundle of mutations
 // (`useWorldMutations`): the consumer's call site stays the same as before

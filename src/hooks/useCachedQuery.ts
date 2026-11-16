@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
  * insurance against renaming a field in the items table and rendering a
  * stale shape after a cold reload.
  */
-const CACHE_VERSION = 2;
+// 3: D1 rows (numeric `id`, `null` for empty columns) since ADR 0009.
+const CACHE_VERSION = 3;
 
 interface CachedPayload<T> {
 	v: number;

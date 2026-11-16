@@ -24,7 +24,9 @@ const buttonVariants = cva(
 					"border border-red-400 bg-black text-red-100 hover:bg-red-950/40 hover:text-red-100",
 				starkMuted:
 					"border border-white/40 bg-black text-white/80 hover:bg-white/10 hover:text-white",
-				"ghost-purple": "bg-transparent text-white hover:text-purple-400",
+				"ghost-purple": "bg-transparent text-white hover:text-void",
+				// Inline text link in the void purple (pair with size="inline").
+				voidLink: "text-void underline hover:text-void/80",
 			},
 			size: {
 				default: "h-9 px-4 py-2 has-[>svg]:px-3",
@@ -35,11 +37,21 @@ const buttonVariants = cva(
 				"icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
 				"icon-sm": "size-8",
 				"icon-lg": "size-10",
+				// Taller block buttons of the app-shell pages (character select).
+				tall: "h-auto px-3 py-2.5",
+				// Sits inside running text.
+				inline: "h-auto p-0",
+			},
+			// The uppercase, tracked label of the stark app-shell buttons.
+			caps: {
+				true: "uppercase tracking-wider",
+				false: "",
 			},
 		},
 		defaultVariants: {
 			variant: "default",
 			size: "default",
+			caps: false,
 		},
 	},
 );
@@ -48,6 +60,7 @@ function Button({
 	className,
 	variant = "default",
 	size = "default",
+	caps = false,
 	asChild = false,
 	...props
 }: React.ComponentProps<"button"> &
@@ -61,7 +74,7 @@ function Button({
 			data-slot="button"
 			data-variant={variant}
 			data-size={size}
-			className={cn(buttonVariants({ variant, size, className }))}
+			className={cn(buttonVariants({ variant, size, caps, className }))}
 			{...props}
 		/>
 	);
