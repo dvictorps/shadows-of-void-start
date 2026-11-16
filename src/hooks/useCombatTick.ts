@@ -194,17 +194,25 @@ export function useCombatTick({
 		lastLeechEventRef.current = 0;
 	};
 
-	// Activation resets HP + transient combat refs. Barrier lives in
-	// useBarrier and persists across views — not reset here. The HP state
-	// resets during render (React's "adjust state while rendering" pattern);
-	// the layout-effect mirror above then carries it into `playerHpRef`.
-	const [prevActive, setPrevActive] = useState(active);
-	if (active !== prevActive) {
-		setPrevActive(active);
-		if (active) setPlayerHp(initialHp);
-	}
-	// The ref resets and the deactivation HP sync stay in an effect: refs
-	// can't be written during render, and syncHp is a server call.
+	// A new zone visit (useCombatLoop.startVisit, on the zone-entry event):
+	// HP from the character and fresh transient refs. Barrier lives in
+	// useBarrier and persists across views — not reset here. Resuming the same
+	// visit (`active` back after the exit modal's Cancel) resets nothing, so
+	// the fight's HP carries on instead of snapping to the cached value.
+	const startVisit = useCallback(() => {
+		setPlayerHp(initialHpRef.current);
+		playerHpRef.current = initialHpRef.current;
+		lastSyncedHpRef.current = initialHpRef.current;
+		lastSyncedBarrierRef.current = barrierRef.current.current;
+		deadRef.current = false;
+		leechRef.current = [];
+		leechHealAccRef.current = 0;
+		lastLeechEventRef.current = 0;
+		nextSwingIndexRef.current = 0;
+		regenAccRef.current = 0;
+	}, [barrierRef]);
+
+	// The deactivation HP sync stays in an effect: syncHp is a server call.
 	const activeRef = useRef(active);
 	useEffect(() => {
 		const wasActive = activeRef.current;
@@ -212,18 +220,8 @@ export function useCombatTick({
 		const unsynced =
 			playerHpRef.current !== lastSyncedHpRef.current ||
 			barrierRef.current.current !== lastSyncedBarrierRef.current;
-		if (active && !wasActive) {
-			playerHpRef.current = initialHpRef.current;
-			lastSyncedHpRef.current = initialHpRef.current;
-			lastSyncedBarrierRef.current = barrierRef.current.current;
-			deadRef.current = false;
-			leechRef.current = [];
-			leechHealAccRef.current = 0;
-			lastLeechEventRef.current = 0;
-			nextSwingIndexRef.current = 0;
-			regenAccRef.current = 0;
-			// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- flushing HP to the server on deactivation is a sync with an external system; `active` flips from several route paths (retreat, death, travel, the exit modal opening), so there is no single handler to own it.
-		} else if (!active && wasActive && !deadRef.current && unsynced) {
+		// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- flushing HP to the server on deactivation is a sync with an external system; `active` flips from several route paths (retreat, death, travel, the exit modal opening), so there is no single handler to own it.
+		if (!active && wasActive && !deadRef.current && unsynced) {
 			syncVitals({
 				hpCurrent: playerHpRef.current,
 				barrierCurrent: barrierRef.current.current,
@@ -596,6 +594,7 @@ export function useCombatTick({
 		restoreToFull,
 		vitalsForKill,
 		forgetSyncedVitals,
+		startVisit,
 	};
 }
 

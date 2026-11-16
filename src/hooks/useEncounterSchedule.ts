@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  Encounter pacing for a single zone activation. Owns the calmaria time bar,
+//  Encounter pacing for a single zone visit. Owns the calmaria time bar,
 //  camp threshold rolls, ambush packs, and per-spawn gap rolls. Drives the
 //  rarity decision for the next spawn (boss when budget fills, magic when
 //  inside an ambush pack, otherwise the normal `rollMonsterRarity`).
@@ -83,60 +83,54 @@ export function useEncounterSchedule({
 	// Source of the active camp (drives cinematic flavor text).
 	const [campSource, setCampSource] = useState<CampSource>("baked");
 
-	// Per-spawn calmaria gap. Re-rolls on state transitions back to "searching"
-	// — using the in-pack gap if an ambush is mid-burst, otherwise a fresh roll
-	// from the plan's range so the in-pack gap can't leak into post-pack searching.
+	// The calmaria gap before the next spawn. Rolled in the events that start
+	// a search: a new visit or a miniboss reset (`resetSchedule`), each spawn
+	// (`recordSpawn`, for the search that follows the fight), an ambush
+	// opening, and an ambush cancelled. Inside a pack it's the short in-pack
+	// gap; otherwise a fresh roll from the plan, so the in-pack gap can't leak
+	// into post-pack searching.
 	const [nextSpawnGapMs, setNextSpawnGapMs] = useState(() =>
 		rollSpawnGapMs(encounterPlan),
 	);
-	// Stays an effect: the roll reads `ambushPackRemainingRef` (refs can't be
-	// read during render) and is random, so it must not run twice under a
-	// replayed render. Moving it to every "back to searching" site in
-	// useCombatLoop would spread the pacing rule across the state machine.
-	/* oxlint-disable you-might-not-need-an-effect/no-derived-state, you-might-not-need-an-effect/no-event-handler, you-might-not-need-an-effect/no-adjust-state-on-prop-change -- see the comment above. */
-	useEffect(() => {
-		if (isSearching) {
-			if (ambushPlan && ambushPackRemainingRef.current > 0) {
-				setNextSpawnGapMs(ambushPlan.gapWithinPackMs);
-			} else {
-				setNextSpawnGapMs(rollSpawnGapMs(encounterPlan));
-			}
-		}
-	}, [isSearching, encounterPlan, ambushPlan]);
-	/* oxlint-enable you-might-not-need-an-effect/no-derived-state, you-might-not-need-an-effect/no-event-handler, you-might-not-need-an-effect/no-adjust-state-on-prop-change */
 
-	// Shared by the activation effect and resetForMiniboss — zero the time
-	// bar, re-roll ambushes, drain any in-flight pack. Camp thresholds are
-	// owned by the server: enterZone rolls them on entry, and recordKill on a
-	// miniboss reroll them + resets zoneStartedAt per CONTEXT.md → Zone
-	// Miniboss ("the bar resets to 0 and the schedule is rerolled"). The
-	// `serverCampThresholdsMs` prop (from the cached character) carries the new values into the
-	// ref via the effect above, so this client-side reset only needs to clear
-	// the consumed-index counter. Activation additionally resets campSource
-	// ("baked") above this call.
-	const resetSchedule = useCallback(() => {
+	// Shared by startVisit and resetForMiniboss — zero the time bar, re-roll
+	// ambushes, drain any in-flight pack. Camp thresholds are owned by the
+	// server: enterZone rolls them on entry, and recordKill on a miniboss
+	// rerolls them + resets zoneStartedAt per CONTEXT.md → Zone Miniboss ("the
+	// bar resets to 0 and the schedule is rerolled"). The
+	// `serverCampThresholdsMs` prop (from the cached character) carries the
+	// new values into the ref via the effect above, so this client-side reset
+	// only needs to clear the consumed-index counter.
+	const resetSchedule = useCallback((plan: ZoneEncounterPlan) => {
 		calmariaElapsedMsRef.current = 0;
 		setCalmariaElapsedMs(0);
 		nextCampIndexRef.current = 0;
-		ambushScheduleRef.current = rollAmbushSchedule(encounterPlan);
+		ambushScheduleRef.current = rollAmbushSchedule(plan);
 		nextAmbushIndexRef.current = 0;
 		ambushPackRemainingRef.current = 0;
+		// The pending gap may be the short in-pack one (a bar that filled
+		// mid-ambush spawns the miniboss before the pack drains).
+		setNextSpawnGapMs(rollSpawnGapMs(plan));
 		setAmbushActive(false);
-	}, [encounterPlan]);
+	}, []);
 
-	// Stays an effect: `resetSchedule` resets refs alongside state (refs can't
-	// be written during render), and useCombatLoop's activation reset relies
-	// on this landing in the same post-commit flush.
-	const activeRef = useRef(active);
-	/* oxlint-disable you-might-not-need-an-effect/no-event-handler, you-might-not-need-an-effect/no-adjust-state-on-prop-change -- see the comment above. */
-	useEffect(() => {
-		if (active && !activeRef.current) {
-			resetSchedule();
+	// A new zone visit starts: called from the zone-entry event (via
+	// useCombatLoop.startVisit), not on `active` flipping, so pausing and
+	// resuming the same visit (the exit modal's Cancel) keeps the bar.
+	// `plan` is the entered node's, passed in because this render's
+	// `encounterPlan` prop can still be the previous node's.
+	const startVisit = useCallback(
+		(plan: ZoneEncounterPlan) => {
+			resetSchedule(plan);
 			setCampSource("baked");
-		}
-		activeRef.current = active;
-	}, [active, resetSchedule]);
-	/* oxlint-enable you-might-not-need-an-effect/no-event-handler, you-might-not-need-an-effect/no-adjust-state-on-prop-change */
+		},
+		[resetSchedule],
+	);
+
+	const resetForMiniboss = useCallback(
+		() => resetSchedule(encounterPlan),
+		[resetSchedule, encounterPlan],
+	);
 
 	// Calmaria ticker — drives the time bar and the camp + ambush triggers.
 	// The post-miniboss flag holds the ticker through the victory→searching
@@ -180,7 +174,7 @@ export function useEncounterSchedule({
 			setAmbushActive(true);
 			// Collapse the search gap so the first ambush mob fires almost
 			// immediately. Subsequent spawns use the in-pack gap (set in
-			// the post-spawn re-roll above).
+			// `recordSpawn` below).
 			setNextSpawnGapMs(ambushPlan.gapWithinPackMs);
 		}
 	});
@@ -202,17 +196,26 @@ export function useEncounterSchedule({
 		[],
 	);
 
-	const consumeAmbushSlot = useCallback(() => {
+	// A mob of the regular spawn path just spawned: take its ambush slot (if
+	// a pack is running) and roll the gap for the search after this fight.
+	const recordSpawn = useCallback(() => {
 		if (ambushPackRemainingRef.current > 0) {
 			ambushPackRemainingRef.current -= 1;
 			if (ambushPackRemainingRef.current <= 0) setAmbushActive(false);
 		}
-	}, []);
+		setNextSpawnGapMs(
+			ambushPlan && ambushPackRemainingRef.current > 0
+				? ambushPlan.gapWithinPackMs
+				: rollSpawnGapMs(encounterPlan),
+		);
+	}, [ambushPlan, encounterPlan]);
 
 	const cancelAmbush = useCallback(() => {
 		ambushPackRemainingRef.current = 0;
 		setAmbushActive(false);
-	}, []);
+		// The pending gap may be the short in-pack one.
+		setNextSpawnGapMs(rollSpawnGapMs(encounterPlan));
+	}, [encounterPlan]);
 
 	return {
 		calmariaElapsedMs,
@@ -223,8 +226,9 @@ export function useEncounterSchedule({
 		nextSpawnGapMs,
 		rollSpawnRarity,
 		isAmbushPackActive,
-		consumeAmbushSlot,
-		resetForMiniboss: resetSchedule,
+		recordSpawn,
+		resetForMiniboss,
+		startVisit,
 		cancelAmbush,
 		setCampSource,
 	};
