@@ -28,6 +28,8 @@
 //    • Add a UI-only derived stat     →  Derived helpers section at the bottom
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { m } from "#/paraglide/messages";
+
 import type {
 	CharacterClassDefinition,
 	CharacterClassId,
@@ -809,8 +811,8 @@ export function totalCritMultiplier(bonusFromMods: number): number {
 // ── Broken state explanation ──
 
 /**
- * For a broken item, returns short Portuguese descriptions of every
- * requirement currently unmet against the supplied totals. Empty if the
+ * For a broken item, returns a short localized line (paraglide `broken_*`) for
+ * every requirement currently unmet against the supplied totals. Empty if the
  * item is actually fine (caller should still gate on brokenItemIds).
  */
 export function describeBrokenReasons(
@@ -828,24 +830,32 @@ export function describeBrokenReasons(
 	const reqs = item.requirements;
 	if (reqs) {
 		if (reqs.level !== undefined && characterLevel < reqs.level) {
-			reasons.push(`Falta nível ${reqs.level}`);
+			reasons.push(m.broken_missing_level({ value: reqs.level }));
 		}
 		if (reqs.str !== undefined && totals.attributes.strength < reqs.str) {
-			reasons.push(`Falta ${reqs.str - totals.attributes.strength} de Força`);
+			reasons.push(
+				m.broken_missing_strength({
+					value: reqs.str - totals.attributes.strength,
+				}),
+			);
 		}
 		if (reqs.dex !== undefined && totals.attributes.dexterity < reqs.dex) {
 			reasons.push(
-				`Falta ${reqs.dex - totals.attributes.dexterity} de Destreza`,
+				m.broken_missing_dexterity({
+					value: reqs.dex - totals.attributes.dexterity,
+				}),
 			);
 		}
 		if (reqs.int !== undefined && totals.attributes.intelligence < reqs.int) {
 			reasons.push(
-				`Falta ${reqs.int - totals.attributes.intelligence} de Inteligência`,
+				m.broken_missing_intelligence({
+					value: reqs.int - totals.attributes.intelligence,
+				}),
 			);
 		}
 	}
 	if (item.equipmentType === "quiver" && mainHandWeaponType !== "bow") {
-		reasons.push("Requer Arco na Mão Principal");
+		reasons.push(m.tooltip_requires_bow_in_main_hand());
 	}
 	return reasons;
 }

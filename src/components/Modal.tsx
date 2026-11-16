@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-
+import { Button } from "#/components/ui/button";
+import { useEscapeLayer } from "#/hooks/useEscapeLayer";
 import { m } from "#/paraglide/messages";
 
 type ModalProps = {
@@ -10,7 +10,7 @@ type ModalProps = {
 	className?: string;
 	// When false, ESC and backdrop click do nothing — the modal can only be
 	// closed by an explicit action inside (used for forced confirmations like
-	// the zone-exit loot picker).
+	// the zone-exit loot picker). ESC doesn't reach a modal beneath either.
 	dismissible?: boolean;
 	// When true, the small × in the header is suppressed. Use together with
 	// a `footer` action bar that hosts an explicit Close button.
@@ -30,14 +30,10 @@ export default function Modal({
 	hideHeaderClose = false,
 	footer,
 }: ModalProps) {
-	useEffect(() => {
-		if (!isOpen || !dismissible) return;
-		const handler = (e: KeyboardEvent) => {
-			if (e.key === "Escape") onClose();
-		};
-		window.addEventListener("keydown", handler);
-		return () => window.removeEventListener("keydown", handler);
-	}, [isOpen, dismissible, onClose]);
+	// An open modal is an Escape layer: Escape closes it only when nothing
+	// opened above it (a confirmation, a context menu, a drag). A
+	// non-dismissible modal still takes the key, so the one beneath stays open.
+	useEscapeLayer(isOpen, dismissible ? onClose : undefined);
 
 	if (!isOpen) return null;
 
@@ -46,12 +42,15 @@ export default function Modal({
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-			{/* Backdrop click target — a real <button> so a11y is happy, absolutely
-			    positioned behind the dialog. tabIndex=-1 keeps it out of the tab
-			    order; cursor-default avoids the pointer-cursor on the dim area. */}
+			{/* Backdrop click target — a real button so a11y is happy, absolutely
+			    positioned behind the dialog, transparent (`ghost-purple` + `inline`
+			    add no fill and no box). tabIndex=-1 keeps it out of the tab order;
+			    cursor-default avoids the pointer-cursor on the dim area. */}
 			{dismissible && (
-				<button
+				<Button
 					type="button"
+					variant="ghost-purple"
+					size="inline"
 					onClick={onClose}
 					aria-label={closeLabel}
 					tabIndex={-1}
@@ -62,25 +61,26 @@ export default function Modal({
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby={title ? "modal-title" : undefined}
-				className={`relative w-full border border-white bg-black text-white shadow-[0_20px_60px_rgba(0,0,0,0.7)] ${className}`}
+				className={`relative w-full border border-white bg-black text-white shadow-dialog ${className}`}
 			>
 				{title && (
 					<div className="flex items-center justify-between border-b border-white/20 px-5 py-3">
 						<h2
 							id="modal-title"
-							className="display-title text-base uppercase tracking-[0.15em] text-white"
+							className="display-title text-base uppercase tracking-title text-white"
 						>
 							{title}
 						</h2>
 						{showHeaderClose && (
-							<button
+							<Button
 								type="button"
+								variant="starkText"
+								size="glyph"
 								onClick={onClose}
-								className="text-lg leading-none text-white/60 transition hover:text-white"
 								aria-label={closeLabel}
 							>
 								×
-							</button>
+							</Button>
 						)}
 					</div>
 				)}
