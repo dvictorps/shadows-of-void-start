@@ -178,7 +178,7 @@ function spriteHoverTarget(enemy: Enemy) {
 }
 function healthGlobeArea() {
 	return narrow(
-		screen.getByRole("img", { name: "Health and barrier" }).parentElement,
+		screen.getByRole("img", { name: m.health_globe_aria() }).parentElement,
 		HTMLElement,
 	);
 }
@@ -224,8 +224,10 @@ describe("CombatScene — fixed HUD", () => {
 
 	it("shows XP as text and on the experience bar", () => {
 		renderScene({ xp: 30, xpNeeded: 120 });
-		expect(screen.getByText("XP: 30 / 120")).toBeTruthy();
-		const bar = screen.getByRole("progressbar", { name: "Experience" });
+		expect(
+			screen.getByText(m.status_xp_label({ current: 30, needed: 120 })),
+		).toBeTruthy();
+		const bar = screen.getByRole("progressbar", { name: m.xp_bar_aria() });
 		expect(bar.getAttribute("aria-valuenow")).toBe("30");
 		expect(bar.getAttribute("aria-valuemax")).toBe("120");
 	});
@@ -542,7 +544,7 @@ describe("CombatScene — camp", () => {
 		const actions = screen.getByRole("button", {
 			name: m.retreat_to_map(),
 		}).parentElement;
-		const bottom = screen.getByRole("button", { name: "Use potion" })
+		const bottom = screen.getByRole("button", { name: m.potion_use_aria() })
 			.parentElement?.parentElement;
 		const faded = [label, actions, bottom].map((el) =>
 			narrow(el, HTMLElement).classList.contains("opacity-0"),
@@ -625,14 +627,14 @@ describe("CombatScene — consumables", () => {
 	const CONSUMABLES = [
 		{
 			key: "potion",
-			name: "Use potion",
+			name: m.potion_use_aria(),
 			count: "potions",
 			can: "canUsePotion",
 			use: "onUsePotion",
 		},
 		{
 			key: "teleport",
-			name: "Use teleport stone",
+			name: m.teleport_use_aria(),
 			count: "teleportStones",
 			can: "canUseTeleportStone",
 			use: "onUseTeleportStone",

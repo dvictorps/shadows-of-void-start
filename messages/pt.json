@@ -64,6 +64,8 @@
 	"status_dexterity_label": "Destreza:",
 	"status_intelligence_label": "Inteligência:",
 	"status_xp_label": "XP: {current} / {needed}",
+	"xp_bar_aria": "Experiência",
+	"health_globe_aria": "Vida e barreira",
 	"status_header": "Status",
 	"show_action": "Exibir",
 
@@ -171,6 +173,8 @@
 	"camp_line_incense_3": "Por um instante, a zona parece esquecer que você está aqui.",
 	"incense_use_aria": "Usar incenso etéreo",
 	"incense_hint": "Incenso Etéreo — invoca um acampamento.",
+	"potion_use_aria": "Usar poção",
+	"teleport_use_aria": "Usar pedra de teleporte",
 	"ambush_banner": "Emboscada!",
 	"you_died_softcore": "Você morreu! -{xp} XP",
 	"you_died_hardcore": "Você morreu (hardcore). Personagem apagado.",

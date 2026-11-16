@@ -1,6 +1,6 @@
 # Item Modifier Guidelines
 
-Specific design rules for each modifier category. For general system docs (how to add mods, tier system, rarity limits), see `CLAUDE.md`.
+Specific design rules for each modifier category. For general system docs (how to add mods, tier system, rarity limits), see `docs/playbooks/adding-a-modifier.md`.
 
 ---
 

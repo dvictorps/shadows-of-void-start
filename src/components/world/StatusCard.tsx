@@ -96,7 +96,7 @@ export default function StatusCard({
 						</div>
 						<div
 							role="progressbar"
-							aria-label="Experience"
+							aria-label={m.xp_bar_aria()}
 							aria-valuenow={vitals.xp}
 							aria-valuemin={0}
 							aria-valuemax={vitals.xpNeeded}
@@ -109,7 +109,7 @@ export default function StatusCard({
 						</div>
 					</div>
 					<ConsumableSlot
-						label="Use potion"
+						label={m.potion_use_aria()}
 						count={vitals.potions}
 						disabled={!vitals.canUsePotion}
 						onUse={onUsePotion}
@@ -141,7 +141,7 @@ export default function StatusCard({
 
 					<div className="flex justify-center gap-2">
 						<ConsumableSlot
-							label="Use teleport stone"
+							label={m.teleport_use_aria()}
 							count={vitals.teleportStones}
 							disabled={!vitals.canUseTeleportStone}
 							onUse={onUseTeleportStone}
