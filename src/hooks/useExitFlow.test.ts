@@ -175,9 +175,8 @@ describe("useExitFlow — Retreat", () => {
 		expect(t.modalOpen()).toBe(false);
 	});
 
-	// Pins today's behavior: the view goes to the map before the modal opens,
-	// so Cancel lands on the map. CONTEXT.md says Cancel returns to combat;
-	// the divergence waits on an owner decision (docs/plans/in-progress.md).
+	// The view goes to the map before the modal opens, so Retreat's Cancel
+	// lands on the map (CONTEXT.md → Inventory overflow and exit-modal flow).
 	it("goes to the map, then opens the modal for a staged bag", async () => {
 		const t = setup({ bagSize: 5, phase: "camp" });
 		await act(() => t.flow().retreat());
