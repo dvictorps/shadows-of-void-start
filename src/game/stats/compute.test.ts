@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import { m } from "#/paraglide/messages";
+
 import { CLASS_DEFINITIONS } from "../classes/data";
 import type { GeneratedItem, RolledMod } from "../items/types";
 import {
 	computeArmorMitigation,
 	computeCharacterStats,
 	computeEvasionAvoid,
+	describeBrokenReasons,
 	effectiveCritChance,
 	isAttackDualWielding,
 } from "./compute";
@@ -555,6 +558,48 @@ describe("computeCharacterStats — broken state", () => {
 		);
 		expect(cold?.min).toBe(8);
 		expect(cold?.max).toBe(8);
+	});
+});
+
+describe("describeBrokenReasons", () => {
+	// Warrior baseline at level 1: Str 10, Dex 5, Int 5.
+	const totals = computeCharacterStats({
+		classDef: warrior,
+		level: 1,
+		equippedItems: [],
+	});
+
+	it("names each unmet requirement with its shortfall, in paraglide", () => {
+		expect(
+			describeBrokenReasons(
+				{ requirements: { level: 20, str: 30, dex: 12, int: 9 } },
+				totals,
+				1,
+			),
+		).toEqual([
+			m.broken_missing_level({ value: 20 }),
+			m.broken_missing_strength({ value: 20 }),
+			m.broken_missing_dexterity({ value: 7 }),
+			m.broken_missing_intelligence({ value: 4 }),
+		]);
+	});
+
+	it("names the missing bow for a quiver, and nothing once a bow is in hand", () => {
+		const q = { equipmentType: "quiver" };
+		expect(describeBrokenReasons(q, totals, 1, "sword")).toEqual([
+			m.tooltip_requires_bow_in_main_hand(),
+		]);
+		expect(describeBrokenReasons(q, totals, 1, "bow")).toEqual([]);
+	});
+
+	it("returns nothing when every requirement is met", () => {
+		expect(
+			describeBrokenReasons(
+				{ requirements: { level: 1, str: 10, dex: 5, int: 5 } },
+				totals,
+				1,
+			),
+		).toEqual([]);
 	});
 });
 

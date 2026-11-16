@@ -32,6 +32,7 @@ import { translateItemName } from "#/game/items/item-name";
 import type { GeneratedItem } from "#/game/items/types";
 import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
+import { useEscapeLayer } from "#/hooks/useEscapeLayer";
 import type { useInventoryMutations } from "#/hooks/useInventoryMutations";
 import type { ItemRow } from "#/lib/api-types";
 import { serverErrorMessage } from "#/lib/server-error-message";
@@ -45,6 +46,7 @@ import {
 	resolveDrop,
 } from "./inventory-modal/drag";
 import PaperDoll from "./inventory-modal/PaperDoll";
+import { reorderOrToast } from "./inventory-modal/reorder";
 
 type InventoryMutations = ReturnType<typeof useInventoryMutations>;
 type ArgsOf<Name extends keyof InventoryMutations> = Parameters<
@@ -98,6 +100,9 @@ export default function InventoryModal({
 	const confirm = useConfirmationModal();
 
 	const [active, setActive] = useState<DragSourceData | null>(null);
+	// A drag sits above the modal: dnd-kit's sensor cancels it on Escape by
+	// itself, and this layer keeps that Escape from closing the modal.
+	useEscapeLayer(active !== null);
 	const [menu, setMenu] = useState<{
 		source: DragSourceData;
 		anchor: DOMRect;
@@ -156,8 +161,7 @@ export default function InventoryModal({
 		if (!action) return;
 		switch (action.kind) {
 			case "reorder":
-				void reorder({
-					characterId,
+				await reorderOrToast(reorder, characterId, {
 					itemId: action.itemId,
 					targetSlot: action.targetSlot,
 					swapWithItemId: action.swapWithItemId,
@@ -194,7 +198,7 @@ export default function InventoryModal({
 		try {
 			await swapHands({ characterId });
 		} catch (err) {
-			toast.error(serverErrorMessage(err, m.error_equip_failed()));
+			toast.error(serverErrorMessage(err, m.error_swap_hands_failed()));
 		}
 	};
 

@@ -2,6 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
 import { Button } from "#/components/ui/button";
+import { useEscapeLayer } from "#/hooks/useEscapeLayer";
 
 export interface MenuAction {
 	id: string;
@@ -46,16 +47,12 @@ export default function ItemContextMenu({
 				return;
 			onClose();
 		};
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") onClose();
-		};
 		document.addEventListener("pointerdown", onDocPointerDown);
-		document.addEventListener("keydown", onKey);
-		return () => {
-			document.removeEventListener("pointerdown", onDocPointerDown);
-			document.removeEventListener("keydown", onKey);
-		};
+		return () => document.removeEventListener("pointerdown", onDocPointerDown);
 	}, [onClose]);
+
+	// The menu sits above its modal: Escape closes the menu, not the modal.
+	useEscapeLayer(true, onClose);
 
 	useLayoutEffect(() => {
 		if (!onLayout) return;

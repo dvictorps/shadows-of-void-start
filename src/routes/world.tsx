@@ -251,7 +251,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		movementSpeed: stats.movementSpeed,
 	});
 	const inventoryServer = useInventoryMutations(character.id);
-	const { reorderInventory } = inventoryServer;
 
 	const { view, setView, setPendingArrival, isTraveling, enterDestination } =
 		useViewMode({
@@ -616,14 +615,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 					return withdrawFromStash({
 						characterId: character.id,
 						itemIds,
-					});
-				}}
-				onReorderInventory={({ itemId, targetSlot, swapWithItemId }) => {
-					void reorderInventory({
-						characterId: character.id,
-						itemId,
-						targetSlot,
-						swapWithItemId,
 					});
 				}}
 				onReorderStash={({ itemId, targetSlot, swapWithItemId }) => {

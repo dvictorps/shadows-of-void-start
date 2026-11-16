@@ -416,7 +416,7 @@ Broken detection runs as a fixed-point iteration in the stat engine:
 
 This naturally produces the PoE "self-sustaining gear" behaviour: a helmet that gives +15 STR and requires STR 15 cannot be equipped by a STR-10 character alone, but once equipped (via a temporary STR source) it counts its own +15 in the broken-state check and stays functional. Removing the temporary source while the helmet is equipped leaves it OK; unequipping the helmet means it cannot be re-equipped without external help.
 
-**Visual signal** — broken items render with a red border (overriding the rarity color), a red `AlertTriangle` icon overlay, and a red warning line at the top of their tooltip: "Falta {N} de {Atributo}", one line per unmet requirement.
+**Visual signal** — broken items render with a red border (overriding the rarity color), a red `AlertTriangle` icon overlay, and a red warning band at the top of their tooltip, one line per unmet requirement (`describeBrokenReasons` in `src/game/stats/compute.ts`, paraglide `broken_missing_*`): "Missing level {N}" / "Falta nível {N}", "Missing {N} Strength" / "Falta {N} de Força" (same for Dexterity / Destreza and Intelligence / Inteligência, with the shortfall as N), and for an orphaned quiver "Requires Bow in Main Hand" / "Requer Arco na Mão Principal" (`tooltip_requires_bow_in_main_hand`).
 
 ### Active player input
 

@@ -1,5 +1,6 @@
 import BagPreviewModal from "#/components/world/BagPreviewModal";
 import ExitZoneModal from "#/components/world/ExitZoneModal";
+import { reorderOrToast } from "#/components/world/inventory-modal/reorder";
 import InventoryModal, {
 	type InventoryServer,
 } from "#/components/world/InventoryModal";
@@ -38,7 +39,6 @@ export function WorldModals({
 	onVendorSellMany,
 	onStashDeposit,
 	onStashWithdraw,
-	onReorderInventory,
 	onReorderStash,
 	inventoryServer,
 }: {
@@ -73,11 +73,6 @@ export function WorldModals({
 	onStashWithdraw: (
 		itemIds: number[],
 	) => Promise<{ withdrawn: number; failed: number }>;
-	onReorderInventory: (args: {
-		itemId: number;
-		targetSlot: number;
-		swapWithItemId?: number;
-	}) => void;
 	onReorderStash: (args: {
 		itemId: number;
 		targetSlot: number;
@@ -131,7 +126,14 @@ export function WorldModals({
 				stashItems={stashItems ?? []}
 				onDeposit={onStashDeposit}
 				onWithdraw={onStashWithdraw}
-				onReorderInventory={onReorderInventory}
+				// Safe to `void`: reorderOrToast never rejects.
+				onReorderInventory={(move) =>
+					void reorderOrToast(
+						inventoryServer.reorderInventory,
+						characterId,
+						move,
+					)
+				}
 				onReorderStash={onReorderStash}
 			/>
 			<SettingsModal

@@ -497,10 +497,15 @@ describe("InventoryModal — context menu", () => {
 		expect(screen.queryByRole("menu")).toBeNull();
 	});
 
-	it("Escape with the menu open closes the modal too (both listen)", async () => {
+	it("Escape with the menu open closes the menu only; the next one closes the modal", async () => {
 		const s = sword();
 		const t = setup({ inventory: [inventoryRow(1, s, 0)] });
 		await openMenu(s);
+		await act(async () => {
+			fireEvent.keyDown(document, { key: "Escape" });
+		});
+		expect(screen.queryByRole("menu")).toBeNull();
+		expect(t.onClose).not.toHaveBeenCalled();
 		await act(async () => {
 			fireEvent.keyDown(document, { key: "Escape" });
 		});
@@ -658,7 +663,7 @@ describe("InventoryModal — swap hands button", () => {
 		});
 	});
 
-	it("toasts a failed swap with the equip message", async () => {
+	it("toasts a failed swap with its own message", async () => {
 		const t = setup({
 			equipped: [
 				equippedRow(1, sword(), "weapon"),
@@ -669,7 +674,7 @@ describe("InventoryModal — swap hands button", () => {
 		await act(async () => {
 			fireEvent.click(swapButton());
 		});
-		expect(await screen.findByText(m.error_equip_failed())).toBeTruthy();
+		expect(await screen.findByText(m.error_swap_hands_failed())).toBeTruthy();
 	});
 });
 
@@ -701,6 +706,20 @@ describe("InventoryModal — discard", () => {
 		});
 	});
 
+	it("Escape on the confirmation cancels it and keeps the modal open", async () => {
+		const s = sword();
+		const t = setup({ inventory: [inventoryRow(5, s, 0)] });
+		await openMenu(s);
+		await chooseAction(m.inventory_discard_action());
+		await act(async () => {
+			fireEvent.keyDown(document, { key: "Escape" });
+		});
+		expect(screen.queryByText(m.inventory_discard_message())).toBeNull();
+		expect(t.server.discardFromInventory).not.toHaveBeenCalled();
+		expect(t.onClose).not.toHaveBeenCalled();
+		expect(dialog()).toBeTruthy();
+	});
+
 	it("toasts a failed discard", async () => {
 		const s = sword();
 		const t = setup({ inventory: [inventoryRow(5, s, 0)] });
@@ -727,9 +746,12 @@ describe("InventoryModal — broken items", () => {
 		await act(async () => {
 			fireEvent.mouseEnter(card(heavy));
 		});
-		// describeBrokenReasons returns fixed Portuguese strings (no paraglide).
-		expect(screen.getByText("Falta nível 20")).toBeTruthy();
-		expect(screen.getByText("Falta 20 de Força")).toBeTruthy();
+		expect(
+			screen.getByText(m.broken_missing_level({ value: 20 })),
+		).toBeTruthy();
+		expect(
+			screen.getByText(m.broken_missing_strength({ value: 20 })),
+		).toBeTruthy();
 	});
 
 	it("names the missing bow for a broken quiver", async () => {
@@ -744,7 +766,10 @@ describe("InventoryModal — broken items", () => {
 		await act(async () => {
 			fireEvent.mouseEnter(card(q));
 		});
-		expect(screen.getByText("Requer Arco na Mão Principal")).toBeTruthy();
+		// Twice: the broken warning on top, and the quiver's own requirement line.
+		expect(
+			screen.getAllByText(m.tooltip_requires_bow_in_main_hand()),
+		).toHaveLength(2);
 	});
 
 	it("leaves a healthy item unbadged", () => {
@@ -780,6 +805,14 @@ describe("InventoryModal — drag in the bag (reorder)", () => {
 			targetSlot: 3,
 			swapWithItemId: 2,
 		});
+	});
+
+	it("toasts a refused reorder", async () => {
+		const s = sword();
+		const t = setup({ inventory: [inventoryRow(1, s, 0)] });
+		t.server.reorderInventory.mockRejectedValue(new Error("boom"));
+		await drag(s, bagCell(5));
+		expect(await screen.findByText(m.error_reorder_failed())).toBeTruthy();
 	});
 
 	it("does nothing when dropped back on its own slot", async () => {
@@ -855,18 +888,18 @@ describe("InventoryModal — drag to the paper doll (equip)", () => {
 		await drop();
 	});
 
-	it("cancels on Escape without a call (the modal hears it too)", async () => {
+	it("cancels on Escape without a call, and the modal stays open", async () => {
 		const h = helmet();
 		const t = setup({ inventory: [inventoryRow(1, h, 0)] });
 		await startDrag(h, equipCell("helmet"));
 		await act(async () => {
-			// dnd-kit's sensor reads `code`; the modal reads `key`.
+			// dnd-kit's sensor reads `code`; the Escape layers read `key`.
 			fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
 		});
 		expect(t.server.equipItem).not.toHaveBeenCalled();
 		expect(dragSlotIn(bagCell(0)).style.opacity).toBe("1");
 		expect(equipCell("helmet").className).not.toMatch(/ring-/);
-		expect(t.onClose).toHaveBeenCalled();
+		expect(t.onClose).not.toHaveBeenCalled();
 	});
 });
 
@@ -901,7 +934,7 @@ describe("InventoryModal — drag from the paper doll", () => {
 		});
 	});
 
-	it("toasts a failed drag swap with the equip message", async () => {
+	it("toasts a failed drag swap with its own message", async () => {
 		const s = sword();
 		const d = dagger();
 		const t = setup({
@@ -909,7 +942,7 @@ describe("InventoryModal — drag from the paper doll", () => {
 		});
 		t.server.swapHands.mockRejectedValue(new Error("boom"));
 		await drag(s, equipCell("offhand"));
-		expect(await screen.findByText(m.error_equip_failed())).toBeTruthy();
+		expect(await screen.findByText(m.error_swap_hands_failed())).toBeTruthy();
 	});
 
 	it("ignores a hand drop that can't swap, and any other paper-doll drop", async () => {

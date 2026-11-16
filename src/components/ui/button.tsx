@@ -25,6 +25,9 @@ const buttonVariants = cva(
 				starkMuted:
 					"border border-white/40 bg-black text-white/80 hover:bg-white/10 hover:text-white",
 				"ghost-purple": "bg-transparent text-white hover:text-void",
+				// A bare text control in muted white that lights up on hover (a
+				// modal's header ×; pair with size="glyph" or "inline").
+				starkText: "text-white/60 hover:text-white",
 				// Inline text link in the void purple (pair with size="inline").
 				voidLink: "text-void underline hover:text-void/80",
 				// Square-cornered control floating over the game art (the world
@@ -47,6 +50,8 @@ const buttonVariants = cva(
 				tall: "h-auto px-3 py-2.5",
 				// Sits inside running text.
 				inline: "h-auto p-0",
+				// A single-character control, such as a modal's ×.
+				glyph: "h-auto p-0 text-lg leading-none",
 				// The small label of the HUD controls over the game art.
 				hud: "h-auto gap-1.5 px-3 py-1.5 text-2xs",
 				// The combat HUD's text actions (Retreat, the camp and
