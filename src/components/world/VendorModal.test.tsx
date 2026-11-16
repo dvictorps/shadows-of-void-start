@@ -295,6 +295,16 @@ describe("VendorModal — buying", () => {
 		expect(await screen.findByText(m.error_character_not_found())).toBeTruthy();
 	});
 
+	it.each([
+		[SERVER_ERRORS.notEnoughRubys, () => m.error_not_enough_rubys()],
+		["potion cap reached", () => m.vendor_buy_at_cap()],
+	])("translates the vendor refusal %s", async (raw, expected) => {
+		const t = setup();
+		t.onBuy.mockRejectedValue(ruleError(raw));
+		await press(buyButton(stoneCard()));
+		expect(await screen.findByText(expected())).toBeTruthy();
+	});
+
 	it("toasts the buy message for a rejection that isn't an Error", async () => {
 		const t = setup();
 		t.onBuy.mockRejectedValue("offline");

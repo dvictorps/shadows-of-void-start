@@ -17,4 +17,6 @@ export const SERVER_ERRORS = {
 	slotEmpty: "Slot is empty",
 	nameEmpty: "Name cannot be empty",
 	duplicateName: "You already have a character with this name",
+	notEnoughRubys: "Not enough rubys",
+	invalidQuantity: "Quantity must be a positive integer",
 } as const;

@@ -1,20 +1,9 @@
-export { BOSSES, findBoss } from "./data";
+export { BOSSES, findBoss, getBossConfig } from "./data";
 export { GRALFOR } from "./gralfor";
+export { bossIntroStageMs, bossIntroStageMsFor } from "./intro";
 export type {
 	BossCinematicConfig,
 	BossConfig,
 	BossId,
 	BossTemplate,
 } from "./types";
-
-import type { MonsterRarity } from "../monsters/types";
-import { findBoss } from "./data";
-import type { BossConfig } from "./types";
-
-export function getBossConfig(enemy: {
-	def: { id: string };
-	rarity: MonsterRarity;
-}): BossConfig | null {
-	if (enemy.rarity !== "unique") return null;
-	return findBoss(enemy.def.id);
-}

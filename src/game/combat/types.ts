@@ -53,10 +53,9 @@ export const RARE_INTRO_STAGE_MS = {
 // boss from a rare miniboss. See CONTEXT.md → Boss Cinematic.
 export type BossIntroStage = "sprite" | "impact" | "name" | "hp" | null;
 
-// Timings for the boss intro, today the same for every boss.
-// BossConfig.cinematic.spriteFadeInMs / .sfxBeatMs are meant to override
-// sprite and impact per boss but are not read yet (REFACTOR GATE item 18,
-// docs/plans/in-progress.md); name and hp stay shared.
+// Default timings for the boss intro. A boss overrides sprite and impact
+// with BossConfig.cinematic.spriteFadeInMs / .sfxBeatMs (`bossIntroStageMs`
+// in src/game/bosses); name and hp are the same for every boss.
 export const BOSS_INTRO_STAGE_MS_DEFAULT = {
 	sprite: 900,
 	impact: 600,

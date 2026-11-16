@@ -16,10 +16,8 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-	BOSS_INTRO_STAGE_MS_DEFAULT,
-	RARE_INTRO_STAGE_MS,
-} from "#/game/combat/types";
+import { BOSSES, bossIntroStageMs, GRALFOR } from "#/game/bosses";
+import { RARE_INTRO_STAGE_MS } from "#/game/combat/types";
 import type { MonsterId } from "#/game/monsters";
 import type { BossNodeConfig } from "#/game/world";
 import type { ZoneEncounterPlan } from "#/game/world/encounter-schedule";
@@ -40,9 +38,9 @@ const RARE_INTRO_MS =
 	RARE_INTRO_STAGE_MS.sprite +
 	RARE_INTRO_STAGE_MS.name +
 	RARE_INTRO_STAGE_MS.hp;
-const BOSS_INTRO_MS = Object.values(BOSS_INTRO_STAGE_MS_DEFAULT).reduce(
-	(sum, ms) => sum + ms,
-);
+const introMs = (cinematic: typeof GRALFOR.cinematic) =>
+	Object.values(bossIntroStageMs(cinematic)).reduce((sum, ms) => sum + ms);
+const BOSS_INTRO_MS = introMs(GRALFOR.cinematic);
 const MAX_LIFE = 1_000_000;
 const POOL: readonly MonsterId[] = ["goblin"];
 
@@ -378,6 +376,38 @@ describe("useCombatLoop — boss node", () => {
 		advance(BOSS_INTRO_MS);
 		expect(result.current.state).toBe("engaged");
 		expect(result.current.bossIntroStage).toBeNull();
+	});
+
+	it("holds each intro stage for the boss's own cinematic timings", async () => {
+		const slow = {
+			...GRALFOR,
+			cinematic: {
+				...GRALFOR.cinematic,
+				spriteFadeInMs: 2000,
+				sfxBeatMs: 1500,
+			},
+		};
+		BOSSES.gralfor = slow;
+		try {
+			const { result } = setup({
+				bossNode: {
+					...BOSS_NODE,
+					gauntlet: { ...BOSS_NODE.gauntlet, fights: 0 },
+				},
+			});
+			advance(GAUNTLET_SPAWN_MS);
+			expect(result.current.bossIntroStage).toBe("sprite");
+			advance(GRALFOR.cinematic.spriteFadeInMs);
+			expect(result.current.bossIntroStage).toBe("sprite");
+			advance(2000 - GRALFOR.cinematic.spriteFadeInMs);
+			expect(result.current.bossIntroStage).toBe("impact");
+			advance(1500);
+			expect(result.current.bossIntroStage).toBe("name");
+			advance(introMs(slow.cinematic) - 2000 - 1500);
+			expect(result.current.state).toBe("engaged");
+		} finally {
+			BOSSES.gralfor = GRALFOR;
+		}
 	});
 
 	it("spawns regular mobs during the warmup and no gauntlet until the bar fills", () => {

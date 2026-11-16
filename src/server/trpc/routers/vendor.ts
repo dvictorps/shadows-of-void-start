@@ -58,7 +58,7 @@ export const vendorRouter = router({
 				.returning({ rubys: characters.rubys, count: characters[counter] });
 			// Only a concurrent purchase can make the guard miss after the check
 			// above passed.
-			if (!updated) fail("Not enough rubys");
+			if (!updated) fail(SERVER_ERRORS.notEnoughRubys);
 			// The client patches both into its character cache.
 			return {
 				rubys: updated.rubys,
