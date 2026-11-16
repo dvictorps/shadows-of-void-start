@@ -274,8 +274,16 @@ Every item rendered as a square card uses the same visual contract:
 
 Opened via the existing `InventoryButton` (backpack icon in `EquipmentPanel`). Wide modal split into two regions:
 
-- **Left** (~20%): equipment slots arranged as a compact grid (2 cols × 5 rows of squares — no paper-doll silhouette, just rounded-square slots to fit modal height without scroll). Shows currently equipped items; **no equip/unequip system in this iteration** — view-only.
-- **Right** (~80%): inventory grid (10 cols × 6 rows = 60 slots), scrolls vertically if items overflow visible rows. Items are ordered `droppedAt desc` (newest first); empty slots fill the rest.
+- **Left**: equipment slots arranged as a compact grid (2 cols × 5 rows of squares, no paper-doll silhouette), in the order helmet / amulet, weapon / off-hand, chest / belt, gloves / boots, ring 1 / ring 2. Empty slots show their short label. Below them, a **Swap hands** button, enabled only when `canSwapHands` holds (two 1H weapons of the same archetype); disabled, its tooltip says why.
+- **Right**: the bag, 60 slots in 8 columns, scrolling vertically. Each item sits in its own `inventorySlot`; the header counts the free slots.
+
+Interactions (the server decides every rule; the modal only offers what `validSlotsForItem` allows and toasts a refusal):
+
+- **Click an inventory item** → a menu with one equip action per valid slot (main hand / off hand for a 1H weapon, ring 1 / ring 2, a generic "Equip" otherwise), then **Discard** (see Discarding from inventory).
+- **Click an equipped item** → **Unequip** (the server puts it in the first free slot).
+- **Drag** an inventory item onto a bag slot to move it (swapping with the occupant), or onto an eligible equipment slot to equip it. Drag an equipped item onto the bag to unequip it, or a hand weapon onto the other hand to swap hands. While dragging, eligible slots glow, the hovered one rings yellow, and an ineligible one rings red; drops on anything else do nothing.
+
+(Synced to the shipped modal on `test/inventory-modal`, 2026-11-16; this section used to describe the first, view-only iteration.)
 
 ---
 

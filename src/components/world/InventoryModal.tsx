@@ -1,5 +1,6 @@
-// ⚠ SIZE TRIPWIRE (~740 lines; the mutations live in useInventoryMutations) — one of the repo's largest single files (see
-// docs/plans/in-progress.md → agent-ergonomics track). Untested. DON'T grow the
+// ⚠ SIZE TRIPWIRE (~750 lines; the mutations live in useInventoryMutations) — one of the repo's largest single files (see
+// docs/plans/in-progress.md → agent-ergonomics track). Pinned by
+// InventoryModal.test.tsx; the split is next. DON'T grow the
 // monolith: a NEW concern (another transfer mode, another grid, equip-preview
 // logic) should be extracted into its own file rather than appended here. The
 // trigger to split is a new concern landing, not raw line count.
@@ -39,7 +40,7 @@ import {
 	narrowEquippedSlot,
 } from "#/game/stats/types";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
-import { useInventoryMutations } from "#/hooks/useInventoryMutations";
+import type { useInventoryMutations } from "#/hooks/useInventoryMutations";
 import type { ItemRow } from "#/lib/api-types";
 import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
@@ -72,6 +73,22 @@ type DragSourceData =
 	| { kind: "inventory"; itemId: number }
 	| { kind: "equipped"; slot: EquippedSlot; itemId: number };
 
+type InventoryMutations = ReturnType<typeof useInventoryMutations>;
+type ArgsOf<Name extends keyof InventoryMutations> = Parameters<
+	InventoryMutations[Name]
+>[0];
+
+/** The calls the modal makes; the route passes `useInventoryMutations`. */
+export interface InventoryServer {
+	reorderInventory: (args: ArgsOf<"reorderInventory">) => Promise<object>;
+	equipItem: (args: ArgsOf<"equipItem">) => Promise<object>;
+	unequipItem: (args: ArgsOf<"unequipItem">) => Promise<object>;
+	swapHands: (args: ArgsOf<"swapHands">) => Promise<object>;
+	discardFromInventory: (
+		args: ArgsOf<"discardFromInventory">,
+	) => Promise<object>;
+}
+
 type Props = {
 	isOpen: boolean;
 	onClose: () => void;
@@ -80,6 +97,7 @@ type Props = {
 	characterLevel: number;
 	equippedItems: ItemRow[];
 	inventoryItems: ItemRow[];
+	server: InventoryServer;
 };
 
 export default function InventoryModal({
@@ -90,6 +108,7 @@ export default function InventoryModal({
 	characterLevel,
 	equippedItems,
 	inventoryItems,
+	server,
 }: Props) {
 	const {
 		reorderInventory: reorder,
@@ -97,7 +116,7 @@ export default function InventoryModal({
 		unequipItem,
 		swapHands,
 		discardFromInventory: discardItem,
-	} = useInventoryMutations(characterId);
+	} = server;
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),

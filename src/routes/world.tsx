@@ -250,7 +250,8 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		characterId: character.id,
 		movementSpeed: stats.movementSpeed,
 	});
-	const { reorderInventory } = useInventoryMutations(character.id);
+	const inventoryServer = useInventoryMutations(character.id);
+	const { reorderInventory } = inventoryServer;
 
 	const { view, setView, setPendingArrival, isTraveling, enterDestination } =
 		useViewMode({
@@ -633,6 +634,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 						swapWithItemId,
 					});
 				}}
+				inventoryServer={inventoryServer}
 			/>
 			<LeaderboardModal
 				isOpen={leaderboardModal.isOpen}
