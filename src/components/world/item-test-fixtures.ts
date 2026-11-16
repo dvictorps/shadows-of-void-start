@@ -76,6 +76,21 @@ export function inventoryRow(
 	return { ...baseRow(id, data), inventorySlot };
 }
 
+/** A row in the account's softcore stash at `stashSlot`. */
+export function stashRow(
+	id: number,
+	data: GeneratedItem,
+	stashSlot: number,
+): ItemRow {
+	return {
+		...baseRow(id, data),
+		locationKind: "stash",
+		characterId: null,
+		stashMode: "softcore",
+		stashSlot,
+	};
+}
+
 /** A row equipped in `slot`. */
 export function equippedRow(
 	id: number,
