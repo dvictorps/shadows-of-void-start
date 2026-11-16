@@ -1,6 +1,66 @@
-// Shared fixtures for the combat hook tests (useCombatTick, useCombatLoop).
+// Shared fixtures for the combat tests (useCombatTick, useCombatLoop,
+// CombatScene).
 
+import { EMPTY_ELEMENTAL_GAIN } from "#/game/combat/damage";
+import type { Enemy } from "#/game/combat/types";
+import type { MonsterDefinition } from "#/game/monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "#/game/stats/types";
+
+export type EnemyOverrides = Partial<Omit<Enemy, "scaled">> & {
+	scaled?: Partial<Enemy["scaled"]>;
+};
+
+/**
+ * A level-1 normal mob with `currentHp` HP (also its max), 5 physical damage
+ * and an attack speed of 20 (matches `makeStats`' tick rate, so the enemy
+ * swing fires on tick 1). Builds a fresh `scaled` object per call.
+ */
+export function makeEnemy(
+	currentHp: number,
+	overrides: EnemyOverrides = {},
+): Enemy {
+	const def: MonsterDefinition = {
+		id: "test-mob",
+		name: "Test Mob",
+		sprite: "x",
+		baseStats: {
+			hp: currentHp,
+			attackSpeed: 20,
+			physicalDamage: { min: 5, max: 5 },
+			elementalDamage: [],
+		},
+		xpReward: 1,
+		allowedRarities: ["normal"],
+	};
+	const { scaled: scaledOverrides, ...enemyOverrides } = overrides;
+	return {
+		def,
+		currentHp,
+		currentBarrier: 0,
+		level: 1,
+		rarity: "normal",
+		mods: [],
+		scaled: {
+			level: 1,
+			hp: currentHp,
+			physicalDamage: { min: 5, max: 5 },
+			elementalDamage: [],
+			attackSpeed: 20,
+			xpReward: 1,
+			armor: 0,
+			evasion: 0,
+			accuracy: 1000,
+			resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
+			barrier: 0,
+			criticalChance: 0,
+			criticalMultiplier: 0,
+			gainAsExtraDamage: { ...EMPTY_ELEMENTAL_GAIN },
+			...scaledOverrides,
+		},
+		nameSeed: { primary: 0, secondary: 0, epithet: 0 },
+		...enemyOverrides,
+	};
+}
 
 /** A level-1 attacker: one 10-damage sword swing per 50ms tick, no defenses. */
 export function makeStats(
