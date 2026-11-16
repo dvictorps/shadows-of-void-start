@@ -14,6 +14,8 @@
 		"public/**",
 		"convex/**",
 		"src/routeTree.gen.ts",
+		"worker-configuration.d.ts",
+		"drizzle/meta/**",
 		"src/paraglide/**",
 		"src/styles.css",
 		"tools/oxlint/anti-slop/**",

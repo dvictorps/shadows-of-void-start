@@ -1,0 +1,4 @@
+# Local Worker secrets for `pnpm dev`. Copy to `.dev.vars` (gitignored) and fill.
+# Staging/production get theirs through `wrangler secret put <NAME> --env <env>`.
+# `pnpm cf-typegen` reads this file (not your real .dev.vars) to type `Env`.
+BETTER_AUTH_SECRET=generate-with-openssl-rand-base64-32

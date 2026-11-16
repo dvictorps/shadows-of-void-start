@@ -4,3 +4,4 @@ allowBuilds:
   lefthook: true
   lightningcss: true
   protobufjs: true
+  workerd: true
