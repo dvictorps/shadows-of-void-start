@@ -131,7 +131,7 @@ export default function CombatBottomHud({
 			 * exit). Non-city destinations are picked from the map view. */}
 			<SlotCell>
 				<ConsumableSlot
-					label="Use teleport stone"
+					label={m.teleport_use_aria()}
 					count={teleportStones}
 					disabled={!canUseTeleportStone}
 					onUse={onUseTeleportStone}
@@ -156,7 +156,7 @@ export default function CombatBottomHud({
 
 			<SlotCell>
 				<ConsumableSlot
-					label="Use potion"
+					label={m.potion_use_aria()}
 					count={potions}
 					disabled={!canUsePotion}
 					onUse={onUsePotion}
@@ -173,11 +173,11 @@ function XpBar({ xp, xpNeeded }: { xp: number; xpNeeded: number }) {
 	return (
 		<div className="flex-1 space-y-1">
 			<div className="text-[10px] uppercase tracking-wider text-yellow-300/80">
-				XP: {xp} / {xpNeeded}
+				{m.status_xp_label({ current: xp, needed: xpNeeded })}
 			</div>
 			<div
 				role="progressbar"
-				aria-label="Experience"
+				aria-label={m.xp_bar_aria()}
 				aria-valuenow={xp}
 				aria-valuemin={0}
 				aria-valuemax={xpNeeded}

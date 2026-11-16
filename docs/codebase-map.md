@@ -2,7 +2,7 @@
 
 A fast tour for an agent dropped into this repo. Points to where each domain lives so you can grep with intent instead of with hope.
 
-For game design rules (what stats mean, what's allowed where, why), read [CONTEXT.md](../CONTEXT.md). For project guidelines (tech stack, item generator architecture), read [CLAUDE.md](../CLAUDE.md). For task recipes ("how do I add a modifier?"), read [docs/playbooks/](./playbooks/).
+For game design rules (what stats mean, what's allowed where, why), read [CONTEXT.md](../CONTEXT.md). For project guidelines (tech stack, lint and scaling rules, item design decisions), read [CLAUDE.md](../CLAUDE.md). For task recipes ("how do I add a modifier?"), read [docs/playbooks/](./playbooks/).
 
 ---
 
@@ -10,7 +10,7 @@ For game design rules (what stats mean, what's allowed where, why), read [CONTEX
 
 ```
 /
-├── CLAUDE.md               # Project guidelines + item-system architecture
+├── CLAUDE.md               # Project guidelines + item design decisions
 ├── CONTEXT.md              # Domain glossary (single source of truth for rules)
 ├── docs/
 │   ├── codebase-map.md     # ← you are here
@@ -66,6 +66,7 @@ items/
 ├── generator.ts             # generateItem({ rarity, ilvl, type, weaponType }) — public API
 ├── generator.test.ts        # 136 tests covering rarity/tier/mod rules
 ├── equipment.ts             # planEquip, canSwapHands, validSlotsForItem, isTwoHanded, weaponArchetype — shared client+server
+├── equip-resolution.ts      # Equip / unequip decisions for items.equipItem / unequipItem (slots, requirements, bag room), pure
 ├── equipment.test.ts        # planEquip + canSwapHands rules (2H displacement, archetype, hand-swap eligibility)
 ├── starter-gear.ts          # Hand-crafted starter weapons (rusty_sword, rusty_dagger, cracked_wand)
 ├── item-name.ts             # translateItemName / translateTemplateName — display-time renderer (locale × rarity, UUID-seeded rare names)

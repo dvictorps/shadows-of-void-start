@@ -2,6 +2,7 @@ import { motion, useAnimationControls } from "framer-motion";
 import { useEffect } from "react";
 
 import { BARRIER_REFILL_DELAY_SECONDS } from "#/game/combat/constants";
+import { m } from "#/paraglide/messages";
 
 type Props = {
 	hp: number;
@@ -69,7 +70,7 @@ export default function HealthGlobe({
 	return (
 		<motion.div
 			role="img"
-			aria-label="Health and barrier"
+			aria-label={m.health_globe_aria()}
 			animate={controls}
 			className={`relative flex shrink-0 flex-col items-center justify-center overflow-hidden rounded-full border-2 border-red-900/70 bg-black text-center shadow-[inset_0_-10px_18px_rgba(0,0,0,0.45),0_0_18px_rgba(220,38,38,0.4)] ${dimensions}`}
 		>

@@ -96,22 +96,23 @@ function setup(overrides: Partial<Props> = {}) {
 	return { ...result, props, onUsePotion, onUseTeleportStone, onShowStats };
 }
 
-// Pinned oddity: the slot and bar labels are hard-coded English, outside
-// paraglide (the combat HUD's slots share the same literals).
 const potionSlot = () =>
-	narrow(screen.getByRole("button", { name: "Use potion" }), HTMLButtonElement);
-const teleportSlot = () =>
 	narrow(
-		screen.getByRole("button", { name: "Use teleport stone" }),
+		screen.getByRole("button", { name: m.potion_use_aria() }),
 		HTMLButtonElement,
 	);
-const xpBar = () => screen.getByRole("progressbar", { name: "Experience" });
+const teleportSlot = () =>
+	narrow(
+		screen.getByRole("button", { name: m.teleport_use_aria() }),
+		HTMLButtonElement,
+	);
+const xpBar = () => screen.getByRole("progressbar", { name: m.xp_bar_aria() });
 const showButton = () =>
 	narrow(
 		screen.getByRole("button", { name: m.show_action() }),
 		HTMLButtonElement,
 	);
-const globe = () => screen.getByRole("img", { name: "Health and barrier" });
+const globe = () => screen.getByRole("img", { name: m.health_globe_aria() });
 
 /** The line whose label span reads `label`, e.g. "Level:". */
 function line(label: string) {

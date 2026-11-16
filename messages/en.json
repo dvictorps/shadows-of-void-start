@@ -64,6 +64,8 @@
 	"status_dexterity_label": "Dexterity:",
 	"status_intelligence_label": "Intelligence:",
 	"status_xp_label": "XP: {current} / {needed}",
+	"xp_bar_aria": "Experience",
+	"health_globe_aria": "Health and barrier",
 	"status_header": "Status",
 	"show_action": "Show",
 
@@ -171,6 +173,8 @@
 	"camp_line_incense_3": "For a moment, the zone seems to forget you are here.",
 	"incense_use_aria": "Use ethereal incense",
 	"incense_hint": "Ethereal Incense — summons a camp.",
+	"potion_use_aria": "Use potion",
+	"teleport_use_aria": "Use teleport stone",
 	"ambush_banner": "Ambush!",
 	"you_died_softcore": "You died! -{xp} XP",
 	"you_died_hardcore": "You died (hardcore). Character deleted.",
