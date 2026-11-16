@@ -1,18 +1,16 @@
 import { Skull } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { CLASS_DEFINITIONS } from "#/game/classes/data";
+import { getClassDisplayName } from "#/game/classes/i18n";
+import { typedKeys } from "#/game/typed-object";
 import type { LeaderboardQuery, LeaderboardSnapshot } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
 
 import Modal from "../Modal";
 
-// Keyed by the leaderboard row's open `classId: string`; a Map keeps unknown
-// ids on the raw-id fallback. Insertion order drives the filter buttons.
-const CLASS_LABELS = new Map<string, () => string>([
-	["warrior", () => m.class_warrior_name()],
-	["rogue", () => m.class_rogue_name()],
-	["mage", () => m.class_mage_name()],
-]);
+// The class filter's options, in the classes' declaration order.
+const CLASS_IDS = typedKeys(CLASS_DEFINITIONS);
 
 /**
  * The leaderboard: level or boss kills, softcore or hardcore, a class filter
@@ -23,12 +21,15 @@ export default function LeaderboardModal({
 	isOpen,
 	onClose,
 	snapshot,
+	failed = false,
 	query,
 	onQueryChange,
 }: {
 	isOpen: boolean;
 	onClose: () => void;
 	snapshot: LeaderboardSnapshot | null | undefined;
+	/** The snapshot query failed (it retries on its polling interval). */
+	failed?: boolean;
 	query: LeaderboardQuery;
 	onQueryChange: (query: LeaderboardQuery) => void;
 }) {
@@ -105,9 +106,9 @@ export default function LeaderboardModal({
 							className="border border-white/30 bg-black px-2 py-1 text-xs text-white"
 						>
 							<option value="all">{m.leaderboard_all_classes()}</option>
-							{[...CLASS_LABELS].map(([id, label]) => (
+							{CLASS_IDS.map((id) => (
 								<option key={id} value={id}>
-									{label()}
+									{getClassDisplayName(id)}
 								</option>
 							))}
 						</select>
@@ -145,7 +146,7 @@ export default function LeaderboardModal({
 							{entries.length === 0 && (
 								<tr>
 									<td colSpan={4} className="py-8 text-center text-white/40">
-										{m.leaderboard_empty()}
+										{emptyMessage(snapshot, failed)}
 									</td>
 								</tr>
 							)}
@@ -162,7 +163,7 @@ export default function LeaderboardModal({
 										</span>
 									</td>
 									<td className="py-1.5 pr-2 text-white/70">
-										{CLASS_LABELS.get(entry.classId)?.() ?? entry.classId}
+										{getClassDisplayName(entry.classId)}
 									</td>
 									<td className="py-1.5 text-right font-bold">
 										{category === "level" ? entry.level : entry.totalBossKills}
@@ -208,4 +209,14 @@ function TabButton({
 			{children}
 		</button>
 	);
+}
+
+/** What the table says with no rows: failed, still loading, or truly empty. */
+function emptyMessage(
+	snapshot: LeaderboardSnapshot | null | undefined,
+	failed: boolean,
+): string {
+	if (failed) return m.leaderboard_load_failed();
+	if (snapshot === undefined) return m.loading();
+	return m.leaderboard_empty();
 }
