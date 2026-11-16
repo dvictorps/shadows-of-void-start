@@ -6,11 +6,11 @@ A "modifier" is a rolled affix on a generated item — e.g. "+15 Strength", "+20
 
 Before writing code:
 
-1. **Is it local or global?** Local mods affect the item's own computed stats (a weapon's `+X% Physical Damage` only buffs that weapon). Global mods sum into character totals and apply universally. See `CLAUDE.md` "Local vs Global" if you're unsure.
+1. **Is it local or global?** Local mods affect the item's own computed stats (a weapon's `+X% Physical Damage` only buffs that weapon). Global mods sum into character totals and apply universally. See [Local vs global](#local-vs-global) below if you're unsure.
 2. **Which category?** offensive / defensive / attribute / utility. Picks the file the new mod lives in.
-3. **Which slots accept it?** Use the equipment groups (`allArmor`, `allJewelry`, `allAttackWeapons`) where possible — see `src/game/items/types/base.ts`. Mixing groups with specific slots is fine.
+3. **Which slots accept it?** Use the [equipment groups](#equipment-groups-applicableto) (`allArmor`, `allJewelry`, `allAttackWeapons`) where possible. Mixing groups with specific slots is fine.
 4. **What's its weight?** Default 1000. Higher = more common. Premium mods get 400-600, fillers get 1500-2000. See `CONTEXT.md` "Modifier Knobs" → Reference weights.
-5. **What's its tier range?** 10 tiers gated by ilvl. `createStandardTiers(t10Min, t10Max, t1Min, t1Max)` interpolates linearly. Pick min/max values for the weakest tier and strongest tier.
+5. **What's its tier range?** 10 tiers gated by ilvl (see [Tiers](#tiers)). Pick min/max values for the weakest tier and strongest tier.
 
 ## Step 1 — Define the modifier
 
@@ -48,7 +48,7 @@ The exact compile-checked shape lives in [`_examples/modifier-example.ts`](./_ex
 
 **No `name` field**. The magic-item compound name pulls from `lexicon.prefixForms` / `lexicon.suffixPhrases` (step 4 below) so EN/PT can have different forms with gender concord.
 
-Local mods (the ones that mutate a weapon's `computedStats`) need a `statEffect` declaration instead of `isGlobalStat: true`. See CLAUDE.md "statEffect" for the target/operation table.
+Local mods (the ones that mutate the item's own computed stats) need a `statEffect` declaration instead of `isGlobalStat: true`. See [statEffect](#stateffect-declarative-local-stats) for the target/operation table.
 
 The modifier id ends in `Flat` / `Increase` / `More` — the suffix and `modifierType` must agree. See `CONTEXT.md` → Modifier ID Naming Convention.
 
@@ -142,6 +142,7 @@ Tests will catch:
 - "magic items compose with the right affix order"
 - Stat engine: missing `applyMod` case
 - Item naming: gender concord on adjective modifiers
+- Generator: spell-weapon exclusions, attack-weapon computed stats, armor defense by base, shields, jewelry eligibility, implicits, tier scaling
 
 If the mod is balance-sensitive (premium weight, exclusive slot), drop in a `weight: N` comment explaining the rationale — future agents won't know.
 
@@ -161,3 +162,66 @@ There are two unrelated displays of the same modifier:
 - **Tooltip mod line** (`mod-i18n.ts:PT_EXPLICIT_FORMATTERS`) — "+15 Physical Damage to Attacks". Full sentence with the rolled value interpolated.
 
 Both keyed by the same `modifierId`. Forgetting one renders the affix as a raw id string in that surface. See `docs/playbooks/i18n-which-system.md` for the broader i18n decision tree.
+
+## Reference
+
+### Local vs global
+
+- **Local mods** change the item's own header stats (weapon damage, armor value, block). They declare a `statEffect`; `isGlobalStat` is omitted or `false`. The generator bakes them into `computedStats` / `computedDefenseStats`.
+- **Global mods** add to the character's totals through the stat engine (`applyMod()` in `src/game/stats/compute.ts`). They set `isGlobalStat: true` and have no `statEffect`.
+
+### statEffect (declarative local stats)
+
+`LocalStatTarget` and `StatEffect` live in `src/game/items/types/mods.ts`. `computeWeaponStats` and `computeArmorStats` in `src/game/items/generator.ts` apply them:
+
+| target              | operation     | What it does                                                                                                  |
+| ------------------- | ------------- | ------------------------------------------------------------------------------------------------------------- |
+| `"physicalDamage"`  | `"flat"`      | Adds to both min and max damage                                                                               |
+| `"physicalDamage"`  | `"increased"` | Multiplies physical damage by `(1 + value/100)`                                                               |
+| `"attackSpeed"`     | `"increased"` | Multiplies attack speed by `(1 + value/100)`                                                                  |
+| `"criticalChance"`  | `"increased"` | Multiplies crit chance by `(1 + value/100)`, not flat additive                                                |
+| `"elementalDamage"` | `"flat"`      | Adds an elemental damage line. Requires `element: "Cold"` etc.                                                |
+| `"defense"`         | `"flat"`      | Adds flat defense, resolved to armor / evasion / barrier by the base's `armorType`                            |
+| `"defense"`         | `"increased"` | Multiplies defense by `(1 + value/100)`                                                                       |
+| `"blockChance"`     | `"increased"` | Shields only. Adds percentage points to the base block chance (additive across base, implicits and explicits) |
+
+A new target: add it to `LocalStatTarget`, then handle it in `computeWeaponStats` or `computeArmorStats`. That is the only reason to touch `generator.ts` when adding a mod.
+
+### Equipment groups (applicableTo)
+
+Defined in `src/game/items/types/base.ts` → `EQUIPMENT_GROUPS`. Adding a slot to a group adds it to every mod that uses the group.
+
+| Group                | Expands to                                              |
+| -------------------- | ------------------------------------------------------- |
+| `"allArmor"`         | helmet, chestplate, boots, gloves                       |
+| `"allJewelry"`       | ring, amulet, belt                                      |
+| `"allAttackWeapons"` | sword, greatsword, dagger, bow, axe, mace, twoHandedAxe |
+
+Mix groups with single types freely: `["allAttackWeapons", "helmet", "gloves", "ring"]`. Spell weapons (staff, wand) are in no group: they never roll local attack mods and roll flat spell damage instead (`CONTEXT.md` → Weapon Types).
+
+### Tiers
+
+- `createStandardTiers(t10Min, t10Max, t1Min, t1Max)` builds 10 tiers and interpolates linearly between them. Tier 10 covers ilvl 1–10, tier 1 covers ilvl 91–100.
+- Values are rounded to integers. A test fails on any decimal.
+- Epic items clamp every roll to tier 4 or better.
+
+### Rarity limits
+
+`MOD_LIMITS` in `src/game/items/types/item.ts`:
+
+| Rarity    | Explicits | Max prefix | Max suffix |
+| --------- | --------- | ---------- | ---------- |
+| normal    | 0         | 0          | 0          |
+| magic     | 1–2       | 2          | 2          |
+| rare      | 3–4       | 2          | 2          |
+| legendary | 5         | 3          | 3          |
+| epic      | 6         | 3          | 3          |
+| unique    | 0         | 0          | 0          |
+
+Epic is the top rolled rarity. `unique` is for handcrafted entities (act bosses today): its stats are declared, never rolled.
+
+### How the mod shows in the tooltip
+
+- The generator sorts explicits: prefixes first (increased, then flat), then suffixes (increased, then flat).
+- Mod lines and the header stats a local mod changed render in the magic blue (`RARITY_COLORS.magic`, `#8888ff`).
+- Only an `increased` local mod gets the `(Local)` tag. Nothing is ever tagged `(Global)`.
