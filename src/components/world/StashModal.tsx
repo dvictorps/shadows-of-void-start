@@ -33,6 +33,7 @@ import type { ItemRow } from "#/lib/api-types";
 import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
 
+import { toggleAll, toggleId } from "./item-selection";
 import {
 	type DragSourceData,
 	isDragSource,
@@ -41,7 +42,6 @@ import {
 	type StashMove,
 	type StashSide,
 } from "./stash-modal/drag";
-import { toggleAll, toggleId } from "./stash-modal/selection";
 import StashPanel from "./stash-modal/StashPanel";
 
 const SLOT_SIZE_DEFAULT = 76;
@@ -107,7 +107,8 @@ export default function StashModal({
 
 	// Clear both selections on the closed → open edge, during render ("adjust
 	// state when a prop changes") so the first open frame is already clean.
-	if (useOpenedEdge(isOpen)) {
+	const justOpened = useOpenedEdge(isOpen);
+	if (justOpened) {
 		setInvSelected(emptySelection());
 		setStashSelected(emptySelection());
 	}

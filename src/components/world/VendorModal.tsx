@@ -1,23 +1,23 @@
-import { AnimatePresence, motion } from "framer-motion";
+// The vendor: buy consumables, sell bag gear for rubys. This file composes
+// `vendor-modal/*` and owns what spans the tabs: the tab, the sell selection,
+// the per-product buy guard, the ruby deltas and the server calls. The buy
+// limits live in `vendor-modal/buy-limits.ts`. Pinned by VendorModal.test.tsx.
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
-import Tooltip from "#/components/ui/tooltip";
 import { computeSellPrice } from "#/game/items/sell-price";
-import {
-	VENDOR_PRODUCTS,
-	type VendorCounterField,
-	type VendorProductId,
-} from "#/game/vendor/products";
+import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
 import type { ItemRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
 
-const ITEM_SLOT_SIZE = 88;
+import { toggleId } from "./item-selection";
+import BuyTab from "./vendor-modal/BuyTab";
+import RubyBalance, { type RubyDelta } from "./vendor-modal/RubyBalance";
+import SellTab from "./vendor-modal/SellTab";
 
 type Tab = "buy" | "sell";
 
@@ -32,8 +32,6 @@ type Props = {
 	onSellMany: (itemIds: number[]) => Promise<void>;
 };
 
-type RubyDelta = { id: string; amount: number; sign: "+" | "-" };
-
 const RUBY_DELTA_LIFETIME_MS = 1200;
 
 export default function VendorModal({
@@ -47,12 +45,12 @@ export default function VendorModal({
 	onSellMany,
 }: Props) {
 	const [tab, setTab] = useState<Tab>("buy");
-	const [selected, setSelected] = useState<Set<number>>(new Set());
+	const [selected, setSelected] = useState(() => new Set<number>());
 	const [rubyDeltas, setRubyDeltas] = useState<RubyDelta[]>([]);
 	// Per-product spam-click guard. Server-side rate limiting is the real
 	// hardening — see docs/security/threat-model.md.
-	const [pendingBuys, setPendingBuys] = useState<Set<VendorProductId>>(
-		new Set(),
+	const [pendingBuys, setPendingBuys] = useState(
+		() => new Set<VendorProductId>(),
 	);
 	const [isSelling, runSell] = useInFlight(isOpen);
 
@@ -73,19 +71,9 @@ export default function VendorModal({
 		}, RUBY_DELTA_LIFETIME_MS);
 	};
 
-	const toggle = (id: number) => {
-		setSelected((prev) => {
-			const next = new Set(prev);
-			if (next.has(id)) next.delete(id);
-			else next.add(id);
-			return next;
-		});
-	};
-
 	const handleBuy = async (productId: VendorProductId, quantity: number) => {
 		if (pendingBuys.has(productId)) return;
-		const product = VENDOR_PRODUCTS[productId];
-		const totalCost = product.priceRubys * quantity;
+		const totalCost = VENDOR_PRODUCTS[productId].priceRubys * quantity;
 		setPendingBuys((prev) => new Set([...prev, productId]));
 		pushRubyDelta(totalCost, "-");
 		try {
@@ -111,6 +99,16 @@ export default function VendorModal({
 		const total = items.reduce((sum, it) => sum + computeSellPrice(it.data), 0);
 		return { selectedItems: items, selectedTotal: total };
 	}, [inventoryItems, selected]);
+
+	// Counts the selection still in the bag, not `selected.size` (it may hold
+	// ids sold elsewhere), so this isn't item-selection's `toggleAll`.
+	const handleToggleAll = () => {
+		setSelected(
+			selectedItems.length === inventoryItems.length
+				? new Set()
+				: new Set(inventoryItems.map((it) => it.id)),
+		);
+	};
 
 	const handleSellSelected = async () => {
 		if (selectedItems.length === 0) return;
@@ -154,47 +152,7 @@ export default function VendorModal({
 							{m.vendor_tab_sell()}
 						</TabButton>
 					</div>
-					<Tooltip content="Rubis — moeda do jogo">
-						<div className="display-title relative flex items-center justify-end gap-2 px-1 text-xl uppercase tracking-[0.15em] text-yellow-300 tabular-nums">
-							<img
-								src="/assets/sprites/ui/moedaRubi.png"
-								alt=""
-								draggable={false}
-								className="pointer-events-none h-6 w-6 select-none object-contain"
-							/>
-							{rubys}
-							{/* Floating deltas — pinned just above the balance, animate up
-							 * + fade. Stack vertically if multiple fire close together. */}
-							<div className="pointer-events-none absolute right-0 bottom-full mb-1 flex flex-col items-end">
-								<AnimatePresence>
-									{rubyDeltas.map((d) => (
-										<motion.div
-											key={d.id}
-											initial={{ opacity: 0, y: 8 }}
-											animate={{ opacity: 1, y: 0 }}
-											exit={{ opacity: 0, y: -16 }}
-											transition={{ duration: 0.4, ease: "easeOut" }}
-											className={`display-title flex items-center gap-1 px-1 font-bold text-base tabular-nums tracking-wider ${
-												d.sign === "+" ? "text-emerald-300" : "text-red-400"
-											}`}
-											style={{
-												textShadow: "0 2px 4px rgba(0,0,0,0.9)",
-											}}
-										>
-											{d.sign}
-											{d.amount}
-											<img
-												src="/assets/sprites/ui/moedaRubi.png"
-												alt=""
-												draggable={false}
-												className="pointer-events-none h-4 w-4 select-none object-contain"
-											/>
-										</motion.div>
-									))}
-								</AnimatePresence>
-							</div>
-						</div>
-					</Tooltip>
+					<RubyBalance rubys={rubys} deltas={rubyDeltas} />
 				</div>
 
 				{/* Tab body — fixed min height so switching tabs doesn't make the
@@ -205,19 +163,19 @@ export default function VendorModal({
 							rubys={rubys}
 							potions={potions}
 							teleportStones={teleportStones}
-							onBuy={handleBuy}
 							pendingBuys={pendingBuys}
+							onBuy={handleBuy}
 						/>
 					) : (
 						<SellTab
 							inventoryItems={inventoryItems}
 							selected={selected}
-							setSelected={setSelected}
-							toggle={toggle}
 							selectedCount={selectedItems.length}
 							selectedTotal={selectedTotal}
-							onSell={handleSellSelected}
 							isSelling={isSelling}
+							onToggle={(id) => setSelected((prev) => toggleId(prev, id))}
+							onToggleAll={handleToggleAll}
+							onSell={handleSellSelected}
 						/>
 					)}
 				</div>
@@ -236,10 +194,12 @@ function TabButton({
 	children: React.ReactNode;
 }) {
 	return (
-		<button
+		<Button
 			type="button"
+			variant="starkText"
+			size="inline"
 			onClick={onClick}
-			className={`display-title relative px-2 pb-2 text-base uppercase tracking-[0.2em] transition ${
+			className={`display-title relative rounded-none px-2 pb-2 text-base font-normal uppercase tracking-[0.2em] ${
 				active ? "text-white" : "text-white/40 hover:text-white/70"
 			}`}
 		>
@@ -247,274 +207,6 @@ function TabButton({
 			{active && (
 				<span className="-bottom-px absolute right-0 left-0 h-[2px] bg-yellow-300" />
 			)}
-		</button>
+		</Button>
 	);
-}
-
-function BuyTab({
-	rubys,
-	potions,
-	teleportStones,
-	onBuy,
-	pendingBuys,
-}: {
-	rubys: number;
-	potions: number;
-	teleportStones: number;
-	onBuy: (productId: VendorProductId, quantity: number) => Promise<void>;
-	pendingBuys: Set<VendorProductId>;
-}) {
-	const products = Object.values(VENDOR_PRODUCTS);
-	// Counter-field lookup so cap math walks the same field the server keys on.
-	const counts = {
-		potions,
-		teleportStones,
-	} satisfies Record<VendorCounterField, number>;
-	return (
-		<div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
-			{products.map((p) => (
-				<BuyCard
-					key={p.id}
-					product={p}
-					rubys={rubys}
-					currentCount={counts[p.counterField] ?? 0}
-					pending={pendingBuys.has(p.id)}
-					onBuy={onBuy}
-				/>
-			))}
-		</div>
-	);
-}
-
-function BuyCard({
-	product,
-	rubys,
-	currentCount,
-	pending,
-	onBuy,
-}: {
-	product: (typeof VENDOR_PRODUCTS)[VendorProductId];
-	rubys: number;
-	currentCount: number;
-	pending: boolean;
-	onBuy: (productId: VendorProductId, quantity: number) => Promise<void>;
-}) {
-	const STEPPER_MAX = 99;
-	const capRemaining =
-		product.cap !== undefined
-			? Math.max(0, product.cap - currentCount)
-			: STEPPER_MAX;
-	const maxAfford =
-		product.priceRubys > 0
-			? Math.floor(rubys / product.priceRubys)
-			: STEPPER_MAX;
-	const maxQty = Math.min(STEPPER_MAX, capRemaining, maxAfford);
-	const atCap = capRemaining === 0;
-	const [qty, setQty] = useState(1);
-	// Clamp when live affordability/cap shrinks below the user's chosen qty.
-	// Adjusted during render (React's "adjust state when a prop changes"
-	// pattern); the guard makes the re-render converge in one pass.
-	const clampedQty = maxQty <= 0 ? 1 : Math.min(qty, maxQty);
-	if (clampedQty !== qty) setQty(clampedQty);
-	const totalCost = product.priceRubys * qty;
-	const disabled = pending || atCap || maxQty < qty || rubys < totalCost;
-	let buttonLabel: string;
-	if (atCap) buttonLabel = m.vendor_buy_at_cap();
-	else if (qty > 1) buttonLabel = `${m.vendor_buy_action()} x${qty}`;
-	else buttonLabel = m.vendor_buy_action();
-	const decDisabled = qty <= 1 || pending;
-	const incDisabled = qty >= maxQty || pending;
-	return (
-		<div className="flex flex-col items-center gap-3 rounded-md border border-white/20 bg-black p-4">
-			<div className="flex h-16 w-16 items-center justify-center text-5xl">
-				{product.icon ? (
-					<img
-						src={product.icon}
-						alt=""
-						draggable={false}
-						className="pointer-events-none h-14 w-14 select-none object-contain"
-					/>
-				) : (
-					product.emoji
-				)}
-			</div>
-			<div className="display-title text-center text-sm uppercase tracking-[0.15em] text-white">
-				{productLabel(product.id)}
-			</div>
-			<div className="display-title flex items-center gap-1 text-base tabular-nums tracking-wider text-yellow-300">
-				<img
-					src="/assets/sprites/ui/moedaRubi.png"
-					alt=""
-					draggable={false}
-					className="pointer-events-none h-5 w-5 select-none object-contain"
-				/>
-				{totalCost}
-			</div>
-			<div className="flex w-full items-center justify-center gap-2">
-				<StepperButton
-					onClick={() => setQty((q) => Math.max(1, q - 1))}
-					disabled={decDisabled}
-					ariaLabel={m.vendor_buy_decrement()}
-				>
-					−
-				</StepperButton>
-				<span className="display-title min-w-[2.5rem] text-center text-base tabular-nums tracking-wider text-white">
-					{qty}
-				</span>
-				<StepperButton
-					onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
-					disabled={incDisabled}
-					ariaLabel={m.vendor_buy_increment()}
-				>
-					+
-				</StepperButton>
-			</div>
-			<Button
-				type="button"
-				variant="starkMuted"
-				size="lg"
-				onClick={() => onBuy(product.id, qty)}
-				disabled={disabled}
-				className="w-full text-base uppercase tracking-wider"
-			>
-				{buttonLabel}
-			</Button>
-		</div>
-	);
-}
-
-function StepperButton({
-	onClick,
-	disabled,
-	ariaLabel,
-	children,
-}: {
-	onClick: () => void;
-	disabled: boolean;
-	ariaLabel: string;
-	children: React.ReactNode;
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			disabled={disabled}
-			aria-label={ariaLabel}
-			className="display-title flex h-8 w-8 items-center justify-center rounded border border-white/25 bg-black/40 text-lg text-white transition hover:border-white/60 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-white/25 disabled:hover:bg-black/40"
-		>
-			{children}
-		</button>
-	);
-}
-
-function SellTab({
-	inventoryItems,
-	selected,
-	setSelected,
-	toggle,
-	selectedCount,
-	selectedTotal,
-	onSell,
-	isSelling,
-}: {
-	inventoryItems: ItemRow[];
-	selected: Set<number>;
-	setSelected: (next: Set<number>) => void;
-	toggle: (id: number) => void;
-	selectedCount: number;
-	selectedTotal: number;
-	onSell: () => Promise<void>;
-	isSelling: boolean;
-}) {
-	if (inventoryItems.length === 0) {
-		return (
-			<p className="flex-1 py-12 text-center text-sm text-white/40">
-				{m.vendor_sell_empty()}
-			</p>
-		);
-	}
-
-	const allSelected =
-		inventoryItems.length > 0 && selectedCount === inventoryItems.length;
-	const toggleAll = () => {
-		if (allSelected) {
-			setSelected(new Set());
-		} else {
-			setSelected(new Set(inventoryItems.map((it) => it.id)));
-		}
-	};
-
-	return (
-		<div className="flex flex-1 flex-col gap-4">
-			<div className="flex justify-end">
-				<button
-					type="button"
-					onClick={toggleAll}
-					className="display-title px-2 py-1 text-sm uppercase tracking-[0.2em] text-white/60 transition hover:text-white"
-				>
-					{allSelected
-						? m.vendor_sell_deselect_all()
-						: m.vendor_sell_select_all()}
-				</button>
-			</div>
-			<div className="fancy-scroll flex max-h-[50vh] min-h-[20vh] flex-1 flex-wrap content-start gap-3 overflow-y-auto pr-3">
-				{inventoryItems.map((item) => {
-					const isSelected = selected.has(item.id);
-					return (
-						<ItemCard
-							key={item.id}
-							item={item.data}
-							size={ITEM_SLOT_SIZE}
-							selected={isSelected}
-							onClick={() => toggle(item.id)}
-						/>
-					);
-				})}
-			</div>
-			<div className="flex items-center justify-between border-t border-white/15 pt-3">
-				<div className="display-title text-sm uppercase tracking-wider text-white/70">
-					{selectedCount > 0 ? (
-						<span className="flex items-center gap-2">
-							<span>{m.vendor_sell_selected({ count: selectedCount })}</span>
-							<span className="flex items-center gap-1 text-yellow-300 tabular-nums">
-								<img
-									src="/assets/sprites/ui/moedaRubi.png"
-									alt=""
-									draggable={false}
-									className="pointer-events-none h-4 w-4 select-none object-contain"
-								/>
-								{selectedTotal}
-							</span>
-						</span>
-					) : (
-						<span className="text-white/40">{m.vendor_sell_pick_items()}</span>
-					)}
-				</div>
-				<Button
-					type="button"
-					variant="starkMuted"
-					size="lg"
-					onClick={onSell}
-					disabled={selectedCount === 0 || isSelling}
-					className="px-8 text-base uppercase tracking-wider"
-				>
-					{m.vendor_sell_action()}
-				</Button>
-			</div>
-		</div>
-	);
-}
-
-// Localised display label per product. Emoji lives on the product data
-// itself (see src/game/vendor/products.ts); only the label needs i18n
-// routing since it must vary per locale.
-function productLabel(id: VendorProductId): string {
-	switch (id) {
-		case "potion":
-			return m.vendor_product_potion();
-		case "teleport_stone":
-			return m.vendor_product_teleport_stone();
-		default:
-			return id;
-	}
 }
