@@ -1,41 +1,29 @@
 import Tooltip from "#/components/ui/tooltip";
-import {
-	DEX_ACCURACY_PER_POINT,
-	DEX_EVASION_PCT_PER_POINT,
-	INT_BARRIER_PCT_PER_POINT,
-	STR_LIFE_PER_POINT,
-	STR_MELEE_PCT_PER_POINT,
-} from "#/game/stats/compute";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import { m } from "#/paraglide/messages";
 
+import { attributeTooltips } from "../attribute-tooltips";
+
 function readouts({ attributes }: Pick<ComputedCharacterStats, "attributes">) {
+	const tooltips = attributeTooltips();
 	return [
 		{
 			label: m.status_strength_label(),
 			value: attributes.strength,
 			glow: "text-glow-red",
-			tooltip: m.attribute_tooltip_strength({
-				melee: STR_MELEE_PCT_PER_POINT,
-				life: STR_LIFE_PER_POINT,
-			}),
+			tooltip: tooltips.strength,
 		},
 		{
 			label: m.status_dexterity_label(),
 			value: attributes.dexterity,
 			glow: "text-glow-green",
-			tooltip: m.attribute_tooltip_dexterity({
-				accuracy: DEX_ACCURACY_PER_POINT,
-				evasion: DEX_EVASION_PCT_PER_POINT,
-			}),
+			tooltip: tooltips.dexterity,
 		},
 		{
 			label: m.status_intelligence_label(),
 			value: attributes.intelligence,
 			glow: "text-glow-blue",
-			tooltip: m.attribute_tooltip_intelligence({
-				barrier: INT_BARRIER_PCT_PER_POINT,
-			}),
+			tooltip: tooltips.intelligence,
 		},
 	];
 }

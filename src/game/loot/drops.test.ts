@@ -1,18 +1,26 @@
 import { describe, expect, it } from "vitest";
 
+import type { ItemRarity } from "#/game/items/types";
+
 import { promoteRarity, rollBossDrops, rollMinibossDrops } from "./drops";
 
 const SAMPLES = 200;
 
+// The guaranteed Rare can be promoted all the way up (rare → legendary at
+// 1%, then → epic at 1%), so "Rare or higher" includes epic.
+const RARE_OR_HIGHER: ReadonlySet<ItemRarity> = new Set([
+	"rare",
+	"legendary",
+	"epic",
+]);
+
 describe("rollBossDrops", () => {
-	it("emits 2 or 3 items including at least one Rare or Legendary", () => {
+	it("emits 2 or 3 items including at least one Rare or higher", () => {
 		for (let i = 0; i < SAMPLES; i++) {
 			const drops = rollBossDrops({ monsterLevel: 17 });
 			expect(drops.length).toBeGreaterThanOrEqual(2);
 			expect(drops.length).toBeLessThanOrEqual(3);
-			expect(
-				drops.some((d) => d.rarity === "rare" || d.rarity === "legendary"),
-			).toBe(true);
+			expect(drops.some((d) => RARE_OR_HIGHER.has(d.rarity))).toBe(true);
 		}
 	});
 
@@ -32,9 +40,7 @@ describe("rollMinibossDrops regression", () => {
 			const drops = rollMinibossDrops({ monsterLevel: 14 });
 			expect(drops.length).toBeGreaterThanOrEqual(1);
 			expect(drops.length).toBeLessThanOrEqual(2);
-			expect(
-				drops.some((d) => d.rarity === "rare" || d.rarity === "legendary"),
-			).toBe(true);
+			expect(drops.some((d) => RARE_OR_HIGHER.has(d.rarity))).toBe(true);
 		}
 	});
 });
