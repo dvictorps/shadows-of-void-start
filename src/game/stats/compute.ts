@@ -61,9 +61,9 @@ const ARMOR_REDUCTION_CAP = 85;
 const HIT_CHANCE_MIN = 0.05;
 const HIT_CHANCE_MAX = 0.95;
 
-// Attribute → derived stat conversions. Exported so the ShowStatsModal
-// tooltip can render the rule without duplicating the magnitude. Keep
-// these numbers in sync with the i18n hint strings.
+// Attribute → derived stat conversions. Exported so the attribute tooltips
+// (src/components/world/attribute-tooltips.ts) render the rule without
+// duplicating the magnitude.
 export const STR_MELEE_PCT_PER_POINT = 1;
 export const STR_LIFE_PER_POINT = 5;
 export const DEX_ACCURACY_PER_POINT = 2;
