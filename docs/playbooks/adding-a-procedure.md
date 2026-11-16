@@ -7,12 +7,12 @@ Server endpoints live in `src/server/trpc/routers/`, one sub-router per domain (
 **auth → load → decide in `src/game/` → one write (or one `batch()`)**. D1 has no interactive transactions, so all reads happen before the decision and all writes go out together at the end.
 
 1. **Pick the base procedure** (`src/server/trpc/init.ts`):
-   - It mutates character state → `characterSessionProcedure`. No exceptions: it carries the ownership + single-active-session check (threat #5). The row is in `ctx.character`, without the zone bag.
+   - It mutates character state → `characterSessionProcedure`. No exceptions: it carries the ownership + single-active-session check (threat #5). The row is in `ctx.character`, without the zone bag. Lint enforces it (`shadows/require-session-procedure`): a `.mutation()` built from anything else fails unless it uses `adminProcedure` or is named in the rule's `allow` list in `oxlint.config.ts` (today `characters.create`, `characters.remove`, `characters.claimCharacterSession`).
    - It reads account or character data → `authedProcedure`, and scope every query by `ctx.session.user.id`.
    - Admin dashboard → `adminProcedure`.
    - Public (leaderboard) → `publicProcedure`.
 2. **Validate input with Zod**, reusing the game constants (`z.enum(EQUIPPED_SLOTS)`, `z.enum(STASH_MODES)`, `z.enum(MONSTER_RARITIES)`). Never accept item data, prices, HP caps or XP from the client: send ids and look the values up.
-3. **Put the decision in a pure function in `src/game/`**, returning `{ ok: false, error } | { ok: true, … }`. Unit-test it next to the file. The procedure turns `ok: false` into `fail(error)` (`src/server/trpc/errors.ts`).
+3. **Put the decision in a pure function in `src/game/`**, returning `{ ok: false, error } | { ok: true, … }`. Unit-test it next to the file. The procedure turns `ok: false` into `fail(error)` (`src/server/trpc/errors.ts`). Time comes in as a parameter (`now`); randomness goes through `#/lib/rng` (lint: `shadows/game-imports`, `shadows/game-determinism`).
 4. **Error messages:** strings the client matches exactly go in `SERVER_ERRORS` (`src/lib/server-errors.ts`); parametric ones ("Level 12 required") stay inline and the client matches them with a regex in `src/lib/server-error-message.ts`. Keep the wording stable: the client matches it.
 5. **Write once.** One `update`, or `ctx.db.batch([...])` for several statements (`batchAll(db, list)` when the list can be empty). Every item write repeats the expected owner and location in its WHERE (`inInventoryOf`, `equippedOf`, `inStash` from `src/server/item-reads.ts`), so a stale request matches no row.
 6. **Guard concurrent requests in SQL** where the statement can express it: decrement with `WHERE count > 0`, pay only while the sold items still exist, insert bag items only while the entry is still in the bag. Two requests for the same character can interleave otherwise (ADR 0009 trade-offs).

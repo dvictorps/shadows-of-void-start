@@ -32,7 +32,7 @@ For game design rules (what stats mean, what's allowed where, why), read [CONTEX
 │   ├── lib/                # Small utilities
 │   ├── paraglide/          # Generated i18n bindings (don't hand-edit)
 │   └── styles.css          # Global CSS + keyframes
-├── tools/oxlint/      # Vendored oxlint JS plugins (anti-slop, you-might-not-need-an-effect)
+├── tools/oxlint/      # oxlint JS plugins: vendored (anti-slop, you-might-not-need-an-effect) + the project's own `shadows/` (architecture rules, see CLAUDE.md → Lint discipline)
 └── oxlint.config.ts, .oxfmtrc.json, lefthook.yml, .gitattributes, vite.config.ts, package.json,
     wrangler.jsonc, drizzle.config.ts, worker-configuration.d.ts (gitignored, generated on `pnpm install` / `pnpm cf-typegen`)
 ```
@@ -252,17 +252,17 @@ The whole backend ([ADR 0009](./adr/0009-cloudflare-d1-trpc-backend.md)): schema
 
 ## `src/lib/` — small utilities
 
-| File                      | Purpose                                                                                                                                                                                          |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `server-error-message.ts` | `serverErrorMessage(cause, fallback)` — translates known server errors (`TRPCClientError`) via `translateServerError`; `isSessionLost` for the router's mutation cache                           |
-| `world-cache.ts`          | Typed query keys + read / patch helpers for the world queries, `snapshot` / `rollbackOnError` for the optimistic updates, `moveToSlot` / `withoutBagEntries`                                     |
-| `api-types.ts`            | Row types inferred from the tRPC router (`CharacterRow`, `ItemRow`, `BagEntry`, `AdminOutputs`)                                                                                                  |
-| `require-session.ts`      | Route guard for `beforeLoad`: `users.getUserRole` from the query cache, redirect to `/sign-in`                                                                                                   |
-| `admin-prefetch.ts`       | Admin tab query options (30 s polling) + `prefetchAdminTabs`                                                                                                                                     |
-| `rng.ts`                  | `randInt`, `pickRandom`, `pickWeighted` — used by generator + monster rolls; `hashStringToUnit(input, salt?)` — the one deterministic string→[0, 1) hash (rare item names, damage-popup offsets) |
-| `utils.ts`                | `cn()` for classname merging                                                                                                                                                                     |
-| `flash-toast.ts`          | One-shot toast helper                                                                                                                                                                            |
-| `auth-client.ts`          | Better Auth React client (`inferAdditionalFields` types `user.role`)                                                                                                                             |
+| File                      | Purpose                                                                                                                                                                                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server-error-message.ts` | `serverErrorMessage(cause, fallback)` — translates known server errors (`TRPCClientError`) via `translateServerError`; `isSessionLost` for the router's mutation cache                                                                                                                      |
+| `world-cache.ts`          | Typed query keys + read / patch helpers for the world queries, `snapshot` / `rollbackOnError` for the optimistic updates, `moveToSlot` / `withoutBagEntries`                                                                                                                                |
+| `api-types.ts`            | Row types inferred from the tRPC router (`CharacterRow`, `ItemRow`, `BagEntry`, `AdminOutputs`)                                                                                                                                                                                             |
+| `require-session.ts`      | Route guard for `beforeLoad`: `users.getUserRole` from the query cache, redirect to `/sign-in`                                                                                                                                                                                              |
+| `admin-prefetch.ts`       | Admin tab query options (30 s polling) + `prefetchAdminTabs`                                                                                                                                                                                                                                |
+| `rng.ts`                  | The game's only ambient random source (lint: `shadows/game-determinism`): `randomUnit`, `chance`, `randomId`, `randInt`, `randSymmetric`, `pickRandom`, `pickWeighted`; `hashStringToUnit(input, salt?)` — the one deterministic string→[0, 1) hash (rare item names, damage-popup offsets) |
+| `utils.ts`                | `cn()` for classname merging                                                                                                                                                                                                                                                                |
+| `flash-toast.ts`          | One-shot toast helper                                                                                                                                                                                                                                                                       |
+| `auth-client.ts`          | Better Auth React client (`inferAdditionalFields` types `user.role`)                                                                                                                                                                                                                        |
 
 ---
 

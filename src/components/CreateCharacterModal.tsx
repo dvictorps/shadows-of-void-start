@@ -70,7 +70,7 @@ export default function CreateCharacterModal({
 		onClose();
 	};
 
-	const handleSubmit = async (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		const trimmed = name.trim();
 		if (trimmed.length === 0) {

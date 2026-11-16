@@ -1,4 +1,5 @@
 import {
+	noop,
 	type QueryClient,
 	useMutation,
 	useQueryClient,
@@ -34,9 +35,10 @@ export function adminTabQueries(trpc: TRPC) {
 // loaders, and the second call dedupes in the query cache.
 export function prefetchAdminTabs(queryClient: QueryClient, trpc: TRPC): void {
 	const tabs = adminTabQueries(trpc);
-	void queryClient.prefetchQuery(tabs.pulse);
-	void queryClient.prefetchQuery(tabs.listUsers);
-	void queryClient.prefetchQuery(tabs.listAdmins);
+	// A failed prefetch is retried by the tab's own query when it mounts.
+	void queryClient.query(tabs.pulse).catch(noop);
+	void queryClient.query(tabs.listUsers).catch(noop);
+	void queryClient.query(tabs.listAdmins).catch(noop);
 }
 
 /** Role change from the Users / Admins tabs; every admin tab shows roles. */

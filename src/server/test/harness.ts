@@ -104,11 +104,20 @@ export async function expectServerError(
 	promise: Promise<unknown>,
 	message: string | RegExp,
 ): Promise<void> {
-	await expect(promise).rejects.toBeInstanceOf(TRPCError);
-	await expect(promise).rejects.toMatchObject({
-		message:
-			message instanceof RegExp ? expect.stringMatching(message) : message,
-	});
+	const error = await promise.then(
+		() => null,
+		(cause: unknown) => cause,
+	);
+	if (!(error instanceof TRPCError)) {
+		expect.fail(`expected a TRPCError, got ${String(error)}`);
+	}
+	const matches =
+		message instanceof RegExp
+			? message.test(error.message)
+			: error.message === message;
+	expect(matches, `"${error.message}" should match ${String(message)}`).toBe(
+		true,
+	);
 }
 
 /** Puts the character in `zoneId` and starts a visit, as the client would. */

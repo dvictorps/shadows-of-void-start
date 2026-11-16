@@ -1,4 +1,4 @@
-import { pickRandom, pickWeighted, randInt } from "../../lib/rng";
+import { chance, pickRandom, pickWeighted, randInt } from "../../lib/rng";
 import type { EquipmentTemplate } from "../items/data/templates";
 import { EQUIPMENT_TEMPLATES } from "../items/data/templates";
 import { generateItem } from "../items/generator";
@@ -87,8 +87,8 @@ export function promoteRarity(
 	let current = rarity;
 	let step = PROMOTION_CHAIN.get(current);
 	while (step) {
-		const chance = (step.basePct / 100) * (1 + magicFind / 100);
-		if (Math.random() >= chance) break;
+		const promoteChance = (step.basePct / 100) * (1 + magicFind / 100);
+		if (!chance(promoteChance)) break;
 		current = step.next;
 		step = PROMOTION_CHAIN.get(current);
 	}
@@ -163,7 +163,7 @@ function rollItemAtRarity(
  */
 export function rollDrop(params: RollDropParams): GeneratedItem | null {
 	const table = DROP_TABLE[params.monsterRarity];
-	if (Math.random() > table.dropChance) return null;
+	if (!chance(table.dropChance)) return null;
 	const baseRarity = pickRarity(table.rarity);
 	const rarity = promoteRarity(baseRarity, params.magicFind ?? 0);
 	return rollItemAtRarity(rarity, params.monsterLevel);
@@ -207,7 +207,7 @@ export function rollBossDrops(params: {
 	const guaranteed = rollItemAtRarity(guaranteedRarity, params.monsterLevel);
 	if (guaranteed) drops.push(guaranteed);
 	// 2-3 items: always emit a second from the table, 50/50 on a third.
-	const extras = Math.random() < 0.5 ? 1 : 2;
+	const extras = chance(0.5) ? 1 : 2;
 	for (let i = 0; i < extras; i++) {
 		const rolled = rollDrop({
 			monsterRarity: "unique",

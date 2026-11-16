@@ -3,8 +3,24 @@ import { defineConfig } from "oxlint";
 // Rule set mirrors app-licitei-next's oxlint.config.ts. Left out because they are
 // app-specific there: the `licitei` plugin and its house rules, the
 // lucide/moment/date-fns import bans (this app uses lucide-react), and the
-// path overrides for that codebase's directories.
+// path overrides for that codebase's directories. This app's house rules are
+// the `shadows` plugin (tools/oxlint/shadows/), scoped in the overrides below.
+
+// Shadows of Void's own modules that `src/game` may import: the engine itself
+// plus pure, dependency-free helpers. Paraglide is the i18n system the engine's
+// display formatters use (ADR 0002).
+const GAME_IMPORT_ALLOWLIST = [
+	"#/game",
+	"#/lib/rng",
+	"#/lib/server-errors",
+	"#/paraglide",
+];
+
 export default defineConfig({
+	// Type-aware rules (oxlint-tsgolint) for the async backend and the
+	// promise-heavy client. The categories below switch on every type-aware
+	// rule they contain; the style-only ones are turned off in `rules`.
+	options: { typeAware: true },
 	ignorePatterns: [
 		".claude/**",
 		".output/**",
@@ -36,6 +52,7 @@ export default defineConfig({
 			name: "you-might-not-need-an-effect",
 			specifier: "./tools/oxlint/you-might-not-need-an-effect/index.ts",
 		},
+		{ name: "shadows", specifier: "./tools/oxlint/shadows/index.ts" },
 	],
 	env: {
 		browser: true,
@@ -87,6 +104,63 @@ export default defineConfig({
 		"no-await-in-loop": "off",
 		// async-without-await is idiomatic in tRPC resolvers and interface impls.
 		"require-await": "off",
+		"typescript/require-await": "off",
+		// Type-aware rules switched on by the categories that are style, not
+		// bugs: readonly-everything parameters, no truthiness checks, no
+		// `() => void fn()` shorthands, and generics used once. Kept on: the
+		// promise rules (no-floating-promises, no-misused-promises,
+		// await-thenable, return-await), no-unsafe-*, no-deprecated,
+		// switch-exhaustiveness-check, only-throw-error, require-array-sort-compare.
+		"typescript/prefer-readonly-parameter-types": "off",
+		"typescript/strict-boolean-expressions": "off",
+		"typescript/no-confusing-void-expression": "off",
+		"typescript/strict-void-return": "off",
+		"typescript/consistent-return": "off",
+		"typescript/no-unnecessary-type-parameters": "off",
+		// Type assertions are governed by anti-slop: allowed only with a
+		// `// SAFETY:` comment (require-safety-comment-for-type-assertion) and
+		// never after a widening (no-widen-then-assert). This rule would forbid
+		// even those documented casts (`typedKeys`, `useSessionMutation`).
+		"typescript/no-unsafe-type-assertion": "off",
+		// `||` on booleans, numbers and strings is deliberate: 0, "" and false
+		// mean "absent" there. `??` is still required for object values.
+		"typescript/prefer-nullish-coalescing": [
+			"error",
+			{ ignorePrimitives: { boolean: true, number: true, string: true } },
+		],
+		// A `default` branch is an explicit decision for the remaining cases.
+		"typescript/switch-exhaustiveness-check": [
+			"error",
+			{ considerDefaultExhaustiveForUnions: true },
+		],
+		"typescript/no-floating-promises": "error",
+		// JSX event attributes are left out: React ignores a handler's return
+		// value, so `onClick={async () => …}` and `onClick={() => void …}` behave
+		// the same, and the wrapper would be noise on every button. The contract
+		// that matters is that async handlers catch and toast their own errors.
+		// Callbacks passed as props / hook options and promises in conditionals
+		// are still checked.
+		"typescript/no-misused-promises": [
+			"error",
+			{ checksVoidReturn: { attributes: false } },
+		],
+		// TanStack Router's control flow is `throw redirect(…)`, a Response.
+		"typescript/only-throw-error": [
+			"error",
+			{
+				allow: [
+					{
+						from: "package",
+						package: "@tanstack/router-core",
+						name: "Redirect",
+					},
+				],
+			},
+		],
+		"typescript/await-thenable": "error",
+		// The project's own boundaries (tools/oxlint/shadows/). Path-scoped
+		// rules are switched on in the overrides below.
+		"shadows/no-unvalidated-json-parse": "error",
 		"react/no-unstable-nested-components": ["error", { allowAsProps: true }],
 		"react/no-array-index-key": "off",
 		"react-hooks/exhaustive-deps": "error",
@@ -174,6 +248,70 @@ export default defineConfig({
 		{
 			files: ["tools/oxlint/**"],
 			rules: { "anti-slop/no-runtime-typeof": "off" },
+		},
+		{
+			// The pure engine (CONTEXT.md, ADR 0009): no React, no server, no
+			// ambient clock or random source.
+			files: ["src/game/**"],
+			rules: {
+				"shadows/game-imports": ["error", { allow: GAME_IMPORT_ALLOWLIST }],
+				"shadows/game-determinism": "error",
+			},
+		},
+		{
+			files: ["src/game/**/*.test.ts"],
+			rules: {
+				"shadows/game-imports": [
+					"error",
+					{ allow: [...GAME_IMPORT_ALLOWLIST, "vitest"] },
+				],
+			},
+		},
+		{
+			// Threat #5 (docs/security/threat-model.md): every mutation checks
+			// character ownership + the single active session.
+			files: ["src/server/trpc/routers/**"],
+			rules: {
+				"shadows/require-session-procedure": [
+					"error",
+					{
+						// Admin procedures act on other accounts, never on the
+						// caller's character.
+						procedures: ["characterSessionProcedure", "adminProcedure"],
+						allow: [
+							// The character doesn't exist yet.
+							"characters.create",
+							// Called from character select, where no session is
+							// claimed; checks ownership with assertOwnsCharacter.
+							"characters.remove",
+							// The procedure that creates the session token.
+							"characters.claimCharacterSession",
+						],
+					},
+				],
+			},
+		},
+		{
+			files: ["src/**"],
+			rules: {
+				"shadows/server-only-imports": [
+					"error",
+					{ modules: ["#/server", "drizzle-orm", "@trpc/server"] },
+				],
+			},
+		},
+		{
+			// Code that runs only on the Worker: the server itself, the API
+			// routes, and the tRPC client, whose server branch (`localLink` to
+			// the router during SSR) Start's `createIsomorphicFn` compiles out
+			// of the client bundle.
+			files: [
+				"src/server/**",
+				"src/server.ts",
+				"src/routes/api/**",
+				"src/integrations/trpc/client.ts",
+			],
+			rules: { "shadows/server-only-imports": "off" },
 		},
 	],
 });

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { noop, useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -73,16 +73,18 @@ export const Route = createFileRoute("/world")({
 	// in the browser, in-process (and dehydrated into the page) during SSR.
 	loader: async ({ context, deps: { characterId } }) => {
 		const { queryClient, trpc } = context;
+		// A failed prefetch is not a route error: the component's own query
+		// retries and shows its error state.
 		await Promise.all([
-			queryClient.prefetchQuery(
-				trpc.characters.byId.queryOptions({ id: characterId }),
-			),
-			queryClient.prefetchQuery(
-				trpc.items.equipped.queryOptions({ characterId }),
-			),
-			queryClient.prefetchQuery(
-				trpc.items.inventory.queryOptions({ characterId }),
-			),
+			queryClient
+				.query(trpc.characters.byId.queryOptions({ id: characterId }))
+				.catch(noop),
+			queryClient
+				.query(trpc.items.equipped.queryOptions({ characterId }))
+				.catch(noop),
+			queryClient
+				.query(trpc.items.inventory.queryOptions({ characterId }))
+				.catch(noop),
 		]);
 	},
 	component: WorldView,
@@ -379,7 +381,9 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		bossNode: currentNode?.bossNode ?? null,
 		serverCampThresholdsMs: campThresholds,
 		active: view === "combat" && !exitModal.isOpen && tokenMatches,
-		onPlayerDeath: handlePlayerDeath,
+		// The tick fires this and moves on; `handlePlayerDeath` catches its own
+		// errors (toast), so nothing is left to await.
+		onPlayerDeath: () => void handlePlayerDeath(),
 	});
 
 	// Bag retention cap by exit phase, frozen at modal-open time so
@@ -917,10 +921,10 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 					await vendorSellMany({ characterId: character.id, itemIds });
 				}}
 				onStashDeposit={async (itemIds) => {
-					return await depositToStash({ characterId: character.id, itemIds });
+					return depositToStash({ characterId: character.id, itemIds });
 				}}
 				onStashWithdraw={async (itemIds) => {
-					return await withdrawFromStash({
+					return withdrawFromStash({
 						characterId: character.id,
 						itemIds,
 					});

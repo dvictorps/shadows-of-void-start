@@ -4,7 +4,7 @@
 //  starter-gear. The public entry point is `generateItem`.
 //
 //  Sections (grep the headers to jump):
-//    ── RNG helpers ──                              randInt, pickRandom, pickWeighted
+//    ── RNG helpers ──                              pickRandom, pickWeighted (non-empty)
 //    ── Name generation ──                          rare/legendary/epic naming
 //    ── Value formatting ──                         describes mod values for display
 //    ── Defense label resolution ──                 local defense → armor/evasion/barrier
@@ -26,6 +26,8 @@
 //                                    rollExplicits below
 //    • Add a new local statEffect →  case in computeWeaponStats or computeArmorStats
 // ─────────────────────────────────────────────────────────────────────────────
+
+import { chance, randInt, randomId, randomUnit } from "#/lib/rng";
 
 import {
 	findModifier,
@@ -50,18 +52,16 @@ import type {
 import { DEFAULT_MODIFIER_WEIGHT, EQUIPMENT_GROUPS, MOD_LIMITS } from "./types";
 
 // ── RNG helpers ──
-
-function randInt(min: number, max: number): number {
-	return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+// Non-empty variants of `#/lib/rng`'s pickers (every call site here has
+// already guarded the length), drawing from the same `randomUnit` seam.
 
 function pickRandom<T>(arr: T[]): T {
-	return arr[Math.floor(Math.random() * arr.length)];
+	return arr[Math.floor(randomUnit() * arr.length)];
 }
 
 function pickWeighted<T>(items: T[], getWeight: (item: T) => number): T {
 	const totalWeight = items.reduce((sum, item) => sum + getWeight(item), 0);
-	let roll = Math.random() * totalWeight;
+	let roll = randomUnit() * totalWeight;
 	// Float drift can leave `roll` a hair above 0 after the loop; fall back to
 	// the last item, same as the old `items[items.length - 1]`.
 	let last = items[0];
@@ -436,7 +436,7 @@ function rollExplicits(
 	let suffixTarget: number;
 
 	if (rarity === "legendary") {
-		if (Math.random() < 0.5) {
+		if (chance(0.5)) {
 			prefixTarget = 3;
 			suffixTarget = 2;
 		} else {
@@ -636,6 +636,10 @@ export function computeWeaponStats(
 					});
 				}
 				break;
+			case "defense":
+			case "blockChance":
+				// Armor targets: computeArmorStats applies them.
+				break;
 		}
 	}
 
@@ -713,7 +717,7 @@ function computeArmorStats(
 		if (defenseIncrease > 0) {
 			value = Math.round(value * (1 + defenseIncrease / 100));
 		}
-		result[defenseInfo!.stat] = value;
+		result[defenseInfo.stat] = value;
 	}
 
 	if (hasBlock) {
@@ -768,7 +772,7 @@ export function generateItem(options: GenerateItemOptions): GeneratedItem {
 	);
 
 	return {
-		id: crypto.randomUUID(),
+		id: randomId(),
 		templateId: template.id,
 		nameBase: template.nameBase,
 		nameModifier: template.nameModifier,
