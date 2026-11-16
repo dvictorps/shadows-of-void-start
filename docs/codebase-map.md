@@ -179,7 +179,7 @@ The whole backend ([ADR 0009](./adr/0009-cloudflare-d1-trpc-backend.md)): schema
 | `game/DragSlot.tsx`        | The draggable card wrapper (hidden while its item is dragged; optional `onClick`), shared by the inventory and stash modals                                              |
 | `game/DropCell.tsx`        | A grid slot that takes a drop: the empty-slot frame, yellow ring while hovered, an optional idle ring (the stash's selection). Shared by the inventory bag and the stash |
 | `game/RubyIcon.tsx`        | The ruby coin image (vendor prices and balance, `RubyCounter`)                                                                                                           |
-| `game/ItemTooltip.tsx`     | The big tooltip — name, header stats, defenses, implicits, explicits                                                                                                     |
+| `game/ItemTooltip.tsx`     | The big tooltip — name, header stats, defenses, implicits, explicits. Pinned by `ItemTooltip.test.tsx`                                                                   |
 | `world/`                   | Everything inside the `/world` route                                                                                                                                     |
 | `ui/`                      | Radix-ui-based primitives (Button, Input, Label, Select, etc)                                                                                                            |
 
