@@ -1,6 +1,7 @@
 import { Flame, Snowflake, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { ELEMENT_SWITCH_COOLDOWN_MS } from "#/game/combat/constants";
 import {
 	SELECTABLE_ELEMENTS,
 	type SelectableElement as Element,
@@ -27,7 +28,6 @@ const ELEMENT_CONFIG = {
 	{ icon: typeof Flame; color: string; glowColor: string }
 >;
 
-const COOLDOWN_MS = 5_000;
 const ELEMENTS = SELECTABLE_ELEMENTS;
 
 type HoverKey = `element_${Element}`;
@@ -47,7 +47,9 @@ export default function ElementSelector({
 }) {
 	// Derived from the server-stamped switch time; the ticking `now` below is
 	// the only state the countdown needs.
-	const cooldownEnd = lastSwitchAt ? lastSwitchAt + COOLDOWN_MS : 0;
+	const cooldownEnd = lastSwitchAt
+		? lastSwitchAt + ELEMENT_SWITCH_COOLDOWN_MS
+		: 0;
 	const [now, setNow] = useState(() => Date.now());
 
 	const remaining = Math.max(0, cooldownEnd - now);
@@ -97,7 +99,7 @@ export default function ElementSelector({
 							<div
 								className="absolute inset-0 bg-black/60"
 								style={{
-									clipPath: `inset(${((COOLDOWN_MS - remaining) / COOLDOWN_MS) * 100}% 0 0 0)`,
+									clipPath: `inset(${((ELEMENT_SWITCH_COOLDOWN_MS - remaining) / ELEMENT_SWITCH_COOLDOWN_MS) * 100}% 0 0 0)`,
 								}}
 							/>
 						)}

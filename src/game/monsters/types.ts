@@ -3,7 +3,8 @@
 // `rare` is reserved for minibosses. `unique` is reserved for act bosses —
 // handcrafted single-identity enemies (PoE convention). See CONTEXT.md → Boss.
 
-export type MonsterRarity = "normal" | "magic" | "rare" | "unique";
+export const MONSTER_RARITIES = ["normal", "magic", "rare", "unique"] as const;
+export type MonsterRarity = (typeof MONSTER_RARITIES)[number];
 
 // ── Monster definition (template, lives in game data) ──
 

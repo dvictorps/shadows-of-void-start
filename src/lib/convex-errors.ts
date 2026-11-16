@@ -48,17 +48,17 @@ function tryTranslate(raw: string): string | null {
 			return m.error_character_not_found();
 		case SERVER_ERRORS.notYourCharacter:
 			return m.error_not_your_character();
-		case "Item not found":
+		case SERVER_ERRORS.itemNotFound:
 			return m.error_item_not_found();
-		case "Not your item":
+		case SERVER_ERRORS.notYourItem:
 			return m.error_not_your_item();
-		case "Item is not in inventory":
+		case SERVER_ERRORS.itemNotInInventory:
 			return m.error_item_not_in_inventory();
-		case "Slot is empty":
+		case SERVER_ERRORS.slotEmpty:
 			return m.error_slot_empty();
-		case "Name cannot be empty":
+		case SERVER_ERRORS.nameEmpty:
 			return m.name_cannot_be_empty();
-		case "You already have a character with this name":
+		case SERVER_ERRORS.duplicateName:
 			return m.error_duplicate_name();
 		case SERVER_ERRORS.sessionLost:
 			return m.error_session_lost();

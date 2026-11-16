@@ -11,8 +11,22 @@ const config = defineConfig({
 		tsconfigPaths: true,
 	},
 	test: {
-		// Lint-rule tests run under node --test (npm run test:lint-rules).
-		exclude: [...configDefaults.exclude, "tools/**"],
+		projects: [
+			{
+				extends: true,
+				test: {
+					name: "unit",
+					// Lint-rule tests run under node --test (pnpm test:lint-rules).
+					// Integration tests need workerd: vitest.workers.config.ts.
+					exclude: [
+						...configDefaults.exclude,
+						"tools/**",
+						"**/*.integration.test.ts",
+					],
+				},
+			},
+			"./vitest.workers.config.ts",
+		],
 	},
 	plugins: [
 		devtools(),

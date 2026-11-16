@@ -16,6 +16,7 @@ Use these when the task matches an existing pattern. For one-off architectural c
 - [Adding an i18n key](./adding-an-i18n-key.md) — new user-facing string (paraglide)
 - [Which i18n system to use](./i18n-which-system.md) — decision tree: paraglide vs lexicon vs `mod-i18n.ts`
 - [Touching combat](./touching-combat.md) — read this before editing `useCombatLoop.ts`
+- [Adding a procedure](./adding-a-procedure.md) — new tRPC endpoint on D1 (auth → load → decide → one write)
 
 ### Stubs (orientation docs for systems not yet built)
 

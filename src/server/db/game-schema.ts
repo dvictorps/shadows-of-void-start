@@ -28,20 +28,36 @@ import { user } from "./auth-schema";
 //     row. Convex split them into `combatState` / `characterProgression` to
 //     keep reactive payloads small; without reactivity the split only turns
 //     one row written per kill into three.
+//   - The zone bag is a JSON column on `characters`, not `items` rows. A drop
+//     rides on the character row the kill already writes, and a discarded
+//     drop costs nothing; only a picked-up item becomes an `items` row.
 // Structured data is a JSON text column typed with `$type<>()` from
 // `src/game`, so the game types stay the single source (this retires the
 // hand-synced `convex/itemValidator.ts`).
 
 export const STASH_MODES = ["softcore", "hardcore"] as const;
-export const ITEM_LOCATION_KINDS = [
-	"zoneBag",
-	"inventory",
-	"equipped",
-	"stash",
-] as const;
+export type StashMode = (typeof STASH_MODES)[number];
+
+/** A character's stash is the account's stash for its mode. */
+export function stashModeOf(character: { hardcore: boolean }): StashMode {
+	return character.hardcore ? "hardcore" : "softcore";
+}
+export const ITEM_LOCATION_KINDS = ["inventory", "equipped", "stash"] as const;
 export const LEADERBOARD_CATEGORIES = ["level", "bossKills"] as const;
 
 type BossKillCounts = Partial<Record<BossId, number>>;
+
+// One staged drop in the zone bag (CONTEXT.md → Loot Pipeline). `bagId` is
+// issued by the server when the drop is rolled; the client only ever sends
+// it back to pick or discard. The `items` row, and its numeric id, is born on
+// pick-up, copied in SQL from this entry.
+export interface ZoneBagEntry {
+	bagId: string;
+	data: GeneratedItem;
+	droppedAt: number;
+	droppedFrom: string;
+	droppedFromLevel: number;
+}
 
 export interface LeaderboardEntry {
 	characterId: number;
@@ -81,9 +97,15 @@ export const characters = sqliteTable(
 		windCrystals: integer().notNull().default(0),
 
 		// ── Current zone visit (CONTEXT.md → Zone states). All cleared on
-		// exitZone / death. Items with `zoneSession` equal to
-		// `currentZoneSession` are the zone bag.
+		// exitZone / death.
 		currentZoneSession: text(),
+		// Staged drops of the current visit. Appended in SQL with
+		// `json_insert` (src/server/zone-bag.ts), so a kill never parses it in
+		// the Worker; `characterSessionProcedure` doesn't even load it.
+		zoneBag: text({ mode: "json" })
+			.$type<ZoneBagEntry[]>()
+			.notNull()
+			.default(sql`'[]'`),
 		currentZoneKills: integer().notNull().default(0),
 		// Server-authoritative camp/phase derivation: `zoneStartedAt` is the
 		// wall-clock ms of enterZone, `campThresholdsMs` the cumulative
@@ -141,8 +163,9 @@ export const characters = sqliteTable(
 	(t) => [index("characters_auth_user_id_idx").on(t.authUserId)],
 );
 
-// All items: drops, inventory, equipped, stash. Ids stay stable across the
-// lifecycle (drop → bag → inventory → equipped → stash).
+// Every possessed item: inventory, equipped, stash. Ids stay stable from
+// pick-up on (inventory → equipped → stash). Unclaimed drops live in
+// `characters.zoneBag` instead.
 export const items = sqliteTable(
 	"items",
 	{
@@ -151,14 +174,11 @@ export const items = sqliteTable(
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
 		locationKind: text({ enum: ITEM_LOCATION_KINDS }).notNull(),
-		// zoneBag / inventory / equipped. Null for stash items, which belong to
-		// the account, not a character.
+		// inventory / equipped. Null for stash items, which belong to the
+		// account, not a character.
 		characterId: integer().references(() => characters.id, {
 			onDelete: "cascade",
 		}),
-		// zoneBag only. Bag reads and wipes go through the character index and
-		// filter on this column, so it has no index of its own.
-		zoneSession: text(),
 		equippedSlot: text({ enum: EQUIPPED_SLOTS }),
 		inventorySlot: integer(),
 		stashMode: text({ enum: STASH_MODES }),
@@ -171,7 +191,7 @@ export const items = sqliteTable(
 	},
 	(t) => [
 		index("items_character_kind_idx").on(t.characterId, t.locationKind),
-		// Partial: only stash rows carry an entry, so drops and inventory moves
+		// Partial: only stash rows carry an entry, so pick-ups and inventory moves
 		// never write to it.
 		index("items_stash_idx")
 			.on(t.authUserId, t.stashMode)

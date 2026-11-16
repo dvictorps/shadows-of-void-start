@@ -82,6 +82,11 @@ export default defineConfig({
 		"unicorn/consistent-function-scoping": "off",
 		"unicorn/prefer-top-level-await": "off",
 		"vitest/no-conditional-in-test": "off",
+		// Integration tests assert rejections through this harness helper.
+		"vitest/expect-expect": [
+			"error",
+			{ assertFunctionNames: ["expect", "expectServerError"] },
+		],
 		"no-await-in-loop": "off",
 		// async-without-await is idiomatic in tRPC resolvers and interface impls.
 		"require-await": "off",

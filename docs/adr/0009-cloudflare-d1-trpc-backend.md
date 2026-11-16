@@ -77,3 +77,15 @@ Decisions made while building the skeleton that refine the text above:
 - **Game tables use integer primary keys** (rowid aliases, no extra index write per insert). Character and item ids become numbers on the client in phase 3.
 - **Passwords are hashed with native scrypt** (`node:crypto` in workerd), not Better Auth's pure-JS scrypt. Same parameters and format.
 - **Measured CPU on staging (Workers Free, 10 ms nominal):** sign-up ~106 ms, sign-in ~170–215 ms, `users.me` 4 ms with the session cookie cache (25 ms cold), SSR home ~29 ms. None was rejected, so the 10 ms limit isn't enforced per request as of today. If Cloudflare starts rejecting sign-in, the lever is the scrypt cost, not a paid plan.
+
+## Update (2026-11-16, phase 2 shipped on `feat/cloudflare-phase-2`)
+
+Decisions taken while porting the procedures:
+
+- **The zone bag is a JSON column on `characters`** (`zone_bag`), not `items` rows, chosen by the owner for the write quota. A drop costs 0 extra rows (it rides on the kill's UPDATE, appended in SQL with `json_insert`), a discarded drop costs nothing, and only a kept item costs its `items` insert (row + index). That's ~1.2–1.7 rows written per kill against ~2.4 with item rows. A pick-up is `INSERT … SELECT` from the stored entry, so item data never comes from the client, and an entry already taken inserts nothing, which makes a replayed or concurrent pick / exit safe without a version counter. Trade-off accepted: an item's id is born at pick-up, not at drop (threat-model "Do not regress" table updated).
+- **`characterSessionProcedure` reads the session and the row in parallel and skips the zone bag column**, so hot procedures never load a growing JSON blob. Folding the check into the UPDATE was not needed.
+- **SQL guards against concurrent requests** where one statement can express them: consumables decrement with `WHERE count > 0`, `vendorBuy` requires the rubys and the cap in the WHERE, `vendorSellMany` pays only while every sold item is still in the inventory.
+- **Test harness:** `@cloudflare/vitest-pool-workers` was renamed `@cloudflare/vitest-plugin` (the old package is deprecated). The `server` Vitest project (`vitest.workers.config.ts`) runs procedures through a tRPC caller inside workerd against a local D1 with the real migrations.
+- **drizzle-orm 0.45 can't batch `db.run(sql)` with parameters** (its `SQLiteRaw` has no prepared statement to bind), so raw SQL inside a batch goes through a builder (`db.insert(…).select(sql)`).
+- **Renames:** `usePotion` / `useEtherealIncense` / `useTeleportStone` → `consumePotion` / `consumeEtherealIncense` / `consumeTeleportStone` (a `use` prefix trips the React hooks lint rule on the client).
+- **Measured on staging (Workers Free):** `recordKill` median ~7 ms CPU, 17–35 ms on kills that generate items or hit a cold isolate; `exitZone` 17 ms; `syncHp` 7 ms. Nothing was rejected.

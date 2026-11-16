@@ -18,16 +18,17 @@ export function bySlotAsc<T extends { inventorySlot?: number }>(
 
 /**
  * Returns an allocator that hands out unoccupied inventory slots in ascending
- * order. Used by optimistic updates that need to place freshly-picked or
- * displaced docs without colliding with existing ones. Returns -1 when the
+ * order. Used by the server procedures and by the optimistic updates that
+ * place freshly-picked or displaced docs, so both pick the same slots
+ * (D1 rows carry `null` for "no slot", Convex docs `undefined`). Returns -1 when the
  * inventory is full (caller's responsibility to handle).
  */
 export function createInventorySlotAllocator(
-	existing: ReadonlyArray<{ inventorySlot?: number }>,
+	existing: ReadonlyArray<{ inventorySlot?: number | null }>,
 ): () => number {
 	const occupied = new Set<number>();
 	for (const it of existing) {
-		if (it.inventorySlot !== undefined) occupied.add(it.inventorySlot);
+		if (it.inventorySlot != null) occupied.add(it.inventorySlot);
 	}
 	let cursor = 0;
 	return () => {
@@ -49,11 +50,11 @@ export function byStashSlotAsc<T extends { stashSlot?: number }>(
 }
 
 export function createStashSlotAllocator(
-	existing: ReadonlyArray<{ stashSlot?: number }>,
+	existing: ReadonlyArray<{ stashSlot?: number | null }>,
 ): () => number {
 	const occupied = new Set<number>();
 	for (const it of existing) {
-		if (it.stashSlot !== undefined) occupied.add(it.stashSlot);
+		if (it.stashSlot != null) occupied.add(it.stashSlot);
 	}
 	let cursor = 0;
 	return () => {

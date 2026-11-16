@@ -596,21 +596,35 @@ function applyCaps(stats: ComputedCharacterStats): void {
 
 // ── Requirements check ──
 
+/**
+ * The first unmet level / attribute requirement of `item` against `stats`,
+ * as the server error string the client translates ("Level 12 required"),
+ * or null when every requirement is met.
+ */
+export function unmetRequirement(
+	item: GeneratedItem,
+	stats: ComputedCharacterStats,
+	level: number,
+): string | null {
+	const reqs = item.requirements;
+	if (!reqs) return null;
+	if (reqs.level !== undefined && level < reqs.level)
+		return `Level ${reqs.level} required`;
+	if (reqs.str !== undefined && stats.attributes.strength < reqs.str)
+		return `Strength ${reqs.str} required`;
+	if (reqs.dex !== undefined && stats.attributes.dexterity < reqs.dex)
+		return `Dexterity ${reqs.dex} required`;
+	if (reqs.int !== undefined && stats.attributes.intelligence < reqs.int)
+		return `Intelligence ${reqs.int} required`;
+	return null;
+}
+
 function requirementsMet(
 	item: GeneratedItem,
 	stats: ComputedCharacterStats,
 	level: number,
 ): boolean {
-	const reqs = item.requirements;
-	if (!reqs) return true;
-	if (reqs.level !== undefined && level < reqs.level) return false;
-	if (reqs.str !== undefined && stats.attributes.strength < reqs.str)
-		return false;
-	if (reqs.dex !== undefined && stats.attributes.dexterity < reqs.dex)
-		return false;
-	if (reqs.int !== undefined && stats.attributes.intelligence < reqs.int)
-		return false;
-	return true;
+	return unmetRequirement(item, stats, level) === null;
 }
 
 // ── Single non-iterating pass given a fixed set of "live" items ──
