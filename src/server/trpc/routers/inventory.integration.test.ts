@@ -252,7 +252,7 @@ describe("vendor", () => {
 				productId: "potion",
 				quantity: 2,
 			}),
-		).toEqual({ rubys: 80, potions: 7 });
+		).toEqual({ rubys: 80, counterField: "potions", count: 7 });
 		await expectServerError(
 			account.caller.vendor.vendorBuy({
 				...hero,

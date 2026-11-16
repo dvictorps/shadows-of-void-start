@@ -35,12 +35,8 @@ import {
 import { fail } from "../errors";
 import { authedProcedure, characterSessionProcedure, router } from "../init";
 
-// Mirrors convex/items.ts. Item lifecycle: zone bag (a JSON column, see
-// src/server/zone-bag.ts) → inventory ⇄ equipped → stash (stash.ts), plus
-// permanent discards.
-//
-// Not ported: `recomputeSpellWeaponStats`, a one-shot backfill for Convex
-// data (ADR 0009: nothing is migrated).
+// Item lifecycle: zone bag (a JSON column, see src/server/zone-bag.ts) →
+// inventory ⇄ equipped → stash (stash.ts), plus permanent discards.
 
 const itemId = z.number().int().positive();
 const bagIds = z.array(z.string().min(1));
@@ -58,7 +54,7 @@ export const itemsRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const { id: characterId, currentZoneSession: zoneSession } =
 				ctx.character;
-			if (!zoneSession) return { kept: 0, discarded: 0 };
+			if (!zoneSession) return { kept: 0, discarded: 0, items: [] };
 
 			const [bag, inventory] = await Promise.all([
 				loadBagIds(ctx.db, characterId),
@@ -84,7 +80,12 @@ export const itemsRouter = router({
 				picks,
 				CLEARED_ZONE,
 			);
-			return { kept, discarded: bag.length - kept };
+			// The new inventory rows, for the client's cache (no reactivity).
+			return {
+				kept: kept.length,
+				discarded: bag.length - kept.length,
+				items: kept,
+			};
 		}),
 
 	// Camp-only pick-up; the zone goes on.
@@ -94,7 +95,9 @@ export const itemsRouter = router({
 			if (!ctx.character.inCamp) fail(PICK_CAMP_ONLY);
 			const { id: characterId, currentZoneSession: zoneSession } =
 				ctx.character;
-			if (!zoneSession || input.itemIds.length === 0) return { kept: 0 };
+			if (!zoneSession || input.itemIds.length === 0) {
+				return { kept: 0, items: [] };
+			}
 
 			const [bag, inventory] = await Promise.all([
 				loadBagIds(ctx.db, characterId),
@@ -105,7 +108,7 @@ export const itemsRouter = router({
 				pickIds: input.itemIds,
 				inventoryUsed: inventory.length,
 			});
-			if (picked.length === 0) return { kept: 0 };
+			if (picked.length === 0) return { kept: 0, items: [] };
 
 			const nextSlot = createInventorySlotAllocator(inventory);
 			const picks = picked.map((bagId) => ({
@@ -121,7 +124,7 @@ export const itemsRouter = router({
 					zoneBag: removeFromBag(picked),
 				},
 			);
-			return { kept };
+			return { kept: kept.length, items: kept };
 		}),
 
 	// Camp-only permanent discard of staged drops.

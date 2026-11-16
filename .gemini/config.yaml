@@ -7,7 +7,6 @@ have_fun: false
 ignore_patterns:
   - "src/paraglide/**"
   - "src/routeTree.gen.ts"
-  - "convex/_generated/**"
   - "**/*.snap"
 
 code_review:

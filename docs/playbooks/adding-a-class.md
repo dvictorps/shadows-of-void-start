@@ -74,7 +74,7 @@ export const STARTER_WEAPON_BY_CLASS = {
 };
 ```
 
-The character creation mutation (`convex/characters.ts:create`) reads `STARTER_WEAPON_BY_CLASS[classId]` and inserts it as the equipped weapon. No convex changes needed.
+Character creation (`characters.create` → `planNewCharacter` in `src/game/classes/new-character.ts`) reads `STARTER_WEAPON_BY_CLASS[classId]` and inserts it as the equipped weapon. No server changes needed.
 
 ## Step 3 — Localize the class name + description
 

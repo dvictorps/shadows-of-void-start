@@ -6,13 +6,13 @@ export const POTION_HEAL_FRACTION = 0.2;
 // Combat phase exposed to consumers — drives bag-retention cap on exit
 // (camp = 100%, exploration/combat = 30%). See CONTEXT.md → Bag
 // retention tiers. The server derives phase from `char.inCamp` rather
-// than trusting a client-supplied value (see convex/items.ts).
+// than trusting a client-supplied value (see src/server/trpc/routers/items.ts).
 export const COMBAT_PHASES = ["combat", "exploration", "camp"] as const;
 export type CombatPhase = (typeof COMBAT_PHASES)[number];
 
 // Bag retention: non-camp exits cap kept items at this fraction of bag
 // size (floor, min 1 when ≥1 item, 0 when empty). Camp keeps everything.
-// Server (convex/items.ts:exitZone) enforces it authoritatively; client
+// Server (`items.exitZone`) enforces it authoritatively; client
 // (world.tsx) mirrors for UX. Both call `computeBagKeepCap` so a rebalance
 // here can't desync them.
 export const RETENTION_CAP_FRACTION = 0.3;
@@ -85,8 +85,8 @@ export const DUAL_WIELD_BLOCK_CHANCE_BONUS = 10;
 export const TELEPORT_STONE_TRAVEL_SECONDS_CITY = 1.5;
 export const TELEPORT_STONE_TRAVEL_SECONDS_NON_CITY = 3;
 
-// Server (`convex/combat.ts:useTeleportStone`) and client (optimistic update
-// in `world.tsx`) both compute travel duration from the destination — keep
+// Server (`combat.consumeTeleportStone`) and client (optimistic update
+// in `useWorldMutations`) both compute travel duration from the destination — keep
 // them in lockstep via this helper.
 export function teleportStoneTravelSeconds(destinationNodeId: string): number {
 	return destinationNodeId === "city"

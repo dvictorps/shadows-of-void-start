@@ -1,23 +1,20 @@
 import { publicProcedure, router } from "./init";
 import { adminRouter } from "./routers/admin";
-import { characterProgressionRouter } from "./routers/character-progression";
 import { charactersRouter } from "./routers/characters";
 import { combatRouter } from "./routers/combat";
-import { combatStateRouter } from "./routers/combat-state";
 import { itemsRouter } from "./routers/items";
 import { leaderboardRouter } from "./routers/leaderboard";
 import { stashRouter } from "./routers/stash";
 import { usersRouter } from "./routers/users";
 import { vendorRouter } from "./routers/vendor";
 
-// One sub-router per old `convex/*.ts` module (ADR 0009).
+// One sub-router per domain (ADR 0009). The combat state and progression are
+// columns of `characters`, so the client reads them from `characters.byId`.
 export const appRouter = router({
 	health: publicProcedure.query(() => ({ ok: true })),
 	users: usersRouter,
 	admin: adminRouter,
 	characters: charactersRouter,
-	characterProgression: characterProgressionRouter,
-	combatState: combatStateRouter,
 	items: itemsRouter,
 	stash: stashRouter,
 	vendor: vendorRouter,

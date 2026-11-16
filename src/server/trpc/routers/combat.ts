@@ -37,15 +37,15 @@ import {
 	type SessionCharacter,
 } from "../init";
 
-// Mirrors convex/combat.ts: kills, vitals, zone visits, camps and travel.
+// Kills, vitals, zone visits, camps and travel.
 // Every procedure is one UPDATE of the character row (the combat state and
 // progression live on it), except hardcore death, which also deletes items.
 //
-// Trust model unchanged from Convex: the client still reports kills and HP
+// Trust model: the client still reports kills and HP
 // (threats #1 and #2 in docs/security/threat-model.md); the server decides
 // every value.
 //
-// Renamed from Convex, since a `use` prefix trips the React hooks lint rule on
+// Named without a `use` prefix, which trips the React hooks lint rule on
 // the client: usePotion → consumePotion, useEtherealIncense →
 // consumeEtherealIncense, useTeleportStone → consumeTeleportStone.
 
@@ -68,6 +68,11 @@ export const combatRouter = router({
 				monsterId: z.string(),
 				monsterLevel: z.number(),
 				monsterRarity: z.enum(MONSTER_RARITIES),
+				// The combat loop's HP sync rides on the kill (same clamp as
+				// `syncHp`), so an active fight writes one row per kill instead of a
+				// kill plus a 10 s tick.
+				clientHp: z.number().optional(),
+				clientBarrier: z.number().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -96,9 +101,23 @@ export const combatRouter = router({
 				levelUpStats,
 				now,
 			});
+			// A level-up refills the vitals, so the client's values only count
+			// on an ordinary kill.
+			const vitals =
+				input.clientHp === undefined || levelUpStats
+					? {}
+					: resolveVitalSync({
+							maxLife: character.cachedMaxLife,
+							maxBarrier: character.cachedMaxBarrier,
+							prevHp: character.hpCurrent,
+							prevBarrier: character.barrierCurrent,
+							clientHp: input.clientHp,
+							clientBarrier: input.clientBarrier,
+						}).patch;
+			const patch = { ...vitals, ...outcome.update };
 			// One row written per kill: the drops ride on the same UPDATE.
 			// `resolveKill` only rolls drops inside a zone visit.
-			const update: CharacterUpdate = { ...outcome.update };
+			const update: CharacterUpdate = { ...patch };
 			const zoneSession = character.currentZoneSession;
 			const drops = toBagEntries(
 				outcome.drops,
@@ -125,7 +144,9 @@ export const combatRouter = router({
 				incenseDropped: outcome.incenseDropped,
 				newMaxLife: outcome.newMaxLife,
 				newMaxBarrier: outcome.newMaxBarrier,
-				// No reactivity on D1: the client appends these to its bag cache.
+				// No reactivity on D1: the client merges the written columns into
+				// its character cache and appends the drops to its bag cache.
+				character: patch,
 				drops: landed,
 			};
 		}),
@@ -162,7 +183,7 @@ export const combatRouter = router({
 		}),
 
 	// The cinematic is client-side; the server owns the counter. The other
-	// gates (no overlapping camp) stay on the client, like in Convex.
+	// gates (no overlapping camp) stay on the client.
 	consumeEtherealIncense: characterSessionProcedure.mutation(
 		async ({ ctx }) => {
 			const { character } = ctx;
@@ -414,22 +435,36 @@ export const combatRouter = router({
 				.where(and(byId(character), gt(characters.teleportStones, 0)))
 				.returning({ teleportStones: characters.teleportStones });
 			if (!updated) fail("No teleport stones");
+			// Everything it wrote, so the client cache doesn't depend on its
+			// optimistic guess (the zone visit and the bag are cleared too).
 			return {
 				teleportStones: updated.teleportStones,
-				startedAt: teleport.startedAt,
-				arrivesAt: teleport.arrivesAt,
+				travelDestination: destination,
+				travelStartedAt: teleport.startedAt,
+				travelArrivesAt: teleport.arrivesAt,
+				...(teleport.toCity && {
+					hpCurrent: character.cachedMaxLife,
+					barrierCurrent: character.cachedMaxBarrier,
+					potions: refilledPotions(character.potions),
+				}),
 			};
 		}),
 
 	// Mage attunement (CONTEXT.md → Elemental Attunement), 5 s cooldown. Like
-	// the Convex mutation, it leaves the stat cache alone: none of the cached
+	// before, it leaves the stat cache alone: none of the cached
 	// stats depend on the element.
 	switchElement: characterSessionProcedure
 		.input(z.object({ element: z.enum(SELECTABLE_ELEMENTS) }))
 		.mutation(async ({ ctx, input }) => {
 			const { character } = ctx;
 			if (character.classId !== "mage") fail("Only mages can switch elements");
-			if (input.element === character.selectedElement) return;
+			// The client copies both into its cache (the cooldown overlay reads
+			// the server's switch time).
+			const unchanged = {
+				selectedElement: input.element,
+				lastElementSwitchAt: character.lastElementSwitchAt,
+			};
+			if (input.element === character.selectedElement) return unchanged;
 			const now = Date.now();
 			if (
 				character.lastElementSwitchAt !== null &&
@@ -441,5 +476,6 @@ export const combatRouter = router({
 				.update(characters)
 				.set({ selectedElement: input.element, lastElementSwitchAt: now })
 				.where(byId(character));
+			return { selectedElement: input.element, lastElementSwitchAt: now };
 		}),
 });

@@ -120,7 +120,13 @@
 @theme inline {
   --font-sans: 'Jersey 25', ui-sans-serif, system-ui, sans-serif;
   --tracking-display: 0.3em;
+  /* Small uppercase labels (loading / empty states). */
+  --tracking-label: 0.2em;
+  --text-2xs: 0.625rem;
+  --leading-display: 0.95;
   --color-selection: rgba(168, 85, 247, 0.32);
+  /* The void purple of the title glow, for links and accents. */
+  --color-void: #c084fc;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -221,7 +227,7 @@ pre code {
   letter-spacing: 0.04em;
 }
 
-.text-glow-purple {
+.glow-purple {
   color: #ffffff;
   text-shadow:
     0 0 8px rgba(192, 132, 252, 0.85),
@@ -232,7 +238,7 @@ pre code {
 }
 
 /* Attribute stat glows — white text with colored aura behind, same idea as
-   .text-glow-purple but tighter/subtler for small inline stat labels. */
+   .glow-purple but tighter/subtler for small inline stat labels. */
 .text-glow-red {
   color: #ffffff;
   text-shadow:

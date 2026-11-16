@@ -13,11 +13,11 @@ Server endpoints live in `src/server/trpc/routers/`, one sub-router per domain (
    - Public (leaderboard) → `publicProcedure`.
 2. **Validate input with Zod**, reusing the game constants (`z.enum(EQUIPPED_SLOTS)`, `z.enum(STASH_MODES)`, `z.enum(MONSTER_RARITIES)`). Never accept item data, prices, HP caps or XP from the client: send ids and look the values up.
 3. **Put the decision in a pure function in `src/game/`**, returning `{ ok: false, error } | { ok: true, … }`. Unit-test it next to the file. The procedure turns `ok: false` into `fail(error)` (`src/server/trpc/errors.ts`).
-4. **Error messages:** strings the client matches exactly go in `SERVER_ERRORS` (`src/lib/server-errors.ts`); parametric ones ("Level 12 required") stay inline and the client matches them with a regex in `convex-errors.ts`. Keep the wording when porting.
+4. **Error messages:** strings the client matches exactly go in `SERVER_ERRORS` (`src/lib/server-errors.ts`); parametric ones ("Level 12 required") stay inline and the client matches them with a regex in `src/lib/server-error-message.ts`. Keep the wording stable: the client matches it.
 5. **Write once.** One `update`, or `ctx.db.batch([...])` for several statements (`batchAll(db, list)` when the list can be empty). Every item write repeats the expected owner and location in its WHERE (`inInventoryOf`, `equippedOf`, `inStash` from `src/server/item-reads.ts`), so a stale request matches no row.
 6. **Guard concurrent requests in SQL** where the statement can express it: decrement with `WHERE count > 0`, pay only while the sold items still exist, insert bag items only while the entry is still in the bag. Two requests for the same character can interleave otherwise (ADR 0009 trade-offs).
 7. **Mind the write quota.** Every row written costs, and so does every index the write touches. Don't write when nothing changed (`syncHp` pattern), don't add indexes on hot columns, and keep `recordKill` / `syncHp` at one row.
-8. **Name it without a `use` prefix** (the client's React hooks lint rule would flag `api.usePotion`). Mirror the old Convex name otherwise.
+8. **Name it without a `use` prefix** (the client's React hooks lint rule would flag `trpc.combat.usePotion`).
 9. **Return what the client needs to update its cache.** There is no reactivity: a mutation returns the new values (or the client invalidates the right query keys).
 
 ## Test it

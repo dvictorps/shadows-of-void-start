@@ -1,13 +1,13 @@
 # 0009 — Leave Convex: Cloudflare Workers + D1 + Drizzle + tRPC
 
-**Status**: Accepted (execution in progress — see [in-progress.md](../plans/in-progress.md) → "Convex → Cloudflare migration")
+**Status**: Accepted (phases 1–3 shipped; phase 4, the production cutover, pending — see [in-progress.md](../plans/in-progress.md) → "Convex → Cloudflare migration")
 **Date**: 2026-11-15
 
 ## Context
 
 The backend is Convex: ~3.3k lines under `convex/`, 84 functions (53 queries, 31 mutations, 4 internal mutations, 1 internal action), 7 tables, one hourly cron, Better Auth via the `@convex-dev/better-auth` component. The frontend is TanStack Start (SSR via Nitro) and talks to Convex through `@convex-dev/react-query`.
 
-Convex's cost model is the problem. The gameplay loop is a stream of small, frequent writes (`recordKill`, `syncHp`, inventory moves), and every write also re-runs every reactive query subscribed to the touched documents — each of those re-runs is a billed function call plus bandwidth. A previous plan (`docs/plans/2026-05-28-convex-bandwidth-v3.md`) already spent effort denormalizing to tame this. The game is mostly single-player state; it pays for reactivity it barely uses.
+Convex's cost model is the problem. The gameplay loop is a stream of small, frequent writes (`recordKill`, `syncHp`, inventory moves), and every write also re-runs every reactive query subscribed to the touched documents — each of those re-runs is a billed function call plus bandwidth. A previous plan (`docs/plans/2026-05-28-convex-bandwidth-v3.md`, retired in phase 3; see git history) already spent effort denormalizing to tame this. The game is mostly single-player state; it pays for reactivity it barely uses.
 
 Constraints set by the owner:
 
@@ -89,3 +89,18 @@ Decisions taken while porting the procedures:
 - **drizzle-orm 0.45 can't batch `db.run(sql)` with parameters** (its `SQLiteRaw` has no prepared statement to bind), so raw SQL inside a batch goes through a builder (`db.insert(…).select(sql)`).
 - **Renames:** `usePotion` / `useEtherealIncense` / `useTeleportStone` → `consumePotion` / `consumeEtherealIncense` / `consumeTeleportStone` (a `use` prefix trips the React hooks lint rule on the client).
 - **Measured on staging (Workers Free):** `recordKill` median ~7 ms CPU, 17–35 ms on kills that generate items or hit a cold isolate; `exitZone` 17 ms; `syncHp` 7 ms. Nothing was rejected.
+
+## Update (2026-11-16, phase 3 shipped on `feat/cloudflare-phase-3`)
+
+The frontend runs on tRPC and `convex/`, its packages and its env vars are deleted. Decisions taken while swapping:
+
+- **Client setup follows the tRPC TanStack Start guide.** `getRouter()` builds a QueryClient, a tRPC client and the options proxy per call (one per SSR request, so no cache is shared across players), passes `{ queryClient, trpc }` as router context, wraps the app in `TRPCProvider`, and lets `setupRouterSsrQueryIntegration` dehydrate the SSR cache. During SSR the calls run in-process through `localLink` with the request's cookies; in the browser through `httpBatchLink` at `/api/trpc` (not the streaming link: the session cookie refresh is a `Set-Cookie` collected while the procedures run). No transformer: Better Auth's `Date` columns are returned as epoch numbers by the admin procedures instead.
+- **One character query.** The client reads the combat state and progression from `characters.byId` (they are columns of the row since phase 1), so the `combatState` / `characterProgression` sub-routers were deleted.
+- **Mutations return what the cache needs.** `recordKill` returns the columns it wrote (`character`) and the staged `drops`; `exitZone` / `pickFromBag` return the inserted inventory rows (`INSERT … RETURNING`); `vendorBuy` returns `{ rubys, counterField, count }`; `switchElement` returns the server's switch time. The client merges them with `setQueryData` (`src/lib/world-cache.ts`) and only invalidates where it can't predict (death, a partial stash move, character creation, a role change).
+- **HP sync rides on the kill.** `recordKill` takes optional `clientHp` / `clientBarrier`, merged through `resolveVitalSync` unless the kill levels up (which refills the vitals). The client's periodic sync waits 10 s after the last write, so steady fighting writes one row per kill and no `syncHp`.
+- **Session takeover without reactivity.** A write rejected with "Session lost" makes the router's `MutationCache` refetch `characters.byId`; the other tab's token shows up and `/world` raises the session-lost modal. A window-focus refetch of the character catches it too.
+- **Auth guard from the cache.** The root `beforeLoad` no longer calls a server function per navigation / hover. `requireSession` (world, admin, character-select) reads `users.getUserRole` through `ensureQueryData`; sign-in and sign-out reload the page, which starts a fresh cache.
+- **Polling instead of subscriptions:** leaderboard every 5 min and admin tabs every 30 s, only while on screen.
+- **Request quota first.** Queries don't refetch on window focus by default (the cache is kept current by the mutations); only `characters.byId` on `/world` opts back in, for takeover detection. The `/world` loader prefetches the character, equipped and inventory together (one batched request, or in-process during SSR).
+- **Optimistic bodies call the server's decisions** (`resolveEquip` / `resolveUnequip`, `resolvePurchase`, `resolveTravelStart` / `resolveTeleport`, `resolvePotionUse`) instead of re-implementing them, so a move the server would refuse is never painted. `CLEARED_VISIT` (`src/game/world/zone-actions.ts`) is the visit reset both sides spread. `consumeTeleportStone` returns everything it wrote.
+- **Measured on staging (Workers Free), scripted HTTP play:** `recordKill` median 5 ms CPU, max 9 ms (with the vitals merge, drops and a level-up in the sample); `exitZone` 12 ms; `pickFromBag` 25 ms; `arriveAtTravel` 25 ms; `enterCity` 32 ms; reads 1–5 ms; SSR `/world` 29 ms, `/character-select` 44 ms; sign-up 105 ms. Nothing was rejected. Re-measure with real browser play before cutover.

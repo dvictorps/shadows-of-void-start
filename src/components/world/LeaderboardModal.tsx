@@ -1,11 +1,13 @@
-import { useQuery } from "convex/react";
+import { useQuery } from "@tanstack/react-query";
 import { Skull } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { useTRPC } from "#/integrations/trpc/client";
 import { m } from "#/paraglide/messages";
 
-import { api } from "../../../convex/_generated/api";
 import Modal from "../Modal";
+
+const LEADERBOARD_REFETCH_MS = 5 * 60_000;
 
 type Category = "level" | "bossKills";
 type Mode = "softcore" | "hardcore";
@@ -30,10 +32,16 @@ export default function LeaderboardModal({
 	const [classFilter, setClassFilter] = useState<string>("all");
 	const [showFallen, setShowFallen] = useState(false);
 
-	const snapshot = useQuery(
-		api.leaderboard.getSnapshot,
-		isOpen ? { category, mode } : "skip",
-	);
+	// No subscription (ADR 0009): the hourly cron rewrites the snapshot, so a
+	// 5-minute freshness window (reopens and tab switches within it read the
+	// cache) and the same polling interval while open are plenty.
+	const trpc = useTRPC();
+	const { data: snapshot } = useQuery({
+		...trpc.leaderboard.getSnapshot.queryOptions({ category, mode }),
+		enabled: isOpen,
+		staleTime: LEADERBOARD_REFETCH_MS,
+		refetchInterval: LEADERBOARD_REFETCH_MS,
+	});
 
 	const entries = useMemo(() => {
 		if (!snapshot?.entries) return [];

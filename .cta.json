@@ -6,15 +6,12 @@
 	"includeExamples": false,
 	"tailwind": true,
 	"addOnOptions": {},
-	"envVarValues": {
-		"VITE_CONVEX_URL": "https://quick-bee-700.convex.cloud"
-	},
+	"envVarValues": {},
 	"git": true,
 	"routerOnly": false,
 	"version": 1,
 	"framework": "react",
 	"chosenAddOns": [
-		"convex",
 		"form",
 		"paraglide",
 		"shadcn",

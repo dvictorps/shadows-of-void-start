@@ -1,5 +1,5 @@
 // Error messages the server throws and the client translates
-// (`translateServerError` in convex-errors.ts). One source so a rename can't
+// (`translateServerError` in server-error-message.ts). One source so a rename can't
 // silently break the translation. Kept dependency-free: both bundles import it.
 //
 // Only messages the client matches exactly live here. Parametric ones

@@ -1,9 +1,7 @@
-// Pure, server-authoritative kill-resolution decisions, extracted from
-// `convex/combat.ts:recordKill` so they can be unit-tested without a Convex
-// runtime (the mutation itself opens with a better-auth read that
-// `convex-test` can't satisfy). The mutation stays the IO + randomness
-// boundary; everything deterministic about "what does this kill mean" lives
-// here.
+// Pure, server-authoritative kill-resolution decisions behind
+// `combat.recordKill`, unit-tested without a database. The procedure stays
+// the IO + randomness boundary; everything deterministic about "what does
+// this kill mean" lives here.
 
 import type { MonsterRarity } from "../monsters/types";
 import type { NodeKind } from "../world/types";

@@ -9,7 +9,7 @@
 //
 // Defense-in-depth on top of `disabled={isPending}` — the early-return
 // covers the render-cycle window where a click arrives before React commits
-// the disabled state. Real abuse hardening (someone hitting the Convex
+// the disabled state. Real abuse hardening (someone hitting the tRPC
 // endpoint directly) needs server-side rate limiting; see
 // docs/security/threat-model.md.
 

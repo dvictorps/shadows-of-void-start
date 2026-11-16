@@ -34,10 +34,11 @@ npx vitest run         # all tests
 npx oxlint src/        # lint (oxfmt formats)
 ```
 
-If your change touched convex code, also verify the dev server doesn't reject the schema:
+If your change touched `src/server/db/*-schema.ts`, generate the migration and apply it locally (the integration tests run the real migrations):
 
 ```bash
-npx convex dev --once  # one-shot deploy check
+pnpm db:generate
+pnpm db:migrate:local
 ```
 
 Don't bypass these. If a check fails, fix it before adding more changes.

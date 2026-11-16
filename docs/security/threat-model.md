@@ -10,21 +10,21 @@ Snapshot of the game's anti-cheat posture as of `feat/vendor-economy` (May 2026)
 
 These are server-authoritative for both the VALUE and the CALCULATION. The client cannot fabricate.
 
-| Surface                | Where                                                                        | Protection                                                                                                                                                                                                                              |
-| ---------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cross-character access | every mutation                                                               | `authComponent.getAuthUser(ctx)` + `loadOwnedCharacter(authUserId, characterId)` verify the caller owns the character                                                                                                                   |
-| Cross-character items  | item ops                                                                     | `item.characterId === args.characterId` + `locationKind` check                                                                                                                                                                          |
-| HP cap                 | `syncHp`, `enterCity`, `respawnDead`, `usePotion`, `recordKill` (level-up)   | All clamp to `stats.maxLife` computed via the stat engine (post the silent-defense fix); client never decides max                                                                                                                       |
-| XP per kill            | `recordKill`                                                                 | Reads `monster.xpReward` from game data; client only sends `monsterId`                                                                                                                                                                  |
-| Drop generation        | `recordKill` → `rollDrop`                                                    | Server-side roll; client never decides rarity or template                                                                                                                                                                               |
-| Travel time            | `startTravel` → `computeTravelTime(distance, stats.movementSpeed)`           | Distance lives in node data; movement speed comes from the engine; client only sends destination                                                                                                                                        |
-| Travel arrival timing  | `arriveAtTravel`                                                             | Server validates `Date.now() >= travelArrivesAt - 1000ms` (1s grace for clock skew). Cannot arrive >1s early                                                                                                                            |
-| Sell price             | `vendorSell` / `vendorSellMany` → `computeSellPrice(item.data)`              | Server-side computation from item snapshot; client never decides price                                                                                                                                                                  |
-| Equip requirements     | `equipItem`                                                                  | Strict req check against stats computed _without_ the new item — broken-state cascade prevents self-sustaining equips                                                                                                                   |
-| Vendor purchases       | `vendorBuy`                                                                  | Server reads price from catalog data; deducts rubys; respects potion cap                                                                                                                                                                |
-| Item ownership trail   | items table lifecycle                                                        | Stable item id from pick-up on (`inventory → equipped → stash`); deletes are explicit. Unclaimed drops live in `characters.zone_bag` with a server-issued `bagId` and get their item id when kept (phase 2 of the Cloudflare migration) |
-| Bag pick-up integrity  | `items.exitZone` / `pickFromBag` → `commitBagPicks` (src/server/zone-bag.ts) | Item data is copied in SQL from the stored bag entry, never from the client; an entry already taken inserts nothing, so a replayed or concurrent pick / exit can't duplicate an item                                                    |
-| Replayed sale / spend  | `vendor.vendorSellMany`, `vendorBuy`, `combat.consume*`                      | SQL guards in the same statement: a sale pays only while every sold item is still in the inventory; spends require the balance (and the potion cap) in the WHERE clause                                                                 |
+| Surface                | Where                                                                                   | Protection                                                                                                                                                                                                                              |
+| ---------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cross-character access | every mutation                                                                          | `characterSessionProcedure` (src/server/trpc/init.ts) reads the session and verifies the caller owns the character; read queries filter by `ctx.session.user.id`                                                                        |
+| Cross-character items  | item ops                                                                                | `item.characterId === args.characterId` + `locationKind` check                                                                                                                                                                          |
+| HP cap                 | `syncHp`, `recordKill` (vitals + level-up), `enterCity`, `respawnDead`, `consumePotion` | All clamp to `stats.maxLife` computed via the stat engine (post the silent-defense fix); client never decides max                                                                                                                       |
+| XP per kill            | `recordKill`                                                                            | Reads `monster.xpReward` from game data; client only sends `monsterId`                                                                                                                                                                  |
+| Drop generation        | `recordKill` → `rollDrop`                                                               | Server-side roll; client never decides rarity or template                                                                                                                                                                               |
+| Travel time            | `startTravel` → `computeTravelTime(distance, stats.movementSpeed)`                      | Distance lives in node data; movement speed comes from the engine; client only sends destination                                                                                                                                        |
+| Travel arrival timing  | `arriveAtTravel`                                                                        | Server validates `Date.now() >= travelArrivesAt - 1000ms` (1s grace for clock skew). Cannot arrive >1s early                                                                                                                            |
+| Sell price             | `vendorSell` / `vendorSellMany` → `computeSellPrice(item.data)`                         | Server-side computation from item snapshot; client never decides price                                                                                                                                                                  |
+| Equip requirements     | `equipItem`                                                                             | Strict req check against stats computed _without_ the new item — broken-state cascade prevents self-sustaining equips                                                                                                                   |
+| Vendor purchases       | `vendorBuy`                                                                             | Server reads price from catalog data; deducts rubys; respects potion cap                                                                                                                                                                |
+| Item ownership trail   | items table lifecycle                                                                   | Stable item id from pick-up on (`inventory → equipped → stash`); deletes are explicit. Unclaimed drops live in `characters.zone_bag` with a server-issued `bagId` and get their item id when kept (phase 2 of the Cloudflare migration) |
+| Bag pick-up integrity  | `items.exitZone` / `pickFromBag` → `commitBagPicks` (src/server/zone-bag.ts)            | Item data is copied in SQL from the stored bag entry, never from the client; an entry already taken inserts nothing, so a replayed or concurrent pick / exit can't duplicate an item                                                    |
+| Replayed sale / spend  | `vendor.vendorSellMany`, `vendorBuy`, `combat.consume*`                                 | SQL guards in the same statement: a sale pays only while every sold item is still in the inventory; spends require the balance (and the potion cap) in the WHERE clause                                                                 |
 
 If a future change is about to weaken any of these, treat it like a regression and flag it.
 
@@ -47,7 +47,13 @@ An attacker (or a player with a debugger) can:
 ```js
 setInterval(
 	() =>
-		convex.mutation("combat:recordKill", { characterId, monsterId: "goblin" }),
+		trpc.combat.recordKill.mutate({
+			characterId,
+			sessionToken,
+			monsterId: "goblin",
+			monsterLevel: 1,
+			monsterRarity: "normal",
+		}),
 	1,
 );
 ```
@@ -62,7 +68,8 @@ setInterval(
 
 ```js
 setInterval(
-	() => convex.mutation("combat:syncHp", { characterId, hpCurrent: 99999 }),
+	() =>
+		trpc.combat.syncHp.mutate({ characterId, sessionToken, hpCurrent: 99999 }),
 	100,
 );
 ```
@@ -81,7 +88,7 @@ setInterval(
 
 ```js
 // Player is actually in combat — bag should cap at 30%
-convex.mutation("items:exitZone", { characterId, keepIds, phase: "camp" });
+mutation("items:exitZone", { characterId, keepIds, phase: "camp" });
 // → server accepts phase: "camp", skips the 30% cap, lets the player keep 100%
 ```
 
@@ -93,17 +100,17 @@ The exploit is bounded to "keep more of the current zone's loot than the rules p
 
 ### 4. No mutation-level rate limiting (MEDIUM severity)
 
-There are no per-character per-mutation rate limits at the application level. Convex has infrastructure protections but each call still:
+There are no per-character per-mutation rate limits at the application level. Each call still:
 
-- Bills against the project's Convex quota.
+- Spends the shared Workers Free quotas: 100k requests/day, and on D1 100k rows written/day. A capped quota fails every write until the daily reset, for **every** player (an outage, not a bill).
 - Adds DB write contention if the same character is hammered.
 - Enables the two exploits above to run at full speed.
 
-A determined attacker can multiply Convex cost meaningfully with sustained spam against a single character.
+On the Free plan this is an availability threat: one spam script can take the game down for the day. Layer 1 below is the cheap guard.
 
 ### 5. Concurrent multi-tab / multi-device sessions — **CLOSED** in `feat/single-active-session`
 
-**Resolution**: every state-mutating mutation now accepts a `sessionToken: v.string()` arg threaded through `loadOwnedCharacterWithSession`. The `claimCharacterSession` mutation stamps a UUID + timestamp onto the `characters` doc; the `/character-select` Play button claims before navigating, and `/world` auto-reclaims on a direct mount (refresh / bookmark / restored tab). The combat loop's `active` flag is gated on `character.activeSessionToken === ourToken` so a stale tab pauses silently; once we observed our token win, any subsequent divergence surfaces the non-dismissible `SessionLostModal` (Refresh → `window.location.reload()` → fresh UUID → reclaim). Read-only queries deliberately stay session-free so a stale tab can still observe its character coherently. The historical section below describes the pre-fix behaviour and is kept for context.
+**Resolution**: every state-mutating procedure takes a `sessionToken` checked by `characterSessionProcedure`. The `claimCharacterSession` mutation stamps a UUID + timestamp onto the `characters` doc; the `/character-select` Play button claims before navigating, and `/world` auto-reclaims on a direct mount (refresh / bookmark / restored tab). The combat loop's `active` flag is gated on `character.activeSessionToken === ourToken` so a stale tab pauses silently; once we observed our token win, any subsequent divergence (seen when the character is refetched: on window focus, or after a write fails with "Session lost") surfaces the non-dismissible `SessionLostModal` (Refresh → `window.location.reload()` → fresh UUID → reclaim). Read-only queries deliberately stay session-free so a stale tab can still observe its character coherently. The historical section below describes the pre-fix behaviour and is kept for context.
 
 ---
 
@@ -118,11 +125,21 @@ Per-tab consequences when N tabs overlap:
 
 Severity changes with the leaderboard. **Today (pre-ranking)**: bounded to weird bugs for a single character, no cross-player effect — same posture as the other threats above. **The day ranking ships**: any leaderboard entry built on multi-tab gameplay is fraudulent _by construction_ — even **without intent**. A casual player who leaves the game open on phone + desktop is double-billing. Ranks become unsignal.
 
-Cost amplifier: multi-tab abuse also multiplies the user's Convex function-call cost. A determined exploiter with 5 tabs makes their own character account for 5× quota. Layer 1 rate limits help, but per-tab limits don't fire against the same character — the spam is _distributed_ across legitimate-looking sessions.
+Cost amplifier: multi-tab abuse also multiplied the user's backend call volume. A determined exploiter with 5 tabs makes their own character account for 5× quota. Layer 1 rate limits help, but per-tab limits don't fire against the same character — the spam is _distributed_ across legitimate-looking sessions.
 
 **Why it worked**: nothing on the character doc identified the session that was currently driving it.
 
-### 6. Lesser issues that are NOT urgent
+### 6. Concurrent read-modify-write on D1 (LOW severity today) — accepted, open
+
+D1 has no interactive transactions ([ADR 0009](../adr/0009-cloudflare-d1-trpc-backend.md) → Trade-offs). A procedure reads the character, decides in `src/game/`, then writes. Two requests for the same character that run at the same time can both read the old row and the second write overwrites the first: two parallel `recordKill` both read `xp = 100`, both write `xp = 100 + reward`, and one kill is lost (or, with a tampered client, a pick-up and a level-up race on the stat cache).
+
+What already holds: writes that SQL can guard in one statement are guarded (consumables `WHERE count > 0`, `vendorBuy` requires the rubys and the cap, `vendorSellMany` pays only while every item is still there, bag pick-ups insert from the stored entry). The session token stops a second honest tab, and the client's in-flight guard (`useInFlight`) stops double clicks.
+
+What doesn't: a tampered client firing parallel requests on purpose against non-guarded columns (XP, kill counters, HP). The impact is local to the attacker's own character, like threats #1 and #2.
+
+**Escalation path**: a per-character Durable Object used as a mutex in front of D1. **Trigger**: the same as Layer 2 (leaderboard values that matter, or trade).
+
+### 7. Lesser issues that are NOT urgent
 
 These are real but the impact is bounded:
 
@@ -163,9 +180,9 @@ lastActionAt: v.optional(
 
 **Acceptance criteria**:
 
-- Spamming `recordKill` faster than 500ms returns ConvexError "Too fast" instead of crediting XP.
-- Calling `recordKill` outside a zone session returns ConvexError "Not in a zone".
-- Spamming `syncHp` faster than 1s returns ConvexError "Too fast".
+- Spamming `recordKill` faster than 500ms returns TRPCError "Too fast" instead of crediting XP.
+- Calling `recordKill` outside a zone session returns TRPCError "Not in a zone".
+- Spamming `syncHp` faster than 1s returns TRPCError "Too fast".
 - Legitimate gameplay (combat tick at 50ms, server records ~1-2 kills/sec at endgame, syncHp at 10s) is unaffected.
 - A vitest case per mutation that asserts the timing window.
 
@@ -199,9 +216,9 @@ activeEnemy: v.optional(
 
 **Acceptance criteria**:
 
-- `recordKill` without an active enemy → ConvexError "No active enemy".
-- `recordKill` with `activeEnemy.currentHp > 0` → ConvexError "Enemy not dead".
-- `applyPlayerHit` with damage > plausible max → ConvexError "Implausible damage".
+- `recordKill` without an active enemy → TRPCError "No active enemy".
+- `recordKill` with `activeEnemy.currentHp > 0` → TRPCError "Enemy not dead".
+- `applyPlayerHit` with damage > plausible max → TRPCError "Implausible damage".
 - The full combat loop (spawn → hit → kill → loot → next spawn) still feels responsive (<200ms perceived latency at p99).
 - Existing 218 vitest cases still pass; ~5 new server tests for the session state machine.
 
@@ -218,7 +235,7 @@ This is the "thin client" architecture that PoE / D4 / etc. use. It makes cheati
 
 - Cost in dev time: days (potentially weeks) for a clean implementation.
 - Cost in latency: every action is a round-trip. Snappiness depends on the server response budget.
-- Cost in Convex usage: combat-tick mutations scale with active player count × tick rate. Could be prohibitive without rate-limiting and aggregation.
+- Cost in quota: combat-tick requests scale with active player count × tick rate; on the Workers Free plan (100k requests/day, 100k D1 rows written/day) that's prohibitive without rate-limiting and aggregation.
 
 **Don't do this until**: a leaderboard or competitive mode exists and the value of cheating is high enough to justify the investment.
 
@@ -238,16 +255,16 @@ The architecture is currently fine for "MVP closed development". Don't preemptiv
 
 These close a specific exploit without depending on the broader rate-limit / session-combat infrastructure. Each is independent; ship in any order.
 
-| Fix                                        | Closes                        | Status                                                                                                                                                                                                                                                                                       |
-| ------------------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Server-authoritative camp/phase derivation | Threat #3 (`phase` arg trust) | ✅ **Shipped** in PR #48 + PR #51 — `derivePhaseFromCharacter` reads server state; `phase` arg removed from all mutations.                                                                                                                                                                   |
-| Single active session per character        | Threat #5 (multi-tab)         | ✅ **Shipped** in `feat/single-active-session` — `activeSessionToken` on `characters`, `claimCharacterSession` mutation, `loadOwnedCharacterWithSession` helper threaded through every state-mutating mutation, client-side `SessionTokenProvider` + `useSessionToken` + `SessionLostModal`. |
+| Fix                                        | Closes                        | Status                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server-authoritative camp/phase derivation | Threat #3 (`phase` arg trust) | ✅ **Shipped** in PR #48 + PR #51 — `derivePhaseFromCharacter` reads server state; `phase` arg removed from all mutations.                                                                                                                                                                                  |
+| Single active session per character        | Threat #5 (multi-tab)         | ✅ **Shipped** in `feat/single-active-session` — `activeSessionToken` on `characters`, `claimCharacterSession`, the `characterSessionProcedure` middleware on every state-mutating procedure (since the Cloudflare migration), client-side `SessionTokenProvider` + `useSessionToken` + `SessionLostModal`. |
 
 ---
 
 ## Out of scope for this doc
 
-- DDoS / infrastructure-level attacks: handled by Convex's platform.
+- DDoS / infrastructure-level attacks: handled by Cloudflare's platform (but see threat #4: on the Free plan, application-level spam exhausts the daily quotas).
 - Account takeover / auth bypass: handled by better-auth; covered by their security model.
 - Client-side exploits that don't reach the server: HUD manipulation, time-of-day spoof, etc. The server validates state; cosmetic cheats don't matter.
 - Bot detection (humans vs scripts playing legitimately): orthogonal to this doc; rate limits in Layer 1 are accidentally a partial bot deterrent but not the goal.

@@ -2,8 +2,8 @@ import type { CharacterClassDefinition } from "../classes/types";
 import type { GeneratedItem } from "../items/types";
 
 // ── Equipment slots ──
-// Single source of truth — also drives the convex schema validator and the
-// equip mutation arg union (see convex/characters.ts).
+// Single source of truth — also drives the `items.equipped_slot` column enum
+// and the equip procedures' Zod input (src/server/).
 
 export const EQUIPPED_SLOTS = [
 	"weapon",
@@ -27,7 +27,7 @@ function isEquippedSlot(s: string): s is EquippedSlot {
 }
 
 /**
- * Runtime narrower for Convex-returned `equippedSlot: string | undefined`.
+ * Runtime narrower for an untyped `equippedSlot` (drag-and-drop payloads).
  * Returns the value typed as EquippedSlot when it matches; undefined otherwise.
  */
 export function narrowEquippedSlot(

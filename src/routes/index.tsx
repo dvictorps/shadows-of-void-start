@@ -22,7 +22,7 @@ function Home() {
 			/>
 
 			<div className="relative flex h-full flex-col items-center justify-center gap-12 px-6 py-6">
-				<h1 className="display-title text-glow-purple text-center text-7xl uppercase leading-[0.95] md:text-9xl">
+				<h1 className="display-title glow-purple text-center text-7xl uppercase leading-display md:text-9xl">
 					Shadows
 					<br />
 					of Void

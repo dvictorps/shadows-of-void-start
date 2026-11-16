@@ -12,7 +12,7 @@ import { assertInventoryItem, inInventoryOf } from "../../item-reads";
 import { fail } from "../errors";
 import { characterSessionProcedure, router } from "../init";
 
-// Mirrors convex/vendor.ts. Both writes are guarded in SQL against a
+// Vendor buy and sell. Both writes are guarded in SQL against a
 // concurrent request on the same character (ADR 0009: D1 has no interactive
 // transactions): a purchase only applies while the rubys still cover it, and
 // a sale only pays while every sold item is still in the inventory.
@@ -59,7 +59,12 @@ export const vendorRouter = router({
 			// Only a concurrent purchase can make the guard miss after the check
 			// above passed.
 			if (!updated) fail("Not enough rubys");
-			return { rubys: updated.rubys, [counter]: updated.count };
+			// The client patches both into its character cache.
+			return {
+				rubys: updated.rubys,
+				counterField: counter,
+				count: updated.count,
+			};
 		}),
 
 	// Inventory items only (equipped, stash and bag items can't be sold). The

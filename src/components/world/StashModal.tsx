@@ -24,9 +24,8 @@ import type { GeneratedItem } from "#/game/items/types";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
+import type { ItemRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
-
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const SLOT_SIZE_DEFAULT = 76;
 const SLOT_SIZE_COMPACT = 64;
@@ -37,29 +36,29 @@ type DropTargetData =
 	| { kind: "stash"; slot: number };
 
 type DragSourceData =
-	| { kind: "inventory"; itemId: Id<"items"> }
-	| { kind: "stash"; itemId: Id<"items"> };
+	| { kind: "inventory"; itemId: number }
+	| { kind: "stash"; itemId: number };
 
 type Props = {
 	isOpen: boolean;
 	onClose: () => void;
-	inventoryItems: Doc<"items">[];
-	stashItems: Doc<"items">[];
+	inventoryItems: ItemRow[];
+	stashItems: ItemRow[];
 	onDeposit: (
-		itemIds: Id<"items">[],
+		itemIds: number[],
 	) => Promise<{ deposited: number; failed: number }>;
 	onWithdraw: (
-		itemIds: Id<"items">[],
+		itemIds: number[],
 	) => Promise<{ withdrawn: number; failed: number }>;
 	onReorderInventory: (args: {
-		itemId: Id<"items">;
+		itemId: number;
 		targetSlot: number;
-		swapWithItemId?: Id<"items">;
+		swapWithItemId?: number;
 	}) => void;
 	onReorderStash: (args: {
-		itemId: Id<"items">;
+		itemId: number;
 		targetSlot: number;
-		swapWithItemId?: Id<"items">;
+		swapWithItemId?: number;
 	}) => void;
 };
 
@@ -77,8 +76,8 @@ export default function StashModal({
 	const slotSize = compact ? SLOT_SIZE_COMPACT : SLOT_SIZE_DEFAULT;
 
 	const [active, setActive] = useState<DragSourceData | null>(null);
-	const [invSelected, setInvSelected] = useState<Set<string>>(new Set());
-	const [stashSelected, setStashSelected] = useState<Set<string>>(new Set());
+	const [invSelected, setInvSelected] = useState<Set<number>>(new Set());
+	const [stashSelected, setStashSelected] = useState<Set<number>>(new Set());
 	const [isDepositing, runDeposit] = useInFlight(isOpen);
 	const [isWithdrawing, runWithdraw] = useInFlight(isOpen);
 
@@ -95,17 +94,17 @@ export default function StashModal({
 	}
 
 	const inventoryBySlot = useMemo(() => {
-		const map = new Map<number, Doc<"items">>();
+		const map = new Map<number, ItemRow>();
 		for (const item of inventoryItems) {
-			if (item.inventorySlot !== undefined) map.set(item.inventorySlot, item);
+			if (item.inventorySlot !== null) map.set(item.inventorySlot, item);
 		}
 		return map;
 	}, [inventoryItems]);
 
 	const stashBySlot = useMemo(() => {
-		const map = new Map<number, Doc<"items">>();
+		const map = new Map<number, ItemRow>();
 		for (const item of stashItems) {
-			if (item.stashSlot !== undefined) map.set(item.stashSlot, item);
+			if (item.stashSlot !== null) map.set(item.stashSlot, item);
 		}
 		return map;
 	}, [stashItems]);
@@ -116,11 +115,9 @@ export default function StashModal({
 	const activeItem = useMemo<GeneratedItem | null>(() => {
 		if (!active) return null;
 		if (active.kind === "inventory") {
-			return (
-				inventoryItems.find((it) => it._id === active.itemId)?.data ?? null
-			);
+			return inventoryItems.find((it) => it.id === active.itemId)?.data ?? null;
 		}
-		return stashItems.find((it) => it._id === active.itemId)?.data ?? null;
+		return stashItems.find((it) => it.id === active.itemId)?.data ?? null;
 	}, [active, inventoryItems, stashItems]);
 
 	const handleDragStart = (event: DragStartEvent) => {
@@ -138,28 +135,28 @@ export default function StashModal({
 
 		// Same panel reorder
 		if (source.kind === "inventory" && target.kind === "inventory") {
-			const doc = inventoryItems.find((it) => it._id === source.itemId);
+			const doc = inventoryItems.find((it) => it.id === source.itemId);
 			if (!doc || doc.inventorySlot === target.slot) return;
 			const occupant = inventoryItems.find(
-				(it) => it.inventorySlot === target.slot && it._id !== source.itemId,
+				(it) => it.inventorySlot === target.slot && it.id !== source.itemId,
 			);
 			onReorderInventory({
 				itemId: source.itemId,
 				targetSlot: target.slot,
-				swapWithItemId: occupant?._id,
+				swapWithItemId: occupant?.id,
 			});
 			return;
 		}
 		if (source.kind === "stash" && target.kind === "stash") {
-			const doc = stashItems.find((it) => it._id === source.itemId);
+			const doc = stashItems.find((it) => it.id === source.itemId);
 			if (!doc || doc.stashSlot === target.slot) return;
 			const stashOccupant = stashItems.find(
-				(it) => it.stashSlot === target.slot && it._id !== source.itemId,
+				(it) => it.stashSlot === target.slot && it.id !== source.itemId,
 			);
 			onReorderStash({
 				itemId: source.itemId,
 				targetSlot: target.slot,
-				swapWithItemId: stashOccupant?._id,
+				swapWithItemId: stashOccupant?.id,
 			});
 			return;
 		}
@@ -186,7 +183,7 @@ export default function StashModal({
 		}
 	};
 
-	const handleShiftClickInv = async (itemId: Id<"items">) => {
+	const handleShiftClickInv = async (itemId: number) => {
 		try {
 			const result = await onDeposit([itemId]);
 			if (result.failed > 0) toast.error(m.stash_full_error());
@@ -195,7 +192,7 @@ export default function StashModal({
 		}
 	};
 
-	const handleShiftClickStash = async (itemId: Id<"items">) => {
+	const handleShiftClickStash = async (itemId: number) => {
 		try {
 			const result = await onWithdraw([itemId]);
 			if (result.failed > 0) toast.error(m.inventory_full_error());
@@ -208,8 +205,8 @@ export default function StashModal({
 
 	const handleDepositSelected = async () => {
 		const ids = inventoryItems
-			.filter((it) => invSelected.has(it._id.toString()))
-			.map((it) => it._id);
+			.filter((it) => invSelected.has(it.id))
+			.map((it) => it.id);
 		if (ids.length === 0) return;
 		const prev = new Set(invSelected);
 		await runDeposit(async () => {
@@ -233,8 +230,8 @@ export default function StashModal({
 
 	const handleWithdrawSelected = async () => {
 		const ids = stashItems
-			.filter((it) => stashSelected.has(it._id.toString()))
-			.map((it) => it._id);
+			.filter((it) => stashSelected.has(it.id))
+			.map((it) => it.id);
 		if (ids.length === 0) return;
 		const prev = new Set(stashSelected);
 		await runWithdraw(async () => {
@@ -258,7 +255,7 @@ export default function StashModal({
 		});
 	};
 
-	const toggleInv = (id: string) => {
+	const toggleInv = (id: number) => {
 		setInvSelected((prev) => {
 			const next = new Set(prev);
 			if (next.has(id)) next.delete(id);
@@ -267,7 +264,7 @@ export default function StashModal({
 		});
 	};
 
-	const toggleStash = (id: string) => {
+	const toggleStash = (id: number) => {
 		setStashSelected((prev) => {
 			const next = new Set(prev);
 			if (next.has(id)) next.delete(id);
@@ -283,7 +280,7 @@ export default function StashModal({
 		) {
 			setInvSelected(new Set());
 		} else {
-			setInvSelected(new Set(inventoryItems.map((it) => it._id.toString())));
+			setInvSelected(new Set(inventoryItems.map((it) => it.id)));
 		}
 	};
 
@@ -291,7 +288,7 @@ export default function StashModal({
 		if (stashSelected.size === stashItems.length && stashItems.length > 0) {
 			setStashSelected(new Set());
 		} else {
-			setStashSelected(new Set(stashItems.map((it) => it._id.toString())));
+			setStashSelected(new Set(stashItems.map((it) => it.id)));
 		}
 	};
 
@@ -390,16 +387,14 @@ export default function StashModal({
 											dragKind="inventory"
 											isDraggingThis={
 												active?.kind === "inventory" &&
-												item?._id === active.itemId
+												item?.id === active.itemId
 											}
-											isSelected={
-												item ? invSelected.has(item._id.toString()) : false
-											}
+											isSelected={item ? invSelected.has(item.id) : false}
 											onItemClick={(itemId, shiftKey) => {
 												if (shiftKey) {
 													void handleShiftClickInv(itemId);
 												} else {
-													toggleInv(itemId.toString());
+													toggleInv(itemId);
 												}
 											}}
 											slotSize={slotSize}
@@ -459,17 +454,14 @@ export default function StashModal({
 												item={item}
 												dragKind="stash"
 												isDraggingThis={
-													active?.kind === "stash" &&
-													item?._id === active.itemId
+													active?.kind === "stash" && item?.id === active.itemId
 												}
-												isSelected={
-													item ? stashSelected.has(item._id.toString()) : false
-												}
+												isSelected={item ? stashSelected.has(item.id) : false}
 												onItemClick={(itemId, shiftKey) => {
 													if (shiftKey) {
 														void handleShiftClickStash(itemId);
 													} else {
-														toggleStash(itemId.toString());
+														toggleStash(itemId);
 													}
 												}}
 												slotSize={slotSize}
@@ -506,11 +498,11 @@ function StashSlotDroppable({
 	droppableId: string;
 	kind: "inventory" | "stash";
 	slot: number;
-	item: Doc<"items"> | null;
+	item: ItemRow | null;
 	dragKind: "inventory" | "stash";
 	isDraggingThis: boolean;
 	isSelected: boolean;
-	onItemClick: (itemId: Id<"items">, shiftKey: boolean) => void;
+	onItemClick: (itemId: number, shiftKey: boolean) => void;
 	slotSize: number;
 }) {
 	const { setNodeRef: dropRef, isOver } = useDroppable({
@@ -547,15 +539,15 @@ function DraggableStashItem({
 	onClick,
 	slotSize,
 }: {
-	item: Doc<"items">;
+	item: ItemRow;
 	dragKind: "inventory" | "stash";
 	hidden: boolean;
-	onClick: (itemId: Id<"items">, shiftKey: boolean) => void;
+	onClick: (itemId: number, shiftKey: boolean) => void;
 	slotSize: number;
 }) {
 	const { attributes, listeners, setNodeRef } = useDraggable({
-		id: `${dragKind}-${item._id}`,
-		data: { kind: dragKind, itemId: item._id } satisfies DragSourceData,
+		id: `${dragKind}-${item.id}`,
+		data: { kind: dragKind, itemId: item.id } satisfies DragSourceData,
 	});
 	return (
 		<div
@@ -570,7 +562,7 @@ function DraggableStashItem({
 					? undefined
 					: (e) => {
 							e.stopPropagation();
-							onClick(item._id, e.shiftKey);
+							onClick(item.id, e.shiftKey);
 						}
 			}
 			{...listeners}
@@ -582,15 +574,15 @@ function DraggableStashItem({
 }
 
 // @dnd-kit types `data.current` as an open record; these guards are the
-// `unknown` boundary. `itemId` is only checked to be a string: Id<"items"> is
-// a compile-time brand and every draggable here registers a real item id.
+// `unknown` boundary. `itemId` is only checked to be a number: every
+// draggable here registers a real item id.
 
 function isDragSource(d: unknown): d is DragSourceData {
 	if (typeof d !== "object" || d === null) return false;
 	if (!("kind" in d) || !("itemId" in d)) return false;
 	return (
 		(d.kind === "inventory" || d.kind === "stash") &&
-		typeof d.itemId === "string"
+		typeof d.itemId === "number"
 	);
 }
 

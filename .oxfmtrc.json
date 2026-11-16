@@ -12,7 +12,6 @@
 		".wrangler/**",
 		"dist/**",
 		"public/**",
-		"convex/**",
 		"src/routeTree.gen.ts",
 		"worker-configuration.d.ts",
 		"drizzle/meta/**",

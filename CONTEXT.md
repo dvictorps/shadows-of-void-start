@@ -549,7 +549,7 @@ Promotions chain: a Normal can promote to Magic, then that result can promote to
 
 Potions are capped because they're the active heal control — supply matters for combat balance. Teleport Stone is uncapped (player can stockpile arbitrarily many); its gameplay weight comes from the ruby cost, not from rationing. **Incenso Etéreo is not sold** — it drops from monsters only (see Active player input → Incenso Etéreo).
 
-The catalog data lives in `src/game/vendor/products.ts`; adding a product means registering an id + price + emoji + (optionally) cap there. `convex/vendor.ts` → `vendorBuy` reads the metadata and walks one code path for all products.
+The catalog data lives in `src/game/vendor/products.ts`; adding a product means registering an id + price + emoji + (optionally) cap there. `vendor.vendorBuy` (`src/server/trpc/routers/vendor.ts`) reads the metadata and walks one code path for all products.
 
 ### Selling rules
 
@@ -1092,7 +1092,7 @@ Output: `ComputedCharacterStats` — attributes (str/dex/int), life/mana max + r
 
 Derivations the engine does itself: armor mitigation %, evasion-vs-typical-enemy hit-avoid %, total DPS estimate (path-aware). The engine does **not** roll dice — it only computes the static numbers. Per-hit rolls live in the combat loop.
 
-The function is pure, deterministic, and dependency-free (no React, no Convex). Same inputs → same outputs. Recomputed wherever needed; not cached on the character document. The reactive Convex queries that feed it keep the UI in sync automatically.
+The function is pure, deterministic, and dependency-free (no React, no IO). Same inputs → same outputs. Recomputed wherever needed on the client; the server caches the totals it needs (max life / barrier, magic find, movement speed) on the character row on equip / unequip / level-up. The client's inputs (equipped items, level) live in the query cache, which every mutation keeps current.
 
 ## Equipment UX
 
@@ -1172,7 +1172,7 @@ Two independent ranking tabs:
 
 ### Snapshot
 
-The leaderboard is **not real-time**. A **Convex cron job** runs every **5 minutes**, queries the top 50 characters per category per mode (softcore/hardcore), and writes the result to a `leaderboardSnapshot` table. The client subscribes reactively to the snapshot — since it only changes every 5 minutes, the ranking updates at that cadence.
+The leaderboard is **not real-time**. A **Workers Cron Trigger** runs **hourly**, queries the top 50 characters per category per mode (softcore/hardcore), and writes the result to the `leaderboard_snapshot` table. The leaderboard modal refetches the snapshot every 5 minutes while it's open, so the ranking updates at the cron's cadence.
 
 Each snapshot entry stores: character name, class, level, total boss kills, hardcore flag, alive/dead status.
 

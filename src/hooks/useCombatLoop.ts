@@ -1,10 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Combat orchestrator. Owns the state machine + spawn/victory delays + the
-//  recordKill / incense mutations. Tick mechanics live in `useCombatTick`;
-//  encounter scheduling in `useEncounterSchedule`.
+//  recordKill / incense / camp calls (useCombatMutations). Tick mechanics
+//  live in `useCombatTick`; encounter scheduling in `useEncounterSchedule`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useMutation } from "convex/react";
 import {
 	useCallback,
 	useEffect,
@@ -38,22 +37,15 @@ import {
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import type { BossNodeConfig, CampSource } from "#/game/world";
 import type { ZoneEncounterPlan } from "#/game/world/encounter-schedule";
-import {
-	applyCharacterDelta,
-	applyCombatStateDelta,
-	findCharacter,
-} from "#/lib/optimistic-character";
 import { pickRandom } from "#/lib/rng";
 import { playKillSfx, playSfx } from "#/lib/sfx";
 
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 import type { BarrierApi } from "./useBarrier";
-import { useCombatTick } from "./useCombatTick";
+import { useCombatMutations } from "./useCombatMutations";
+import { useCombatTick, type Vitals } from "./useCombatTick";
 import { type DamageEvent, useDamageEvents } from "./useDamageEvents";
 import { useDelay } from "./useDelay";
 import { useEncounterSchedule } from "./useEncounterSchedule";
-import { useSessionToken } from "./useSessionToken";
 
 // CampSource / DamageEvent are passed through unchanged to CombatScene; the
 // other re-exports give external consumers a single import surface for the
@@ -68,7 +60,7 @@ export type {
 };
 
 type Params = {
-	characterId: Id<"characters">;
+	characterId: number;
 	stats: ComputedCharacterStats;
 	initialHp: number;
 	barrierApi: BarrierApi;
@@ -103,6 +95,8 @@ type Params = {
 const VICTORY_DELAY_MS = 800;
 
 const NOOP_RESTORE = (_overrideMaxHp?: number) => {};
+const NO_VITALS = (): Vitals | null => null;
+const NOOP = () => {};
 
 export function useCombatLoop({
 	characterId,
@@ -159,11 +153,15 @@ export function useCombatLoop({
 		enemyRef.current = enemy;
 	});
 
-	const { withSession } = useSessionToken();
-
-	const enterCamp = useMutation(api.combat.enterCamp);
-	const exitCampMutation = useMutation(api.combat.exitCamp);
-	const enterCampViaIncense = useMutation(api.combat.enterCampViaIncense);
+	const {
+		recordKill,
+		syncHp,
+		consumePotion: consumePotionMutation,
+		consumeIncense,
+		enterCamp,
+		enterCampViaIncense,
+		exitCamp: exitCampMutation,
+	} = useCombatMutations({ characterId, maxHp: stats.maxLife });
 
 	const warmupActive = !!bossNode && !warmupDone;
 
@@ -195,13 +193,10 @@ export function useCombatLoop({
 			// call rejects (e.g. clock drift past the grace window) we still
 			// keep the cinematic on-screen and let the player retreat — the
 			// 30% cap will apply in that edge case, which is the safe default.
-			enterCamp(withSession({ characterId, thresholdIndex })).catch(() => {});
+			enterCamp({ characterId, thresholdIndex }).catch(() => {});
 		},
 	});
 
-	const recordKill = useMutation(api.combat.recordKill);
-	// Optimistic localStore patch keeps the incense counter in lockstep with
-	// the mutation, so concurrent recordKill drops can't race the consume.
 	// ── Boss-node warmup → gauntlet transition ──
 	// When the calmaria budget fills during warmup, the encounter schedule's
 	// `rollSpawnRarity()` returns "rare" (bar-fill = miniboss in regular
@@ -220,25 +215,21 @@ export function useCombatLoop({
 		setWarmupDone(true);
 	}
 
-	const consumeIncense = useMutation(
-		// oxlint-disable-next-line react/hooks -- `api.combat.useEtherealIncense` is the Convex server function's name (defined in convex/, out of scope and slated for the Cloudflare migration), not a React hook.
-		api.combat.useEtherealIncense,
-	).withOptimisticUpdate((localStore, args) => {
-		const char = findCharacter(localStore, args.characterId);
-		if (char) {
-			applyCharacterDelta(localStore, args.characterId, {
-				etherealIncense: Math.max(0, (char.etherealIncense ?? 0) - 1),
-			});
-		}
-		const csData = localStore.getQuery(api.combatState.byCharacterId, {
-			characterId: args.characterId,
-		});
-		if (csData) {
-			applyCombatStateDelta(localStore, args.characterId, {
-				etherealIncense: Math.max(0, csData.etherealIncense - 1),
-			});
-		}
-	});
+	// The tick's two server calls, bound to this character. Stable across
+	// renders (the session-wrapped mutations are), so the tick's
+	// deactivation effect doesn't re-run on every combat frame.
+	const syncVitals = useCallback(
+		async (vitals: Vitals) => {
+			await syncHp({ characterId, ...vitals });
+		},
+		[syncHp, characterId],
+	);
+	const consumePotion = useCallback(
+		async (clientHp: number) => {
+			await consumePotionMutation({ characterId, clientHp });
+		},
+		[consumePotionMutation, characterId],
+	);
 
 	const updateEnemyForTick = useCallback((next: Enemy) => {
 		enemyRef.current = next;
@@ -247,6 +238,10 @@ export function useCombatLoop({
 
 	const restoreToFullRef =
 		useRef<(overrideMaxHp?: number) => void>(NOOP_RESTORE);
+	// The tick's vitals hooks, read by `resolveKill` (created before the tick
+	// hook, which takes it as a parameter). Mirrored by a layout effect below.
+	const vitalsForKillRef = useRef<() => Vitals | null>(NO_VITALS);
+	const forgetSyncedVitalsRef = useRef<() => void>(NOOP);
 
 	const resolveKill = useCallback(
 		(killed: Enemy) => {
@@ -266,20 +261,22 @@ export function useCombatLoop({
 			if (isMinibossKill) {
 				resetForMiniboss();
 			}
+			// The HP sync rides on the kill (one row written instead of two).
+			const vitals = vitalsForKillRef.current();
 			void (async () => {
 				try {
-					const result = await recordKill(
-						withSession({
-							characterId,
-							monsterId: killed.def.id,
-							monsterLevel: killed.level,
-							monsterRarity: killed.rarity,
-						}),
-					);
+					const result = await recordKill({
+						characterId,
+						monsterId: killed.def.id,
+						monsterLevel: killed.level,
+						monsterRarity: killed.rarity,
+						clientHp: vitals?.hpCurrent,
+						clientBarrier: vitals?.barrierCurrent,
+					});
 					if (result.newMaxLife !== undefined) {
 						// Server-authoritative — kills the race between this await and
-						// the reactive-query propagation that re-renders `stats` (closing
-						// over stale `stats` would set HP to oldMax = newMax - 10).
+						// the cache update that re-renders `stats` (closing over stale
+						// `stats` would set HP to oldMax = newMax - 10).
 						restoreToFullRef.current(result.newMaxLife);
 						barrierApi.restoreToFull(result.newMaxBarrier);
 					}
@@ -287,22 +284,22 @@ export function useCombatLoop({
 						setLastKill({ xp: xpGained, potion: true });
 					}
 				} catch {
-					// Fire-and-forget: a rejected kill record leaves local state as is.
+					// Fire-and-forget: a rejected kill record leaves local state as
+					// is; the next periodic sync sends the vitals it carried.
+					forgetSyncedVitalsRef.current();
 				}
 			})();
 		},
-		[
-			bossNode,
-			characterId,
-			recordKill,
-			resetForMiniboss,
-			withSession,
-			barrierApi,
-		],
+		[bossNode, characterId, recordKill, resetForMiniboss, barrierApi],
 	);
 
-	const { playerHp, drinkPotion, restoreToFull } = useCombatTick({
-		characterId,
+	const {
+		playerHp,
+		drinkPotion,
+		restoreToFull,
+		vitalsForKill,
+		forgetSyncedVitals,
+	} = useCombatTick({
 		active,
 		isEngaged: state === "engaged",
 		enemy,
@@ -314,9 +311,13 @@ export function useCombatLoop({
 		resolveKill,
 		pushEvent,
 		updateEnemy: updateEnemyForTick,
+		syncVitals,
+		consumePotion,
 	});
 	useLayoutEffect(() => {
 		restoreToFullRef.current = restoreToFull;
+		vitalsForKillRef.current = vitalsForKill;
+		forgetSyncedVitalsRef.current = forgetSyncedVitals;
 	});
 
 	// ── Activation transitions ──
@@ -356,8 +357,8 @@ export function useCombatLoop({
 		if (stateRef.current !== "acampamento") return;
 		stateRef.current = "searching";
 		setState("searching");
-		exitCampMutation(withSession({ characterId })).catch(() => {});
-	}, [characterId, exitCampMutation, withSession]);
+		exitCampMutation({ characterId }).catch(() => {});
+	}, [characterId, exitCampMutation]);
 
 	// Player activated Incenso Etéreo. The gameplay rules (see CONTEXT.md →
 	// Active player input → Incenso Etéreo) gate this:
@@ -387,9 +388,9 @@ export function useCombatLoop({
 		// last mob falls.
 		if (isAmbushPackActive()) return;
 
-		// The optimistic update on the mutation hook handles the
-		// localStore decrement; we only need to swallow the rejection.
-		consumeIncense(withSession({ characterId })).catch(() => {});
+		// The mutation decrements the cached count optimistically; we only
+		// need to swallow the rejection.
+		consumeIncense({ characterId }).catch(() => {});
 
 		if (s === "engaged") {
 			// Let the current fight resolve. The victory branch reads this and
@@ -406,7 +407,7 @@ export function useCombatLoop({
 		setState("acampamento");
 		// Persist the camp claim server-side so the bag mutations see the
 		// camp phase. Incense camps bypass the time-threshold gate.
-		enterCampViaIncense(withSession({ characterId })).catch(() => {});
+		enterCampViaIncense({ characterId }).catch(() => {});
 	}, [
 		characterId,
 		consumeIncense,
@@ -415,7 +416,6 @@ export function useCombatLoop({
 		isAmbushPackActive,
 		cancelAmbush,
 		setCampSource,
-		withSession,
 	]);
 
 	// Shared mob-spawning pipeline: pick → find → scale → mod → Enemy.
@@ -602,7 +602,7 @@ export function useCombatLoop({
 			setCampSource("incense");
 			stateRef.current = "acampamento";
 			setState("acampamento");
-			enterCampViaIncense(withSession({ characterId })).catch(() => {});
+			enterCampViaIncense({ characterId }).catch(() => {});
 		} else {
 			setState("searching");
 		}
@@ -617,8 +617,8 @@ export function useCombatLoop({
 		if (stateRef.current !== "miniboss_victory") return;
 		stateRef.current = "searching";
 		setState("searching");
-		exitCampMutation(withSession({ characterId })).catch(() => {});
-	}, [characterId, exitCampMutation, withSession]);
+		exitCampMutation({ characterId }).catch(() => {});
+	}, [characterId, exitCampMutation]);
 
 	return {
 		state,

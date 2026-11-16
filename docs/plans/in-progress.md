@@ -10,29 +10,30 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ## Convex → Cloudflare migration (active track, started 2026-11-15)
 
-Decision and rationale: [ADR 0009](../adr/0009-cloudflare-d1-trpc-backend.md). One Worker running TanStack Start + tRPC (`/api/trpc/$`) + Better Auth (`/api/auth/$`) on D1 via Drizzle. **Workers Free plan. No data migration** — the new DB starts empty and Convex data is discarded at cutover. While this track is open, prefer not to add new Convex functions; anything new should land on the tRPC side or wait.
+Decision and rationale: [ADR 0009](../adr/0009-cloudflare-d1-trpc-backend.md) and its "Update" notes per phase. One Worker running TanStack Start + tRPC (`/api/trpc/$`) + Better Auth (`/api/auth/$`) on D1 via Drizzle. **Workers Free plan. No data migration** — the production D1 starts empty and the old Convex data is discarded.
 
-Phases, one PR each into `dev`:
+Phases 1–3 shipped (`feat/cloudflare-phase-1`, `-2`, `-3`): the Worker, schema and auth; every procedure on tRPC; the frontend on `@trpc/tanstack-react-query`, with `convex/`, its deps and its env vars deleted from the repo. Staging (`https://shadows-of-void-staging.dvictorps.workers.dev`) runs the full game. `dev` still **can't be released to `master`** until phase 4: `master` deploys to Vercel + Convex, and `dev` no longer builds for either.
 
-1. ~~**Infra skeleton.**~~ Shipped on `feat/cloudflare-phase-1`. Staging runs at `https://shadows-of-void-staging.dvictorps.workers.dev` with sign-up/sign-in working end to end. Production has its Worker config and an empty D1 (`shadows-of-void-production`), but nothing is deployed or migrated there yet. The owner chose to cut Convex auth over immediately (no coexistence), so **the game is unplayable on `dev` until phase 3**: the app signs in on D1 and every Convex query runs unauthenticated. Production on `master` (Vercel + Convex) is untouched, but **`dev` can't be released to `master` until cutover**: the build no longer targets Vercel. Schema decisions that differ from the plan text (tables merged into `characters`, `user.role`, integer ids, dropped indexes) are in the ADR 0009 "Update" note.
-2. ~~**Port procedures.**~~ Shipped on `feat/cloudflare-phase-2` and deployed to staging (smoke-tested end to end over HTTP: sign-up → travel → zone → kills → exit with loot). Every `convex/*.ts` function is a tRPC procedure in `src/server/trpc/routers/`; see the `src/server/` section of `codebase-map.md` and `docs/playbooks/adding-a-procedure.md`. Decisions taken while porting are in the ADR 0009 "Update (phase 2)" note: the zone bag is a JSON column on `characters`, the session middleware reads the row without it, `use*` mutations became `consume*`, and the integration tests run on `@cloudflare/vitest-plugin`. Left for phase 3 (they change the client contract or live in client files):
-   - **Fold the combat-loop HP sync into `recordKill`.** During combat a kill and the 10 s `syncHp` tick write the same row separately. Accepting optional `clientHp` / `clientBarrier` on `recordKill` (merged through `resolveVitalSync`) and resetting the client's sync timer after a kill saves up to one write per 10 s per active player.
-   - **Client duplicates of server rules:** `stashModeOf` is inlined in `useWorldMutations.ts` / `world.tsx`, and the mage-starts-on-fire default in `world.tsx`. Point them at the shared helpers when those files are rewritten.
-   - **New response shapes the client must adopt:** ids are numbers; `recordKill` returns the staged `drops` (append to the `items.zoneBag` cache); bag procedures take `bagId` strings; `admin.listAdmins.grantedAt` is the user's `updatedAt` (no promotion timestamp exists any more).
-3. **Frontend swap.** Replace `ConvexQueryClient` / `convexQuery` / `useMutation(api.*)` in the 8 consuming files (`world.tsx`, `InventoryModal`, `character-select`, `CreateCharacterModal`, `LeaderboardModal`, `useSessionToken`, admin routes) plus route loaders and `admin-prefetch.ts`. Port the ADR 0001 optimistic handlers to react-query `onMutate` (`src/lib/optimistic-character.ts`). `convex-errors.ts` → server-error mapping over `TRPCError`. Re-measure `recordKill` CPU under real play (phase 2 smoke test: median ~7 ms, 17–35 ms on kills that generate items or hit a cold isolate; nothing rejected).
-   **Risks noted before starting (owner chose to note these, not to re-plan around them yet):**
+**Phase 4 — production cutover (needs the owner's go-ahead at each step):**
 
-- **D1 free write quota is the real ceiling, not CPU.** The cost envelope below estimates ~600–1200 `recordKill`/h + up to 360 `syncHp`/h per active player. Phase 2 brought a kill down to 1 row written (the drops ride on it) plus 2 rows per item the player keeps, ~1.2–1.7 rows per kill on average, so ~1.2–1.7k rows/h plus `syncHp`: the 100k rows/day free quota covers roughly 40–60 active hours/day across _all_ players. That's fine for solo testing. A 10-friend beta would hit the cap, and a capped quota makes writes fail until the daily reset (outage, not a bill). Keep indexes lean and writes-per-kill low in the schema.
-- **Open threats #1 / #2 (`recordKill` spam, `syncHp` god mode) become availability threats.** On Convex abuse cost money; on the free plan a spam script burns the shared daily quota and takes the game down for everyone. Threat-model Layer 1 (per-action rate limit + zone precondition, ~1–2h) is the cheap guard.
-- **Implicit reactivity disappears.** Every mutation must update or invalidate the right query keys or the UI goes stale. The riskiest consumer is the untested combat loop (`useCombatLoop` + children).
-- **Optimistic updates get harder.** Convex re-applies optimistic updates over incoming server state; react-query does not, so rollback and reconcile are hand-written for the 7 mutations in ADR 0001.
-- **"Do not regress" table in `threat-model.md`** (11 server-authoritative invariants) is the review checklist for every ported procedure.
-- ~~**SSR auth** in `__root` uses Convex's `getToken`~~. Rebuilt in phase 1 (`src/lib/auth-session.ts`). Left for phase 3: root `beforeLoad` still calls the `getSessionUser` server function on every client navigation and every hover preload (`defaultPreload: "intent"`, delay 0), the same pattern the Convex version had. Only `world` and `admin` read the result, so move the check into those routes or cache it in the query client. `character-select` / `admin` `beforeLoad` also still prefetch `api.users.getUserRole` from Convex, now anonymously.
-- **Password hashing CPU.** Sign-in costs ~170–215 ms CPU on staging against the Free plan's nominal 10 ms. Cloudflare didn't reject any request, but if it starts to, lower the scrypt cost in `src/server/password.ts` (ADR 0009 update note).
+1. `pnpm db:migrate:production` (applies `drizzle/` to the empty `shadows-of-void-production` D1), then `wrangler secret put BETTER_AUTH_SECRET --env production`.
+2. `pnpm deploy:production`, smoke-test the production URL (sign-up → character → zone → kills → exit → vendor → stash → leaderboard), and promote the first admin with SQL (`UPDATE user SET role = 'admin' WHERE email = …`).
+3. Point the production domain at the Worker and retire the Vercel project + the Convex deployments (dashboard env vars `BETTER_AUTH_SECRET` / `SITE_URL`, billing). Production Convex data is discarded (ADR 0009).
+4. Merge `dev` → `master`. The release flow becomes `pnpm deploy:production` from `master` (no Vercel build, no `npx convex deploy`); update the branching memory/notes accordingly.
+5. Re-measure CPU on production with real play in a browser (staging numbers are in the ADR 0009 phase 3 note) and watch the D1 rows-written counter for the first week against the envelope below.
 
-**After cutover, sweep this file:** rewrite the "Beta readiness — Convex cost envelope" section as a D1 quota envelope, drop Convex-only items (lexicon follow-up #4 "Convex validator can't enforce literal unions", the `convex-test` harness, the admin-latency "Directions" that assume WebSocket subscriptions), and re-check the project-health grades that cite Convex.
+**Left open after phase 3 (not blocking the cutover):**
 
-4. **Cutover + cleanup.** Deploy production, delete `convex/` and the `convex` / `@convex-dev/*` deps and env vars, retire `docs/plans/2026-05-28-convex-bandwidth-v3.md`. Doc sweep (~18 files mention Convex): `CLAUDE.md` tech stack, `codebase-map.md`, `threat-model.md` (add the concurrent read-modify-write risk from ADR 0009), playbooks that reference `convex/` paths, and "Update" notes on ADRs 0001 (optimistic mechanism) / 0003 (validator boundary) / 0004 / 0006 (cron mechanism).
+- **Browser smoke test on staging.** Phase 3 was smoke-tested over HTTP against staging (the same tRPC and SSR endpoints the browser uses); a click-through in a real browser, including the admin dashboard with a promoted account, is still owed before phase 4.
+- **The `useCombatTick` HP flush on deactivation stays an effect** (with its disable). It is a sync with an external system on `active` flipping from several paths, so the effect is the right tool; the Convex-specific wording was removed. The `useViewMode` auto-enter effect is gone: the view now follows `arriveAtTravel`'s answer.
+- **Optimistic rollback refetches.** `rollbackOnError` restores the snapshot and then refetches the keys it touched, since other writes may have landed meanwhile. Rejections are rare, so the extra request is cheap; revisit only if the request quota gets tight.
+
+**Risks carried into phase 4:**
+
+- **D1 free write quota is the real ceiling, not CPU** (see the envelope below). A capped quota makes writes fail until the daily reset (outage, not a bill).
+- **Open threats #1 / #2 (`recordKill` spam, `syncHp` god mode) are availability threats** on the Free plan: a spam script burns the shared daily quotas. Threat-model Layer 1 (per-action rate limit + zone precondition, ~1–2h) is the cheap guard.
+- **Concurrent read-modify-write** (threat #6): accepted while the game is solo-tested; escalation is a per-character Durable Object.
+- **Password hashing CPU.** Sign-up costs ~105 ms CPU on staging against the Free plan's nominal 10 ms. Nothing has been rejected; if Cloudflare starts to, lower the scrypt cost in `src/server/password.ts`.
 
 ---
 
@@ -44,27 +45,27 @@ Both monolith refactors are done — world.tsx (PR #45) and useCombatLoop (PR #4
 
 **Boss system shipped on `feat/boss-system`** — first act-boss (Gralfor, O Persistente) plus the full configurable infrastructure: `src/game/bosses/` registry, `unique` rarity tier, `kind: "boss"` node with gauntlet (N rares → boss), 4-beat boss cinematic (sprite → impact sfx + screenshake → name → hp), per-boss nameplate color, declared stat sheets with negative resistances, gauntlet/boss drop routing, and the supersession of Model B. Adding a second boss is one file under `src/game/bosses/` + one paraglide key per locale + a boss node — see [playbook](../playbooks/adding-a-boss.md) and [ADR 0008](../adr/0008-boss-as-parallel-registry.md).
 
-Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastructure debt is empty. Pre-public-beta hardening backlog is empty — the `recomputeSpellWeaponStats` migration is now chunked (an `internalAction` drives a paginated `recomputeSpellWeaponStatsPage` internal mutation at 500 rows/page until the cursor is exhausted), so it no longer `.collect()`s the full items table inside one mutation. Re-run via `npx convex run items:recomputeSpellWeaponStats`. What remains splits into:
+Pure-refactor backlog is empty. Gameplay-debt backlog is empty. Boss-infrastructure debt is empty. Pre-public-beta hardening backlog is empty. What remains splits into:
 
 - **Agent-ergonomics hardening — track open, not blocking (started in PR #68)**: PR #68 shipped the doc de-drift + the first server-authoritative test extraction (`recordKill` → `src/game/combat/kill.ts`, 14 tests). The follow-up extraction pass (`refactor/extract-mutation-decisions`) continued it: `usePotion` → `src/game/combat/potion.ts` (`resolvePotionUse`), `syncHp` → `src/game/combat/vitals.ts` (`clampVital` / `resolveVitalSync`), and the camp-tier/zone-completion branch of `recordKill` → `kill.ts` (`resolveZoneProgress`), with 21 new tests. This is the highest-leverage _risk-reduction_ track (the testing cliff outside `src/game/` is the project's #1 navigability risk), but nothing forces it next — it competes by appetite with the passive-tree feature. Documented continuation, in priority order:
   1. **Extraction pass — largely done.** `usePotion`, `syncHp`, and the `recordKill` zone/camp branch are now pure + tested (see above). `respawnDead` was assessed and left as-is: its only deterministic logic is `applyDeathXpPenalty` (already a pure, tested `src/game/progression` helper) and the `char.hardcore` mode branch; the rest is irreducible IO (deleting owned items, clearing zone state, patching two docs). Manufacturing a pure wrapper there would add indirection without adding a testable decision. The remaining honest target is the **stat-cache-recompute branch of `recordKill`** (the level-up path that calls `computeCharacterStats`) — but that's already exercised through `computeCharacterStats` tests, so it's low-value. Treat the mutation-extraction backlog as effectively drained; the net win now comes from (2).
-  2. **Superseded and done (Cloudflare migration phase 2)** — the tRPC procedures have integration tests on `@cloudflare/vitest-plugin` (the renamed `vitest-pool-workers`) + local D1 (`src/server/trpc/routers/*.integration.test.ts`); don't build a Convex harness. Original note: **Stand up a `convex-test` harness** wired to the better-auth component, to integration-test the mutations end-to-end. The extractions in (1) are the stopgap until this lands; `getAuthUser` reads the better-auth component tables, so `withIdentity()` alone won't satisfy it — the component has to be registered in the test setup.
-  3. **`useCombatLoop` isolation tests** — needs a mock harness for the Convex queries + child hooks it composes. Do after (1)/(2) establish the patterns.
-  4. **Split `CombatScene` (~990) / `InventoryModal` (~920)** into sub-components — ONLY after (1)–(3) give a safety net. Never refactor untested 900-line UI first; that's the wrong order.
+  2. **Done (Cloudflare migration phase 2)** — the tRPC procedures have integration tests on `@cloudflare/vitest-plugin` + local D1 (`src/server/trpc/routers/*.integration.test.ts`).
+  3. **`useCombatLoop` isolation tests** — the server calls are now injectable (`useCombatTick` takes `syncVitals` / `consumePotion` as parameters; `useCombatLoop` gets them from `useCombatMutations`), so the harness needs a `TRPCProvider` + QueryClient, or the same parameter seam pushed up one level. Do after (1)/(2) establish the patterns.
+  4. **Split `CombatScene` (~990) / `InventoryModal` (~740)** into sub-components — ONLY after (1)–(3) give a safety net. Never refactor untested 900-line UI first; that's the wrong order.
 - **Deferred, scoped**: camp cinematic biome ambience.
 - **Low-priority polish**: native PT review of `lexicon/pt.ts`, `TemplateBaseId` codegen, rare-name bestiary, admin-dashboard cold-cache latency.
-- **oxlint: zero errors since `chore/oxlint-debt` (2026-11-15).** The first run reported 380 errors in `src/` (plus 15 in `convex/`, which is lint-ignored until the migration deletes it). All were fixed, not silenced. The policy for inline disables: allowed only under a real external constraint, and the comment must say why the documented pattern doesn't apply. **Disables still in the tree, to revisit:**
-  - _Removed by the migration's frontend swap (phase 3):_ the 3 `react/hooks` disables on Convex function names (`api.combat.usePotion` / `useEtherealIncense` / `useTeleportStone`, so name the tRPC procedures without a `use` prefix); the 2 effects driven by Convex reactivity (`useViewMode` auto-enter, `useCombatTick` HP flush on deactivation); the `vi.mock("convex/react")` in `useCombatTick.test.ts` (inject the mutation through `deps` like the dice and audio); the `convex-errors.ts` decoder.
+- **oxlint: zero errors since `chore/oxlint-debt` (2026-11-15).** The first run reported 380 errors in `src/`. All were fixed, not silenced. The policy for inline disables: allowed only under a real external constraint, and the comment must say why the documented pattern doesn't apply. The migration's phase 3 removed the 3 `react/hooks` disables on the old `use*` function names, the `useViewMode` auto-enter effect, the `vi.mock` in `useCombatTick.test.ts` and the error-decoder disable. **Disables still in the tree, to revisit:**
+  - _`useCombatTick` HP flush on deactivation_: a sync with an external system on `active` flipping from several route paths; kept, with a reason that no longer mentions the old transport.
   - _Combat state-machine activation resets_ (`useCombatLoop`, `useEncounterSchedule` ×2): effects that reset refs and state together on `active` flipping. The proper fix moves the reset to the event that activates combat (zone entry). Do it together with the combat-hook tests (post-migration priority item 3), never untested.
   - _Kept for good:_ the 2 framer-motion imperative-controls effects (`CombatScene` victory fade, `HealthGlobe` hit shake), the `world.tsx` session claim on route arrival, and the `Object.keys` SAFETY cast centralized in `src/game/typed-object.ts`.
-    Warnings left: `complexity` and the `shadcn/*` / `react/forbid-elements` design-system rules on app-shell UI (sign-in, character-select, admin, generic modals); the game-art directories turn the `shadcn/*` rules off. Fix them in any file you touch.
+    Warnings left (163 as of phase 3): `complexity` and the `shadcn/*` / `react/forbid-elements` design-system rules on app-shell UI (admin, generic modals, `src/components/ui` itself); sign-in and character-select are clean since phase 3 (new theme tokens `tracking-label` / `text-2xs` / `leading-display` / `void`, and the `caps` / `tall` / `inline` options on `<Button>`). The game-art directories turn the `shadcn/*` rules off. Fix them in any file you touch.
 - **PRIORITY right after the Convex → Cloudflare migration: encode architecture as lint (decided 2026-11-15).** The project is fully AI-driven, and a deterministic lint error is the guard-rail an agent can't skip; a convention that only lives in a doc can be. In order:
   1. **Local `oxlint` plugin with project rules** under `tools/oxlint/shadows/` (same shape as app-licitei-next's `licitei` plugin). Candidates: `src/game/**` must not import React, the backend, or call `Date.now()` / `Math.random()` directly (keeps the engine pure and testable); every tRPC procedure that mutates character state must go through the session middleware (closes threat #5 structurally); no unvalidated `JSON.parse` at the D1 boundary. Write them against the real tRPC/D1 code after phase 1, not before.
   2. **Type-aware linting** (`no-floating-promises`, `no-misused-promises`, …) for the new async backend. Verify oxlint's type-aware mode works alongside the JS plugins first.
   3. **Tests for the combat hooks** (`useCombatLoop`, `useCombatTick`, `useEncounterSchedule`). This is the remaining blind spot, and the first oxlint run showed it's where most of the React-rule violations were. With the tests in place, move the 3 activation-reset effects to the zone-entry event and delete their disables.
-  4. **Clear the remaining oxlint warnings (227 as of 2026-11-15)**, then promote the rules to `error` so the pre-push gate covers them:
+  4. **Clear the remaining oxlint warnings (227 as of 2026-11-15, 163 after phase 3)**, then promote the rules to `error` so the pre-push gate covers them:
      - `react/forbid-elements` (43; 31 in `src/components/world`): game-art buttons. Decide between turning the rule off for `src/components/world/**` + `src/components/game/**` (same reasoning as the `shadcn/*` override) or adding game variants to `<Button>`.
-     - `shadcn/*` (169) on app-shell UI: `src/routes/**` (sign-in, character-select, admin), root `src/components/*` modals, and `src/components/ui` itself. Sign-in and character-select are rewritten in migration phase 3 (auth swap); fix them there and avoid touching them twice.
+     - `shadcn/*` on app-shell UI: `src/routes/admin/**`, root `src/components/*` modals, and `src/components/ui` itself (sign-in and character-select done in phase 3).
      - `complexity` (15; top: `src/game/stats/compute.ts` ×3, `InventoryModal` ×2, `src/game/items/generator.ts`). Pure refactors, and the `src/game` ones are covered by tests.
 - **Next big feature**: passive tree (per CONTEXT.md → Classes ordering: MVP combat ✅ → passive tree → active skills). Design work needed first — no stub plan yet.
 
@@ -88,15 +89,15 @@ This is a self-assessment from senior-review passes after PRs #39 (tooltip i18n 
 
 ### Why A (criteria that earned the current grade)
 
-- **Architecture: A-** — render-at-display-time naming + literal-union enforcement is the correct choice for a multi-locale ARPG (codified now in [ADR 0003](../adr/0003-render-at-display-names.md)). Lexicon pattern is battle-tested across two domains (monsters + items). Convex/TanStack split is coherent. Remaining hole: drift risk between lexicon and `mod-i18n.ts` (same modifier id in two independent tables) — flagged in the lexicon follow-ups below.
-- **Code quality: A** — `src/game/` is pure + tested (622 vitest cases across 25 files). Comments are WHY-focused. The coverage is concentrated in `src/game/`, though — the React hooks, Convex mutations, and large world components are largely untested (see agent-ergonomics caveat below). One remaining stain: residual `as TemplateBaseId` casts at the Convex boundary (Convex validators can't express literal unions — captured in [ADR 0003](../adr/0003-render-at-display-names.md)). The world.tsx orchestrator dropped from 900 → 740 lines via PR #45 + PR #52.
+- **Architecture: A-** — render-at-display-time naming + literal-union enforcement is the correct choice for a multi-locale ARPG (codified now in [ADR 0003](../adr/0003-render-at-display-names.md)). Lexicon pattern is battle-tested across two domains (monsters + items). tRPC + react-query over one Worker is coherent. Remaining hole: drift risk between lexicon and `mod-i18n.ts` (same modifier id in two independent tables) — flagged in the lexicon follow-ups below.
+- **Code quality: A** — `src/game/` is pure + tested (622 vitest cases across 25 files). Comments are WHY-focused. The coverage is concentrated in `src/game/`, though — the React hooks and large world components are largely untested (see agent-ergonomics caveat below). (The `as TemplateBaseId` casts at the old persistence boundary went away with the migration; see the ADR 0003 update.) The world.tsx orchestrator dropped from 900 → 740 lines via PR #45 + PR #52.
 - **Docs: A** — `CONTEXT.md` is best-in-class for a solo-dev project (976 lines of single-source-of-truth game rules). Three ADRs codify the load-bearing architectural decisions (optimistic mutations, three-system i18n, render-at-display naming). Playbooks accurate and link to type-checked sentinel examples; new system stubs let an agent picking up skills / passives / stash know which questions need answering before coding.
 - **Scalability: A** — adding a new locale = 1 new lexicon file per domain + matching paraglide JSON. Adding a new template = 1 entry + 0 lexicon changes if base/modifier already exist. Decomposition cut lexicon size by 88% (562 → 135). Literal-union enforcement makes "forgot a translation" a compile error.
 - **Translation quality: B-** — 130 PT lexicon entries were AI-bulk-translated. Four hand-revised (Espada Bastarda, Estrela da Manhã, Maculado pelo Vazio, Gume) caught real awkwardness, so the rest probably has 5–10 similar issues. Fine for indie pre-release, not for a paid Brazilian release.
 - **Agent ergonomics for ONBOARDING: A+** — `CONTEXT.md` + `CLAUDE.md` + `codebase-map.md` get an agent productive in ~30 minutes.
 - **Agent ergonomics for MODIFYING existing things: A-** — strong TS catches mistakes, and the styleguide distinguishes "concerns re-mixing" (real debt) from "line growth" (not debt). Honest caveat (was overstated as A+): the "no navigation tax above ~750 lines" claim no longer holds — `CombatScene.tsx` (~990), `world.tsx` (~937), and `InventoryModal.tsx` (~920) are all sizeable single-file orchestrators. They read linearly so the tax is navigation, not tangle, but an agent does pay it.
-- **TESTING as a refactor/bugfix safety net: BIMODAL (A inside `src/game/`, C+ outside)** — 622 vitest cases blanket the pure domain (`damage`, `stats/compute`, `generator`, `drops`, `scaling`, `levels`, `combat/{kill,potion,vitals}`, …), so a bug or refactor in `src/game/` has a real net. But the React hooks (12 of 16 untested, including the `useCombatLoop` state machine), the Convex mutations as _integration units_ (the auth+IO wrapper around the now-extracted decisions has **no end-to-end test**), and the big world components (zero tests) are blind spots. The mutations are hard to test directly because every one opens with `authComponent.getAuthUser(ctx)` (better-auth component read — `convex-test`'s `withIdentity()` doesn't satisfy it). The unlock pattern is **extraction**: pull the deterministic decision logic into a pure `src/game/` function and unit-test that, leaving the mutation a thin auth+IO wrapper. This has now been applied across the combat mutations: `recordKill` → `src/game/combat/kill.ts` (`classifyKill` / `resolveZoneProgress` / `tallyBossKill`), `usePotion` → `potion.ts` (`resolvePotionUse`), `syncHp` → `vitals.ts` (`clampVital` / `resolveVitalSync`). `respawnDead` was assessed and intentionally left thin (its only pure decision, the death XP penalty, already lives in `src/game/progression/levels.ts`). The decision-extraction backlog is effectively drained; the remaining ergonomics gap is the **integration** layer — a `convex-test` harness wired to the better-auth component (track item 2) to test the auth+IO wrappers end-to-end.
-- **Convex validator manual-sync hazard** — `convex/itemValidator.ts` is hand-kept in sync with `src/game/items/types/item.ts` (Convex can't express the literal unions — see [ADR 0003](../adr/0003-render-at-display-names.md)). Adding a rarity / equipment type / stat key and forgetting the validator silently drops items at the persistence boundary. No automated guard today; flagged here so it's a known trap, not a surprise.
+- **TESTING as a refactor/bugfix safety net: BIMODAL (A inside `src/game/`, C+ outside)** — 622 vitest cases blanket the pure domain (`damage`, `stats/compute`, `generator`, `drops`, `scaling`, `levels`, `combat/{kill,potion,vitals}`, …), so a bug or refactor in `src/game/` has a real net. But the React hooks (12 of 16 untested, including the `useCombatLoop` state machine), and the big world components (zero tests) are blind spots. The procedures themselves now have integration tests on a local D1 (`src/server/trpc/routers/*.integration.test.ts`), and the decisions they call are pure + tested in `src/game/` (`combat/{kill,record-kill,potion,vitals}`, `loot/bag`, `world/zone-actions`, …). The remaining gap is the React layer: the combat hooks and the world components.
+- **~~Validator manual-sync hazard~~** — gone with the migration: items are a JSON column typed by `GeneratedItem` itself (ADR 0003 update), so there is no second shape to keep in sync.
 - **Agent ergonomics for ADDING NEW systems (skills, passive tree, stash): B** — stub playbooks now exist for each queued Future domain, listing the decisions to resolve + the ADRs the agent will need to write. The systems themselves aren't built, but the orientation infrastructure is. The grade returns to A once the first new system ships against its stub without an emergency refactor.
 
 ### What raises the grade
@@ -126,58 +127,44 @@ If you're picking up where we left off:
 
 ---
 
-## Beta readiness — Convex cost envelope (snapshot, refine with real telemetry)
+## Beta readiness — D1 quota envelope (snapshot, refine with real telemetry)
 
-Reference material, not planned work. Snapshot taken 2026-05-23 in response to the deployment / scaling question. Update this section when real call-rate observations diverge from the model below.
+Reference material, not planned work. Rewritten after the Cloudflare migration (phase 3, 2026-11-16) from the old Convex cost envelope. The Workers Free plan has no bill: hitting a quota fails requests until the daily reset (00:00 UTC), for every player. Verify the current limits at the Cloudflare docs; as understood today: **100k Worker requests/day**, **D1: 5M rows read/day, 100k rows written/day**, 10 ms CPU per request (not enforced per request so far, see ADR 0009).
 
-### Per-active-hour call rate (estimated)
+### Per-active-hour rates (estimated)
 
-Combat-tick mutations driven by `useCombatLoop` against `convex/combat.ts`:
+Combat (`useCombatLoop`):
 
-- `recordKill` — 1 per monster kill. At ~6s/kill cycle (spawn gap + ~3s fight typical) that's ~600/hour. Endgame burst rates (heavy dual-wield + ambush packs) approach ~1200/hour.
-- `syncHp` — gated on `hp !== lastSyncedHpRef` + 10s ticker → ceiling 360/hour, but most idle players hit far less because HP only changes during active combat.
-- `usePotion` / `useEtherealIncense` — ~10-30/hour.
+- `recordKill` — 1 per kill. ~600/hour at a ~6 s kill cycle, ~1200/hour at endgame burst. **~1 row written** (the character UPDATE; drops ride on it as JSON) plus nothing else, and since phase 3 it also carries the HP sync.
+- `syncHp` — only when 10 s pass after the last write with HP changed, so steady fighting makes almost none; idle players make zero. Ceiling 360/hour, realistic far below.
+- `consumePotion` / `consumeEtherealIncense` — ~10–30/hour, 1 row each.
 
-Out-of-combat mutations driven by `useWorldMutations`:
+Out of combat (`useWorldMutations`, `useInventoryMutations`): zone enter / exit / pick / discard ~20–40/hour; travel ~10–20/hour; equip / reorder ~10–50/hour; vendor / stash ~5–20/hour. A kept item costs its `items` insert plus index entries (~2 rows); a move costs 1–2 rows per item.
 
-- `enterZone` / `exitZone` / `pickFromBag` / `discardFromBag` — ~20-40/hour. Zone changes are deliberate, not spammed.
-- `startTravel` / `arriveAtTravel` — pair on each node transition. ~10-20/hour.
-- `equipItem` / `unequipItem` / `reorderInventory` — ~10-50/hour during active loot sessions.
-- `vendorBuy` / `vendorSellMany` — bursty around vendor visits. ~5-20/hour averaged.
+**Rows written per active hour: ~1.2–1.7k** (≈1.2–1.7 per kill on average, dominated by kills). **Requests per active hour: ~700–1500 mutations + a handful of queries** — the client reads from its cache and mutations write their results into it (no refetch per mutation); queries don't refetch on focus except the character on `/world` (after 30 s), and the leaderboard / admin views poll (5 min / 30 s) only while open.
 
-**Total mutations per active hour: ~700-1500.**
+### Projection against the daily quotas
 
-### Reactive query updates also bill
+| Quota                      | Per active hour | Active hours/day it supports (all players combined) |
+| -------------------------- | --------------- | --------------------------------------------------- |
+| D1 rows written (100k/day) | ~1.2–1.7k       | ~60–80                                              |
+| Worker requests (100k/day) | ~0.8–1.6k       | ~60–120 (static assets count too; keep them cached) |
+| D1 rows read (5M/day)      | small           | not the constraint                                  |
 
-Convex meters function calls, which includes query re-runs triggered by mutations on watched tables. Every `recordKill` invalidates `api.characters.list` (level/xp/potions/incense) and `api.items.zoneBag` (the new drop). Every `equipItem` invalidates `api.items.inventory` + `api.items.equipped`. Multiplier from reactive reads is roughly **2-3× the mutation count**.
-
-**Estimated chargeable function calls per active hour: ~2000-4000.**
-
-### Projection against tiers
-
-Verify exact numbers at [convex.dev/pricing](https://www.convex.dev/pricing) — Convex adjusts plans periodically. Approximations as understood today:
-
-| Tier           | Included calls / month | Active hours / month it supports | Reads as                                                           |
-| -------------- | ---------------------- | -------------------------------- | ------------------------------------------------------------------ |
-| Free (Starter) | ~1M                    | ~250-500                         | Friends beta (10 friends × ~10h each = 100h) fits with headroom    |
-| Pro ($25 base) | ~25M                   | ~6000-12000                      | ~100 daily-active players × ~2h/day fits inside the included quota |
-| Above Pro      | Usage-based overage    | —                                | Depends on per-call overage rate                                   |
+Solo testing fits with a wide margin. A 10-friend beta at ~3 h/day each (~30 active hours) fits; ~20 regular players doesn't, and the first quota to go is the write quota.
 
 ### What inflates this estimate
 
-- **Layer 2 of the threat-model fix** (per-hit mutation instead of per-kill): 5-10× the call rate. Defer until ranking ships and the cost is justified.
-- **Frequent leaderboard subscriptions**: a "live top 100" view re-runs the leaderboard query for every subscriber whenever any one of the top 100 levels up.
-- **Multi-tab abuse** was the worst offender here, multiplying a single user's call rate by tab count. Closed in `feat/single-active-session` (see Threat #5 in `docs/security/threat-model.md`) — every state-mutating mutation now rejects stale tabs.
-
-### What does NOT matter for Convex cost
-
-Bandwidth. Convex bandwidth allowances are generous and SPA payloads are tiny (character doc + inventory + zone bag is well under 100KB even at endgame). Bandwidth is the **frontend host's** concern (Vercel / Cloudflare Pages), not Convex's.
+- **Layer 2 of the threat model** (per-hit server calls instead of per-kill): 5–10× the request and write rates. Defer until ranking ships and the cost is justified.
+- **New indexes on hot columns**: every index a kill's UPDATE touches is one more row written per kill (game-schema.ts header).
+- **Invalidating instead of writing results into the cache**: each invalidation is a refetch request. The hooks write results; keep it that way.
+- **Spam scripts** (threats #1 / #2): one client can burn the shared quota. Layer 1 rate limits are the cap.
 
 ### Action items before opening a public beta
 
-- Watch the Convex dashboard's function-call counter after the first week of real play. Compare actual rate to the ~2000-4000/hour model above; refine the projection.
-- Ship Layer 1 rate limits (threat-model). They serve double duty: anti-cheat **and** cost ceiling against scripted spam.
-- ~~Ship the single-active-session lock.~~ ✅ Done in `feat/single-active-session`.
+- Watch the Cloudflare dashboard (Workers requests, D1 rows written) after the first week of real play; compare with the model above.
+- Ship Layer 1 rate limits (threat model): anti-cheat **and** quota ceiling against scripted spam.
+- If the write quota binds before the player count justifies a paid plan, the levers are fewer rows per kill (already 1) and fewer kept items, not more caching.
 
 ---
 
@@ -237,10 +224,6 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 **Why deferred**: the hand-maintained file works for now. Codegen is the right call if/when there's a sustained pace of adding new bases.
 
-### 3. Convex validator can't enforce literal unions
-
-**Constraint, not a bug**. `nameBase` / `nameModifier` are stored as `v.optional(v.string())` because Convex validators don't have ergonomic literal-union support. The in-process `GeneratedItem` type widens to `string` at the persistence boundary — the lexicon files themselves keep the union enforcement. If Convex ever ships a `v.unionLiteral([...])` helper, swap in.
-
 ---
 
 ## Future: rare-name bestiary (low priority)
@@ -251,7 +234,7 @@ experience. The remaining 40% is in (a) biome-themed background art and
 
 ### Scope sketch
 
-- New Convex table `rareEncounters` keyed by characterId, storing: spawn seed, monster id, level, mods, killed-at timestamp, zone id. (Seed lets the renderer reproduce the same name later — the displayed string isn't stored, so locale-switch reads the right language out of the bestiary too.)
+- New D1 table `rare_encounters` keyed by characterId (mind the write quota: one more row per rare kill), storing: spawn seed, monster id, level, mods, killed-at timestamp, zone id. (Seed lets the renderer reproduce the same name later — the displayed string isn't stored, so locale-switch reads the right language out of the bestiary too.)
 - `recordKill` mutation grows a branch: when `monsterRarity === "rare"`, also insert into `rareEncounters`.
 - New world view (`/world` view mode `"bestiary"`, or a modal opened from the status card) lists past rares chronologically or by zone. Each entry renders via `translateEnemyName({ def, mods, rarity: "rare", nameSeed })`.
 - Optional: count how many times the same `(monsterId, mod combo)` has been killed — repeat-kill stats add a collector dimension.
@@ -262,7 +245,7 @@ Combat-feel work pays off the moment the player fights; persistence pays off lat
 
 ### Validation when picked up
 
-- Add the table in `convex/schema.ts`, then in `convex/combat.ts:recordKill` upsert the encounter on rare kills.
+- Add the table in `src/server/db/game-schema.ts` (`pnpm db:generate`), then have `combat.recordKill` insert the encounter on rare kills in the same batch.
 - Manual: kill a rare, open the bestiary, see the same name. Switch locale — the bestiary entry renders in the new language. Kill a rare with the same monsterId, see a different name.
 
 ---
@@ -321,9 +304,9 @@ When a session starts working on this, expect to add a third combat path (alongs
 
 ## Stash — shipped, vendor — existing
 
-**Stash shipped** on `feat/shared-stash`. Account-scoped, mode-isolated (softcore/hardcore), 60 slots, accessible from city. Drag-and-drop, shift-click, bulk select/deposit/withdraw. Backend: `convex/stash.ts`. Frontend: `StashModal.tsx`. Purchasable tabs are deferred.
+**Stash shipped** on `feat/shared-stash`. Account-scoped, mode-isolated (softcore/hardcore), 60 slots, accessible from city. Drag-and-drop, shift-click, bulk select/deposit/withdraw. Backend: `src/server/trpc/routers/stash.ts`. Frontend: `StashModal.tsx`. Purchasable tabs are deferred.
 
-**Vendor** already exists (`convex/vendor.ts`, `VendorModal.tsx`) — sells potions for Rubys, buys gear.
+**Vendor** already exists (`src/server/trpc/routers/vendor.ts`, `VendorModal.tsx`) — sells potions for Rubys, buys gear.
 
 ---
 
@@ -354,29 +337,14 @@ When a session starts on this, read the threat-model doc first — it has the sc
 
 **Status**: Planned, not started. User-flagged on PR #46 — current state ("muito melhor mas não como eu quero") accepted as a stopping point; remaining latency tracked here.
 
-**Why**: even after the PR #46 polishing pass (loader-based prefetch in `character-select`, `preload="render"` on the `/admin` Link + sidebar Links, indexed `listUsers`/`listAdmins`, TanStack Query cache shared via `convexQuery`), the **first** `/character-select` → `/admin` navigation in a session is still perceptibly non-instant. Subsequent tab switches inside `/admin` are usually fine because the data sits in cache.
+**Why**: even after the PR #46 polishing pass (loader-based prefetch in `character-select`, `preload="render"` on the `/admin` Link + sidebar Links), the **first** `/character-select` → `/admin` navigation in a session was perceptibly non-instant on Convex.
 
-The root cause is structural, not a missed knob:
-
-- Every Convex query is a **WebSocket subscription**, not a one-shot fetch. The first read of a given `queryKey` needs the subscribe-and-first-response handshake (~50–100ms). TanStack Query can amortise this with prefetch, but it can't make the handshake itself synchronous.
-- Code-split chunks for `/admin`, `/admin/users`, `/admin/admins`, `/admin/items` are downloaded on demand. `preload="render"` covers the common path but a fast click before the link mounts (which depends on the role query resolving) still races the chunk fetch.
+**Update (Cloudflare migration phase 3)**: the WebSocket subscribe handshake that was the root cause is gone. Admin queries are one-shot tRPC queries, batched into a single request, and SSR runs them in-process (`localLink`) with the result dehydrated into the page (`setupRouterSsrQueryIntegration`), so a hard reload of an `/admin/*` page arrives with its data. What can still cost is the client-side code-split chunk fetch and one HTTP round trip on the first in-app navigation. **Re-measure before doing anything**; if it's still noticeable, the remaining direction is a persistent query cache (`@tanstack/query-persist-client-core` + IndexedDB) so the first visit per session hits the cache.
 
 ### What has already been tried (don't redo)
 
-- `loader: async ({ context }) => { await ensureQueryData(getUserRole); if (admin) prefetchQuery(...) × 3 }` in `character-select`. Fires before render — verified via task list on PR #46.
-- `<Link to="/admin" preload="render">` on the character-select admin button + every sidebar Link in `AdminShell`. Loads chunks + runs loaders at link-mount time.
-- `defaultPreloadDelay: 0` in `src/router.tsx`. Hover-intent fires instantly when it fires.
-- `pendingComponent: AdminLayoutPending` + `pendingMs: 0` on the `/admin` route so the shell flips in synchronously even when the loader has work to do.
-
-The remaining gap is the **first** subscribe roundtrip itself — there's no client-side trick that beats it.
-
-### Directions worth exploring
-
-Pick whichever fits the next pass; do NOT do all three.
-
-1. **SSR-inline the first admin payload** (matches the Convex `preloadQuery` pattern from `convex/nextjs`). TanStack Start's loaders run server-side on initial page loads — if `/character-select`'s loader fetches the admin queries via HTTP on the server when the user is admin, the values can be inlined into the HTML and hydrated into the TanStack Query cache before any client-side WebSocket connects. The subsequent live subscription takes over with zero perceived latency. This is the canonical Convex answer for "no first-paint roundtrip". Cost: SSR-only queries don't get reactivity until the websocket subscribes, but for admin metrics that's fine.
-2. **Persistent client cache** via `@tanstack/query-persist-client-core` + IndexedDB. After the user has hit admin once, the cached payload survives reload and even a fresh tab, so the "first visit per session" handshake collapses into "first visit ever" for that browser. Cheaper to implement than SSR; doesn't help the very first time. Note: we deliberately dropped the bespoke `useCachedQuery` localStorage layer when migrating to TanStack Query — this is the proper persistence path, not a regression to the old pattern.
-3. **Split admin queries off the realtime substrate**. The admin dashboard genuinely doesn't need WebSocket reactivity — admins refresh deliberately, not continuously. A Convex HTTP action (or even a thin Convex `query` consumed via `ConvexHttpClient` with `serverHttpClient`) gives one-shot fetch semantics with the same auth pipeline. Lose live updates; gain HTTP-style request/response and a faster cold path. The architectural step the user asked about ("usar um banco relacional comum") doesn't need a new database — just a different transport on the same Convex backend.
+- Loader prefetch of the admin tabs in `character-select` (now through `prefetchAdminTabs(queryClient, trpc)`), `<Link preload="render">`, `defaultPreloadDelay: 0`, and the `/admin` pending shell.
+- SSR of the admin payload (in place since phase 3 via the route loaders' `ensureQueryData`).
 
 ### Why deferred
 

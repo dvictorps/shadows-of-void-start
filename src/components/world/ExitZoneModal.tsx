@@ -6,20 +6,19 @@ import { Button } from "#/components/ui/button";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
+import type { BagEntry } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
-
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const ITEM_SLOT_SIZE = 96;
 
 type Props = {
 	isOpen: boolean;
 	onClose: () => void;
-	onPickSelected: (ids: Id<"items">[]) => void | Promise<void>;
-	onDiscardSelected: (ids: Id<"items">[]) => void | Promise<void>;
-	onPickAll: (ids: Id<"items">[]) => void | Promise<void>;
+	onPickSelected: (ids: string[]) => void | Promise<void>;
+	onDiscardSelected: (ids: string[]) => void | Promise<void>;
+	onPickAll: (ids: string[]) => void | Promise<void>;
 	onDiscardAll: () => void | Promise<void>;
-	bagItems: Doc<"items">[];
+	bagItems: BagEntry[];
 	// Maximum number of items the player can mark "keep". Camp/boss exits
 	// pass bagItems.length (no cap); exploração/combate retreats pass
 	// floor(bagItems.length × 0.3) min 1 (the 30% punishment tier).
@@ -52,7 +51,7 @@ export default function ExitZoneModal({
 	// Without this the "Pegar selecionados (N)" button label keeps the
 	// pre-action N: ids whose item left the bag are dropped at render time.
 	const selected = useMemo(() => {
-		const present = new Set(bagItems.map((it) => it._id.toString()));
+		const present = new Set(bagItems.map((it) => it.bagId));
 		const next = new Set([...rawSelected].filter((id) => present.has(id)));
 		return next.size === rawSelected.size ? rawSelected : next;
 	}, [rawSelected, bagItems]);
@@ -88,10 +87,8 @@ export default function ExitZoneModal({
 		});
 	};
 
-	const selectedIds = (): Id<"items">[] =>
-		bagItems
-			.filter((it) => selected.has(it._id.toString()))
-			.map((it) => it._id);
+	const selectedIds = (): string[] =>
+		bagItems.filter((it) => selected.has(it.bagId)).map((it) => it.bagId);
 
 	const handlePickSelected = () => {
 		if (!hasSelection) return;
@@ -120,7 +117,7 @@ export default function ExitZoneModal({
 		// future regression here can't bypass the 30% cap.
 		if (isCapped) return;
 		return runPickAll(() =>
-			Promise.resolve(onPickAll(bagItems.map((it) => it._id))),
+			Promise.resolve(onPickAll(bagItems.map((it) => it.bagId))),
 		);
 	};
 
@@ -165,15 +162,15 @@ export default function ExitZoneModal({
 						)}
 						<div className="fancy-scroll flex max-h-[55vh] min-h-[20vh] flex-wrap content-start gap-3 overflow-y-auto pr-3">
 							{bagItems.map((item) => {
-								const isSelected = selected.has(item._id.toString());
+								const isSelected = selected.has(item.bagId);
 								return (
 									<ItemCard
-										key={item._id}
+										key={item.bagId}
 										item={item.data}
 										size={ITEM_SLOT_SIZE}
 										selected={isSelected}
 										dimmed={atCap && !isSelected}
-										onClick={() => toggle(item._id.toString())}
+										onClick={() => toggle(item.bagId)}
 									/>
 								);
 							})}

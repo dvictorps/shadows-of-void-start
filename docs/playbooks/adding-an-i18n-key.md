@@ -46,12 +46,12 @@ The only exceptions:
 
 ## Server-side errors
 
-Server errors thrown from convex mutations as `throw new ConvexError("Inventory overflow")` are in English by design (the server doesn't know the locale). The translation happens client-side via `src/lib/convex-errors.ts:translateServerError`, which pattern-matches known server strings and returns the right PT key.
+Server errors thrown from tRPC procedures as `fail("Inventory overflow")` (`src/server/trpc/errors.ts`) are in English by design (the server doesn't know the locale). The translation happens client-side via `src/lib/server-error-message.ts:translateServerError`, which pattern-matches known server strings and returns the right PT key.
 
 When you add a new server error:
 
-1. Throw with a stable, distinctive English string in the convex mutation.
+1. Throw with a stable, distinctive English string in the procedure.
 2. Add matching `error_*` paraglide keys in both locales.
 3. Add a pattern (exact match or regex) in `translateServerError` that returns the localized key.
 
-See the existing patterns in `src/lib/convex-errors.ts` for the structure.
+See the existing patterns in `src/lib/server-error-message.ts` for the structure.

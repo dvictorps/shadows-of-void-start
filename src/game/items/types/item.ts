@@ -1,10 +1,9 @@
 import type { ArmorType, BaseStatKey, EquipmentType, WeaponType } from "./base";
 import type { AffixType } from "./mods";
 
-// ⚠ SYNC TRIPWIRE — the shapes below are hand-mirrored by convex/itemValidator.ts
-// (Convex can't infer validators from TS). Adding/changing a rarity, equipment
-// type, armor type, or BaseStatKey here without updating that file makes Convex
-// silently drop the new shape on persist. Change one side → change the other.
+// The persisted item shape: `items.data` and the zone bag are JSON columns
+// typed with these interfaces (src/server/db/game-schema.ts), so this file is
+// the only definition. Item data is never accepted from the client.
 
 // ── Rarity ──
 
@@ -94,9 +93,10 @@ export interface GeneratedItem {
 	templateId: string;
 	// Naming decomposition copied from the template so the renderer can
 	// compose the display name without re-loading the template. Typed as
-	// `string` here (not the narrow union) because the Convex validator
-	// stores them as plain strings — the literal-union enforcement lives in
-	// the lexicon/template files themselves. Optional because items rolled
+	// `string` here (not the narrow union): rows persisted under an older
+	// template set may carry ids the unions no longer list, and the renderer
+	// falls back for those. The literal-union enforcement lives in the
+	// lexicon/template files themselves. Optional because items rolled
 	// before the decomposition refactor don't carry these fields; the
 	// renderer falls back to the templateId string for those legacy rows.
 	nameBase?: string;

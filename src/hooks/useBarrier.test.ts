@@ -11,7 +11,7 @@ describe("useBarrier — initialBarrier cold-start race", () => {
 	it("syncs to initialBarrier when it transitions from undefined to a real value", () => {
 		// Reproduces the cold-start race: useBarrier mounts with
 		// initialBarrier=undefined (combatState still loading), defaults
-		// to full. Convex eventually serves the persisted value (e.g. 30
+		// to full. the character query eventually serves the persisted value (e.g. 30
 		// out of 100). Without the initialBarrier effect, useState would
 		// drop the late-arriving value and the next syncHp would overwrite
 		// the server with the local default of 100.

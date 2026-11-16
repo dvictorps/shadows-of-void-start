@@ -71,11 +71,13 @@ describe("zone bag", () => {
 		);
 
 		const keepIds = [...bag.slice(0, 3).map((e) => e.bagId), "not-in-bag"];
-		expect(await account.caller.items.exitZone({ ...hero, keepIds })).toEqual({
-			kept: 3,
-			discarded: 7,
-		});
+		const exit = await account.caller.items.exitZone({ ...hero, keepIds });
+		expect(exit).toMatchObject({ kept: 3, discarded: 7 });
 		const inventory = await inventoryOf(hero.characterId);
+		// The response carries the new rows, so the client needs no refetch.
+		expect(exit.items.map((i) => i.id).toSorted()).toEqual(
+			inventory.map((i) => i.id).toSorted(),
+		);
 		expect(inventory.map((i) => i.inventorySlot).toSorted()).toEqual([0, 1, 2]);
 		expect(inventory[0]?.data).toEqual(bag[0]?.data);
 		expect(inventory[0]?.droppedFrom).toBe("goblin");
@@ -135,10 +137,7 @@ describe("zone bag", () => {
 		// In camp the whole remaining bag can be kept.
 		expect(
 			await account.caller.items.exitZone({ ...hero, keepIds: left }),
-		).toEqual({
-			kept: 2,
-			discarded: 0,
-		});
+		).toMatchObject({ kept: 2, discarded: 0 });
 		expect(await inventoryOf(hero.characterId)).toHaveLength(3);
 	});
 

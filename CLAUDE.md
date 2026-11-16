@@ -45,9 +45,9 @@ When in doubt, **prefer updating an existing doc to creating a new one**. The or
 ## Tech Stack
 
 - **Frontend:** React + TypeScript + Tailwind CSS + TanStack Router
-- **Backend:** migrating from Convex to one Cloudflare Worker: D1 + Drizzle, Better Auth, tRPC ([ADR 0009](./docs/adr/0009-cloudflare-d1-trpc-backend.md)). Auth and every game procedure already run on D1 (`src/server/`, phase 2); the frontend still calls Convex until phase 3
+- **Backend:** one Cloudflare Worker: D1 + Drizzle, Better Auth, tRPC ([ADR 0009](./docs/adr/0009-cloudflare-d1-trpc-backend.md)). Server code lives in `src/server/`; the client calls it through `@trpc/tanstack-react-query` (`src/integrations/trpc/client.ts`). No reactivity: every mutation writes its result into the query cache (`src/lib/world-cache.ts`) or invalidates the right keys
 - **Build:** Vite + oxlint (lint) + oxfmt (format) + Vitest (testing). Lint config is `oxlint.config.ts`; the `anti-slop` and `you-might-not-need-an-effect` JS plugins are vendored under `tools/oxlint/`
-- **Path alias:** `#/*` → `./src/*` (client only — convex uses relative paths)
+- **Path alias:** `#/*` → `./src/*` (client and server code alike)
 - **Lint discipline:** `pnpm lint:errors` must stay at zero, and the lefthook pre-push gate enforces it. Inline `oxlint-disable` is only for a real external constraint, and the comment must say why the documented pattern does not apply. Otherwise fix the code.
 - **Package manager / formatting:** pnpm (`pnpm-lock.yaml`). Line endings are LF everywhere (`.gitattributes`). The lefthook pre-commit hook runs `oxlint --fix` and `oxfmt` on staged files, so don't hand-format.
 

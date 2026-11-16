@@ -5,9 +5,8 @@ import { USER_ROLES, user } from "../../db/schema";
 import { fail } from "../errors";
 import { adminProcedure, publicProcedure, router } from "../init";
 
-// Mirrors convex/users.ts. Convex's `userRoles` table is now `user.role`
-// (ADR 0009 update), so the per-user character counters and their backfill
-// are gone: admin queries count with SQL.
+// Account roles. The role is `user.role` (ADR 0009 update); admin queries
+// count characters with SQL, so there are no per-user counters.
 export const usersRouter = router({
 	// Role + identity of the caller, or null when signed out. `authUserId`
 	// lets the admin dashboard spot the caller's own row.

@@ -1,4 +1,4 @@
-// ⚠ SIZE TRIPWIRE (~920 lines) — one of the repo's largest single files (see
+// ⚠ SIZE TRIPWIRE (~740 lines; the mutations live in useInventoryMutations) — one of the repo's largest single files (see
 // docs/plans/in-progress.md → agent-ergonomics track). Untested. DON'T grow the
 // monolith: a NEW concern (another transfer mode, another grid, equip-preview
 // logic) should be extracted into its own file rather than appended here. The
@@ -15,7 +15,6 @@ import {
 	useSensor,
 	useSensors,
 } from "@dnd-kit/core";
-import { useMutation } from "convex/react";
 import { ArrowLeftRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -25,15 +24,10 @@ import Modal from "#/components/Modal";
 import ItemContextMenu, {
 	type MenuAction,
 } from "#/components/world/ItemContextMenu";
-import {
-	bySlotAsc,
-	createInventorySlotAllocator,
-	INVENTORY_MAX_SLOTS,
-} from "#/game/inventory/constants";
+import { INVENTORY_MAX_SLOTS } from "#/game/inventory/constants";
 import {
 	canSwapHands,
 	isWeapon,
-	planEquip,
 	validSlotsForItem,
 } from "#/game/items/equipment";
 import { translateItemName } from "#/game/items/item-name";
@@ -45,12 +39,10 @@ import {
 	narrowEquippedSlot,
 } from "#/game/stats/types";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
-import { useSessionToken } from "#/hooks/useSessionToken";
-import { convexErrorMessage } from "#/lib/convex-errors";
+import { useInventoryMutations } from "#/hooks/useInventoryMutations";
+import type { ItemRow } from "#/lib/api-types";
+import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
-
-import { api } from "../../../convex/_generated/api";
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const EQUIPMENT_SLOT_LAYOUT: Array<{
 	slot: EquippedSlot;
@@ -77,17 +69,17 @@ type DropTargetData =
 	| { kind: "equipment"; slot: EquippedSlot };
 
 type DragSourceData =
-	| { kind: "inventory"; itemId: Id<"items"> }
-	| { kind: "equipped"; slot: EquippedSlot; itemId: Id<"items"> };
+	| { kind: "inventory"; itemId: number }
+	| { kind: "equipped"; slot: EquippedSlot; itemId: number };
 
 type Props = {
 	isOpen: boolean;
 	onClose: () => void;
-	characterId: Id<"characters">;
+	characterId: number;
 	stats: ComputedCharacterStats;
 	characterLevel: number;
-	equippedItems: Doc<"items">[];
-	inventoryItems: Doc<"items">[];
+	equippedItems: ItemRow[];
+	inventoryItems: ItemRow[];
 };
 
 export default function InventoryModal({
@@ -99,192 +91,13 @@ export default function InventoryModal({
 	equippedItems,
 	inventoryItems,
 }: Props) {
-	const { withSession } = useSessionToken();
-	const reorder = useMutation(api.items.reorderInventory).withOptimisticUpdate(
-		(localStore, args) => {
-			const inv = localStore.getQuery(api.items.inventory, {
-				characterId: args.characterId,
-			});
-			if (!inv) return;
-			const source = inv.find((it) => it._id === args.itemId);
-			if (!source) return;
-			const occupant = inv.find((it) => it.inventorySlot === args.targetSlot);
-			const sourceSlot = source.inventorySlot;
-			const next = inv
-				.map((it) => {
-					if (it._id === source._id) {
-						return { ...it, inventorySlot: args.targetSlot };
-					}
-					if (occupant && it._id === occupant._id) {
-						return { ...it, inventorySlot: sourceSlot ?? -1 };
-					}
-					return it;
-				})
-				.toSorted(bySlotAsc);
-			localStore.setQuery(
-				api.items.inventory,
-				{ characterId: args.characterId },
-				next,
-			);
-		},
-	);
-	const equipItem = useMutation(api.items.equipItem).withOptimisticUpdate(
-		(localStore, args) => {
-			const inv = localStore.getQuery(api.items.inventory, {
-				characterId: args.characterId,
-			});
-			const equipped = localStore.getQuery(api.items.equipped, {
-				characterId: args.characterId,
-			});
-			if (!inv || !equipped) return;
-			const newItem = inv.find((it) => it._id === args.itemId);
-			if (!newItem) return;
-
-			const currentEquipped = equipped.flatMap((it) => {
-				const slot = narrowEquippedSlot(it.equippedSlot);
-				return slot ? [{ slot, item: it.data }] : [];
-			});
-			const plan = planEquip({
-				item: newItem.data,
-				targetSlot: args.targetSlot,
-				currentEquipped,
-			});
-			if (plan.reject) return;
-
-			const displacedSlots = new Set(plan.displaced.map((d) => d.slot));
-			const displacedDocs = equipped.filter((it) => {
-				const slot = narrowEquippedSlot(it.equippedSlot);
-				return slot !== undefined && displacedSlots.has(slot);
-			});
-
-			// Excludes the item being equipped — its old slot is about to free up
-			// and may receive a displaced doc.
-			const nextFreeSlot = createInventorySlotAllocator(
-				inv.filter((it) => it._id !== args.itemId),
-			);
-
-			const displacedToInventory = displacedDocs.map((d) => ({
-				...d,
-				locationKind: "inventory" as const,
-				equippedSlot: undefined,
-				inventorySlot: nextFreeSlot(),
-			}));
-			const newInventory = [
-				...inv.filter((it) => it._id !== args.itemId),
-				...displacedToInventory,
-			].toSorted(bySlotAsc);
-
-			const displacedIds = new Set(displacedDocs.map((d) => d._id));
-			const newEquipped = [
-				...equipped.filter((it) => !displacedIds.has(it._id)),
-				{
-					...newItem,
-					locationKind: "equipped" as const,
-					equippedSlot: args.targetSlot,
-					inventorySlot: undefined,
-				},
-			];
-
-			localStore.setQuery(
-				api.items.inventory,
-				{ characterId: args.characterId },
-				newInventory,
-			);
-			localStore.setQuery(
-				api.items.equipped,
-				{ characterId: args.characterId },
-				newEquipped,
-			);
-		},
-	);
-	const discardItem = useMutation(
-		api.items.discardFromInventory,
-	).withOptimisticUpdate((localStore, args) => {
-		const inv = localStore.getQuery(api.items.inventory, {
-			characterId: args.characterId,
-		});
-		if (!inv) return;
-		const next = inv.filter((it) => it._id !== args.itemId);
-		localStore.setQuery(
-			api.items.inventory,
-			{ characterId: args.characterId },
-			next,
-		);
-	});
-	const unequipItem = useMutation(api.items.unequipItem).withOptimisticUpdate(
-		(localStore, args) => {
-			const inv = localStore.getQuery(api.items.inventory, {
-				characterId: args.characterId,
-			});
-			const equipped = localStore.getQuery(api.items.equipped, {
-				characterId: args.characterId,
-			});
-			if (!inv || !equipped) return;
-			const item = equipped.find((it) => it.equippedSlot === args.slot);
-			if (!item) return;
-
-			const firstFree = createInventorySlotAllocator(inv)();
-			if (firstFree === -1) return; // server will reject; skip optimistic
-
-			const newInventory = [
-				...inv,
-				{
-					...item,
-					locationKind: "inventory" as const,
-					equippedSlot: undefined,
-					inventorySlot: firstFree,
-				},
-			].toSorted(bySlotAsc);
-			let newEquipped = equipped.filter((it) => it._id !== item._id);
-
-			// Invariant: main hand empty → off-hand cannot hold a weapon.
-			// Promote off-hand weapon into the main-hand slot.
-			if (args.slot === "weapon") {
-				const offhand = newEquipped.find((it) => it.equippedSlot === "offhand");
-				if (offhand && isWeapon(offhand.data)) {
-					newEquipped = newEquipped.map((it) =>
-						it._id === offhand._id
-							? { ...it, equippedSlot: "weapon" as const }
-							: it,
-					);
-				}
-			}
-
-			localStore.setQuery(
-				api.items.inventory,
-				{ characterId: args.characterId },
-				newInventory,
-			);
-			localStore.setQuery(
-				api.items.equipped,
-				{ characterId: args.characterId },
-				newEquipped,
-			);
-		},
-	);
-	const swapHands = useMutation(api.items.swapHands).withOptimisticUpdate(
-		(localStore, args) => {
-			const equipped = localStore.getQuery(api.items.equipped, {
-				characterId: args.characterId,
-			});
-			if (!equipped) return;
-			const main = equipped.find((it) => it.equippedSlot === "weapon");
-			const off = equipped.find((it) => it.equippedSlot === "offhand");
-			if (!main || !off) return;
-			const next = equipped.map((it) => {
-				if (it._id === main._id)
-					return { ...it, equippedSlot: "offhand" as const };
-				if (it._id === off._id)
-					return { ...it, equippedSlot: "weapon" as const };
-				return it;
-			});
-			localStore.setQuery(
-				api.items.equipped,
-				{ characterId: args.characterId },
-				next,
-			);
-		},
-	);
+	const {
+		reorderInventory: reorder,
+		equipItem,
+		unequipItem,
+		swapHands,
+		discardFromInventory: discardItem,
+	} = useInventoryMutations(characterId);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -301,10 +114,9 @@ export default function InventoryModal({
 	const [menuRect, setMenuRect] = useState<DOMRect | null>(null);
 
 	const equippedBySlot = useMemo(() => {
-		const map = new Map<EquippedSlot, Doc<"items">>();
+		const map = new Map<EquippedSlot, ItemRow>();
 		for (const item of equippedItems) {
-			const slot = narrowEquippedSlot(item.equippedSlot);
-			if (slot) map.set(slot, item);
+			if (item.equippedSlot) map.set(item.equippedSlot, item);
 		}
 		return map;
 	}, [equippedItems]);
@@ -323,9 +135,9 @@ export default function InventoryModal({
 	const inventory = inventoryItems;
 
 	const inventoryBySlot = useMemo(() => {
-		const map = new Map<number, Doc<"items">>();
+		const map = new Map<number, ItemRow>();
 		for (const item of inventory) {
-			if (item.inventorySlot !== undefined) map.set(item.inventorySlot, item);
+			if (item.inventorySlot !== null) map.set(item.inventorySlot, item);
 		}
 		return map;
 	}, [inventory]);
@@ -336,7 +148,7 @@ export default function InventoryModal({
 	const activeItem = useMemo<GeneratedItem | null>(() => {
 		if (!active) return null;
 		if (active.kind === "inventory") {
-			return inventory.find((it) => it._id === active.itemId)?.data ?? null;
+			return inventory.find((it) => it.id === active.itemId)?.data ?? null;
 		}
 		return equippedBySlot.get(active.slot)?.data ?? null;
 	}, [active, inventory, equippedBySlot]);
@@ -364,37 +176,33 @@ export default function InventoryModal({
 
 		// Inventory item → inventory slot: reorder.
 		if (source.kind === "inventory" && target.kind === "inventory") {
-			const sourceDoc = inventory.find((it) => it._id === source.itemId);
+			const sourceDoc = inventory.find((it) => it.id === source.itemId);
 			if (!sourceDoc || sourceDoc.inventorySlot === target.slot) return;
 			const occupant = inventory.find(
-				(it) => it.inventorySlot === target.slot && it._id !== source.itemId,
+				(it) => it.inventorySlot === target.slot && it.id !== source.itemId,
 			);
-			void reorder(
-				withSession({
-					characterId,
-					itemId: source.itemId,
-					targetSlot: target.slot,
-					swapWithItemId: occupant?._id,
-				}),
-			);
+			void reorder({
+				characterId,
+				itemId: source.itemId,
+				targetSlot: target.slot,
+				swapWithItemId: occupant?.id,
+			});
 			return;
 		}
 
 		// Inventory item → equipment slot: equip.
 		if (source.kind === "inventory" && target.kind === "equipment") {
-			const sourceDoc = inventory.find((it) => it._id === source.itemId);
+			const sourceDoc = inventory.find((it) => it.id === source.itemId);
 			if (!sourceDoc) return;
 			if (!validSlotsForItem(sourceDoc.data).includes(target.slot)) return;
 			try {
-				await equipItem(
-					withSession({
-						characterId,
-						itemId: source.itemId,
-						targetSlot: target.slot,
-					}),
-				);
+				await equipItem({
+					characterId,
+					itemId: source.itemId,
+					targetSlot: target.slot,
+				});
 			} catch (err) {
-				toast.error(convexErrorMessage(err, m.error_equip_failed()));
+				toast.error(serverErrorMessage(err, m.error_equip_failed()));
 			}
 			return;
 		}
@@ -403,9 +211,9 @@ export default function InventoryModal({
 		// places it in the first free slot).
 		if (source.kind === "equipped" && target.kind === "inventory") {
 			try {
-				await unequipItem(withSession({ characterId, slot: source.slot }));
+				await unequipItem({ characterId, slot: source.slot });
 			} catch (err) {
-				toast.error(convexErrorMessage(err, m.error_equip_failed()));
+				toast.error(serverErrorMessage(err, m.error_unequip_failed()));
 			}
 			return;
 		}
@@ -419,35 +227,32 @@ export default function InventoryModal({
 		}
 	};
 
-	const triggerEquip = async (
-		itemId: Id<"items">,
-		targetSlot: EquippedSlot,
-	) => {
+	const triggerEquip = async (itemId: number, targetSlot: EquippedSlot) => {
 		try {
-			await equipItem(withSession({ characterId, itemId, targetSlot }));
+			await equipItem({ characterId, itemId, targetSlot });
 		} catch (err) {
-			toast.error(convexErrorMessage(err, m.error_equip_failed()));
+			toast.error(serverErrorMessage(err, m.error_equip_failed()));
 		}
 	};
 
 	const triggerUnequip = async (slot: EquippedSlot) => {
 		try {
-			await unequipItem(withSession({ characterId, slot }));
+			await unequipItem({ characterId, slot });
 		} catch (err) {
-			toast.error(convexErrorMessage(err, m.error_unequip_failed()));
+			toast.error(serverErrorMessage(err, m.error_unequip_failed()));
 		}
 	};
 
 	const triggerSwapHands = async () => {
 		try {
-			await swapHands(withSession({ characterId }));
+			await swapHands({ characterId });
 		} catch (err) {
-			toast.error(convexErrorMessage(err, m.error_equip_failed()));
+			toast.error(serverErrorMessage(err, m.error_equip_failed()));
 		}
 	};
 
-	const triggerDiscard = async (itemId: Id<"items">) => {
-		const doc = inventory.find((it) => it._id === itemId);
+	const triggerDiscard = async (itemId: number) => {
+		const doc = inventory.find((it) => it.id === itemId);
 		if (!doc) return;
 		const ok = await confirm({
 			title: m.inventory_discard_title({ name: translateItemName(doc.data) }),
@@ -458,9 +263,9 @@ export default function InventoryModal({
 		});
 		if (!ok) return;
 		try {
-			await discardItem(withSession({ characterId, itemId }));
+			await discardItem({ characterId, itemId });
 		} catch (err) {
-			toast.error(convexErrorMessage(err, m.error_discard_failed()));
+			toast.error(serverErrorMessage(err, m.error_discard_failed()));
 		}
 	};
 
@@ -472,7 +277,7 @@ export default function InventoryModal({
 		const source = menu.source;
 		if (source.kind === "inventory") {
 			const itemId = source.itemId;
-			const doc = inventory.find((it) => it._id === itemId);
+			const doc = inventory.find((it) => it.id === itemId);
 			if (!doc) return [];
 			const slots = validSlotsForItem(doc.data);
 			const equipActions: MenuAction[] = slots.map((slot) => ({
@@ -564,7 +369,7 @@ export default function InventoryModal({
 										onItemClick={(rect) => {
 											if (!item) return;
 											setMenu({
-												source: { kind: "equipped", slot, itemId: item._id },
+												source: { kind: "equipped", slot, itemId: item.id },
 												anchor: rect,
 											});
 										}}
@@ -618,7 +423,7 @@ export default function InventoryModal({
 											item={item}
 											isDraggingThis={
 												active?.kind === "inventory" &&
-												item?._id === active.itemId
+												item?.id === active.itemId
 											}
 											avoidRect={menuRect}
 											onItemClick={(itemId, rect) =>
@@ -679,10 +484,10 @@ function InventoryDroppable({
 	onItemClick,
 }: {
 	slot: number;
-	item: Doc<"items"> | null;
+	item: ItemRow | null;
 	isDraggingThis: boolean;
 	avoidRect: DOMRect | null;
-	onItemClick: (itemId: Id<"items">, rect: DOMRect) => void;
+	onItemClick: (itemId: number, rect: DOMRect) => void;
 }) {
 	const { setNodeRef, isOver } = useDroppable({
 		id: `slot-${slot}`,
@@ -744,14 +549,14 @@ function DraggableInventoryItem({
 	avoidRect,
 	onClick,
 }: {
-	item: Doc<"items">;
+	item: ItemRow;
 	hidden: boolean;
 	avoidRect: DOMRect | null;
-	onClick: (itemId: Id<"items">, rect: DOMRect) => void;
+	onClick: (itemId: number, rect: DOMRect) => void;
 }) {
 	const handle = useDraggable({
-		id: item._id,
-		data: { kind: "inventory", itemId: item._id } satisfies DragSourceData,
+		id: item.id,
+		data: { kind: "inventory", itemId: item.id } satisfies DragSourceData,
 	});
 	return (
 		<DragSlot handle={handle} hidden={hidden}>
@@ -760,7 +565,7 @@ function DraggableInventoryItem({
 				size={INVENTORY_SLOT_SIZE}
 				suppressTooltip={hidden}
 				avoidRect={avoidRect}
-				onClick={hidden ? undefined : (rect) => onClick(item._id, rect)}
+				onClick={hidden ? undefined : (rect) => onClick(item.id, rect)}
 			/>
 		</DragSlot>
 	);
@@ -780,7 +585,7 @@ function EquipmentDroppable({
 }: {
 	slot: EquippedSlot;
 	label: string;
-	item: Doc<"items"> | null;
+	item: ItemRow | null;
 	eligible: boolean;
 	dragging: DragSourceData | null;
 	handsSwappable: boolean;
@@ -861,7 +666,7 @@ function DraggableEquipped({
 	avoidRect,
 	onClick,
 }: {
-	item: Doc<"items">;
+	item: ItemRow;
 	slot: EquippedSlot;
 	hidden: boolean;
 	broken: boolean;
@@ -874,7 +679,7 @@ function DraggableEquipped({
 		data: {
 			kind: "equipped",
 			slot,
-			itemId: item._id,
+			itemId: item.id,
 		} satisfies DragSourceData,
 	});
 	return (
@@ -898,13 +703,13 @@ function DraggableEquipped({
 // silently coerce into a DragSourceData and crash a handler.
 
 // Type guards (not parsers) so the `unknown` boundary is explicit. `itemId`
-// is only checked to be a string: Id<"items"> is a compile-time brand and
-// every draggable here registers a real item id.
+// is only checked to be a number: every draggable here registers a real
+// item id.
 
 function isDragSource(d: unknown): d is DragSourceData {
 	if (typeof d !== "object" || d === null) return false;
 	if (!("kind" in d) || !("itemId" in d)) return false;
-	if (typeof d.itemId !== "string") return false;
+	if (typeof d.itemId !== "number") return false;
 	if (d.kind === "inventory") return true;
 	return (
 		d.kind === "equipped" &&
