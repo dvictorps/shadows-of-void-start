@@ -69,6 +69,7 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.69.1",
+		"@cloudflare/vitest-plugin": "^1.8.2",
 		"@inlang/paraglide-js": "^2.13.1",
 		"@oxlint/plugins": "1.78.0",
 		"@shadcn/lint": "^0.1.5",

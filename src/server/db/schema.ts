@@ -13,4 +13,7 @@ export {
 	type LeaderboardEntry,
 	leaderboardSnapshot,
 	STASH_MODES,
+	type StashMode,
+	stashModeOf,
+	type ZoneBagEntry,
 } from "./game-schema";

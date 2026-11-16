@@ -50,6 +50,10 @@ export const LEECH_CAP_PCT_MAX_LIFE_PER_SECOND = 0.2;
 
 // Potions: hard cap on carried potions, and the per-kill drop chance.
 // Drops above the cap are silently wasted (see CONTEXT.md → Potion drops).
+// Mage elemental attunement switch cooldown (CONTEXT.md → Elemental
+// Attunement). The server enforces it; the selector UI greys out for it.
+export const ELEMENT_SWITCH_COOLDOWN_MS = 5_000;
+
 export const MAX_POTIONS = 10;
 export const POTION_DROP_CHANCE = 0.2;
 

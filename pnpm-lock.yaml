@@ -126,6 +126,9 @@ importers:
       '@cloudflare/vite-plugin':
         specifier: ^1.69.1
         version: 1.69.1(@types/node@25.8.0)(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.21.0))(workerd@1.20261113.1)(wrangler@4.162.0(@types/node@25.8.0))
+      '@cloudflare/vitest-plugin':
+        specifier: ^1.8.2
+        version: 1.8.2(@types/node@25.8.0)(vitest@4.1.6(@opentelemetry/api@1.9.0)(@types/node@25.8.0)(jsdom@29.1.1(@noble/hashes@2.0.1))(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.21.0)))
       '@inlang/paraglide-js':
         specifier: ^2.13.1
         version: 2.15.1
@@ -464,6 +467,11 @@ packages:
     peerDependencies:
       vite: ^6.1.0 || ^7.0.0 || ^8.0.0
       wrangler: ^4.160.0
+
+  '@cloudflare/vitest-plugin@1.8.2':
+    resolution: {integrity: sha512-+RKwo6u62/ijTvgVJiw41pjGA6MK5NChVvWzije+UyBA6lGk+YINHGTRLXVamYVVPmRxRwN+I1KE+tU11NHP+g==}
+    peerDependencies:
+      vitest: ^4.1.0 || ^5.0.0
 
   '@cloudflare/workerd-darwin-64@1.20261110.1':
     resolution: {integrity: sha512-RazOdADqTgwYhE60+i6c/R5BA1J5aC//39oousnWBxmoVAiqUh1qsXNCGMbaEV6UC5RnZyWsIBRIcAYNDe1xTg==}
@@ -4034,6 +4042,9 @@ packages:
     resolution: {integrity: sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==}
     engines: {node: '>= 20.19.0'}
 
+  cjs-module-lexer@1.2.3:
+    resolution: {integrity: sha512-0TNiGstbQmCFwt4akjjBg5pLRTSyj/PkWQ1ZoO2zntmg9yLqSRxwEa4iCfQLGjqhiqBfOJa7W/E8wfGrTDmlZQ==}
+
   class-variance-authority@0.7.1:
     resolution: {integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==}
 
@@ -5683,6 +5694,9 @@ packages:
   zod@4.3.6:
     resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
+  zod@4.6.6:
+    resolution: {integrity: sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==}
+
   zod@4.6.7:
     resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
@@ -6012,6 +6026,21 @@ snapshots:
       - kerberos
       - utf-8-validate
       - workerd
+
+  '@cloudflare/vitest-plugin@1.8.2(@types/node@25.8.0)(vitest@4.1.6(@opentelemetry/api@1.9.0)(@types/node@25.8.0)(jsdom@29.1.1(@noble/hashes@2.0.1))(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.21.0)))':
+    dependencies:
+      cjs-module-lexer: 1.2.3
+      esbuild: 0.28.2
+      miniflare: 5.20261113.0-beta(@types/node@25.8.0)
+      vitest: 4.1.6(@opentelemetry/api@1.9.0)(@types/node@25.8.0)(jsdom@29.1.1(@noble/hashes@2.0.1))(vite@8.0.13(@types/node@25.8.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.21.0))
+      wrangler: 4.162.0(@types/node@25.8.0)
+      zod: 4.6.6
+    transitivePeerDependencies:
+      - '@cloudflare/workers-types'
+      - '@types/node'
+      - bufferutil
+      - kerberos
+      - utf-8-validate
 
   '@cloudflare/workerd-darwin-64@1.20261110.1':
     optional: true
@@ -8958,6 +8987,8 @@ snapshots:
     dependencies:
       readdirp: 5.0.0
 
+  cjs-module-lexer@1.2.3: {}
+
   class-variance-authority@0.7.1:
     dependencies:
       clsx: 2.1.1
@@ -10479,5 +10510,7 @@ snapshots:
   zod@3.25.76: {}
 
   zod@4.3.6: {}
+
+  zod@4.6.6: {}
 
   zod@4.6.7: {}

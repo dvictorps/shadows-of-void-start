@@ -1,5 +1,18 @@
 import { type AuthSession, auth } from "../auth";
-import { db } from "../db/client";
+import { type Database, db } from "../db/client";
+
+// What procedures read from the session. Narrower than Better Auth's
+// `AuthSession`, so integration tests can hand the caller a session without
+// going through sign-up (src/server/test/harness.ts).
+export interface RequestSession {
+	user: Pick<AuthSession["user"], "id" | "email" | "name" | "role">;
+}
+
+export interface Context {
+	db: Database;
+	getSession: () => Promise<RequestSession | null>;
+	responseHeaders: Headers;
+}
 
 // Built once per tRPC request. The session is resolved lazily (public
 // procedures never pay for it) and at most once per batch.
@@ -9,11 +22,11 @@ import { db } from "../db/client";
 // Start's `setCookie`, so the `Set-Cookie` headers are collected here and
 // added to the tRPC response by `responseMeta` (src/routes/api/trpc/$.ts).
 // Without that, every call after the 5-minute cache window would hit D1.
-export function createContext(request: Request) {
+export function createContext(request: Request): Context {
 	const responseHeaders = new Headers();
-	let pending: Promise<AuthSession | null> | undefined;
+	let pending: Promise<RequestSession | null> | undefined;
 
-	function getSession(): Promise<AuthSession | null> {
+	function getSession(): Promise<RequestSession | null> {
 		pending ??= auth.api
 			.getSession({ headers: request.headers, returnHeaders: true })
 			.then(({ headers, response }) => {
@@ -27,5 +40,3 @@ export function createContext(request: Request) {
 
 	return { db, getSession, responseHeaders };
 }
-
-export type Context = ReturnType<typeof createContext>;
