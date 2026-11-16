@@ -488,5 +488,6 @@
 	"leaderboard_level": "Nível",
 	"leaderboard_kills": "Kills",
 	"leaderboard_empty": "Nenhuma entrada ainda",
+	"leaderboard_load_failed": "Não foi possível carregar o ranking",
 	"leaderboard_all_classes": "Todas as Classes"
 }

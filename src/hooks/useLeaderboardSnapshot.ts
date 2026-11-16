@@ -20,11 +20,11 @@ export function useLeaderboardSnapshot(isOpen: boolean) {
 		mode: "softcore",
 	});
 	const trpc = useTRPC();
-	const { data: snapshot } = useQuery({
+	const { data: snapshot, isError: failed } = useQuery({
 		...trpc.leaderboard.getSnapshot.queryOptions(query),
 		enabled: isOpen,
 		staleTime: LEADERBOARD_REFETCH_MS,
 		refetchInterval: LEADERBOARD_REFETCH_MS,
 	});
-	return { snapshot, query, setQuery };
+	return { snapshot, failed, query, setQuery };
 }

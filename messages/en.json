@@ -488,5 +488,6 @@
 	"leaderboard_level": "Level",
 	"leaderboard_kills": "Kills",
 	"leaderboard_empty": "No entries yet",
+	"leaderboard_load_failed": "Couldn't load the leaderboard",
 	"leaderboard_all_classes": "All Classes"
 }

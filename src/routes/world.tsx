@@ -630,6 +630,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 				isOpen={leaderboardModal.isOpen}
 				onClose={leaderboardModal.close}
 				snapshot={leaderboard.snapshot}
+				failed={leaderboard.failed}
 				query={leaderboard.query}
 				onQueryChange={leaderboard.setQuery}
 			/>

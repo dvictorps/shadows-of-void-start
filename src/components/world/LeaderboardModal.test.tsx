@@ -144,12 +144,19 @@ describe("LeaderboardModal — table", () => {
 		expect(screen.getByText(m.leaderboard_empty())).toBeTruthy();
 	});
 
-	it("shows the empty state while the snapshot loads", () => {
-		// Pinned oddity: loading (undefined) and "no snapshot" (null) read as
-		// an empty leaderboard.
+	it("says loading while the snapshot loads", () => {
 		setup({ snapshot: undefined });
-		expect(screen.getByText(m.leaderboard_empty())).toBeTruthy();
-		cleanup();
+		expect(screen.getByText(m.loading())).toBeTruthy();
+		expect(screen.queryByText(m.leaderboard_empty())).toBeNull();
+	});
+
+	it("says the load failed when the query errored", () => {
+		setup({ snapshot: undefined, failed: true });
+		expect(screen.getByText(m.leaderboard_load_failed())).toBeTruthy();
+		expect(screen.queryByText(m.loading())).toBeNull();
+	});
+
+	it("shows the empty state when no snapshot exists yet", () => {
 		setup({ snapshot: null });
 		expect(screen.getByText(m.leaderboard_empty())).toBeTruthy();
 	});
