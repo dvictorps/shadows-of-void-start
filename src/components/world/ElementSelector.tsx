@@ -1,31 +1,36 @@
 import { Flame, Snowflake, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { Button } from "#/components/ui/button";
 import { ELEMENT_SWITCH_COOLDOWN_MS } from "#/game/combat/constants";
 import {
 	SELECTABLE_ELEMENTS,
 	type SelectableElement as Element,
 } from "#/game/stats/types";
+import { m } from "#/paraglide/messages";
 
 const ELEMENT_CONFIG = {
 	fire: {
+		label: m.element_fire,
 		icon: Flame,
 		color: "#ff6b35",
 		glowColor: "rgba(255, 107, 53, 0.6)",
 	},
 	cold: {
+		label: m.element_cold,
 		icon: Snowflake,
 		color: "#4fc3f7",
 		glowColor: "rgba(79, 195, 247, 0.6)",
 	},
 	lightning: {
+		label: m.element_lightning,
 		icon: Zap,
 		color: "#ffd54f",
 		glowColor: "rgba(255, 213, 79, 0.6)",
 	},
 } satisfies Record<
 	Element,
-	{ icon: typeof Flame; color: string; glowColor: string }
+	{ label: () => string; icon: typeof Flame; color: string; glowColor: string }
 >;
 
 const ELEMENTS = SELECTABLE_ELEMENTS;
@@ -73,16 +78,18 @@ export default function ElementSelector({
 				const Icon = cfg.icon;
 				const isActive = el === selected;
 				return (
-					<button
+					<Button
 						key={el}
-						type="button"
+						variant="hud"
+						size="hud-icon"
+						aria-label={cfg.label()}
 						onClick={() => handleClick(el)}
 						onMouseEnter={() => onHover?.(`element_${el}`)}
 						onMouseLeave={() => onHover?.(null)}
 						onFocus={() => onHover?.(`element_${el}`)}
 						onBlur={() => onHover?.(null)}
 						disabled={disabled || (onCooldown && !isActive)}
-						className="relative flex h-10 w-10 items-center justify-center border transition disabled:cursor-not-allowed disabled:opacity-40"
+						className="relative size-10 p-0"
 						style={{
 							borderColor: isActive ? cfg.color : "rgba(255,255,255,0.3)",
 							backgroundColor: isActive ? `${cfg.color}22` : "rgba(0,0,0,0.8)",
@@ -103,7 +110,7 @@ export default function ElementSelector({
 								}}
 							/>
 						)}
-					</button>
+					</Button>
 				);
 			})}
 		</div>

@@ -5,6 +5,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
+import { Button } from "#/components/ui/button";
 import type { CampSource } from "#/game/world";
 import { translateCampLines } from "#/game/world/i18n";
 import { playSfx } from "#/lib/sfx";
@@ -126,20 +127,12 @@ export default function CampCinematic({
 							{m.camp_subtitle()}
 						</p>
 						<div className="flex gap-3">
-							<button
-								type="button"
-								onClick={onReturn}
-								className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
-							>
+							<Button variant="hud" size="hud-lg" caps onClick={onReturn}>
 								{m.camp_return_to_city()}
-							</button>
-							<button
-								type="button"
-								onClick={onContinue}
-								className="inline-flex items-center gap-2 border border-white/40 bg-black px-4 py-2 font-medium text-sm text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
-							>
+							</Button>
+							<Button variant="hud" size="hud-lg" caps onClick={onContinue}>
 								{m.camp_press_onward()}
-							</button>
+							</Button>
 						</div>
 					</motion.div>
 				)}
