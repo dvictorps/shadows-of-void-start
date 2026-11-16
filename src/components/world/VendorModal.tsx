@@ -12,6 +12,7 @@ import { VENDOR_PRODUCTS, type VendorProductId } from "#/game/vendor/products";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
 import type { ItemRow } from "#/lib/api-types";
+import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
 
 import { toggleId } from "./item-selection";
@@ -81,7 +82,7 @@ export default function VendorModal({
 		} catch (err) {
 			// Reverse the optimistic delta so the visual matches the reverted balance.
 			pushRubyDelta(totalCost, "+");
-			toast.error(err instanceof Error ? err.message : m.vendor_buy_failed());
+			toast.error(serverErrorMessage(err, m.vendor_buy_failed()));
 		} finally {
 			setPendingBuys((prev) => {
 				const next = new Set(prev);
@@ -124,9 +125,7 @@ export default function VendorModal({
 				// Reverse the optimistic delta + restore the selection so the user can retry.
 				pushRubyDelta(total, "-");
 				setSelected(previousSelection);
-				toast.error(
-					err instanceof Error ? err.message : m.vendor_sell_failed(),
-				);
+				toast.error(serverErrorMessage(err, m.vendor_sell_failed()));
 			}
 		});
 	};

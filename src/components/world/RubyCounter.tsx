@@ -1,5 +1,6 @@
 import RubyIcon from "#/components/game/RubyIcon";
 import Tooltip from "#/components/ui/tooltip";
+import { m } from "#/paraglide/messages";
 
 type Props = {
 	rubys: number;
@@ -12,10 +13,10 @@ type Props = {
  */
 export default function RubyCounter({ rubys }: Props) {
 	return (
-		<Tooltip content="Rubis — moeda do jogo">
+		<Tooltip content={m.ruby_tooltip()}>
 			<div
 				role="img"
-				aria-label={`${rubys} rubys`}
+				aria-label={m.ruby_balance_label({ count: rubys })}
 				className="absolute right-3 bottom-3 inline-flex h-10 items-center gap-1.5 rounded-md border border-white/40 bg-black px-3 text-white/80"
 			>
 				<RubyIcon className="h-6 w-6" />
