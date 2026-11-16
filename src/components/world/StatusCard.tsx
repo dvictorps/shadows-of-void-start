@@ -1,23 +1,18 @@
 import { useMemo } from "react";
 
 import { Button } from "#/components/ui/button";
-import Tooltip from "#/components/ui/tooltip";
 import { getClassDisplayName } from "#/game/classes/i18n";
-import { xpToNextLevel } from "#/game/progression/levels";
-import {
-	DEX_ACCURACY_PER_POINT,
-	DEX_EVASION_PCT_PER_POINT,
-	INT_BARRIER_PCT_PER_POINT,
-	STR_LIFE_PER_POINT,
-	STR_MELEE_PCT_PER_POINT,
-} from "#/game/stats/compute";
 import { estimateDps } from "#/game/stats/dps";
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import { useCompactViewport } from "#/hooks/useCompactViewport";
 import type { CharacterRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
 
+import { ConsumableSlot } from "./ConsumableSlot";
 import HealthGlobe from "./HealthGlobe";
+import { AttributeReadouts } from "./status-card/AttributeReadouts";
+import { statusCardLayout } from "./status-card/layout";
+import { statusVitals } from "./status-card/vitals";
 
 type Props = {
 	character: CharacterRow;
@@ -33,159 +28,101 @@ type Props = {
 	onShowStats?: () => void;
 };
 
-function attributeReadouts(stats: ComputedCharacterStats) {
-	return [
-		{
-			label: m.status_strength_label(),
-			value: stats.attributes.strength,
-			glow: "text-glow-red",
-			tooltip: m.attribute_tooltip_strength({
-				melee: STR_MELEE_PCT_PER_POINT,
-				life: STR_LIFE_PER_POINT,
-			}),
-		},
-		{
-			label: m.status_dexterity_label(),
-			value: stats.attributes.dexterity,
-			glow: "text-glow-green",
-			tooltip: m.attribute_tooltip_dexterity({
-				accuracy: DEX_ACCURACY_PER_POINT,
-				evasion: DEX_EVASION_PCT_PER_POINT,
-			}),
-		},
-		{
-			label: m.status_intelligence_label(),
-			value: stats.attributes.intelligence,
-			glow: "text-glow-blue",
-			tooltip: m.attribute_tooltip_intelligence({
-				barrier: INT_BARRIER_PCT_PER_POINT,
-			}),
-		},
-	];
-}
+// The teleport slot keeps its own, softer frame (dimmer border, translucent
+// background) over the shared HUD slot.
+const TELEPORT_SLOT_TONE =
+	"border-white/30 bg-black/60 disabled:opacity-60 disabled:hover:border-white/30 disabled:hover:bg-black/60";
 
+/**
+ * The sidebar's character readout: name, class, level, DPS and attributes,
+ * the XP bar and the potion, the Show stats button, the teleport stone and
+ * the health globe. A handler left out disables its control.
+ */
 export default function StatusCard({
 	character,
 	stats,
-	hpOverride,
-	barrierOverride,
-	barrierRefillRemaining,
-	potionsOverride,
-	xpOverride,
-	teleportStones,
-	onShowStats,
 	onUsePotion,
 	onUseTeleportStone,
+	onShowStats,
+	barrierRefillRemaining,
+	...overrides
 }: Props) {
-	const compact = useCompactViewport();
-	const classResolved = getClassDisplayName(character.classId);
-	const maxHp = stats.maxLife;
-	const hpServer = character.hpCurrent ?? maxHp;
-	const hp = hpOverride ?? hpServer;
-	const potions = potionsOverride ?? character.potions ?? 0;
-	const xp = xpOverride ?? character.xp ?? 0;
-	const xpNeeded = xpToNextLevel(character.level);
-	const xpPct = Math.min(100, (xp / xpNeeded) * 100);
-	const maxBarrier = stats.maxBarrier;
-	const barrier = barrierOverride ?? maxBarrier;
-	const canUsePotion = !!onUsePotion && potions > 0 && hp < maxHp;
-	const canUseTeleportStone =
-		!!onUseTeleportStone &&
-		teleportStones > 0 &&
-		character.currentLocation !== "city";
+	const layout = statusCardLayout(useCompactViewport());
+	const vitals = statusVitals({
+		character,
+		stats,
+		...overrides,
+		hasPotionHandler: !!onUsePotion,
+		hasTeleportHandler: !!onUseTeleportStone,
+	});
 	const dps = useMemo(() => estimateDps(stats), [stats]);
+	const line = `text-white/80 ${layout.line}`;
 
 	return (
-		<section
-			className={`rounded-md border border-white/40 ${compact ? "p-2" : "p-4"}`}
-		>
-			<div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
-				<div className={`grid grid-cols-2 ${compact ? "gap-2" : "gap-4"}`}>
+		<section className={`rounded-md border border-white/40 ${layout.padding}`}>
+			<div className={`flex flex-col ${layout.stackGap}`}>
+				<div className={`grid grid-cols-2 ${layout.gridGap}`}>
 					<div className="min-w-0">
 						<h3
-							className={`display-title truncate uppercase tracking-wider text-white ${compact ? "text-lg" : "text-2xl"}`}
+							className={`display-title truncate uppercase tracking-wider text-white ${layout.name}`}
 						>
 							{character.name}
 						</h3>
-						<p
-							className={`mt-1 text-white/80 ${compact ? "text-sm" : "text-lg"}`}
-						>
+						<p className={`mt-1 ${line}`}>
 							<span className="text-white/50">{m.status_class_label()}</span>{" "}
-							{classResolved}
+							{getClassDisplayName(character.classId)}
 						</p>
-						<p className={`text-white/80 ${compact ? "text-sm" : "text-lg"}`}>
+						<p className={line}>
 							<span className="text-white/50">{m.status_level_label()}</span>{" "}
 							{character.level}
 						</p>
-						<p className={`text-white/80 ${compact ? "text-sm" : "text-lg"}`}>
+						<p className={line}>
 							<span className="text-white/50">{m.status_dps_label()}</span>{" "}
 							{dps > 0 ? dps : "—"}
 						</p>
 					</div>
-					<div
-						className={`display-title space-y-1.5 text-right tracking-wider ${compact ? "text-base" : "text-xl"}`}
-					>
-						{attributeReadouts(stats).map((row) => (
-							<Tooltip
-								key={row.label}
-								content={
-									<span className="whitespace-pre-line">{row.tooltip}</span>
-								}
-							>
-								<p className={row.glow}>
-									{row.label} {row.value}
-								</p>
-							</Tooltip>
-						))}
-					</div>
+					<AttributeReadouts stats={stats} textSize={layout.attributes} />
 				</div>
 
-				<div className={`flex items-center ${compact ? "gap-2" : "gap-3"}`}>
+				<div className={`flex items-center ${layout.stackGap}`}>
 					<div className="flex-1 space-y-1">
 						<div
-							className={`uppercase tracking-wider text-yellow-300/80 ${compact ? "text-xs" : "text-sm"}`}
+							className={`uppercase tracking-wider text-yellow-300/80 ${layout.xpLabel}`}
 						>
-							{m.status_xp_label({ current: xp, needed: xpNeeded })}
+							{m.status_xp_label({
+								current: vitals.xp,
+								needed: vitals.xpNeeded,
+							})}
 						</div>
 						<div
 							role="progressbar"
 							aria-label="Experience"
-							aria-valuenow={xp}
+							aria-valuenow={vitals.xp}
 							aria-valuemin={0}
-							aria-valuemax={xpNeeded}
+							aria-valuemax={vitals.xpNeeded}
 							className="h-2 w-full overflow-hidden rounded-full bg-white/10"
 						>
 							<div
 								className="h-full bg-yellow-300 transition-[width] duration-200"
-								style={{ width: `${xpPct}%` }}
+								style={{ width: `${vitals.xpPct}%` }}
 							/>
 						</div>
 					</div>
-					<Tooltip content={m.consumable_desc_potion()}>
-						<button
-							type="button"
-							onClick={onUsePotion}
-							disabled={!canUsePotion}
-							aria-label="Use potion"
-							className={`relative flex shrink-0 items-center justify-center border border-white/40 bg-black transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black ${compact ? "h-11 w-11" : "h-16 w-16"}`}
-						>
-							<img
-								src="/assets/sprites/ui/pocaoCura.png"
-								alt=""
-								draggable={false}
-								className={`pointer-events-none select-none object-contain ${compact ? "h-8 w-8" : "h-12 w-12"}`}
-							/>
-							<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
-								{potions}
-							</span>
-						</button>
-					</Tooltip>
+					<ConsumableSlot
+						label="Use potion"
+						count={vitals.potions}
+						disabled={!vitals.canUsePotion}
+						onUse={onUsePotion}
+						tooltip={m.consumable_desc_potion()}
+						size={layout.slot}
+						art="/assets/sprites/ui/pocaoCura.png"
+					/>
 				</div>
 
 				<hr className="border-white/15" />
 
 				<div
-					className={`grid grid-cols-[auto_1fr_auto] items-center ${compact ? "gap-2" : "gap-4"}`}
+					className={`grid grid-cols-[auto_1fr_auto] items-center ${layout.gridGap}`}
 				>
 					<div className="flex flex-col items-center gap-1">
 						<span className="text-[10px] uppercase tracking-wider text-white/50">
@@ -203,32 +140,23 @@ export default function StatusCard({
 					</div>
 
 					<div className="flex justify-center gap-2">
-						<Tooltip content={m.consumable_desc_teleport()}>
-							<button
-								type="button"
-								onClick={onUseTeleportStone}
-								disabled={!canUseTeleportStone}
-								aria-label="Use teleport stone"
-								className={`relative flex items-center justify-center border border-white/30 bg-black/60 transition hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:border-white/30 disabled:hover:bg-black/60 ${compact ? "h-11 w-11" : "h-16 w-16"}`}
-							>
-								<img
-									src="/assets/sprites/ui/pedraTeleporte.png"
-									alt=""
-									draggable={false}
-									className={`pointer-events-none select-none object-contain ${compact ? "h-8 w-8" : "h-12 w-12"}`}
-								/>
-								<span className="absolute -bottom-1.5 -right-1.5 min-w-[1.25rem] border border-white/40 bg-black px-1 text-center text-xs leading-tight text-white">
-									{teleportStones}
-								</span>
-							</button>
-						</Tooltip>
+						<ConsumableSlot
+							label="Use teleport stone"
+							count={vitals.teleportStones}
+							disabled={!vitals.canUseTeleportStone}
+							onUse={onUseTeleportStone}
+							tooltip={m.consumable_desc_teleport()}
+							size={layout.slot}
+							className={TELEPORT_SLOT_TONE}
+							art="/assets/sprites/ui/pedraTeleporte.png"
+						/>
 					</div>
 
 					<HealthGlobe
-						hp={hp}
-						maxHp={maxHp}
-						barrier={barrier}
-						maxBarrier={maxBarrier}
+						hp={vitals.hp}
+						maxHp={vitals.maxHp}
+						barrier={vitals.barrier}
+						maxBarrier={vitals.maxBarrier}
 						barrierRefillRemaining={barrierRefillRemaining}
 					/>
 				</div>

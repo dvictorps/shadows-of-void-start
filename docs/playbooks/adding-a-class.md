@@ -89,11 +89,10 @@ Character creation (`characters.create` → `planNewCharacter` in `src/game/clas
 
 ## Step 4 — Wire the i18n maps
 
-Three places consume the class i18n today:
+Two places hold the class i18n today:
 
-1. **`src/components/CreateCharacterModal.tsx`** — `CLASS_NAME`, `CLASS_DESCRIPTION`, and `CLASS_LIST` const arrays. Add `templar` to `CLASS_LIST` and to both maps.
-2. **`src/components/world/StatusCard.tsx`** — `CLASS_NAME` map. Add the templar entry.
-3. **`src/routes/character-select.tsx`** — `CLASS_NAME` map at the top of the file. Add templar.
+1. **`src/game/classes/i18n.ts`** — the `CLASS_NAME` map behind `getClassDisplayName` (used by `StatusCard`, `CreateCharacterModal` and `character-select`). Add the templar entry.
+2. **`src/components/CreateCharacterModal.tsx`** — `CLASS_DESCRIPTION` and `CLASS_LIST`. Add `templar` to both.
 
 TS will flag any of these you miss — `Record<CharacterClassId, () => string>` requires every key be present.
 
