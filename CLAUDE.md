@@ -12,7 +12,7 @@ Read these in order if you're new to the codebase:
 
 ## Doc-update discipline (read this before you ship)
 
-**The docs are part of the codebase, not a wiki.** Treat doc updates as part of the change, not a follow-up — the docs that drift first are the ones that get stale fastest, and a stale `CONTEXT.md` / `codebase-map.md` is what makes the next agent burn 30 minutes grepping for files that moved. There is no CI gate enforcing this (no `.github/workflows/` exists yet); the discipline is the only guard.
+**The docs are part of the codebase, not a wiki.** Treat doc updates as part of the change, not a follow-up — the docs that drift first are the ones that get stale fastest, and a stale `CONTEXT.md` / `codebase-map.md` is what makes the next agent burn 30 minutes grepping for files that moved. CI (`.github/workflows/ci.yml`) runs lint, `tsc`, the Vitest suite and the lint-rule tests on every push and PR to `dev` / `master`, but it can only catch type drift in the playbook sentinels; whether the prose still matches the code is on the discipline alone.
 
 **Update docs in the same PR as the code change. Concretely:**
 
