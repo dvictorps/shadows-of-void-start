@@ -1,4 +1,5 @@
 import Modal from "#/components/Modal";
+import { NativeSelect } from "#/components/ui/native-select";
 import { Slider } from "#/components/ui/slider";
 import { useSfxVolume } from "#/hooks/useSfxVolume";
 import { m } from "#/paraglide/messages";
@@ -32,21 +33,21 @@ export default function SettingsModal({ isOpen, onClose }: Props) {
 					<span className="mb-2 block text-[10px] uppercase tracking-[0.2em] text-white/60">
 						{m.settings_language()}
 					</span>
-					<select
+					<NativeSelect
 						value={current}
 						onChange={(e) => {
 							const next = e.target.value;
 							// setLocale reloads the page; there is nothing to await.
 							if (isLocale(next) && next !== current) void setLocale(next);
 						}}
-						className="w-full border border-white/30 bg-black px-3 py-2 text-sm uppercase tracking-wider text-white outline-none transition focus:border-white"
+						className="w-full px-3 py-2 text-sm uppercase tracking-wider"
 					>
 						{locales.map((locale) => (
 							<option key={locale} value={locale} className="bg-black">
 								{localeLabel(locale)}
 							</option>
 						))}
-					</select>
+					</NativeSelect>
 				</label>
 
 				<div>

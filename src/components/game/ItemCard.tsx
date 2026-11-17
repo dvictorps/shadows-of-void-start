@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import ItemTooltip from "#/components/game/ItemTooltip";
+import { Button } from "#/components/ui/button";
 import { TEMPLATE_BY_ID } from "#/game/items/data/templates";
 import { translateItemName } from "#/game/items/item-name";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
@@ -186,7 +187,6 @@ export default function ItemCard({
 	const handleLeave = () => setAnchorRect(null);
 
 	const cardClasses = [
-		"relative flex items-center justify-center rounded-md transition-colors",
 		frameless
 			? "bg-transparent"
 			: [
@@ -209,9 +209,11 @@ export default function ItemCard({
 
 	return (
 		<>
-			<button
+			<Button
 				ref={cardRef}
 				type="button"
+				variant="item"
+				size="inline"
 				onClick={() => {
 					if (!onClick) return;
 					const rect = cardRef.current?.getBoundingClientRect();
@@ -256,10 +258,10 @@ export default function ItemCard({
 				})()}
 				{broken && (
 					<span className="pointer-events-none absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-black bg-red-500 text-black shadow-[0_0_6px_rgba(220,40,40,0.7)]">
-						<AlertTriangle size={12} strokeWidth={3} />
+						<AlertTriangle className="size-3" strokeWidth={3} />
 					</span>
 				)}
-			</button>
+			</Button>
 			{tooltipPos &&
 				createPortal(
 					<div

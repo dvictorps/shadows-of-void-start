@@ -1,5 +1,6 @@
 import { Archive, ArrowLeft, Store } from "lucide-react";
 
+import { Button } from "#/components/ui/button";
 import { m } from "#/paraglide/messages";
 
 type Props = {
@@ -20,37 +21,44 @@ export default function CityScene({
 			{/* Vertically-centered vendor button on the left edge — the city's
 			 * primary CTA. Stacks icon + label as a chunky tile (~3x the size
 			 * of the corner controls). */}
-			<button
+			<Button
 				type="button"
+				variant="hud"
+				size="hud-lg"
 				onClick={onOpenVendor}
 				aria-label={m.city_open_vendor()}
-				className="-translate-y-1/2 absolute top-1/2 left-8 inline-flex flex-col items-center gap-2 border-2 border-white/40 bg-black px-6 py-5 font-medium text-white/80 uppercase tracking-[0.2em] transition hover:border-white hover:bg-white/10 hover:text-white"
+				className="-translate-y-1/2 absolute top-1/2 left-8 h-auto flex-col border-2 px-6 py-5 uppercase tracking-label"
 			>
-				<Store className="h-12 w-12" strokeWidth={1.5} />
+				<Store className="size-12" strokeWidth={1.5} />
 				<span className="display-title text-base">{m.city_vendor_label()}</span>
-			</button>
+			</Button>
 
-			<button
+			<Button
 				type="button"
+				variant="hud"
+				size="hud-lg"
 				onClick={onOpenStash}
 				aria-label={m.city_open_stash()}
-				className="-translate-y-1/2 absolute top-1/2 right-8 inline-flex flex-col items-center gap-2 border-2 border-white/40 bg-black px-6 py-5 font-medium text-white/80 uppercase tracking-[0.2em] transition hover:border-white hover:bg-white/10 hover:text-white"
+				className="-translate-y-1/2 absolute top-1/2 right-8 h-auto flex-col border-2 px-6 py-5 uppercase tracking-label"
 			>
-				<Archive className="h-12 w-12" strokeWidth={1.5} />
+				<Archive className="size-12" strokeWidth={1.5} />
 				<span className="display-title text-base">{m.city_stash_label()}</span>
-			</button>
+			</Button>
 
 			{/* Top-right back button — mirrors the combat-view retreat affordance so
 			 * the player has a consistent "leave area" pattern across views. */}
-			<button
+			<Button
 				type="button"
+				variant="hud"
+				size="hud"
+				caps
 				onClick={onLeave}
 				aria-label={m.back_to_map()}
-				className="absolute top-3 right-3 inline-flex items-center gap-1.5 border border-white/40 bg-black px-3 py-1.5 font-medium text-[10px] text-white/80 uppercase tracking-wider transition hover:border-white hover:bg-white/10 hover:text-white"
+				className="absolute top-3 right-3"
 			>
-				<ArrowLeft className="h-3.5 w-3.5" strokeWidth={2} />
+				<ArrowLeft className="size-3.5" strokeWidth={2} />
 				{m.back()}
-			</button>
+			</Button>
 
 			<div className="display-title text-3xl uppercase tracking-[0.2em] text-white">
 				{cityName}

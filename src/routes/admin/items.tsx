@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import ItemTooltip from "#/components/game/ItemTooltip";
+import { Button } from "#/components/ui/button";
 import { generateItem } from "#/game/items/generator";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 
@@ -44,18 +45,17 @@ function ItemGeneratorPage() {
 					</span>
 					<div className="flex flex-wrap gap-1.5">
 						{RARITIES.map((r) => (
-							<button
+							<Button
 								key={r.value}
 								type="button"
+								variant="toggle"
+								size="tab-sm"
+								caps
+								aria-pressed={rarity === r.value}
 								onClick={() => setRarity(r.value)}
-								className={`border px-3 py-1.5 text-xs font-medium uppercase tracking-wider transition-colors ${
-									rarity === r.value
-										? "border-white bg-white text-black"
-										: "border-white/40 bg-black text-white hover:bg-white/10"
-								}`}
 							>
 								{r.label}
-							</button>
+							</Button>
 						))}
 					</div>
 				</div>
@@ -78,22 +78,14 @@ function ItemGeneratorPage() {
 					/>
 				</div>
 
-				<button
-					type="button"
-					onClick={handleGenerate}
-					className="border border-white bg-black px-5 py-2 text-sm font-medium uppercase tracking-wider text-white transition-colors hover:bg-white/10"
-				>
+				<Button type="button" variant="stark" caps onClick={handleGenerate}>
 					Generate
-				</button>
+				</Button>
 
 				{items.length > 0 && (
-					<button
-						type="button"
-						onClick={handleClear}
-						className="border border-white/40 bg-black px-5 py-2 text-sm font-medium uppercase tracking-wider text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-					>
+					<Button type="button" variant="starkMuted" caps onClick={handleClear}>
 						Clear
-					</button>
+					</Button>
 				)}
 			</div>
 

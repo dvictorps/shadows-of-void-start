@@ -1,3 +1,4 @@
+import { Button } from "#/components/ui/button";
 import { m } from "#/paraglide/messages";
 
 type Props = {
@@ -6,11 +7,13 @@ type Props = {
 
 export default function InventoryButton({ onClick }: Props) {
 	return (
-		<button
+		<Button
 			type="button"
+			variant="hud"
+			size="icon-lg"
 			onClick={onClick}
 			aria-label={m.open_inventory()}
-			className="absolute bottom-3 left-3 flex h-10 w-10 items-center justify-center rounded-md border border-white/40 bg-black text-white/80 transition hover:border-white hover:bg-white/10 hover:text-white"
+			className="absolute bottom-3 left-3 rounded-md"
 		>
 			<img
 				src="/assets/sprites/ui/mochila.png"
@@ -18,6 +21,6 @@ export default function InventoryButton({ onClick }: Props) {
 				draggable={false}
 				className="pointer-events-none h-8 w-8 select-none object-contain"
 			/>
-		</button>
+		</Button>
 	);
 }

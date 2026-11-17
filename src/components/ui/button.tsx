@@ -36,6 +36,16 @@ const buttonVariants = cva(
 				// Disabled keeps pointer events: an empty consumable or a locked
 				// element still reports its hover to the world's TextLog.
 				hud: "rounded-none border border-white/40 bg-black text-white/80 hover:border-white hover:bg-white/10 hover:text-white disabled:pointer-events-auto disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-black",
+				// One option of a set (a tab, a class card, a rarity filter):
+				// set `aria-pressed` and the pressed one lights up.
+				toggle:
+					"rounded-none border border-white/40 bg-black text-white/60 hover:border-white/60 hover:text-white/80 aria-pressed:border-white aria-pressed:bg-white/10 aria-pressed:text-white",
+				// A world-map node: the round frame; its state colors (locked,
+				// hovered, reachable by stone) come in through className.
+				mapNode: "rounded-full border-2 bg-black",
+				// An item's card: the rarity frame and glow come in through
+				// className, sized by an inline width / height.
+				item: "relative flex rounded-md transition-colors",
 			},
 			size: {
 				default: "h-9 px-4 py-2 has-[>svg]:px-3",
@@ -64,6 +74,11 @@ const buttonVariants = cva(
 				// The sidebar status card's smaller slots (wide / compact).
 				"hud-slot-md": "relative h-16 w-16 p-0",
 				"hud-slot-sm": "relative h-11 w-11 p-0",
+				// The toggle tabs (the leaderboard's category / mode).
+				tab: "h-auto px-3 py-1 font-normal",
+				"tab-sm": "h-auto px-2 py-0.5 text-xs font-normal",
+				// A toggle card with stacked lines (the class picker).
+				card: "h-auto flex-col items-start justify-start gap-0 p-3 text-left font-normal whitespace-normal",
 			},
 			// The uppercase, tracked label of the stark app-shell buttons.
 			caps: {

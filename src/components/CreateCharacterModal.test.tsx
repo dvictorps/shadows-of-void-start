@@ -117,15 +117,15 @@ describe("CreateCharacterModal — form", () => {
 		expect(classCard("mage").textContent).toBe(
 			`${getClassDisplayName("mage")}${m.attribute_intelligence()}`,
 		);
-		expect(classCard("warrior").className).toContain("bg-white/10");
+		expect(classCard("warrior").getAttribute("aria-pressed")).toBe("true");
 		expect(screen.getByText(m.class_warrior_description())).toBeTruthy();
 	});
 
 	it("selects a class and shows its description", () => {
 		setup();
 		fireEvent.click(classCard("mage"));
-		expect(classCard("mage").className).toContain("bg-white/10");
-		expect(classCard("warrior").className).not.toContain("bg-white/10");
+		expect(classCard("mage").getAttribute("aria-pressed")).toBe("true");
+		expect(classCard("warrior").getAttribute("aria-pressed")).toBe("false");
 		expect(screen.getByText(m.class_mage_description())).toBeTruthy();
 		expect(screen.queryByText(m.class_warrior_description())).toBeNull();
 	});
@@ -164,7 +164,7 @@ describe("CreateCharacterModal — create", () => {
 		fireEvent.click(hardcoreBox());
 		await submit();
 		expect(nameInput().value).toBe("");
-		expect(classCard("warrior").className).toContain("bg-white/10");
+		expect(classCard("warrior").getAttribute("aria-pressed")).toBe("true");
 		expect(hardcoreBox().checked).toBe(false);
 	});
 
@@ -220,7 +220,7 @@ describe("CreateCharacterModal — cancel", () => {
 		fireEvent.click(cancelButton());
 		expect(t.onClose).toHaveBeenCalledTimes(1);
 		expect(nameInput().value).toBe("");
-		expect(classCard("warrior").className).toContain("bg-white/10");
+		expect(classCard("warrior").getAttribute("aria-pressed")).toBe("true");
 	});
 
 	it("closes on Escape too", () => {

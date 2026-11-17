@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useMemo } from "react";
 
+import { Button } from "#/components/ui/button";
 import { hasOwnKey } from "#/game/typed-object";
 import { type Act, isNodeAccessible, type WorldNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
@@ -78,23 +79,25 @@ export default function MapScene({
 		<section className="relative h-full overflow-hidden rounded-md border border-white/40 bg-black">
 			<div className="absolute top-3 right-3 z-10 flex gap-2">
 				{onOpenLeaderboard && (
-					<button
+					<Button
 						type="button"
+						variant="hud"
+						size="icon"
 						onClick={onOpenLeaderboard}
 						aria-label={m.leaderboard_title()}
-						className="inline-flex h-9 w-9 items-center justify-center border border-white/40 bg-black text-white/80 transition hover:border-white hover:bg-white/10 hover:text-white"
 					>
-						<Trophy className="h-4 w-4" strokeWidth={2} />
-					</button>
+						<Trophy className="size-4" strokeWidth={2} />
+					</Button>
 				)}
-				<button
+				<Button
 					type="button"
+					variant="hud"
+					size="icon"
 					onClick={onOpenSettings}
 					aria-label={m.open_settings()}
-					className="inline-flex h-9 w-9 items-center justify-center border border-white/40 bg-black text-white/80 transition hover:border-white hover:bg-white/10 hover:text-white"
 				>
-					<Settings className="h-4 w-4" strokeWidth={2} />
-				</button>
+					<Settings className="size-4" strokeWidth={2} />
+				</Button>
 			</div>
 			<svg
 				aria-hidden="true"
@@ -205,18 +208,20 @@ function MapNode({
 			}}
 			className="-translate-x-1/2 -translate-y-1/2 absolute"
 		>
-			<button
+			<Button
 				type="button"
+				variant="mapNode"
+				size="icon-lg"
 				onClick={onEnter}
 				onMouseEnter={onHover}
 				onMouseLeave={onLeave}
 				onFocus={onHover}
 				onBlur={onLeave}
 				aria-label={m.enter_node({ name: translateNodeName(node) })}
-				className={`flex h-10 w-10 items-center justify-center rounded-full border-2 bg-black transition ${borderClass}`}
+				className={borderClass}
 			>
-				<Icon className="h-5 w-5" strokeWidth={1.5} />
-			</button>
+				<Icon className="size-5" strokeWidth={1.5} />
+			</Button>
 			{isCurrent && (
 				<MapPin
 					aria-hidden

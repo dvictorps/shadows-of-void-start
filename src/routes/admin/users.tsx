@@ -158,8 +158,10 @@ function UserRowDisplay({
 				}`}
 			>
 				<td className="px-1 py-2 text-center">
-					<button
+					<Button
 						type="button"
+						variant="starkText"
+						size="icon-xs"
 						onClick={onToggle}
 						aria-expanded={expanded}
 						aria-label={
@@ -167,7 +169,6 @@ function UserRowDisplay({
 								? m.admin_users_row_hide_aria()
 								: m.admin_users_row_show_aria()
 						}
-						className="inline-flex h-6 w-6 items-center justify-center text-white/60 transition hover:text-white"
 					>
 						<svg
 							width="12"
@@ -183,7 +184,7 @@ function UserRowDisplay({
 						>
 							<path d="M9 18l6-6-6-6" />
 						</svg>
-					</button>
+					</Button>
 				</td>
 				<td className="px-3 py-2 text-white">{user.email}</td>
 				<td className="px-3 py-2 text-white/80">{user.name || "—"}</td>

@@ -190,7 +190,7 @@ The whole backend ([ADR 0009](./adr/0009-cloudflare-d1-trpc-backend.md)): schema
 | `game/item-tooltip/stat-rows.ts` | Pure stat lines as data (`attackWeaponRows`, `spellWeaponRows`, `defenseRows`: label, value, modified-by-a-local-mod). Tested in `stat-rows.test.ts`                     |
 | `game/item-tooltip/*.tsx`        | `ItemHeader` (ornaments, name, hand line), `StatBlock` (renders rows), `ModLines` (implicits, explicits, (Local) tag), `Requirements`                                    |
 | `world/`                         | Everything inside the `/world` route                                                                                                                                     |
-| `ui/`                            | Radix-ui-based primitives (Button, Input, Label, Select, etc)                                                                                                            |
+| `ui/`                            | Radix-ui-based primitives (Button, Input, Label, Select, NativeSelect, etc)                                                                                              |
 
 ### `src/components/world/` — world view internals
 

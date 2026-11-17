@@ -83,11 +83,15 @@ describe("LeaderboardModal — tabs", () => {
 
 	it("marks the active category and mode", () => {
 		setup({ query: { category: "bossKills", mode: "hardcore" } });
-		expect(tab(m.leaderboard_kills_tab()).className).toContain("bg-white/10");
-		expect(tab(m.leaderboard_level_tab()).className).not.toContain(
-			"bg-white/10",
+		expect(tab(m.leaderboard_kills_tab()).getAttribute("aria-pressed")).toBe(
+			"true",
 		);
-		expect(tab(m.leaderboard_hardcore()).className).toContain("bg-white/10");
+		expect(tab(m.leaderboard_level_tab()).getAttribute("aria-pressed")).toBe(
+			"false",
+		);
+		expect(tab(m.leaderboard_hardcore()).getAttribute("aria-pressed")).toBe(
+			"true",
+		);
 	});
 
 	it("asks for the other category, keeping the mode", () => {

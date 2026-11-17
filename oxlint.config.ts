@@ -212,7 +212,7 @@ export default defineConfig({
 		"shadcn/no-unknown-classes": "warn",
 		"shadcn/require-static-classes": "warn",
 		"react/forbid-elements": [
-			"warn",
+			"error",
 			{
 				forbid: [
 					{
@@ -221,7 +221,8 @@ export default defineConfig({
 					},
 					{
 						element: "select",
-						message: "Use <Select> from #/components/ui/select.",
+						message:
+							"Use <NativeSelect> from #/components/ui/native-select (the browser's picker) or <Select> from #/components/ui/select (the Radix menu).",
 					},
 					{
 						element: "textarea",

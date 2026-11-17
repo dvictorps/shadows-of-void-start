@@ -17,7 +17,7 @@ Living examples: `src/components/world/InventoryModal.tsx` + `inventory-modal/`,
    - a game rule → `src/game/<domain>/` (the engine; see `shadows/game-imports`);
    - an interaction rule (what a drop does, when a reveal shows) → a `.ts` next to the component, in its folder (`inventory-modal/drag.ts`, `combat-scene/reveal.ts`).
 4. **A folder once there's a second subcomponent.** `Foo.tsx` composes and owns what spans the pieces (shared state, the server calls); the pieces live in `foo/` (`foo/FooPanel.tsx`, `foo/rules.ts`). Size alone is not the gate (a ~700-line route of flat wiring is fine); mixing concerns is.
-5. **Game-art buttons are `<Button variant="hud">`** with a `hud*` size, never a raw `<button>` (`react/forbid-elements`).
+5. **Game-art buttons are `<Button variant="hud">`** with a `hud*` size, never a raw `<button>` (`react/forbid-elements`, an error). One option of a set (a tab, a picker card) is `variant="toggle"` with `aria-pressed`, and its test reads `aria-pressed`, not a class. A `<select>` is `<NativeSelect>` (`#/components/ui/native-select`).
 
 ## Steps
 
