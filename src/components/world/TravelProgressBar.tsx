@@ -2,7 +2,8 @@ import type { CSSProperties } from "react";
 import { useState } from "react";
 
 import { useTicker } from "#/hooks/useTicker";
-import { localTravelEnd } from "#/lib/travel-clock";
+import { serverNow, useServerClockOffset } from "#/lib/server-clock";
+import { travelWindow } from "#/lib/travel-clock";
 import { m } from "#/paraglide/messages";
 
 type Props = {
@@ -12,19 +13,31 @@ type Props = {
 	arrivesAtMs: number;
 };
 
-export default function TravelProgressBar({
+const MIN_FILL_MS = 100;
+
+export default function TravelProgressBar(props: Props) {
+	const clockOffset = useServerClockOffset();
+	return <TravelProgressBarAt key={clockOffset} {...props} />;
+}
+
+function TravelProgressBarAt({
 	fromName,
 	toName,
 	startedAtMs,
 	arrivesAtMs,
 }: Props) {
-	const [{ endAt, durationMs }] = useState(() => {
-		const start = Date.now();
-		const end = Math.max(
-			start + 100,
-			localTravelEnd(start, startedAtMs, arrivesAtMs),
+	const [{ endAt, animationStyle }] = useState(() => {
+		const { remainingMs, durationMs } = travelWindow(
+			serverNow(),
+			startedAtMs,
+			arrivesAtMs,
 		);
-		return { endAt: end, durationMs: end - start };
+		const fillMs = Math.max(MIN_FILL_MS, durationMs);
+		const style: CSSProperties = {
+			animation: `travel-fill ${fillMs}ms linear ${remainingMs - fillMs}ms both`,
+			transformOrigin: "left center",
+		};
+		return { endAt: Date.now() + remainingMs, animationStyle: style };
 	});
 	const secondsLeft = () => Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
 	const [remainingSeconds, setRemainingSeconds] = useState(secondsLeft);
@@ -32,11 +45,6 @@ export default function TravelProgressBar({
 	useTicker(remainingSeconds > 0, 250, () =>
 		setRemainingSeconds(secondsLeft()),
 	);
-
-	const [animationStyle] = useState<CSSProperties>(() => ({
-		animation: `travel-fill ${durationMs}ms linear both`,
-		transformOrigin: "left center",
-	}));
 
 	return (
 		<div className="pointer-events-none absolute right-0 bottom-0 left-0 px-4 pb-4">

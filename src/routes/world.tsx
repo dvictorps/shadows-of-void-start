@@ -43,6 +43,7 @@ import { useInFlight } from "#/hooks/useInFlight";
 import { useInventoryMutations } from "#/hooks/useInventoryMutations";
 import { useLeaderboardSnapshot } from "#/hooks/useLeaderboardSnapshot";
 import { useModal } from "#/hooks/useModal";
+import { useServerClockSync } from "#/hooks/useServerClockSync";
 import { useSessionClaim } from "#/hooks/useSessionClaim";
 import { useSessionToken } from "#/hooks/useSessionToken";
 import { useViewMode } from "#/hooks/useViewMode";
@@ -85,6 +86,7 @@ function WorldView() {
 	const { characterId } = Route.useSearch();
 	const navigate = useNavigate();
 	const trpc = useTRPC();
+	useServerClockSync();
 	const { data: character } = useQuery({
 		...trpc.characters.byId.queryOptions({ id: characterId }),
 		refetchOnWindowFocus: true,
@@ -238,6 +240,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		travelDestination: character.travelDestination,
 		travelStartedAt: character.travelStartedAt,
 		travelArrivesAt: character.travelArrivesAt,
+		sessionReady: tokenMatches,
 		enterCity,
 		enterZone,
 		arriveAtTravel,

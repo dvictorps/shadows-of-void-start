@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ruleError } from "#/components/trpc-test-utils";
 import { CHARACTER_ID } from "#/components/world/item-test-fixtures";
+import { resetServerClock, setServerClockOffset } from "#/lib/server-clock";
 import { SERVER_ERRORS } from "#/lib/server-errors";
 import { ARRIVAL_RETRY_MS } from "#/lib/travel-clock";
 
@@ -39,6 +40,7 @@ function setup(overrides: Partial<Props> = {}, arrivedAt = "forest_starter") {
 		travelDestination: null,
 		travelStartedAt: null,
 		travelArrivesAt: null,
+		sessionReady: true,
 		...server,
 		onEnterNewArea,
 		...overrides,
@@ -79,6 +81,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	resetServerClock();
 	vi.useRealTimers();
 });
 
@@ -210,6 +213,30 @@ describe("useViewMode", () => {
 		});
 
 		await advance(TRIP_MS);
+		expect(h.server.arriveAtTravel).toHaveBeenCalledOnce();
+	});
+
+	it("arrives on the server's end, not the whole trip, once the clock sync lands after a reload", async () => {
+		const serverNow = NOW + 9000;
+		const h = setup({
+			travelDestination: "forest_starter",
+			travelStartedAt: serverNow - 3000,
+			travelArrivesAt: serverNow + 1000,
+		});
+
+		act(() => setServerClockOffset(9000));
+		await advance(1000);
+		expect(h.server.arriveAtTravel).toHaveBeenCalledOnce();
+	});
+
+	it("holds the arrival until this tab's session is claimed", async () => {
+		const h = setup({ ...TRAVELING, sessionReady: false });
+
+		await advance(TRIP_MS * 2);
+		expect(h.server.arriveAtTravel).not.toHaveBeenCalled();
+
+		h.rerender({ ...h.props, sessionReady: true });
+		await advance(0);
 		expect(h.server.arriveAtTravel).toHaveBeenCalledOnce();
 	});
 

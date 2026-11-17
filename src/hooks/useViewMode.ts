@@ -8,11 +8,12 @@ import {
 } from "react";
 
 import { ACT_1, findNode, type WorldViewMode } from "#/game/world";
+import { serverNow, subscribeServerClock } from "#/lib/server-clock";
 import { isTravelNotComplete } from "#/lib/server-error-message";
 import {
 	ARRIVAL_RETRY_MS,
-	localTravelEnd,
 	type TravelSnapshot,
+	travelWindow,
 } from "#/lib/travel-clock";
 
 import type { useWorldMutations } from "./useWorldMutations";
@@ -27,6 +28,7 @@ export function useViewMode({
 	travelDestination,
 	travelStartedAt,
 	travelArrivesAt,
+	sessionReady,
 	enterCity,
 	enterZone,
 	arriveAtTravel,
@@ -36,6 +38,7 @@ export function useViewMode({
 	travelDestination: string | null;
 	travelStartedAt: number | null;
 	travelArrivesAt: number | null;
+	sessionReady: boolean;
 	enterCity: EnterCity;
 	enterZone: EnterZone;
 	arriveAtTravel: ArriveAtTravel;
@@ -88,30 +91,40 @@ export function useViewMode({
 	});
 
 	useEffect(() => {
-		if (trip === null) return;
+		if (trip === null || !sessionReady) return;
 		let cancelled = false;
+		let calling = false;
 		let timer: number | undefined;
 		const schedule = (ms: number) => {
+			window.clearTimeout(timer);
 			timer = window.setTimeout(() => void arrive(), ms);
 		};
+		const arm = () => {
+			if (calling) return;
+			schedule(
+				travelWindow(serverNow(), trip.startedAt, trip.arrivesAt).remainingMs,
+			);
+		};
 		const arrive = async () => {
+			calling = true;
 			try {
 				const { arrivedAt } = await arriveAtTravel({ characterId });
 				onArrived(arrivedAt);
 			} catch (err) {
 				if (cancelled || !isTravelNotComplete(err)) return;
 				schedule(ARRIVAL_RETRY_MS);
+			} finally {
+				calling = false;
 			}
 		};
-		const now = Date.now();
-		schedule(
-			Math.max(0, localTravelEnd(now, trip.startedAt, trip.arrivesAt) - now),
-		);
+		arm();
+		const unsubscribe = subscribeServerClock(arm);
 		return () => {
 			cancelled = true;
 			window.clearTimeout(timer);
+			unsubscribe();
 		};
-	}, [trip, arriveAtTravel, characterId]);
+	}, [trip, sessionReady, arriveAtTravel, characterId]);
 
 	return {
 		view,
