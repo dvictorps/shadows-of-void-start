@@ -32,7 +32,8 @@ Living examples: `src/components/world/InventoryModal.tsx` + `inventory-modal/`,
    - framer-motion runs for real on fake timers, but keep the clock faked for the whole file (its frame loop is a singleton that stalls if a pending frame is dropped), and call Testing Library's `cleanup` by hand (vitest runs without globals);
    - `ConfirmationProvider` and sonner's `<Toaster />` run for real; `toast.dismiss()` in `afterEach`. A rule error is a `TRPCClientError.from({ error: { message, code, data: { code } } })`;
    - the Escape layers (`useEscapeLayer`) read `key`, dnd-kit's sensor reads `code`: send both. While dragging, the overlay holds a second card with the same name, so look cards up per cell;
-   - a toggle (tab, picker card) is asserted through `aria-pressed`, never a class.
+   - a toggle (tab, picker card) is asserted through `aria-pressed`, never a class;
+   - wiring that only exists in the route (a hook's bundle reaching a modal) goes in the route's smoke test, `src/routes/-world.test.tsx`: the real route options under a test root, tRPC through `fakeTrpc` (`src/integrations/trpc/fake-client.ts`), no `vi.mock`. Keep it a smoke test; the behaviour belongs in the component tests.
 6. Add the files to `docs/codebase-map.md`.
 
 ## Debt lists
