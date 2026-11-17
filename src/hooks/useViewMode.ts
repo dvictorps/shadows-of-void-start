@@ -8,6 +8,12 @@ import {
 } from "react";
 
 import { ACT_1, findNode, type WorldViewMode } from "#/game/world";
+import { isTravelNotComplete } from "#/lib/server-error-message";
+import {
+	ARRIVAL_RETRY_MS,
+	localTravelEnd,
+	type TravelSnapshot,
+} from "#/lib/travel-clock";
 
 import type { useWorldMutations } from "./useWorldMutations";
 
@@ -19,6 +25,7 @@ type ArriveAtTravel = WorldMutations["arriveAtTravel"];
 export function useViewMode({
 	characterId,
 	travelDestination,
+	travelStartedAt,
 	travelArrivesAt,
 	enterCity,
 	enterZone,
@@ -27,6 +34,7 @@ export function useViewMode({
 }: {
 	characterId: number;
 	travelDestination: string | null;
+	travelStartedAt: number | null;
 	travelArrivesAt: number | null;
 	enterCity: EnterCity;
 	enterZone: EnterZone;
@@ -35,8 +43,18 @@ export function useViewMode({
 }) {
 	const [view, setView] = useState<WorldViewMode>("map");
 	const [pendingArrival, setPendingArrival] = useState<string | null>(null);
+	const [trip, setTrip] = useState<TravelSnapshot | null>(null);
 
 	const isTraveling = travelDestination !== null && travelArrivesAt !== null;
+
+	if (!isTraveling && trip !== null) setTrip(null);
+	if (isTraveling && trip?.destination !== travelDestination) {
+		setTrip({
+			destination: travelDestination,
+			startedAt: travelStartedAt,
+			arrivesAt: travelArrivesAt,
+		});
+	}
 
 	const onEnterNewAreaRef = useRef(onEnterNewArea);
 	useLayoutEffect(() => {
@@ -70,20 +88,30 @@ export function useViewMode({
 	});
 
 	useEffect(() => {
-		if (!isTraveling || travelArrivesAt === null) return;
-		const arrive = () => {
-			arriveAtTravel({ characterId })
-				.then(({ arrivedAt }) => onArrived(arrivedAt))
-				.catch(() => {});
+		if (trip === null) return;
+		let cancelled = false;
+		let timer: number | undefined;
+		const schedule = (ms: number) => {
+			timer = window.setTimeout(() => void arrive(), ms);
 		};
-		const remaining = travelArrivesAt - Date.now();
-		if (remaining <= 0) {
-			arrive();
-			return;
-		}
-		const timer = window.setTimeout(arrive, remaining);
-		return () => window.clearTimeout(timer);
-	}, [isTraveling, travelArrivesAt, arriveAtTravel, characterId]);
+		const arrive = async () => {
+			try {
+				const { arrivedAt } = await arriveAtTravel({ characterId });
+				onArrived(arrivedAt);
+			} catch (err) {
+				if (cancelled || !isTravelNotComplete(err)) return;
+				schedule(ARRIVAL_RETRY_MS);
+			}
+		};
+		const now = Date.now();
+		schedule(
+			Math.max(0, localTravelEnd(now, trip.startedAt, trip.arrivesAt) - now),
+		);
+		return () => {
+			cancelled = true;
+			window.clearTimeout(timer);
+		};
+	}, [trip, arriveAtTravel, characterId]);
 
 	return {
 		view,
@@ -91,6 +119,7 @@ export function useViewMode({
 		pendingArrival,
 		setPendingArrival,
 		isTraveling,
+		trip,
 		enterDestination,
 	};
 }

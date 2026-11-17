@@ -719,6 +719,8 @@ time_seconds = max(0.5, distance / (1 + 2 × movementSpeed/100))
 
 The 2× coefficient on movement speed is intentional — boots can roll up to ~30% MS in early game and we want the player to _feel_ that gear choice on the world map, not see a barely-perceptible improvement. The 0.5s floor keeps travel always visible.
 
+The server owns the trip (`travelStartedAt` / `travelArrivesAt`, on its clock) and refuses an arrival more than 1s early. The client never compares those timestamps against its own clock: the bar, the counter and the arrival call all wait the trip's **length** from when the client first saw it, so a player whose system clock is off still waits exactly the travel time.
+
 ### Unlocked nodes
 
 Every time the player arrives at a node (via any travel mechanic) the destination is appended to the character's `unlockedNodes` set. The character starts with `["city"]` on creation. This set is **append-only** — respawn doesn't clear it, leaving the world a one-time discover-then-fast-travel-back. Teleport stones consume this list to validate jump targets; nodes outside the list are inaccessible to stones even if they're shown on the map.

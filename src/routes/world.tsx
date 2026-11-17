@@ -226,20 +226,27 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	});
 	const inventoryServer = useInventoryMutations(character.id);
 
-	const { view, setView, setPendingArrival, isTraveling, enterDestination } =
-		useViewMode({
-			characterId: character.id,
-			travelDestination: character.travelDestination,
-			travelArrivesAt: character.travelArrivesAt,
-			enterCity,
-			enterZone,
-			arriveAtTravel,
-			onEnterNewArea: (nodeId) => {
-				setDeathLog(null);
-				const entered = zoneContextFor(ACT_1, nodeId);
-				combat.startVisit(entered.encounterPlan, entered.bossNode);
-			},
-		});
+	const {
+		view,
+		setView,
+		setPendingArrival,
+		isTraveling,
+		trip,
+		enterDestination,
+	} = useViewMode({
+		characterId: character.id,
+		travelDestination: character.travelDestination,
+		travelStartedAt: character.travelStartedAt,
+		travelArrivesAt: character.travelArrivesAt,
+		enterCity,
+		enterZone,
+		arriveAtTravel,
+		onEnterNewArea: (nodeId) => {
+			setDeathLog(null);
+			const entered = zoneContextFor(ACT_1, nodeId);
+			combat.startVisit(entered.encounterPlan, entered.bossNode);
+		},
+	});
 
 	const { data: liveInventory } = useQuery(
 		trpc.items.inventory.queryOptions({ characterId: character.id }),
@@ -464,9 +471,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 						teleportStones={character.teleportStones}
 						onOpenSettings={settingsModal.open}
 						onOpenLeaderboard={leaderboardModal.open}
-						isTraveling={isTraveling}
-						travelDestination={character.travelDestination}
-						travelArrivesAt={character.travelArrivesAt}
+						trip={trip}
 					/>
 				)}
 				{view === "city" && currentNode && (

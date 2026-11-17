@@ -2,26 +2,31 @@ import type { CSSProperties } from "react";
 import { useState } from "react";
 
 import { useTicker } from "#/hooks/useTicker";
+import { localTravelEnd } from "#/lib/travel-clock";
 import { m } from "#/paraglide/messages";
 
 type Props = {
 	fromName: string;
 	toName: string;
+	startedAtMs: number | null;
 	arrivesAtMs: number;
 };
 
 export default function TravelProgressBar({
 	fromName,
 	toName,
+	startedAtMs,
 	arrivesAtMs,
 }: Props) {
-	const [{ endsAtMs, durationMs }] = useState(() => {
+	const [{ endAt, durationMs }] = useState(() => {
 		const start = Date.now();
-		const end = Math.max(start + 100, arrivesAtMs);
-		return { endsAtMs: end, durationMs: end - start };
+		const end = Math.max(
+			start + 100,
+			localTravelEnd(start, startedAtMs, arrivesAtMs),
+		);
+		return { endAt: end, durationMs: end - start };
 	});
-	const secondsLeft = () =>
-		Math.max(0, Math.ceil((endsAtMs - Date.now()) / 1000));
+	const secondsLeft = () => Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
 	const [remainingSeconds, setRemainingSeconds] = useState(secondsLeft);
 
 	useTicker(remainingSeconds > 0, 250, () =>

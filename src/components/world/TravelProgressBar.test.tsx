@@ -22,9 +22,14 @@ afterEach(() => {
 const seconds = (n: number) =>
 	screen.queryByText(m.travel_seconds_remaining({ seconds: n }));
 
-function mount(arrivesAtMs: number) {
+function mount(arrivesAtMs: number, startedAtMs: number | null = START) {
 	return render(
-		<TravelProgressBar fromName="A" toName="B" arrivesAtMs={arrivesAtMs} />,
+		<TravelProgressBar
+			fromName="A"
+			toName="B"
+			startedAtMs={startedAtMs}
+			arrivesAtMs={arrivesAtMs}
+		/>,
 	);
 }
 
@@ -44,15 +49,12 @@ describe("TravelProgressBar", () => {
 		expect(seconds(0)).toBeTruthy();
 	});
 
-	it("keeps the counter on the mount's end time when arrivesAtMs moves later", () => {
-		const view = mount(START + 5000);
-		view.rerender(
-			<TravelProgressBar fromName="A" toName="B" arrivesAtMs={START + 8000} />,
-		);
-		act(() => {
-			vi.advanceTimersByTime(5000);
-		});
-		expect(seconds(0)).toBeTruthy();
+	it("counts and fills over the trip's length when the server clock runs ahead", () => {
+		const serverNow = START + 9000;
+		const { container } = mount(serverNow + 3000, serverNow);
+		expect(seconds(3)).toBeTruthy();
+		const fill = container.querySelector<HTMLElement>(".bg-white");
+		expect(fill?.style.animation).toContain("3000ms");
 	});
 
 	it("ticks under a second, so the counter turns with the fill", () => {

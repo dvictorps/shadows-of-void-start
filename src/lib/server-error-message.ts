@@ -19,6 +19,13 @@ export function isSessionLost(cause: unknown): boolean {
 	);
 }
 
+export function isTravelNotComplete(cause: unknown): boolean {
+	return (
+		isServerRuleError(cause) &&
+		cause.message === SERVER_ERRORS.travelNotComplete
+	);
+}
+
 export function serverErrorMessage(cause: unknown, fallback: string): string {
 	return isServerRuleError(cause)
 		? translateServerError(cause.message)

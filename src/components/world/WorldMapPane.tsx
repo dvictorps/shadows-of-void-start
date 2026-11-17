@@ -1,5 +1,6 @@
 import { ACT_1, findNode, type WorldNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
+import type { TravelSnapshot } from "#/lib/travel-clock";
 
 import MapScene from "./MapScene";
 import TravelProgressBar from "./TravelProgressBar";
@@ -15,9 +16,7 @@ export function WorldMapPane({
 	teleportStones,
 	onOpenSettings,
 	onOpenLeaderboard,
-	isTraveling,
-	travelDestination,
-	travelArrivesAt,
+	trip,
 }: {
 	currentNode: WorldNode | null;
 	currentLocation: string;
@@ -29,15 +28,9 @@ export function WorldMapPane({
 	teleportStones: number;
 	onOpenSettings: () => void;
 	onOpenLeaderboard: () => void;
-	isTraveling: boolean;
-	travelDestination: string | null;
-	travelArrivesAt: number | null;
+	trip: TravelSnapshot | null;
 }) {
-	const travelToNode = travelDestination
-		? findNode(ACT_1, travelDestination)
-		: null;
-	const showTravel =
-		isTraveling && travelArrivesAt !== null && currentNode && travelToNode;
+	const travelToNode = trip ? findNode(ACT_1, trip.destination) : null;
 
 	return (
 		<div className="relative overflow-hidden">
@@ -53,12 +46,13 @@ export function WorldMapPane({
 				onOpenSettings={onOpenSettings}
 				onOpenLeaderboard={onOpenLeaderboard}
 			/>
-			{showTravel ? (
+			{trip && currentNode && travelToNode ? (
 				<TravelProgressBar
-					key={travelDestination}
+					key={trip.destination}
 					fromName={translateNodeName(currentNode)}
 					toName={translateNodeName(travelToNode)}
-					arrivesAtMs={travelArrivesAt}
+					startedAtMs={trip.startedAt}
+					arrivesAtMs={trip.arrivesAt}
 				/>
 			) : null}
 		</div>
