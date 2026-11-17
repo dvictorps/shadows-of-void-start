@@ -33,7 +33,7 @@ export const CLASS_DEFINITIONS = {
 			"A wielder of arcane power who sacrifices physical resilience for devastating magical potential and a natural energy barrier.",
 		primaryAttribute: "intelligence",
 		baseStats: {
-			hp: 30,
+			hp: 50,
 			barrier: 20,
 			attributes: { strength: 5, dexterity: 5, intelligence: 10 },
 		},
