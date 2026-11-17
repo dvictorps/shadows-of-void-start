@@ -1,9 +1,3 @@
-// Non-dismissible modal shown when another tab or device steals the active
-// session token (Threat #5 in docs/security/threat-model.md). The only way
-// out is to refresh, which remounts the SessionTokenProvider, generates a
-// fresh UUID, and re-claims via the /character-select Play flow (or via
-// the auto-claim effect in /world for a direct refresh).
-
 import { m } from "#/paraglide/messages";
 
 import BlockingNoticeModal from "./BlockingNoticeModal";

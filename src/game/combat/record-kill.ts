@@ -21,12 +21,6 @@ import {
 } from "./constants";
 import { classifyKill, resolveZoneProgress, tallyBossKill } from "./kill";
 
-// The whole `combat.recordKill` decision: XP and level-ups, zone progress and
-// camp tier, boss tallies, potion / incense rolls and the drops. The
-// procedure resolves the monster first (`resolveKillTarget`), recomputes the
-// stat cache only when the XP gain levels the character up, then calls
-// `resolveKill` and writes the result as one UPDATE.
-
 export interface KillTarget {
 	templateId: string;
 	monsterLevel: number;
@@ -39,7 +33,6 @@ export function resolveKillTarget(
 ): KillTarget | null {
 	const template = findMonster(monsterId) ?? findBoss(monsterId)?.template;
 	if (!template) return null;
-	// The client-rolled level and rarity are still trusted (threat #1).
 	const monsterLevel = Math.max(1, Math.floor(clientMonsterLevel));
 	return {
 		templateId: template.id,
@@ -63,7 +56,6 @@ export interface KillCharacter {
 	cachedMagicFind: number;
 }
 
-/** Columns of `characters` a kill changes. Absent keys are left untouched. */
 export interface KillUpdate {
 	level?: number;
 	xp: number;
@@ -96,7 +88,6 @@ export interface KillOutcome {
 	newMaxBarrier: number | undefined;
 }
 
-/** XP gain alone, so the procedure knows whether to load the equipped set. */
 export function resolveKillXp(
 	character: Pick<KillCharacter, "level" | "xp">,
 	target: KillTarget,
@@ -109,12 +100,9 @@ export function resolveKill(params: {
 	monsterId: string;
 	monsterRarity: MonsterRarity;
 	target: KillTarget;
-	/** From `resolveKillXp`, which the caller ran to decide on `levelUpStats`. */
 	gain: XpGainResult;
-	/** Stats at the new level; only when the kill levels the character up. */
 	levelUpStats: StatCache | null;
 	now: number;
-	/** The potion, incense and item rolls; tests pass `seededRng(seed)`. */
 	rng?: Rng;
 }): KillOutcome {
 	const { character, target, gain, levelUpStats } = params;
@@ -175,7 +163,6 @@ export function resolveKill(params: {
 	const incenseDropped = rng.unit() < ETHEREAL_INCENSE_DROP_CHANCE;
 	if (incenseDropped) update.etherealIncense = character.etherealIncense + 1;
 
-	// Drops only exist inside a zone visit: they go to its bag.
 	const drops = character.currentZoneSession
 		? rollKillDrops(
 				kill.dropTable,

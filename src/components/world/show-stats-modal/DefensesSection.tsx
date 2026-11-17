@@ -4,7 +4,6 @@ import { m } from "#/paraglide/messages";
 
 import { Row, SectionHeading } from "./Row";
 
-/** Life, barrier, armor / evasion previews against the zone's enemy, resistances, regen, block. */
 export function DefensesSection({
 	stats,
 	currentBarrier,

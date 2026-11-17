@@ -4,9 +4,6 @@ import { findNode } from ".";
 import { translateNodeDescription, translateNodeName } from "./i18n";
 import type { Act, WorldNode, WorldViewMode } from "./types";
 
-// The HUD hint each consumable button shows in the log while hovered. Keyed
-// by the combat scene's consumable keys: the route passes CombatScene's
-// `ConsumableKey` in, so a key added there without a hint here fails `tsc`.
 const CONSUMABLE_HINTS = {
 	potion: m.consumable_desc_potion,
 	teleport: m.consumable_desc_teleport,
@@ -25,14 +22,8 @@ export interface TextLogEntry {
 	tone: TextLogTone;
 }
 
-// Below this share of max life the combat log nags about potions.
 export const LOW_HP_FRACTION = 0.3;
 
-/**
- * The single line the world's TextLog shows. Priority: death > consumable
- * hover (combat) > low-HP warning (combat) > hovered node description (map)
- * > map idle (act label) > current zone (combat / city) > nothing.
- */
 export function resolveTextLog({
 	act,
 	view,

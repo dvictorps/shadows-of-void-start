@@ -75,14 +75,12 @@ describe("translateItemName", () => {
 		beforeEach(() => overwriteGetLocale(() => "pt"));
 
 		it("composes <base> <modifier> with feminine concord", () => {
-			// hallowed is { m: Sagrado, f: Sagrada }; sword.gender = f.
 			expect(translateItemName(makeItem({ nameModifier: "hallowed" }))).toBe(
 				"Espada Sagrada",
 			);
 		});
 
 		it("uses masculine form when base is masculine", () => {
-			// Same modifier on an Elmo (Plate Helm, gender m) → "Sagrado".
 			const helmet = makeItem({
 				templateId: "plate_helmet_t14",
 				nameBase: "plate_helm",
@@ -93,12 +91,10 @@ describe("translateItemName", () => {
 		});
 
 		it("invariant phrase modifiers don't inflect", () => {
-			// "de Ferro" stays the same regardless of base gender.
 			expect(translateItemName(makeItem())).toBe("Espada de Ferro");
 		});
 
 		it("renders void_touched as a gendered adjective", () => {
-			// User decision: void_touched is "Maculado/Maculada pelo Vazio".
 			const sword = makeItem({ nameModifier: "void_touched" });
 			expect(translateItemName(sword)).toBe("Espada Maculada pelo Vazio");
 			const cleaver = makeItem({
@@ -171,8 +167,6 @@ describe("translateItemName", () => {
 			overwriteGetLocale(() => "en");
 			const a = makeItem({ rarity: "rare", id: "uuid-a" });
 			const b = makeItem({ rarity: "rare", id: "uuid-b-completely-different" });
-			// Two arbitrary distinct UUIDs aren't guaranteed to collide on pool
-			// indices — assert the names are distinct in this specific sample.
 			expect(translateItemName(a)).not.toBe(translateItemName(b));
 		});
 
@@ -183,10 +177,7 @@ describe("translateItemName", () => {
 			overwriteGetLocale(() => "pt");
 			const pt = translateItemName(item);
 			expect(en).not.toBe(pt);
-			// Both should be two-word.
 			expect(en.split(" ").length).toBe(2);
-			// PT pool entries are PRIMEIRO + "da/do X" — second word starts with
-			// the article. (Smoke-check that the PT pool is being read, not EN.)
 			expect(pt).toMatch(/^[A-Z]\S+ d[oae]s?\s\S+/);
 		});
 

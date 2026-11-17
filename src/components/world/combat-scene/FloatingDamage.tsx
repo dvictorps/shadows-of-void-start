@@ -10,16 +10,12 @@ export default function FloatingDamage({
 	event: DamageEvent;
 	variant?: "enemy" | "player";
 }) {
-	// Deterministic from the event id so popups stay put across re-renders
-	// (Math.random() would jitter every frame).
 	const seed = hashStringToUnit(event.id);
 	const isCrit = event.isCrit && !event.isMiss;
 	const isBlocked = event.isBlocked && !event.isMiss;
 	const isThorns = event.isThorns;
 	const isLabel = event.isMiss || isBlocked;
 
-	// Single direction angle biased upward for normal hits and crits alike —
-	// the crit signal is the red color + "!!!" suffix, not a special arc.
 	const angle = -Math.PI / 2 + (seed - 0.5) * 1.8;
 	const distance = 70;
 	const endX = Math.cos(angle) * distance;

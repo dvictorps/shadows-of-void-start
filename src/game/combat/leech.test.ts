@@ -24,7 +24,6 @@ describe("leech", () => {
 		const inst = createLeechInstance(200, 5);
 		if (!inst) throw new Error("expected instance");
 		const { healed, instances } = tickLeechInstances([inst], 0.5, 1000);
-		// rate = 2, dt = 0.5 → 1.0 healed; remaining = 9.
 		expect(healed).toBeCloseTo(1);
 		expect(instances).toHaveLength(1);
 		expect(instances[0].remaining).toBeCloseTo(9);
@@ -38,8 +37,6 @@ describe("leech", () => {
 	});
 
 	it("caps total heal per tick at 20% maxLife per second", () => {
-		// Many instances, each rate 100/s. dt = 0.1s. Want = 100×0.1 × 5 = 50.
-		// Cap = 1000 × 0.20 × 0.1 = 20. So healed clamps to 20.
 		const instances = Array.from({ length: 5 }, () => ({
 			magnitude: 100,
 			rate: 100,

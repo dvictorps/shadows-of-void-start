@@ -1,10 +1,5 @@
 import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 
-// Better Auth's default hasher runs scrypt in pure JS (@noble/hashes), which
-// burns hundreds of ms of CPU per sign-in. Workers Free allows 10 ms. This
-// runs the same scrypt through `node:crypto`, which workerd implements
-// natively (nodejs_compat). Parameters and the `salt:key` hex format match
-// Better Auth's default, so hashes stay interchangeable with it.
 const N = 16_384;
 const R = 16;
 const P = 1;

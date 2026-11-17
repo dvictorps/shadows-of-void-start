@@ -22,7 +22,6 @@ import type { EquipmentTemplate } from "./types";
 import { WAND_TEMPLATES } from "./wands";
 
 export const EQUIPMENT_TEMPLATES: EquipmentTemplate[] = [
-	// Weapons
 	...SWORD_TEMPLATES,
 	...GREATSWORD_TEMPLATES,
 	...DAGGER_TEMPLATES,
@@ -32,16 +31,13 @@ export const EQUIPMENT_TEMPLATES: EquipmentTemplate[] = [
 	...TWO_HANDED_AXE_TEMPLATES,
 	...STAFF_TEMPLATES,
 	...WAND_TEMPLATES,
-	// Armor
 	...HELMET_TEMPLATES,
 	...CHESTPLATE_TEMPLATES,
 	...BOOT_TEMPLATES,
 	...GLOVE_TEMPLATES,
-	// Offhand
 	...SHIELD_TEMPLATES,
 	...TOME_TEMPLATES,
 	...QUIVER_TEMPLATES,
-	// Jewelry
 	...RING_TEMPLATES,
 	...AMULET_TEMPLATES,
 	...BELT_TEMPLATES,

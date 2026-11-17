@@ -31,7 +31,6 @@ describe("resolvePotionUse", () => {
 			prevHp: 40,
 			clientHp: undefined,
 		});
-		// 40 + floor(100 * 0.2) = 60
 		expect(r).toEqual({
 			ok: true,
 			hpCurrent: 40 + Math.floor(100 * POTION_HEAL_FRACTION),
@@ -50,8 +49,6 @@ describe("resolvePotionUse", () => {
 	});
 
 	it("prefers the live clientHp over the stored prevHp", () => {
-		// Stored HP is stale (80) but the live combat loop reports 30 — the potion
-		// must heal from 30, not 80.
 		const r = resolvePotionUse({
 			potions: 2,
 			maxLife: 100,
@@ -62,8 +59,6 @@ describe("resolvePotionUse", () => {
 	});
 
 	it("clamps a tampered over-cap clientHp before healing", () => {
-		// A clientHp above maxLife clamps to maxLife → already-full refusal, so it
-		// can't be used to over-heal.
 		const r = resolvePotionUse({
 			potions: 2,
 			maxLife: 100,
@@ -80,7 +75,6 @@ describe("resolvePotionUse", () => {
 			prevHp: 50,
 			clientHp: 40.9,
 		});
-		// floor(40.9) = 40 → 40 + 20 = 60
 		expect(r).toEqual({ ok: true, hpCurrent: 60, potions: 1 });
 	});
 });

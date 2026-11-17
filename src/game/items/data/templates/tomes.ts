@@ -1,8 +1,6 @@
 import type { TemplateModifierId } from "../../lexicon/template-ids";
 import type { EquipmentTemplate } from "./types";
 
-// Barrier values mirror silk_shield_t* so a same-tier tome and silk shield
-// contribute the same defensive footprint.
 interface TomeTierSpec {
 	tier: number;
 	dropLevel: number;
@@ -12,8 +10,6 @@ interface TomeTierSpec {
 	implicitMax: number;
 }
 
-// Tier-indexed modifier ids (tier N uses MODIFIERS[N - 1]). Mirrored against
-// the EN display strings via lexicon/en.ts.
 const TOME_MODIFIERS: readonly TemplateModifierId[] = [
 	"apprentice",
 	"acolyte",

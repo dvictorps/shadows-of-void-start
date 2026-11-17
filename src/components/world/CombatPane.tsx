@@ -9,11 +9,6 @@ import type { CharacterRow } from "#/lib/api-types";
 
 import CombatScene, { type ConsumableKey } from "./CombatScene";
 
-/**
- * The combat view of /world: CombatScene wired to the combat loop, with the
- * HUD's enable rules (potion, stone, incense) resolved here. The spam-click
- * flags come from the route, which owns the handlers.
- */
 export function CombatPane({
 	node,
 	zoneLevel,
@@ -41,7 +36,6 @@ export function CombatPane({
 	barrier: BarrierState;
 	character: CharacterRow;
 	selectedElement: SelectableElement | null;
-	// `undefined` while the bag query loads.
 	bagSize: number | undefined;
 	isUsingPotion: boolean;
 	isUsingTeleportStone: boolean;

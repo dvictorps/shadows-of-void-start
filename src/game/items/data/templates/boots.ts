@@ -1,9 +1,6 @@
 import type { EquipmentTemplate } from "./types";
 
-// Boots — 3 armor types × 21 tiers
-// Plate: armor + str | Leather: evasion + dex | Silk: barrier + int
 export const BOOT_TEMPLATES: EquipmentTemplate[] = [
-	// ── Plate Boots ──
 	{
 		id: "plate_boots_t1",
 		nameBase: "plate_boots",
@@ -257,7 +254,6 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/armaduras/armadura/botaPesada2.png",
 	},
 
-	// ── Leather Boots ──
 	{
 		id: "leather_boots_t1",
 		nameBase: "boots",
@@ -511,7 +507,6 @@ export const BOOT_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/armaduras/evasao/botasEvasao2.png",
 	},
 
-	// ── Silk Boots ──
 	{
 		id: "silk_boots_t1",
 		nameBase: "slippers",

@@ -17,11 +17,6 @@ export type VitalsInput = {
 	hasTeleportHandler: boolean;
 };
 
-/**
- * What the status card shows and allows: the live numbers (an override wins
- * over the character row; the barrier reads full without one) and when each
- * consumable can be used (a missing handler disables it).
- */
 export function statusVitals(input: VitalsInput) {
 	const { character, stats } = input;
 	const maxHp = stats.maxLife;

@@ -1,13 +1,7 @@
-// Shared fixtures for the inventory component tests (InventoryModal; the
-// stash modal can reuse them). Items are hand-built `GeneratedItem`s whose
-// `templateId` is no real template, so `translateItemName` falls back to it:
-// the display name is the `name` given here, in every locale.
-
 import type { GeneratedItem } from "#/game/items/types";
 import type { EquippedSlot } from "#/game/stats/types";
 import type { ItemRow } from "#/lib/api-types";
 
-/** A normal-rarity item named `name`, with no mods or base stats. */
 export function makeItem(
 	name: string,
 	overrides: Partial<GeneratedItem> & Pick<GeneratedItem, "equipmentType">,
@@ -47,7 +41,6 @@ export const helmet = (name = "Test Helmet") =>
 export const amulet = (name = "Test Amulet") =>
 	makeItem(name, { equipmentType: "amulet" });
 
-/** The character every fixture row belongs to. */
 export const CHARACTER_ID = 7;
 
 function baseRow(id: number, data: GeneratedItem): ItemRow {
@@ -67,7 +60,6 @@ function baseRow(id: number, data: GeneratedItem): ItemRow {
 	};
 }
 
-/** A row in the character's inventory at `inventorySlot`. */
 export function inventoryRow(
 	id: number,
 	data: GeneratedItem,
@@ -76,7 +68,6 @@ export function inventoryRow(
 	return { ...baseRow(id, data), inventorySlot };
 }
 
-/** A row in the account's softcore stash at `stashSlot`. */
 export function stashRow(
 	id: number,
 	data: GeneratedItem,
@@ -91,7 +82,6 @@ export function stashRow(
 	};
 }
 
-/** A row equipped in `slot`. */
 export function equippedRow(
 	id: number,
 	data: GeneratedItem,

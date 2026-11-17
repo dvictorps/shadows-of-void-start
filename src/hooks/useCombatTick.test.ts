@@ -1,13 +1,5 @@
 // @vitest-environment jsdom
 
-// Regression test for the same-tick collision between a player swing and an
-// enemy swing when the player has thorns: the thorns block used to read enemy
-// HP from a top-of-tick snapshot rather than the live `enemyRef`, so it wrote
-// `(preSwingHp - thorns)` back over the post-player-swing HP and silently
-// erased the player-swing damage. The fix reads `enemyRef.current` at the
-// reflect site; this test exercises that path through the real hook so a
-// future refactor that re-introduces the snapshot read fails loudly.
-
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,9 +10,6 @@ import { useCombatTick } from "./useCombatTick";
 type TickParams = Parameters<typeof useCombatTick>[0];
 type CombatTickDeps = NonNullable<TickParams["deps"]>;
 
-// Deterministic rolls let the test control exactly how much each side deals:
-// the bug under test is in HOW the hook composes those results, not in the
-// dice. Audio is silent because jsdom has no audio backend.
 const rollPlayerSwingMock = vi.fn<CombatTickDeps["rollPlayerSwing"]>();
 const rollEnemyAttackMock = vi.fn<CombatTickDeps["rollEnemyAttack"]>();
 const TEST_DEPS: CombatTickDeps = {
@@ -30,14 +19,10 @@ const TEST_DEPS: CombatTickDeps = {
 	playPlayerSwingSfx: () => {},
 };
 
-// The server calls are parameters of the hook; these tests exercise the tick
-// math, so they never resolve anything.
 const NO_SERVER = {
 	syncVitals: async () => {},
 	consumePotion: async () => {},
 };
-
-// ── Test ───────────────────────────────────────────────────────────────────
 
 describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 	beforeEach(() => {
@@ -69,8 +54,6 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 			},
 		});
 		rollEnemyAttackMock.mockReturnValue({
-			// Enemy lands a hit (so thorns reflect triggers), zero damage so the
-			// player's HP doesn't decay and complicate the assertion.
 			amount: 0,
 			isCrit: false,
 			isMiss: false,
@@ -109,19 +92,12 @@ describe("useCombatTick — same-tick player swing + thorns reflect", () => {
 			});
 		});
 
-		// One 50ms tick → both progress refs reach exactly 1.0 → both swings
-		// fire in the same callback invocation.
 		act(() => {
 			vi.advanceTimersByTime(50);
 		});
 
-		// The bug: thorns block would read the top-of-tick snapshot HP (100) and
-		// write back `100 - 7 = 93`, overwriting the player-swing HP (70).
-		// The fix: read the live ref so thorns lands at `70 - 7 = 63`.
 		expect(latestEnemy.currentHp).toBe(INITIAL_HP - PLAYER_DAMAGE - THORNS);
 
-		// Both swings should have invoked updateEnemy (player swing first, then
-		// the thorns reflect) — that ordering is what made the bug latent.
 		expect(updateEnemy).toHaveBeenCalledTimes(2);
 		expect(updateEnemy.mock.calls[0][0].currentHp).toBe(
 			INITIAL_HP - PLAYER_DAMAGE,
@@ -186,7 +162,6 @@ describe("useCombatTick — life regen modifier", () => {
 		act(() => {
 			vi.advanceTimersByTime(1000);
 		});
-		// 10 HP/s × 1s = +10 HP.
 		expect(result.current.playerHp).toBe(60);
 	});
 
@@ -199,7 +174,6 @@ describe("useCombatTick — life regen modifier", () => {
 		act(() => {
 			vi.advanceTimersByTime(2000);
 		});
-		// 5 HP/s × 2s = +10 raw, but capped at maxLife 100.
 		expect(result.current.playerHp).toBe(100);
 	});
 
@@ -212,12 +186,10 @@ describe("useCombatTick — life regen modifier", () => {
 		act(() => {
 			vi.advanceTimersByTime(1000);
 		});
-		// 0.5 HP/s × 1s = 0.5 accumulated, still <1 → no heal yet.
 		expect(result.current.playerHp).toBe(50);
 		act(() => {
 			vi.advanceTimersByTime(1100);
 		});
-		// After 2.1s total, accumulator ≥ 1 → +1 HP.
 		expect(result.current.playerHp).toBe(51);
 	});
 });

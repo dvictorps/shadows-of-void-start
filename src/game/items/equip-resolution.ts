@@ -6,10 +6,6 @@ import type { EquippedItem, EquippedSlot } from "../stats/types";
 import { isBow, isQuiver, isWeapon, planEquip } from "./equipment";
 import type { GeneratedItem } from "./types";
 
-// Equip / unequip decisions for the `items.equipItem` / `items.unequipItem`
-// procedures. They take the equipped rows with their ids and return which
-// rows move where, so the procedure only translates the result into writes.
-
 export interface EquippedEntry<Id> extends EquippedItem {
 	id: Id;
 }
@@ -23,17 +19,10 @@ export type EquipResolution<Id> =
 	| { ok: false; error: string }
 	| {
 			ok: true;
-			/** Equipped rows going back to the inventory. */
 			displaced: EquippedEntry<Id>[];
-			/** The full equipped set afterwards, for the stat cache. */
 			finalEquipped: EquippedItem[];
 	  };
 
-/**
- * Item level / attribute requirements, checked strictly against the totals
- * WITHOUT the new item (threat model "Equip requirements": an item can't
- * satisfy its own requirement, so no self-sustaining equips).
- */
 function requirementError(
 	item: GeneratedItem,
 	character: EquipCharacter,
@@ -48,7 +37,6 @@ function requirementError(
 	return unmetRequirement(item, stats, character.level);
 }
 
-/** Drops the row ids, for the stat engine. */
 export function withoutIds<Id>(entries: EquippedEntry<Id>[]): EquippedItem[] {
 	return entries.map(({ slot, item }) => ({ slot, item }));
 }
@@ -78,7 +66,6 @@ export function resolveEquip<Id>(params: {
 	const unmet = requirementError(params.item, params.character, kept);
 	if (unmet) return { ok: false, error: unmet };
 
-	// The equipped item leaves the inventory (-1); displaced ones come back.
 	if (params.inventoryUsed - 1 + displaced.length > INVENTORY_MAX_SLOTS) {
 		return { ok: false, error: "Inventory overflow — free a slot first" };
 	}
@@ -93,9 +80,7 @@ export type UnequipResolution<Id> =
 	| { ok: false; error: string }
 	| {
 			ok: true;
-			/** Rows going back to the inventory: the item, plus an orphaned quiver. */
 			toInventory: EquippedEntry<Id>[];
-			/** An off-hand weapon that moves to the empty main hand. */
 			promoted: EquippedEntry<Id> | null;
 			finalEquipped: EquippedItem[];
 	  };
@@ -109,7 +94,6 @@ export function resolveUnequip<Id>(params: {
 	if (!item) return { ok: false, error: SERVER_ERRORS.slotEmpty };
 	const offhand = params.equipped.find((e) => e.slot === "offhand");
 
-	// A bow leaving the main hand orphans a quiver (it needs a bow).
 	const orphanQuiver =
 		params.slot === "weapon" &&
 		isBow(item.item) &&
@@ -117,7 +101,6 @@ export function resolveUnequip<Id>(params: {
 		isQuiver(offhand.item)
 			? offhand
 			: null;
-	// The main hand can't stay empty while the off-hand holds a weapon.
 	const promoted =
 		params.slot === "weapon" &&
 		!orphanQuiver &&

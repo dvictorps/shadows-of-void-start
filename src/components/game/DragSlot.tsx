@@ -5,11 +5,6 @@ type DraggableHandle = Pick<
 	"attributes" | "listeners" | "setNodeRef"
 >;
 
-/**
- * A draggable card's wrapper, shared by the inventory and stash modals:
- * invisible while its item is being dragged. `onClick` is dropped while
- * hidden.
- */
 export default function DragSlot({
 	handle: { attributes, listeners, setNodeRef },
 	hidden,

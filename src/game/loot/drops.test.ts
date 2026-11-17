@@ -13,8 +13,6 @@ import {
 
 const SAMPLES = 200;
 
-// The guaranteed Rare can be promoted all the way up (rare → legendary at
-// 1%, then → epic at 1%), so "Rare or higher" includes epic.
 const RARE_OR_HIGHER: ReadonlySet<ItemRarity> = new Set([
 	"rare",
 	"legendary",

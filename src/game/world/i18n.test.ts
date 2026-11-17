@@ -202,9 +202,6 @@ describe("translateMonsterName", () => {
 });
 
 describe("translateEnemyName — rare proper names", () => {
-	// Seed = 0 maps to the first entry in every pool, which makes the expected
-	// output stable as long as the lexicon's first entries don't change. If
-	// reordering a pool, the tests below need a matching update.
 	const ZERO_SEED: RareNameSeed = { primary: 0, secondary: 0, epithet: 0 };
 
 	describe("EN", () => {
@@ -255,8 +252,6 @@ describe("translateEnemyName — rare proper names", () => {
 		});
 
 		it("epithet stays masculine regardless of monster grammatical gender", () => {
-			// "Serpente" is a feminine word, but the rare epithet refers to the
-			// monster as an entity (genderless) — always masculine.
 			const enemy = makeRareEnemy("serpente", ["monsterMoreArmor"], ZERO_SEED);
 			expect(translateEnemyName(enemy)).toBe("Braço de Sangue, o Blindado");
 		});
@@ -309,7 +304,6 @@ describe("translateEnemyName — rare proper names", () => {
 			rarity: "magic",
 			nameSeed: ZERO_SEED,
 		};
-		// Magic still uses the prefix/suffix system — no proper name yet.
 		expect(translateEnemyName(enemy)).toBe("Goblin Furioso");
 	});
 });

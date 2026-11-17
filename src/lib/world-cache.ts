@@ -1,12 +1,3 @@
-// The /world route's view of the react-query cache: typed keys and small
-// read / patch helpers for the queries every world mutation touches, plus
-// the snapshot / rollback pair the optimistic updates use (ADR 0001).
-//
-// There is no reactivity on D1 (ADR 0009): a mutation either writes its
-// result into these queries or invalidates them. Lives in `src/lib/` so the
-// route's mutation hooks and the combat hooks share it without importing
-// each other.
-
 import {
 	type QueryClient,
 	type QueryKey,
@@ -45,7 +36,6 @@ export function worldCache(
 		stash: (stashMode: StashMode): ItemRow[] | undefined =>
 			queryClient.getQueryData(keys.stash(stashMode)),
 
-		/** Merges `delta` into the cached character; no-op before it loads. */
 		patchCharacter(delta: Partial<CharacterRow>): void {
 			queryClient.setQueryData(keys.character, (row) =>
 				row ? { ...row, ...delta } : row,
@@ -66,23 +56,13 @@ export function worldCache(
 				rows.toSorted(byStashSlotAsc),
 			);
 		},
-		/** Refetches queries the client can't predict (e.g. after a death). */
 		invalidate(queryKeys: readonly QueryKey[]): void {
 			for (const queryKey of queryKeys) {
 				void queryClient.invalidateQueries({ queryKey });
 			}
 		},
 
-		/**
-		 * Snapshots `queryKeys` before an optimistic write. In-flight fetches of
-		 * them are cancelled first, so a late response can't paint over the
-		 * optimistic state. The returned `rollback` restores the snapshot and
-		 * refetches: other writes may have landed on the same queries since
-		 * (a kill during a failed potion), and the server has the truth.
-		 */
 		async snapshot(queryKeys: readonly QueryKey[]): Promise<Rollback> {
-			// A query with no data yet is left alone: cancelling its first fetch
-			// would leave it empty until the next refetch.
 			await Promise.all(
 				queryKeys
 					.filter(
@@ -109,11 +89,6 @@ export function worldCache(
 
 export type Rollback = () => void;
 
-/**
- * The reorder the server does for inventory and stash alike: `itemId` moves
- * to `targetSlot`, and `swapWithItemId` takes the source's slot only when it
- * really sits in `targetSlot`. Null when the item isn't in `rows`.
- */
 export function moveToSlot(
 	rows: readonly ItemRow[],
 	field: "inventorySlot" | "stashSlot",
@@ -133,7 +108,6 @@ export function moveToSlot(
 	});
 }
 
-/** The bag without the entries in `bagIds`. */
 export function withoutBagEntries(
 	bag: readonly BagEntry[],
 	bagIds: readonly string[],
@@ -153,12 +127,6 @@ export function useWorldCache(characterId: number): WorldCache {
 	);
 }
 
-/**
- * `onError` for an optimistic mutation whose `onMutate` returned
- * `{ rollback }` from `cache.snapshot(...)`. The optimistic body itself fails
- * closed (ADR 0001): when it can't predict the result it writes nothing, and
- * the UI waits for the server like a plain mutation.
- */
 export function rollbackOnError<TError, TVariables>(
 	_error: TError,
 	_variables: TVariables,

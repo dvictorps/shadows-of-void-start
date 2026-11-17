@@ -1,18 +1,5 @@
 // @vitest-environment jsdom
 
-// What the inventory modal renders and which server call each interaction
-// makes: opening and closing, the bag grid and the paper doll, the click
-// menu, equip / unequip / swap hands / reorder / discard (by click and by
-// drag), broken items and the error toasts.
-//
-// - The server is the `server` prop (the bundle `useInventoryMutations`
-//   returns, passed down by the route), so the calls are `vi.fn()` fakes, not
-//   module mocks. The modal's optimistic writes live in that hook; here the
-//   fakes just resolve or reject. The confirmation dialog and sonner's toaster
-//   run for real.
-// - Drag runs through dnd-kit's real PointerSensor on the shared harness
-//   (`dnd-test-harness.ts`: the layout and `animate` stubs, the cleanup).
-
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { Toaster } from "sonner";
 import { describe, expect, it, vi } from "vitest";
@@ -103,9 +90,6 @@ function setup({
 	return { ...result, server, onClose };
 }
 
-// ── DOM lookups ───────────────────────────────────────────────────────────
-
-// The paper doll's order, two per row.
 const SLOT_ORDER: EquippedSlot[] = [
 	"helmet",
 	"amulet",
@@ -142,11 +126,6 @@ function bagCells() {
 function bagCell(slot: number) {
 	return narrow(bagCells()[slot], HTMLElement);
 }
-/**
- * The draggable wrapper (dnd-kit gives it `role="button"`) around the card in
- * `cell`. It carries the drag opacity. Looked up by cell because the drag
- * overlay holds a second card with the same name.
- */
 function dragSlotIn(cell: Element) {
 	return narrow(cell.querySelector("button")?.parentElement, HTMLElement);
 }
@@ -182,15 +161,12 @@ async function confirmDiscard() {
 	});
 }
 
-// Highlight classes the slots wear while dragging.
 const STRONG = "ring-yellow-300/90";
 const SOFT = "ring-yellow-300/40";
 const INVALID = "ring-red-500/70";
 const BAG_OVER = "ring-yellow-300/80";
 
 installDragHarness();
-
-// ── Tests ─────────────────────────────────────────────────────────────────
 
 describe("InventoryModal — open and close", () => {
 	it("renders nothing while closed", () => {
@@ -209,7 +185,6 @@ describe("InventoryModal — open and close", () => {
 
 	it("closes from the footer button, the backdrop and Escape", () => {
 		const t = setup();
-		// No header ×: the backdrop and the footer are the only Close buttons.
 		const closers = screen.getAllByRole("button", {
 			name: m.modal_close_label(),
 		});
@@ -320,7 +295,6 @@ describe("InventoryModal — context menu", () => {
 		setup({ inventory: [inventoryRow(1, item, 0)] });
 		await openMenu(item);
 		expect(menuLabels()).toEqual([...equips, m.inventory_discard_action()]);
-		// The divider sits above Discard whenever there is an equip action.
 		expect(screen.getByRole("menu").querySelector(".h-px")).not.toBeNull();
 	});
 
@@ -397,8 +371,6 @@ describe("InventoryModal — equip by click", () => {
 	});
 
 	it("leaves the off-hand rules to the server and toasts its refusal", async () => {
-		// planEquip runs server-side (and in the hook's optimistic body); the
-		// modal sends the equip and shows the translated rule.
 		const q = quiver();
 		const t = setup({ inventory: [inventoryRow(4, q, 0)] });
 		t.server.equipItem.mockRejectedValue(ruleError("Cannot equip: needs-bow"));
@@ -462,7 +434,6 @@ describe("InventoryModal — unequip by click", () => {
 		);
 		await openMenu(h);
 		await chooseAction(m.unequip_action());
-		// The modal doesn't pre-check the bag: the server decides.
 		expect(t.server.unequipItem).toHaveBeenCalledOnce();
 		expect(await screen.findByText(m.error_inventory_overflow())).toBeTruthy();
 	});
@@ -628,7 +599,6 @@ describe("InventoryModal — broken items", () => {
 		await act(async () => {
 			fireEvent.mouseEnter(card(q));
 		});
-		// Twice: the broken warning on top, and the quiver's own requirement line.
 		expect(
 			screen.getAllByText(m.tooltip_requires_bow_in_main_hand()),
 		).toHaveLength(2);
@@ -720,11 +690,9 @@ describe("InventoryModal — drag to the paper doll (equip)", () => {
 		const h = helmet();
 		setup({ inventory: [inventoryRow(1, h, 0)] });
 		const drop = await startDrag(h, equipCell("boots"));
-		// Hovering an ineligible slot: red ring. The eligible one glows softly.
 		expect(equipCell("boots").className).toContain(INVALID);
 		expect(equipCell("helmet").className).toContain(SOFT);
 		expect(equipCell("gloves").className).not.toMatch(/ring-/);
-		// The source hides; the overlay carries a second copy of the card.
 		expect(screen.getAllByRole("button", { name: nameOf(h) })).toHaveLength(2);
 		expect(dragSlotIn(bagCell(0)).style.opacity).toBe("0");
 		await drop();
@@ -755,7 +723,6 @@ describe("InventoryModal — drag to the paper doll (equip)", () => {
 		const t = setup({ inventory: [inventoryRow(1, h, 0)] });
 		await startDrag(h, equipCell("helmet"));
 		await act(async () => {
-			// dnd-kit's sensor reads `code`; the Escape layers read `key`.
 			fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
 		});
 		expect(t.server.equipItem).not.toHaveBeenCalled();

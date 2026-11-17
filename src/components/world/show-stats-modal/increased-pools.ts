@@ -1,12 +1,6 @@
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import { m } from "#/paraglide/messages";
 
-/**
- * The non-zero `% increased` pools the sheet lists, in display order. Only
- * the pools the character's path uses: an attacker sees melee, elemental
- * with attacks and attack speed; a caster sees spell and cast speed. The
- * same split `estimateDps` applies.
- */
 export function increasedPools(
 	stats: Pick<ComputedCharacterStats, "increased" | "path">,
 ) {

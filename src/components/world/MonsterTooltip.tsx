@@ -13,15 +13,6 @@ import {
 import type { Enemy } from "#/hooks/useCombatLoop";
 import { m } from "#/paraglide/messages";
 
-// Slim cousin of ItemTooltip. Rarity-tinted shell + header with the rolled
-// name + level, body listing what each mod does. Only meaningful for magic /
-// rare / unique enemies — caller gates on enemy.rarity !== "normal" before
-// mounting.
-//
-// Bosses (`rarity: "unique"`) skip the affix block entirely — they don't
-// roll mods. Instead we render a declared stat sheet (resistances, damage
-// breakdown, attack speed). See CONTEXT.md → Boss.
-
 type ElementKey = "fire" | "cold" | "lightning" | "void";
 
 interface ResistanceDisplay {

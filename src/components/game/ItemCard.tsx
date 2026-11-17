@@ -9,8 +9,6 @@ import { translateItemName } from "#/game/items/item-name";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 import type { EquipmentType, WeaponType } from "#/game/items/types/base";
 
-// Slot framing for empty cells — kept neutral gray so rarity glow on filled
-// slots is what draws the eye.
 export const SLOT_EMPTY = "border border-white/15 bg-black/40";
 
 export const RARITY_BORDER = {
@@ -69,8 +67,6 @@ type ItemIcon =
 	| { kind: "emoji"; char: string };
 
 function iconFor(item: GeneratedItem): ItemIcon {
-	// Hand-authored items (starter gear) carry their own icon since they have
-	// no template entry.
 	if (item.icon) return { kind: "sprite", src: item.icon };
 	const tpl = TEMPLATE_BY_ID.get(item.templateId);
 	if (tpl?.icon) return { kind: "sprite", src: tpl.icon };
@@ -82,40 +78,18 @@ function iconFor(item: GeneratedItem): ItemIcon {
 
 type Props = {
 	item?: GeneratedItem | null;
-	// Number = square card. Object = rectangular (paper-doll slots that match the
-	// sprite's aspect ratio, e.g., 120×170 for weapon/chest/offhand).
 	size?: number | { w: number; h: number };
 	dimmed?: boolean;
-	/**
-	 * Selected-for-action overlay. Renders a glowing white ring on top of the
-	 * card's normal rarity frame. Used by selection-grid modals (pickup loot,
-	 * vendor sell, etc) to indicate which items the action will apply to,
-	 * without graying-out the unselected items.
-	 */
 	selected?: boolean;
 	suppressTooltip?: boolean;
-	/** Equipped-but-requirements-unmet state. Renders red border + warn icon. */
 	broken?: boolean;
-	/** Lines shown in red at the top of the tooltip when broken. */
 	brokenReasons?: string[];
-	/**
-	 * Render only the emoji + badge/tooltip, no own border or background. Used
-	 * when the parent (e.g. paper-doll slot) supplies the rarity-colored frame.
-	 */
 	frameless?: boolean;
-	/** Click handler — receives the card's bounding rect for positioning popovers. */
 	onClick?: (rect: DOMRect) => void;
-	/**
-	 * A rect (in viewport coords) the tooltip should not overlap. Used by the
-	 * inventory modal to push the tooltip past an open context menu instead of
-	 * letting it slide behind it.
-	 */
 	avoidRect?: DOMRect | null;
 };
 
 const TOOLTIP_OFFSET_PX = 12;
-// Rough estimate of the tooltip width — used so we can flip the tooltip to the
-// left side when the card is too close to the right edge of the viewport.
 const TOOLTIP_ESTIMATED_WIDTH = 280;
 
 function tooltipOverlapsAvoid(tooltipLeft: number, avoid: DOMRect): boolean {
@@ -160,11 +134,7 @@ export default function ItemCard({
 	const width = isSquareSize(size) ? size : size.w;
 	const height = isSquareSize(size) ? size : size.h;
 	const cardRef = useRef<HTMLButtonElement>(null);
-	// The card's rect, measured on hover. The tooltip position is derived from
-	// it at render time so a changed avoidRect (context menu opening/closing)
-	// repositions the tooltip without re-firing hover.
 	const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
-	// Drop the tooltip the instant suppression kicks in (e.g. a drag starts).
 	if (suppressTooltip && anchorRect) setAnchorRect(null);
 	const tooltipPos = anchorRect && {
 		left: computeTooltipLeft(anchorRect, avoidRect, window.innerWidth),
@@ -195,10 +165,6 @@ export default function ItemCard({
 					broken ? BROKEN_GLOW : RARITY_GLOW[item.rarity],
 				].join(" "),
 		dimmed ? "opacity-40 grayscale" : "",
-		// Selection overlay — white so it reads distinctly from the rarity frame
-		// underneath. Yellow would collide visually with rare-tier items
-		// (#b39800 border + golden glow). Inset keeps the rarity color visible
-		// at the very edge.
 		selected
 			? "ring-2 ring-white ring-inset shadow-[0_0_14px_rgba(255,255,255,0.55)]"
 			: "",
@@ -223,9 +189,6 @@ export default function ItemCard({
 				onMouseLeave={handleLeave}
 				onFocus={handleEnter}
 				onBlur={handleLeave}
-				// Don't disable the button when there's no onClick — disabled buttons
-				// don't fire pointer events, which would kill the hover tooltip on
-				// inventory/bag items that are view-only.
 				style={{ width, height }}
 				className={cardClasses}
 				aria-label={translateItemName(item)}
@@ -233,9 +196,6 @@ export default function ItemCard({
 				{(() => {
 					const icon = iconFor(item);
 					if (icon.kind === "sprite") {
-						// Rings + amulets are physically tiny objects vs. weapons/armor —
-						// render them at half scale so they don't visually dominate the
-						// grid. Belts are jewelry for stat purposes but render full-scale.
 						const isTinyJewelry =
 							item.equipmentType === "ring" || item.equipmentType === "amulet";
 						return (

@@ -1,14 +1,5 @@
 // @vitest-environment jsdom
 
-// What the stats modal shows for a character: attributes and their
-// tooltips, defenses with the armor / evasion previews against the zone's
-// reference enemy, offense for attack, spell, dual wield and unarmed (DPS,
-// speed, crit, per-hand damage, the increased pools), and utility. Pure
-// render: props in, DOM out; expected numbers
-// come from the same engine functions, not literals.
-//
-// - The attribute tooltips are Radix: they need a Provider, and open on focus.
-
 import {
 	act,
 	cleanup,
@@ -75,7 +66,6 @@ function swing(overrides: Partial<SwingProfile> = {}): SwingProfile {
 	};
 }
 
-/** The section under the heading `heading`. */
 function section(heading: string) {
 	return narrow(
 		screen.getByText(heading, { selector: "h3" }).closest("section"),
@@ -83,13 +73,11 @@ function section(heading: string) {
 	);
 }
 
-/** The value cell of the row labelled `label` inside `scope`. */
 function value(scope: HTMLElement, label: string) {
 	const row = narrow(within(scope).getByText(label).parentElement, HTMLElement);
 	return narrow(row.lastElementChild, HTMLElement).textContent;
 }
 
-/** The "Increased" block of the offense section (null when hidden). */
 function increasedBlock(offense: HTMLElement) {
 	const header = within(offense).queryByText(m.stats_increased_header());
 	return header ? narrow(header.parentElement, HTMLElement) : null;
@@ -245,7 +233,6 @@ describe("ShowStatsModal — offense", () => {
 			increased: { ...makeStats().increased, criticalChance: 50 },
 		});
 		setup({ stats });
-		// The headline grid; the increased block below repeats "Crit Chance".
 		const s = narrow(offenseAttack().querySelector(".grid"), HTMLElement);
 		expect(value(s, m.stats_dps())).toBe(String(estimateDps(stats)));
 		expect(value(s, m.stats_attack_speed())).toBe("1.23 /s");

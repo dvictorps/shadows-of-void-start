@@ -12,9 +12,6 @@ import { defaultElementFor } from "./attunement";
 import { CLASS_DEFINITIONS } from "./data";
 import type { CharacterClassId } from "./types";
 
-// Character creation rules (CONTEXT.md → Classes), decided here so the
-// `characters.create` procedure is only auth + IO.
-
 export const MAX_CHARACTERS_PER_USER = 8;
 export const MAX_NAME_LENGTH = 20;
 export const STARTING_POTIONS = 5;
@@ -52,11 +49,6 @@ function starterItems(classId: CharacterClassId): EquippedItem[] {
 	});
 }
 
-/**
- * Validates a creation request against the account's existing characters
- * (dead hardcore characters included: they keep their name and their slot)
- * and resolves everything the new row and its starter gear need.
- */
 export function planNewCharacter(
 	request: NewCharacterRequest,
 	existingNames: readonly string[],

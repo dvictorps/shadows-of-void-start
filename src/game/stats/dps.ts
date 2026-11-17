@@ -1,13 +1,6 @@
 import { BASE_CRIT_MULTIPLIER } from "../combat/constants";
 import type { ComputedCharacterStats } from "./types";
 
-// Tooltip / status-readout DPS estimate. Averages per-swing damage across
-// all configured swings, scales by tickRate (effective attacks/casts per
-// second after speed mods + dual-wield averaging) and the expected crit
-// factor. Doesn't model enemy armor/evasion/resistances — it's a
-// "ballpark if all hits land" number meant to compare gear, not predict
-// real combat output. Authoritative for both StatusCard and ShowStatsModal
-// so the two readouts can't drift.
 export function estimateDps(stats: ComputedCharacterStats): number {
 	if (stats.swings.length === 0) return 0;
 	const inc = stats.increased;

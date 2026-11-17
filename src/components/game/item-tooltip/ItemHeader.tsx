@@ -14,11 +14,6 @@ const OFFHAND_TYPES = new Set(["offhand", "tome", "quiver"]);
 const SUBTITLE =
 	"px-4 py-0.5 text-center text-[10px] uppercase tracking-wider text-white/40";
 
-/**
- * The tooltip's top: corner ornaments (rare and up), the name (a rare-and-up
- * item's generated name over its base name), and the one-/two-handed or
- * off-hand line.
- */
 export default function ItemHeader({ item }: { item: GeneratedItem }) {
 	const nameColor = RARITY_COLORS[item.rarity];
 	const showGeneratedName = HAS_GENERATED_NAME.has(item.rarity);

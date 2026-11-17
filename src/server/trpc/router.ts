@@ -8,8 +8,6 @@ import { stashRouter } from "./routers/stash";
 import { usersRouter } from "./routers/users";
 import { vendorRouter } from "./routers/vendor";
 
-// One sub-router per domain (ADR 0009). The combat state and progression are
-// columns of `characters`, so the client reads them from `characters.byId`.
 export const appRouter = router({
 	health: publicProcedure.query(() => ({ ok: true })),
 	users: usersRouter,

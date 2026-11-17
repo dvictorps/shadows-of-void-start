@@ -35,9 +35,6 @@ export const ATTRIBUTE_MODIFIERS = {
 		tags: ["attribute"],
 		tiers: createStandardTiers(8, 12, 48, 50),
 	},
-	// Implicit-only — applies to STR + DEX + INT. `applicableTo: []` keeps it
-	// out of the random explicit pool; the engine still recognises the id when
-	// applied via template implicits (e.g., prismatic belt, amulets).
 	allAttributesFlat: {
 		id: "allAttributesFlat",
 		affixType: "suffix",

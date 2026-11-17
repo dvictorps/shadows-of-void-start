@@ -10,17 +10,11 @@ import type { CharacterRow } from "#/lib/api-types";
 import EquipmentPanel from "./EquipmentPanel";
 import StatusCard from "./StatusCard";
 
-/** Equipped items keyed by slot, as the paper doll reads them. */
 export type EquippedBySlot = ReadonlyMap<
 	EquippedSlot,
 	{ id: string; data: EquippedItem["item"] }
 >;
 
-/**
- * The right column of /world: the equipment panel and the status card. In
- * combat the HUD numbers come from the live combat loop; elsewhere from the
- * character row (life clamped to the current max).
- */
 export function WorldSidebar({
 	compact,
 	view,
@@ -53,8 +47,6 @@ export function WorldSidebar({
 	onShowStats: () => void;
 }) {
 	const inCombat = view === "combat";
-	// Clearing the handler (rather than adding a prop) is how StatusCard
-	// disables its button: on the city view, and while a drink is in flight.
 	const potionEnabled = view !== "city" && !isUsingPotion;
 	const rubys = character.rubys ?? 0;
 

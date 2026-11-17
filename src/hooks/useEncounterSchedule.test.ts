@@ -1,10 +1,5 @@
 // @vitest-environment jsdom
 
-// The encounter schedule drives the zone's pacing: the calmaria time bar, the
-// camp and ambush triggers, and the rarity of the next spawn. These tests run
-// the real hook on fake timers. `Math.random` is pinned to 0.5 so the rolled
-// jitter is zero (`randSymmetric`) and the rolled sizes are deterministic.
-
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -24,7 +19,6 @@ const PLAN: ZoneEncounterPlan = {
 
 const AMBUSH_PLAN: ZoneEncounterPlan = {
 	...PLAN,
-	// No camps, so only the ambush fires along the bar.
 	campFractions: [],
 	ambushes: {
 		fractions: [0.3],
@@ -46,8 +40,6 @@ function setup(overrides: Partial<Props> = {}) {
 		onCampTriggered,
 		...overrides,
 	};
-	// As in the app: `/world` opens on the map (inactive); zone entry starts
-	// the visit (which rolls its ambush schedule) and flips `active`.
 	const hook = renderHook((props: Props) => useEncounterSchedule(props), {
 		initialProps: { ...initialProps, active: false },
 	});
@@ -120,7 +112,6 @@ describe("useEncounterSchedule — calmaria time bar", () => {
 		expect(result.current.calmariaElapsedMs).toBe(0);
 		expect(result.current.campSource).toBe("baked");
 
-		// The camp index rewound too: the same threshold fires again.
 		advance(5000);
 		expect(onCampTriggered).toHaveBeenCalledTimes(2);
 		expect(onCampTriggered).toHaveBeenLastCalledWith(0);
@@ -143,8 +134,6 @@ describe("useEncounterSchedule — startVisit", () => {
 	it("rolls the ambushes from the entered node's plan, not the one still in props", () => {
 		const { result, rerender, initialProps } = setup();
 		rerender({ ...initialProps, active: false });
-		// The arrival resolves before the route re-renders with the new node:
-		// startVisit gets the new plan while the props still hold the old one.
 		act(() => result.current.startVisit(AMBUSH_PLAN));
 		rerender({ ...initialProps, active: true });
 		rerender({
@@ -231,11 +220,9 @@ describe("useEncounterSchedule — spawn rarity and ambushes", () => {
 			serverCampThresholdsMs: [],
 		});
 		advance(3000);
-		// A spawn mid-pack: the search after this fight stays short.
 		act(() => result.current.recordSpawn());
 		expect(result.current.nextSpawnGapMs).toBe(200);
 
-		// The last mob of the pack: back to the plan's range.
 		act(() => result.current.recordSpawn());
 		expect(result.current.nextSpawnGapMs).toBe(1000);
 	});
@@ -250,7 +237,6 @@ describe("useEncounterSchedule — spawn rarity and ambushes", () => {
 		act(() => result.current.cancelAmbush());
 		expect(result.current.ambushActive).toBe(false);
 		expect(result.current.isAmbushPackActive()).toBe(false);
-		// The short in-pack gap doesn't survive the cancel.
 		expect(result.current.nextSpawnGapMs).toBe(1000);
 	});
 
@@ -260,14 +246,12 @@ describe("useEncounterSchedule — spawn rarity and ambushes", () => {
 			serverCampThresholdsMs: [],
 		});
 		advance(3000);
-		// The bar filled mid-pack: the miniboss spawned with the short gap set.
 		act(() => result.current.recordSpawn());
 		expect(result.current.nextSpawnGapMs).toBe(200);
 
 		act(() => result.current.resetForMiniboss());
 		expect(result.current.calmariaElapsedMs).toBe(0);
 		expect(result.current.ambushActive).toBe(false);
-		// The search after the miniboss uses the plan's gap, not the pack's.
 		expect(result.current.nextSpawnGapMs).toBe(1000);
 
 		advance(3000);

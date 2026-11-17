@@ -120,31 +120,21 @@
 @theme inline {
   --font-sans: 'Jersey 25', ui-sans-serif, system-ui, sans-serif;
   --tracking-display: 0.3em;
-  /* Small uppercase labels (loading / empty states). */
   --tracking-label: 0.2em;
-  /* Modal titles. */
   --tracking-title: 0.15em;
-  /* The drop shadow under a modal dialog. */
   --shadow-dialog: 0 20px 60px rgba(0, 0, 0, 0.7);
   --text-2xs: 0.625rem;
-  /* Fine print under a form option (the hardcore warning). */
   --text-caption: 0.6875rem;
-  /* The landing page's Play button. */
   --tracking-hero: 0.25em;
-  /* The drop shadow under a tooltip. */
   --shadow-tooltip: 0 0 8px rgba(0, 0, 0, 0.8);
   --leading-display: 0.95;
   --color-selection: rgba(168, 85, 247, 0.32);
-  /* The void purple of the title glow, for links and accents. */
   --color-void: #c084fc;
-  /* The red of the stark destructive buttons (destructive confirms, delete). */
   --color-danger: var(--color-red-400);
-  /* The hardcore frame and its label (character creation, admin). */
   --color-danger-strong: var(--color-red-500);
   --color-danger-soft: var(--color-red-300);
   --color-danger-foreground: var(--color-red-100);
   --color-danger-muted: var(--color-red-950);
-  /* The /world layout: scene column + fixed sidebar, scene + text log. */
   --grid-template-columns-world: 1fr 640px;
   --grid-template-columns-world-compact: 1fr 520px;
   --grid-template-rows-world-scene: 1fr 160px;
@@ -245,7 +235,6 @@ pre code {
   margin-inline: auto;
 }
 
-/* The landing page's purple vignette behind the title. */
 @utility void-vignette {
   background: radial-gradient(
     ellipse 60% 45% at 50% 42%,
@@ -255,7 +244,6 @@ pre code {
   );
 }
 
-/* A shell that fills the viewport under the 4rem site header (admin). */
 @utility below-header {
   height: calc(100dvh - 4rem);
 }
@@ -275,8 +263,6 @@ pre code {
   animation: text-glow-pulse 3.4s ease-in-out infinite;
 }
 
-/* Attribute stat glows — white text with colored aura behind, same idea as
-   .glow-purple but tighter/subtler for small inline stat labels. */
 .text-glow-red {
   color: #ffffff;
   text-shadow:
@@ -319,8 +305,6 @@ pre code {
   }
 }
 
-/* Scoped scrollbar styling — rounded white-ish thumb on transparent track,
-   thin width. Applied to .fancy-scroll containers (inventory, loot bags). */
 .fancy-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.35) transparent;

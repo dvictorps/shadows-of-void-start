@@ -72,7 +72,6 @@ describe("resolveVitalSync", () => {
 			clientHp: 999,
 			clientBarrier: 999,
 		});
-		// 999 HP clamps to 100 (≠ prev 80) and 999 barrier clamps to 50 (== prev).
 		expect(r.hpCurrent).toBe(100);
 		expect(r.patch).toEqual({ hpCurrent: 100 });
 	});
@@ -84,7 +83,6 @@ describe("resolveVitalSync", () => {
 			clientHp: 79.9,
 			clientBarrier: undefined,
 		});
-		// 79.9 floors to 79, which equals prevHp — no write.
 		expect(r.hpCurrent).toBe(79);
 		expect(r.patch).toEqual({});
 	});

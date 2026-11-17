@@ -47,8 +47,6 @@ export default function ElementSelector({
 	disabled?: boolean;
 	lastSwitchAt?: number;
 }) {
-	// Derived from the server-stamped switch time; the ticking `now` below is
-	// the only state the countdown needs.
 	const cooldownEnd = lastSwitchAt
 		? lastSwitchAt + ELEMENT_SWITCH_COOLDOWN_MS
 		: 0;

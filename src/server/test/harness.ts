@@ -16,9 +16,6 @@ import type { RequestSession } from "../trpc/context";
 import { createCallerFactory } from "../trpc/init";
 import { appRouter } from "../trpc/router";
 
-// Integration-test helpers for the `server` Vitest project. Each test creates
-// its own account, so tests never depend on each other's rows.
-
 const createCaller = createCallerFactory(appRouter);
 
 type Role = (typeof USER_ROLES)[number];
@@ -30,7 +27,6 @@ export interface TestAccount {
 
 let sequence = 0;
 
-/** Inserts a `user` row and returns a caller signed in as it. */
 export async function createAccount(role: Role = "user"): Promise<TestAccount> {
 	sequence += 1;
 	const id = `test-user-${crypto.randomUUID()}`;
@@ -64,7 +60,6 @@ export interface PlayableCharacter {
 	sessionToken: string;
 }
 
-/** Creates a character and claims its session, ready for mutations. */
 export async function createPlayableCharacter(
 	account: TestAccount,
 	classId = "warrior",
@@ -83,7 +78,6 @@ export async function createPlayableCharacter(
 	return { characterId, sessionToken };
 }
 
-/** Writes columns straight to the character row to set up a scenario. */
 export async function patchCharacter(
 	characterId: number,
 	values: Partial<typeof characters.$inferInsert>,
@@ -99,7 +93,6 @@ export async function readCharacter(characterId: number) {
 	return row;
 }
 
-/** Asserts that `promise` rejects with a TRPCError carrying `message`. */
 export async function expectServerError(
 	promise: Promise<unknown>,
 	message: string | RegExp,
@@ -120,7 +113,6 @@ export async function expectServerError(
 	);
 }
 
-/** Puts the character in `zoneId` and starts a visit, as the client would. */
 export async function enterZone(
 	account: TestAccount,
 	hero: PlayableCharacter,
@@ -134,7 +126,6 @@ export async function enterZone(
 	return zoneSession;
 }
 
-/** Writes `count` staged drops straight into the bag. */
 export async function stageBag(
 	characterId: number,
 	count: number,
@@ -152,7 +143,6 @@ export async function stageBag(
 	return entries;
 }
 
-/** Inventory rows of a character. */
 export async function inventoryOf(characterId: number) {
 	return db
 		.select()

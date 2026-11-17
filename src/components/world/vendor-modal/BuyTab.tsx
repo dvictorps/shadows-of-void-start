@@ -14,7 +14,6 @@ import { buyLimits, clampQty } from "./buy-limits";
 
 type OnBuy = (productId: VendorProductId, quantity: number) => Promise<void>;
 
-/** The Buy tab: one card per vendor product. */
 export default function BuyTab({
 	rubys,
 	potions,
@@ -28,7 +27,6 @@ export default function BuyTab({
 	pendingBuys: ReadonlySet<VendorProductId>;
 	onBuy: OnBuy;
 }) {
-	// Counter-field lookup so cap math walks the same field the server keys on.
 	const counts = {
 		potions,
 		teleportStones,
@@ -64,9 +62,6 @@ function BuyCard({
 }) {
 	const { maxQty, atCap } = buyLimits(product, rubys, currentCount);
 	const [qty, setQty] = useState(1);
-	// Clamp when live affordability/cap shrinks below the user's chosen qty.
-	// Adjusted during render (React's "adjust state when a prop changes"
-	// pattern); the guard makes the re-render converge in one pass.
 	const clampedQty = clampQty(qty, maxQty);
 	if (clampedQty !== qty) setQty(clampedQty);
 	const totalCost = product.priceRubys * qty;
@@ -150,7 +145,6 @@ function StepperButton({
 			onClick={onClick}
 			disabled={disabled}
 			aria-label={ariaLabel}
-			// The stepper's own look: rounded, faint border, translucent fill.
 			className="display-title h-8 w-8 rounded border border-white/25 bg-black/40 text-lg text-white hover:border-white/60 hover:bg-white/10 hover:text-white disabled:opacity-30"
 		>
 			{children}
@@ -158,9 +152,6 @@ function StepperButton({
 	);
 }
 
-// Localised display label per product. Emoji lives on the product data
-// itself (see src/game/vendor/products.ts); only the label needs i18n
-// routing since it must vary per locale.
 function productLabel(id: VendorProductId): string {
 	switch (id) {
 		case "potion":

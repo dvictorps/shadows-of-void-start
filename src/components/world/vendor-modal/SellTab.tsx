@@ -6,10 +6,6 @@ import { m } from "#/paraglide/messages";
 
 const ITEM_SLOT_SIZE = 88;
 
-/**
- * The Sell tab: the bag as a pickable grid, select-all, the running total and
- * the Sell button. The modal owns the selection and the sale.
- */
 export default function SellTab({
 	inventoryItems,
 	selected,
@@ -22,7 +18,6 @@ export default function SellTab({
 }: {
 	inventoryItems: readonly ItemRow[];
 	selected: ReadonlySet<number>;
-	/** Selected items still in the bag (the selection may hold stale ids). */
 	selectedCount: number;
 	selectedTotal: number;
 	isSelling: boolean;

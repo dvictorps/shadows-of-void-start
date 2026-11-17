@@ -36,20 +36,12 @@ import {
 import { fail } from "../errors";
 import { authedProcedure, characterSessionProcedure, router } from "../init";
 
-// Item lifecycle: zone bag (a JSON column, see src/server/zone-bag.ts) →
-// inventory ⇄ equipped → stash (stash.ts), plus permanent discards.
-
 const itemId = z.number().int().positive();
 const bagIds = z.array(z.string().min(1));
 const equippedSlot = z.enum(EQUIPPED_SLOTS);
 const characterIdInput = z.object({ characterId: z.number().int().positive() });
 
 export const itemsRouter = router({
-	// ── Zone bag ──
-
-	// Leaves the zone: kept entries become inventory items, the rest is
-	// discarded with the bag. The inserts read the bag, then the last statement
-	// clears it with the session, so a duplicated exit keeps nothing.
 	exitZone: characterSessionProcedure
 		.input(z.object({ keepIds: bagIds }))
 		.mutation(async ({ ctx, input }) => {
@@ -81,7 +73,6 @@ export const itemsRouter = router({
 				picks,
 				CLEARED_ZONE,
 			);
-			// The new inventory rows, for the client's cache (no reactivity).
 			return {
 				kept: kept.length,
 				discarded: bag.length - kept.length,
@@ -89,7 +80,6 @@ export const itemsRouter = router({
 			};
 		}),
 
-	// Camp-only pick-up; the zone goes on.
 	pickFromBag: characterSessionProcedure
 		.input(z.object({ itemIds: bagIds }))
 		.mutation(async ({ ctx, input }) => {
@@ -128,7 +118,6 @@ export const itemsRouter = router({
 			return { kept: kept.length, items: kept };
 		}),
 
-	// Camp-only permanent discard of staged drops.
 	discardFromBag: characterSessionProcedure
 		.input(z.object({ itemIds: bagIds }))
 		.mutation(async ({ ctx, input }) => {
@@ -149,9 +138,6 @@ export const itemsRouter = router({
 			return { discarded: discarded.length };
 		}),
 
-	// ── Inventory and equipment ──
-
-	// Permanent delete. Equipped items must be unequipped first.
 	discardFromInventory: characterSessionProcedure
 		.input(z.object({ itemId }))
 		.mutation(async ({ ctx, input }) => {
@@ -181,7 +167,6 @@ export const itemsRouter = router({
 			});
 			if (!result.ok) fail(result.error);
 
-			// The equipped item's slot frees up before the displaced ones land.
 			const nextSlot = createInventorySlotAllocator(
 				inventory.filter((row) => row.inventorySlot !== item.inventorySlot),
 			);
@@ -255,8 +240,6 @@ export const itemsRouter = router({
 			return { unequipped: 1 };
 		}),
 
-	// Totals don't change when two equipped weapons trade hands, so the stat
-	// cache stays as it is.
 	swapHands: characterSessionProcedure.mutation(async ({ ctx }) => {
 		const { id: characterId } = ctx.character;
 		const equipped = await loadEquipped(ctx.db, characterId);
@@ -279,8 +262,6 @@ export const itemsRouter = router({
 		return { swapped: 1 };
 	}),
 
-	// Moves an item to another inventory slot, swapping with the occupant the
-	// client named when it really is there.
 	reorderInventory: characterSessionProcedure
 		.input(
 			z.object({
@@ -317,10 +298,6 @@ export const itemsRouter = router({
 			]);
 		}),
 
-	// ── Queries ──
-
-	// The current zone bag. Each entry's `bagId` is what pick / discard / exit
-	// take back.
 	zoneBag: authedProcedure
 		.input(characterIdInput)
 		.query(async ({ ctx, input }) => {
@@ -357,7 +334,6 @@ export const itemsRouter = router({
 			}),
 		),
 
-	// Account-wide stash for one mode (shared by the account's characters).
 	stash: authedProcedure
 		.input(z.object({ stashMode: z.enum(STASH_MODES) }))
 		.query(async ({ ctx, input }) =>

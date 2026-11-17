@@ -2,41 +2,22 @@ import { BASE_CRIT_MULTIPLIER, CRIT_CHANCE_FLOOR } from "../combat/constants";
 import { type ElementalGainPct, EMPTY_ELEMENTAL_GAIN } from "../combat/damage";
 import type { MonsterDefinition, MonsterElementDamage } from "./types";
 
-// Geometric scaling factor matches PoE/Last Epoch's approach: player power
-// grows multiplicatively via gear, so monsters must too. See CONTEXT.md →
-// "Monster stat scaling" for the rationale and the rejected linear alternative.
 export const MONSTER_SCALING_BASE = 1.06;
 
 export interface ScaledMonsterStats {
-	// Resolved monster level. Carried through so modifiers can scale their
-	// magnitudes against it — a +500 evasion mod at level 1 is impossible to
-	// hit; per-level scaling keeps the curve sane across act 1.
 	level: number;
 	hp: number;
 	physicalDamage: { min: number; max: number };
 	elementalDamage: MonsterElementDamage[];
 	attackSpeed: number;
 	xpReward: number;
-	// Defensive baseline. `accuracy` defaults to `level × 10` (CONTEXT.md →
-	// Defenses → Evasion + Accuracy). Other defaults are 0. Monster modifiers
-	// add to these at spawn time.
 	armor: number;
 	evasion: number;
 	accuracy: number;
 	resistances: { cold: number; fire: number; lightning: number; void: number };
-	// Barrier pool above HP, mirrors the player's barrier. Defaults to 0 —
-	// only the monsterAdditionalBarrier mod grants it. See CONTEXT.md →
-	// Defenses → Barrier.
 	barrier: number;
-	// Crit chance % and crit multiplier %. Every monster ships with the same
-	// 5% / 50% baseline as the player's floor; mods stack on top. See
-	// CONTEXT.md → Combat Resolution → Damage formula.
 	criticalChance: number;
 	criticalMultiplier: number;
-	// Per-element "gain X% of total damage as extra <element>", applied at
-	// hit time before crit + mitigation. Mirrors the player's
-	// `gainAsExtraSpell` (tome mod family). Defaults to all zeros — the
-	// monsterXxxDamage mods stack additively here.
 	gainAsExtraDamage: ElementalGainPct;
 }
 
@@ -85,8 +66,6 @@ export function scaleMonsterStats(
 		barrier: 0,
 		criticalChance: CRIT_CHANCE_FLOOR,
 		criticalMultiplier: BASE_CRIT_MULTIPLIER,
-		// Fresh copy of the empty literal — mods apply via spread, so callers
-		// would otherwise share the same constant across all spawns.
 		gainAsExtraDamage: { ...EMPTY_ELEMENTAL_GAIN },
 	};
 }

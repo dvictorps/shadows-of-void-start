@@ -3,9 +3,6 @@ import { motion } from "framer-motion";
 import { Button } from "#/components/ui/button";
 import { m } from "#/paraglide/messages";
 
-// Inline replacement for the post-miniboss modal. Renders in the central
-// enemy area so the player stays in-scene to make the continue/retreat
-// choice. See CONTEXT.md → Zone Miniboss.
 export default function ZoneCompletePanel({
 	onContinue,
 	onRetreat,

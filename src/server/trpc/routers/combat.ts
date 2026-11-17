@@ -38,26 +38,12 @@ import {
 	type SessionCharacter,
 } from "../init";
 
-// Kills, vitals, zone visits, camps and travel.
-// Every procedure is one UPDATE of the character row (the combat state and
-// progression live on it), except hardcore death, which also deletes items.
-//
-// Trust model: the client still reports kills and HP
-// (threats #1 and #2 in docs/security/threat-model.md); the server decides
-// every value.
-//
-// Named without a `use` prefix, which trips the React hooks lint rule on
-// the client: usePotion → consumePotion, useEtherealIncense →
-// consumeEtherealIncense, useTeleportStone → consumeTeleportStone.
-
 type CharacterUpdate = SQLiteUpdateSetSource<typeof characters>;
 
 function byId(character: SessionCharacter) {
 	return eq(characters.id, character.id);
 }
 
-// Reaching a safe state (city, teleport to city, softcore respawn) tops the
-// potion count up to the floor; anything above it is kept.
 function refilledPotions(potions: number): number {
 	return Math.max(potions, POTION_REFILL_FLOOR);
 }
@@ -69,9 +55,6 @@ export const combatRouter = router({
 				monsterId: z.string(),
 				monsterLevel: z.number(),
 				monsterRarity: z.enum(MONSTER_RARITIES),
-				// The combat loop's HP sync rides on the kill (same clamp as
-				// `syncHp`), so an active fight writes one row per kill instead of a
-				// kill plus a 10 s tick.
 				clientHp: z.number().optional(),
 				clientBarrier: z.number().optional(),
 			}),
@@ -81,8 +64,6 @@ export const combatRouter = router({
 			const target = resolveKillTarget(input.monsterId, input.monsterLevel);
 			if (!target) fail(`Unknown monster: ${input.monsterId}`);
 
-			// The stat engine only runs on a level-up; every other kill reads the
-			// cached stats on the row.
 			const gain = resolveKillXp(character, target);
 			const levelUpStats =
 				gain.levelsGained > 0
@@ -102,8 +83,6 @@ export const combatRouter = router({
 				levelUpStats,
 				now,
 			});
-			// A level-up refills the vitals, so the client's values only count
-			// on an ordinary kill.
 			const vitals =
 				input.clientHp === undefined || levelUpStats
 					? {}
@@ -116,8 +95,6 @@ export const combatRouter = router({
 							clientBarrier: input.clientBarrier,
 						}).patch;
 			const patch = { ...vitals, ...outcome.update };
-			// One row written per kill: the drops ride on the same UPDATE.
-			// `resolveKill` only rolls drops inside a zone visit.
 			const update: CharacterUpdate = { ...patch };
 			const zoneSession = character.currentZoneSession;
 			const drops = toBagEntries(
@@ -134,8 +111,6 @@ export const combatRouter = router({
 				.set(update)
 				.where(byId(character))
 				.returning({ currentZoneSession: characters.currentZoneSession });
-			// The append is skipped if another request ended the visit meanwhile;
-			// then the drops aren't in any bag and the client mustn't show them.
 			const landed = written?.currentZoneSession === zoneSession ? drops : [];
 
 			return {
@@ -145,8 +120,6 @@ export const combatRouter = router({
 				incenseDropped: outcome.incenseDropped,
 				newMaxLife: outcome.newMaxLife,
 				newMaxBarrier: outcome.newMaxBarrier,
-				// No reactivity on D1: the client merges the written columns into
-				// its character cache and appends the drops to its bag cache.
 				character: patch,
 				drops: landed,
 			};
@@ -169,8 +142,6 @@ export const combatRouter = router({
 						: SERVER_ERRORS.fullLife,
 				);
 			}
-			// Guarded on the count we read, so two concurrent drinks spend two
-			// potions or fail.
 			const [updated] = await ctx.db
 				.update(characters)
 				.set({
@@ -183,8 +154,6 @@ export const combatRouter = router({
 			return { hpCurrent: result.hpCurrent, potions: updated.potions };
 		}),
 
-	// The cinematic is client-side; the server owns the counter. The other
-	// gates (no overlapping camp) stay on the client.
 	consumeEtherealIncense: characterSessionProcedure.mutation(
 		async ({ ctx }) => {
 			const { character } = ctx;
@@ -202,8 +171,6 @@ export const combatRouter = router({
 		},
 	),
 
-	// Camp summoned by incense: no time gate, the consumed incense is the gate.
-	// Kept apart from `enterCamp` so the time-gated path can't be widened.
 	enterCampViaIncense: characterSessionProcedure.mutation(async ({ ctx }) => {
 		if (ctx.character.zoneStartedAt === null) fail(SERVER_ERRORS.notInZone);
 		await ctx.db
@@ -230,7 +197,6 @@ export const combatRouter = router({
 				clientHp: input.hpCurrent,
 				clientBarrier: input.barrierCurrent,
 			});
-			// The common idle tick changes nothing and writes nothing.
 			if (Object.keys(patch).length > 0) {
 				await ctx.db.update(characters).set(patch).where(byId(character));
 			}
@@ -256,8 +222,6 @@ export const combatRouter = router({
 		return { hpCurrent: character.cachedMaxLife, potions };
 	}),
 
-	// Death. Softcore: XP penalty, back to the city, bag lost. Hardcore: the
-	// character is soft-deleted for the leaderboard and loses every item.
 	respawnDead: characterSessionProcedure.mutation(async ({ ctx }) => {
 		const { character } = ctx;
 		if (character.hardcore) {
@@ -298,8 +262,6 @@ export const combatRouter = router({
 		return { mode: "softcore" as const, xpLost };
 	}),
 
-	// New zone visit: fresh session id, camp schedule and full vitals. A bag
-	// left over from a previous visit is wiped.
 	enterZone: characterSessionProcedure
 		.input(z.object({ zoneId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
@@ -347,7 +309,6 @@ export const combatRouter = router({
 			return { inCamp: true };
 		}),
 
-	// "Seguir em frente" on the camp panel. No time gate.
 	exitCamp: characterSessionProcedure.mutation(async ({ ctx }) => {
 		if (ctx.character.inCamp) {
 			await ctx.db
@@ -383,8 +344,6 @@ export const combatRouter = router({
 			};
 		}),
 
-	// Idempotent: without an active travel it reports where the character is,
-	// so a retried or stale arrival timer is not an error.
 	arriveAtTravel: characterSessionProcedure.mutation(async ({ ctx }) => {
 		const { character } = ctx;
 		const destination = character.travelDestination;
@@ -400,7 +359,6 @@ export const combatRouter = router({
 			travelStartedAt: null,
 			travelArrivesAt: null,
 		};
-		// First arrival unlocks the node for teleport stones.
 		if (!character.unlockedNodes.includes(destination)) {
 			update.unlockedNodes = [...character.unlockedNodes, destination];
 		}
@@ -408,8 +366,6 @@ export const combatRouter = router({
 		return { arrivedAt: destination };
 	}),
 
-	// Jump to any visited node (the city by default, which also heals and
-	// refills potions). Used mid-zone, it ends the visit and wipes the bag.
 	consumeTeleportStone: characterSessionProcedure
 		.input(z.object({ destinationNodeId: z.string().optional() }))
 		.mutation(async ({ ctx, input }) => {
@@ -436,8 +392,6 @@ export const combatRouter = router({
 				.where(and(byId(character), gt(characters.teleportStones, 0)))
 				.returning({ teleportStones: characters.teleportStones });
 			if (!updated) fail(SERVER_ERRORS.noTeleportStones);
-			// Everything it wrote, so the client cache doesn't depend on its
-			// optimistic guess (the zone visit and the bag are cleared too).
 			return {
 				teleportStones: updated.teleportStones,
 				travelDestination: destination,
@@ -451,16 +405,11 @@ export const combatRouter = router({
 			};
 		}),
 
-	// Mage attunement (CONTEXT.md → Elemental Attunement), 5 s cooldown. Like
-	// before, it leaves the stat cache alone: none of the cached
-	// stats depend on the element.
 	switchElement: characterSessionProcedure
 		.input(z.object({ element: z.enum(SELECTABLE_ELEMENTS) }))
 		.mutation(async ({ ctx, input }) => {
 			const { character } = ctx;
 			if (character.classId !== "mage") fail(SERVER_ERRORS.onlyMagesSwitch);
-			// The client copies both into its cache (the cooldown overlay reads
-			// the server's switch time).
 			const unchanged = {
 				selectedElement: input.element,
 				lastElementSwitchAt: character.lastElementSwitchAt,

@@ -17,7 +17,6 @@ interface SessionClaim {
 	sessionToken: string;
 }
 
-/** The character exists and belongs to `authUserId`. */
 export function assertOwnsCharacter<Character extends OwnedCharacter>(
 	character: Character | undefined,
 	authUserId: string,
@@ -29,11 +28,6 @@ export function assertOwnsCharacter<Character extends OwnedCharacter>(
 	return character;
 }
 
-// Single active session per character (threat #5 in
-// docs/security/threat-model.md). A second tab that claims the character
-// rotates `activeSessionToken`; every later write from the first tab fails
-// here and the client shows the "Session lost" modal. Read-only procedures
-// skip this, so a stale tab can still observe its character.
 export function assertCharacterSession<Character extends SessionOwnedCharacter>(
 	character: Character | undefined,
 	claim: SessionClaim,

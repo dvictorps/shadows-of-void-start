@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Staves (2H, int, spell weapon) — AtkSpd: 1.20, Crit: 6.0, Implicit: +{value}% Spell Damage
 export const STAFF_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "staff_t1",

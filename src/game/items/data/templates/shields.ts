@@ -1,10 +1,6 @@
 import type { EquipmentTemplate } from "./types";
 
-// Shields — 3 armor types × 21 tiers
-// Plate: armor + blockChance + str | Leather: evasion + blockChance + dex | Silk: barrier + blockChance + int
-// All shields share Block Chance implicit
 export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
-	// ── Plate Shields (Tower Shields) ──
 	{
 		id: "plate_shield_t1",
 		nameBase: "tower_shield",
@@ -405,7 +401,6 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/escudos-offhands/armaduraEscudo2.png",
 	},
 
-	// ── Leather Shields (Bucklers) ──
 	{
 		id: "leather_shield_t1",
 		nameBase: "buckler",
@@ -806,7 +801,6 @@ export const SHIELD_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/escudos-offhands/evasaoEscudo.png",
 	},
 
-	// ── Silk Shields (Wards) ──
 	{
 		id: "silk_shield_t1",
 		nameBase: "ward",

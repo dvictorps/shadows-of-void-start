@@ -46,8 +46,6 @@ function SlashFx({ critScale }: { critScale: number }) {
 	);
 }
 
-// Dagger: two thin strokes forming a flicker, faster than the heavy slash.
-// The crossed angle reads as "flurry" / "stab" instead of a single sweep.
 function QuickSlashFx({ critScale }: { critScale: number }) {
 	const width = 80 * critScale;
 	return (
@@ -76,9 +74,6 @@ function QuickSlashFx({ critScale }: { critScale: number }) {
 	);
 }
 
-// Bow: directional projectile streak entering from off-screen-left, plus a
-// small sparkle burst at the impact point so the arrow reads as "arrived"
-// rather than "still mid-flight".
 function ArrowFx({ critScale }: { critScale: number }) {
 	const streakLength = 200 * critScale;
 	const sparkCount = 4;

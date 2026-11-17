@@ -1,13 +1,5 @@
 // @vitest-environment jsdom
 
-// What the item tooltip shows for each kind of item: the rarity header and
-// ornaments, the hand / off-hand line, attack and spell weapon stats, defenses
-// (blue only when a local mod changed them), implicits and explicits with the
-// (Local) tag, requirements, the broken band and the item level. The safety
-// net for the ItemTooltip split (docs/plans/in-progress.md → REFACTOR GATE
-// item 5). Pure render: props in, DOM out; expected text comes from the same
-// renderers (`m.*`, `translateItemName`, `localizeMod`), not literals.
-
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -38,7 +30,6 @@ function show(item: GeneratedItem, brokenReasons?: string[]) {
 	return render(<ItemTooltip item={item} brokenReasons={brokenReasons} />);
 }
 
-/** A CSS color as jsdom serializes it, to compare inline styles. */
 function css(color: string): string {
 	const probe = document.createElement("span");
 	probe.style.color = color;
@@ -47,7 +38,6 @@ function css(color: string): string {
 const BLUE = css(RARITY_COLORS.magic);
 const WHITE = css("white");
 
-/** The value cell of the stat row labelled `label`. */
 function value(label: string) {
 	const row = narrow(screen.getByText(label).parentElement, HTMLElement);
 	return narrow(row.lastElementChild, HTMLElement);

@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Belts — one base per implicit type, no tier progression
 export const BELT_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "leather_belt",

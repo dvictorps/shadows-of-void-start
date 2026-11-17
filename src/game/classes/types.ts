@@ -1,20 +1,14 @@
-// ── Character attributes ──
-
 export interface CharacterAttributes {
 	strength: number;
 	dexterity: number;
 	intelligence: number;
 }
 
-// ── Base character stats (before gear) ──
-
 export interface CharacterBaseStats {
 	hp: number;
 	barrier: number;
 	attributes: CharacterAttributes;
 }
-
-// ── Class definition ──
 
 export type CharacterClassId = "warrior" | "mage" | "rogue";
 

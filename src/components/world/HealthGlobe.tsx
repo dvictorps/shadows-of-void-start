@@ -9,21 +9,10 @@ import { fillPercent } from "./fill-percent";
 type Props = {
 	hp: number;
 	maxHp: number;
-	/** Current barrier. Renders the blue overlay; omit / 0 hides it. */
 	barrier?: number;
 	maxBarrier?: number;
-	/**
-	 * Seconds remaining on the post-break refill cooldown. When > 0, a sky
-	 * ring sweeps around the globe — empty at break, full at snap. Driven
-	 * by the BarrierState's `refillRemaining` field.
-	 */
 	barrierRefillRemaining?: number;
 	size?: "sm" | "md" | "lg" | "xl";
-	/**
-	 * Opaque token that changes whenever the player takes damage. The globe
-	 * shakes briefly on each new value. Lighter than the enemy's reaction
-	 * (amp ~2 vs 4-6) so the player's own UI doesn't yank during combat.
-	 */
 	hitToken?: string | number | null;
 };
 
@@ -59,7 +48,6 @@ export default function HealthGlobe({
 	useEffect(() => {
 		// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- replaying the same keyframes on every hit needs framer-motion's imperative controls: a declarative `animate` with an unchanged target won't re-run, and a `key` remount would reset the HP/barrier fills' CSS height transitions on every hit
 		if (hitToken === null) return;
-		// Fire-and-forget: `start` resolves when the shake ends; nothing waits on it.
 		void controls.start({
 			x: [0, -2, 2, -1.5, 1, 0],
 			transition: { duration: 0.18, times: [0, 0.2, 0.4, 0.6, 0.8, 1] },
@@ -73,16 +61,12 @@ export default function HealthGlobe({
 			animate={controls}
 			className={`relative flex shrink-0 flex-col items-center justify-center overflow-hidden rounded-full border-2 border-red-900/70 bg-black text-center shadow-[inset_0_-10px_18px_rgba(0,0,0,0.45),0_0_18px_rgba(220,38,38,0.4)] ${dimensions}`}
 		>
-			{/* Red HP fill — rises from the bottom in proportion to current HP */}
 			<div
 				className="absolute inset-x-0 bottom-0 bg-red-600 transition-[height] duration-100"
 				style={{ height: `${hpPct}%` }}
 				aria-hidden
 			/>
 
-			{/* Blue barrier fill — drawn over the red, descends as barrier is
-			 * lost. Damage hits the barrier first, so visually it shrinks before
-			 * the red layer ever moves. */}
 			{showBarrier && (
 				<div
 					className="absolute inset-x-0 bottom-0 bg-sky-400/60 transition-[height] duration-100"
@@ -94,7 +78,6 @@ export default function HealthGlobe({
 				/>
 			)}
 
-			{/* Refill cooldown ring — empty at break, full at snap. -rotate-90 starts it at 12 o'clock. */}
 			{showRefill && (
 				<svg
 					className="-rotate-90 pointer-events-none absolute inset-0 h-full w-full"

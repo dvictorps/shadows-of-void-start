@@ -1,7 +1,3 @@
-// Camp cinematic — renders inline in the central enemy area (same slot as
-// ZoneCompletePanel) so the HUD around can fade out and back in cleanly.
-// See CONTEXT.md → Acampamento.
-
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
@@ -13,10 +9,6 @@ import { m } from "#/paraglide/messages";
 
 type Stage = 0 | 1 | 2 | "fading_out" | "panel";
 
-// Last stage is held a hair longer than the first because nothing fades in
-// behind it — stage 0's hold is followed by stage 1 entering, which keeps
-// the eye occupied; stage 2 is followed by an empty pause that otherwise
-// reads as "the last message went by faster than the first".
 const STAGE_HOLD_MS = {
 	0: 2000,
 	1: 3000,
@@ -33,14 +25,10 @@ const NEXT_STAGE = {
 
 type Props = {
 	zoneId: string;
-	// Baked camps read the zone's CAMP_LINES; incenso-triggered camps read a
-	// generic set. See CONTEXT.md → Incenso Etéreo.
 	source: CampSource;
 	skip: boolean;
 	onReturn: () => void;
 	onContinue: () => void;
-	// Fires once when the decision panel mounts. Lets the parent time the
-	// camp ambience (warm glow) to the panel's arrival.
 	onPanelShow: () => void;
 };
 
@@ -55,14 +43,9 @@ export default function CampCinematic({
 	const [stage, setStage] = useState<Stage>(0);
 	const lines = translateCampLines(zoneId, source);
 
-	// Skip jumps straight to the panel; adjusted during render so the skipped
-	// text stage never commits.
 	if (skip && stage !== "panel") setStage("panel");
 
 	useEffect(() => {
-		// Wind sweeps: one with the first line (open), one with the last line
-		// (settle into the camp). Non-exclusive so the two plays can ride
-		// each other if the pacing changes later.
 		if (stage === 0 || stage === 2) {
 			playSfx("vento.wav", { volume: 0.45 });
 		}

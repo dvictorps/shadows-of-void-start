@@ -93,9 +93,6 @@ describe("useInFlight", () => {
 
 		expect(result.current[0]).toBe(false);
 
-		// The original promise still resolves — finally still fires, but the
-		// state was already cleared by the reset effect. Acceptable because
-		// the natural close boundary discards the result anyway.
 		await act(async () => {
 			resolveLong?.();
 			await longPromise;

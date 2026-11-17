@@ -48,7 +48,6 @@ export function WorldModals({
 	vendorModal: ModalHandle;
 	stashModal: ModalHandle;
 	settingsModal: ModalHandle;
-	// The lists are `undefined` until their query (or its cached copy) loads.
 	zoneBag: BagEntry[] | undefined;
 	exitKeepCap: number;
 	onExitClose: () => void;
@@ -126,7 +125,6 @@ export function WorldModals({
 				stashItems={stashItems ?? []}
 				onDeposit={onStashDeposit}
 				onWithdraw={onStashWithdraw}
-				// Safe to `void`: reorderOrToast never rejects.
 				onReorderInventory={(move) =>
 					void reorderOrToast(
 						inventoryServer.reorderInventory,

@@ -1,9 +1,6 @@
 import type { EquipmentTemplate } from "./types";
 
-// Chestplates — 3 armor types × 21 tiers
-// Plate: armor + str | Leather: evasion + dex | Silk: barrier + int
 export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
-	// ── Plate Chestplates ──
 	{
 		id: "plate_chestplate_t1",
 		nameBase: "plate_armor",
@@ -257,7 +254,6 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/armaduras/armadura/armaduraPesada2.png",
 	},
 
-	// ── Leather Chestplates ──
 	{
 		id: "leather_chestplate_t1",
 		nameBase: "vest",
@@ -511,7 +507,6 @@ export const CHESTPLATE_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/armaduras/evasao/armaduraEvasao2.png",
 	},
 
-	// ── Silk Chestplates ──
 	{
 		id: "silk_chestplate_t1",
 		nameBase: "robe",

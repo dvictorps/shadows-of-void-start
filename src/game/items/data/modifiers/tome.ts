@@ -1,7 +1,6 @@
 import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
-// Mage-flavor family: tomes, amulets, silk gloves, staves (ADR 0007).
 export const TOME_MODIFIERS = {
 	tomeGainAsExtraCold: {
 		id: "tomeGainAsExtraCold",

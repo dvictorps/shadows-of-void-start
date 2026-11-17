@@ -8,15 +8,8 @@ type ModalProps = {
 	title?: string;
 	children: React.ReactNode;
 	className?: string;
-	// When false, ESC and backdrop click do nothing — the modal can only be
-	// closed by an explicit action inside (used for forced confirmations like
-	// the zone-exit loot picker). ESC doesn't reach a modal beneath either.
 	dismissible?: boolean;
-	// When true, the small × in the header is suppressed. Use together with
-	// a `footer` action bar that hosts an explicit Close button.
 	hideHeaderClose?: boolean;
-	// Optional action bar pinned to the bottom of the dialog, separated from
-	// the body by a divider. The caller renders whatever buttons it wants.
 	footer?: React.ReactNode;
 };
 
@@ -30,9 +23,6 @@ export default function Modal({
 	hideHeaderClose = false,
 	footer,
 }: ModalProps) {
-	// An open modal is an Escape layer: Escape closes it only when nothing
-	// opened above it (a confirmation, a context menu, a drag). A
-	// non-dismissible modal still takes the key, so the one beneath stays open.
 	useEscapeLayer(isOpen, dismissible ? onClose : undefined);
 
 	if (!isOpen) return null;
@@ -42,10 +32,6 @@ export default function Modal({
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-			{/* Backdrop click target — a real button so a11y is happy, absolutely
-			    positioned behind the dialog, transparent (`ghost-purple` + `inline`
-			    add no fill and no box). tabIndex=-1 keeps it out of the tab order;
-			    cursor-default avoids the pointer-cursor on the dim area. */}
 			{dismissible && (
 				<Button
 					type="button"

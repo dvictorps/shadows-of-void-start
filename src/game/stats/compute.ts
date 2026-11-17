@@ -1,33 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  Stat engine — turns a character + equipped gear into ComputedCharacterStats.
-//  Pure (no React, no IO); runs on both client and server. The public
-//  entry point is `computeCharacterStats`; everything else is internal.
-//
-//  Sections (grep the headers to jump):
-//    ── Caps + weapon-archetype sets ──                  constants only
-//    ── Accumulator initialisers ──                      blankStats / blankIncreased
-//    ── Apply a single rolled mod ──                     MOD_APPLIERS (one entry per modifier id)
-//    ── Per-element flat damage from gear ──             collectGlobalFlatDamage
-//    ── Apply one equipped item's contributions ──       applyItem, foldGlobalDefenseIncreases
-//    ── Determine combat path ──                         determinePath (attack/spell/unarmed)
-//    ── Build a swing profile from a weapon ──           buildSwing, convertToElement, addGearFlatToElements
-//    ── Base from class + level ──                       applyBase
-//    ── Apply caps and floors ──                         applyCaps (resists 75, block 75, …)
-//    ── Requirements check ──                            requirementsMet (level/str/dex/int)
-//    ── Single non-iterating pass ──                     computeOnce, buildSwings, tickRateFor
-//    ── Public: broken-state fixed-point ──              computeCharacterStats  ← entry
-//    ── Derived helpers for the UI panel ──              mitigation %, evasion %, DPS, …
-//    ── Broken state explanation ──                      describeBrokenReasons  ← UI helper
-//
-//  Common tasks:
-//    • Add a new modifier id          →  MOD_APPLIERS + types.ts (if a new field is needed)
-//    • Add a stat field on the engine →  blankStats + ComputedCharacterStats in types.ts + the relevant MOD_APPLIERS entry
-//    • Add a broken-state rule        →  the fixed-point loop inside computeCharacterStats
-//    • Add flat-to-attacks behaviour  →  collectGlobalFlatDamage + addGearFlatToElements
-//    • Change how a swing is damaged  →  see also `damage.ts:rollPlayerSwing`
-//    • Add a UI-only derived stat     →  Derived helpers section at the bottom
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { m } from "#/paraglide/messages";
 
 import type {
@@ -59,17 +29,12 @@ import type {
 	SwingProfile,
 } from "./types";
 
-// ── Caps + weapon-archetype sets ──
-
 const RESISTANCE_CAP = 75;
 const BLOCK_CHANCE_CAP = 75;
 const ARMOR_REDUCTION_CAP = 85;
 const HIT_CHANCE_MIN = 0.05;
 const HIT_CHANCE_MAX = 0.95;
 
-// Attribute → derived stat conversions. Exported so the attribute tooltips
-// (src/components/world/attribute-tooltips.ts) render the rule without
-// duplicating the magnitude.
 export const STR_MELEE_PCT_PER_POINT = 1;
 export const STR_LIFE_PER_POINT = 5;
 export const DEX_ACCURACY_PER_POINT = 2;
@@ -86,8 +51,6 @@ const ATTACK_WEAPONS = new Set([
 	"bow",
 ]);
 const CASTER_WEAPONS = new Set(["wand", "staff"]);
-
-// ── Accumulator initialisers ──
 
 function blankStats(): ComputedCharacterStats {
 	return {
@@ -137,13 +100,6 @@ function blankIncreased(): IncreasedPools {
 	};
 }
 
-// ── Apply a single rolled mod ──
-//
-// The global defense % mods (armorIncrease / evasionIncrease / barrierIncrease)
-// need to be applied AFTER all flat values are summed, so we route them into
-// a separate scratch object the caller folds in at the end. This keeps the
-// pass single-iteration.
-
 interface DefensePcts {
 	armor: number;
 	evasion: number;
@@ -164,20 +120,7 @@ type ModApplier = (
 	v: number,
 ) => void;
 
-// What each modifier id adds to the character. Used by `applyMod` (explicits)
-// and `applyImplicit` (template implicits) so both go through the same table;
-// adding a new id only touches one place. Ids with no entry add nothing here:
-//   - `blockChanceIncrease`: baked into the shield's
-//     computedDefenseStats.blockChance; it must stay out of the global
-//     accumulator to avoid a double count.
-//   - flat damage to attacks (`physicalDamageFlatGlobal`, `*DamageToAttacksFlat`,
-//     `*DamageToAttacksFlatGlobal`): summed by collectGlobalFlatDamage during
-//     swing assembly.
-//   - flat damage to spells (`coldDamageFlat` …): only rolls on caster
-//     weapons, already folded into the weapon's computed stats.
-//   - filler / reserved: `stunDurationIncrease`, `reducedAttributeRequirements`.
 const MOD_APPLIERS = {
-	// Attributes
 	strengthFlat: (s, _p, v) => {
 		s.attributes.strength += v;
 	},
@@ -193,7 +136,6 @@ const MOD_APPLIERS = {
 		s.attributes.intelligence += v;
 	},
 
-	// Life / mana
 	healthFlat: (s, _p, v) => {
 		s.maxLife += v;
 	},
@@ -207,7 +149,6 @@ const MOD_APPLIERS = {
 		s.manaRegen += v;
 	},
 
-	// Resistances
 	coldResistance: (s, _p, v) => {
 		s.resistances.cold += v;
 	},
@@ -221,7 +162,6 @@ const MOD_APPLIERS = {
 		s.resistances.void += v;
 	},
 
-	// Global defenses (the % ones fold in after every flat value is summed)
 	armorFlat: (s, _p, v) => {
 		s.armor += v;
 	},
@@ -247,7 +187,6 @@ const MOD_APPLIERS = {
 		p.barrier += v;
 	},
 
-	// Global damage increased
 	globalPhysicalDamageIncrease: (s, _p, v) => {
 		s.increased.physical += v;
 	},
@@ -276,7 +215,6 @@ const MOD_APPLIERS = {
 		s.increased.spell += v;
 	},
 
-	// Speed
 	globalAttackSpeedIncrease: (s, _p, v) => {
 		s.increased.attackSpeed += v;
 	},
@@ -284,7 +222,6 @@ const MOD_APPLIERS = {
 		s.increased.castSpeed += v;
 	},
 
-	// Crit
 	globalCriticalChanceIncrease: (s, _p, v) => {
 		s.increased.criticalChance += v;
 	},
@@ -292,7 +229,6 @@ const MOD_APPLIERS = {
 		s.bonusCritMultiplier += v;
 	},
 
-	// Utility
 	movementSpeedIncrease: (s, _p, v) => {
 		s.movementSpeed += v;
 	},
@@ -312,7 +248,6 @@ const MOD_APPLIERS = {
 		s.lifeLeechPercent += v;
 	},
 
-	// MF (prefix + suffix variants both feed magicFind)
 	itemRarityIncreasePrefix: (s, _p, v) => {
 		s.magicFind += v;
 	},
@@ -345,8 +280,6 @@ function applyModifierValue(
 	}
 }
 
-// ── Per-element flat damage from gear (attack path) ──
-
 interface GearFlatDamage {
 	physical: number;
 	cold: number;
@@ -359,11 +292,6 @@ function blankGearFlat(): GearFlatDamage {
 	return { physical: 0, cold: 0, fire: 0, lightning: 0, void: 0 };
 }
 
-// Modifier id → which element bucket it feeds. The `*ToAttacksFlat` ids are
-// the local-to-weapon variants (kept here as a no-op safety net — weapons are
-// filtered out at the call site, so they never reach this map in practice).
-// The `*ToAttacksFlatGlobal` ids are the global versions that roll on
-// rings/amulet/gloves/quiver.
 const FLAT_DAMAGE_MAP: ReadonlyMap<string, keyof GearFlatDamage> = new Map([
 	["physicalDamageFlatGlobal", "physical"],
 	["coldDamageToAttacksFlat", "cold"],
@@ -392,18 +320,12 @@ function collectGlobalFlatDamage(items: EquippedItem[]): GearFlatDamage {
 	return flat;
 }
 
-// ── Apply one equipped item's contributions ──
-// Flat-to-attacks is layered onto swings (see collectGlobalFlatDamage), not
-// character totals. Local computed defense was already baked by the generator.
-
 function applyItem(
 	stats: ComputedCharacterStats,
 	pcts: DefensePcts,
 	item: GeneratedItem,
 ): void {
 	for (const imp of item.implicits) {
-		// Legacy items pre-implicit-wiring carry no modifierId — skip them; they
-		// remain display-only until the player swaps to a freshly-rolled item.
 		if (imp.modifierId) {
 			applyModifierValue(stats, pcts, imp.modifierId, imp.value);
 		}
@@ -419,9 +341,6 @@ function applyItem(
 	}
 }
 
-// Folded in AFTER gear-driven mods so attribute totals are final. % bonuses
-// ride on `pcts` so the existing global-defense fold below applies them in
-// one pass alongside gear-rolled % defenses.
 function applyAttributeBonuses(
 	stats: ComputedCharacterStats,
 	pcts: DefensePcts,
@@ -451,8 +370,6 @@ function foldGlobalDefenseIncreases(
 		stats.maxBarrier = Math.round(stats.maxBarrier * (1 + pcts.barrier / 100));
 }
 
-// ── Determine combat path from main-hand weapon ──
-
 function determinePath(
 	mainHand: GeneratedItem | null,
 	classId: CharacterClassId | undefined,
@@ -463,8 +380,6 @@ function determinePath(
 	if (CASTER_WEAPONS.has(wt) && classId === "mage") return "spell";
 	return "attack";
 }
-
-// ── Build a swing profile from a weapon ──
 
 const ELEMENT_DISPLAY_NAME = {
 	fire: "Fire",
@@ -504,9 +419,6 @@ function buildSwing(
 	};
 }
 
-// A swing's damage lines: an attack adds the gear's flat-to-attacks on top
-// of the weapon; a spell takes the weapon's lines as they are, converted to
-// the selected element when one is picked.
 function swingDamage(
 	item: GeneratedItem,
 	gearFlat: GearFlatDamage,
@@ -541,8 +453,6 @@ function swingDamage(
 	return { physicalDamage: { min: 0, max: 0 }, elementalDamage: elem };
 }
 
-// A caster's selected element: the weapon's physical converts into it, plus
-// `level` min / `2 × level` max, merged into an existing line of that element.
 function convertToElement(
 	phys: SwingProfile["physicalDamage"],
 	elem: SwingProfile["elementalDamage"],
@@ -585,8 +495,6 @@ function addGearFlatToElements(
 	}));
 }
 
-// ── Base from class + level (no equipment) ──
-
 function applyBase(
 	stats: ComputedCharacterStats,
 	classDef: CharacterClassDefinition | null,
@@ -602,8 +510,6 @@ function applyBase(
 	stats.maxLife += baseHp + Math.max(0, level - 1) * 10;
 }
 
-// ── Apply caps and floors after all sums ──
-
 function applyCaps(stats: ComputedCharacterStats): void {
 	const r = stats.resistances;
 	r.cold = Math.min(RESISTANCE_CAP, Math.max(-100, r.cold));
@@ -616,13 +522,6 @@ function applyCaps(stats: ComputedCharacterStats): void {
 	);
 }
 
-// ── Requirements check ──
-
-/**
- * The first unmet level / attribute requirement of `item` against `stats`,
- * as the server error string the client translates ("Level 12 required"),
- * or null when every requirement is met.
- */
 export function unmetRequirement(
 	item: GeneratedItem,
 	stats: ComputedCharacterStats,
@@ -649,9 +548,6 @@ function requirementsMet(
 	return unmetRequirement(item, stats, level) === null;
 }
 
-// The swings a path makes: the main hand, plus the off hand when it swings
-// too (an attack dual wield, or wand + wand; staves are 2H, and caster dual
-// wield gets no implicits).
 function buildSwings(
 	path: ComputedCharacterStats["path"],
 	mainHand: GeneratedItem | null,
@@ -674,8 +570,6 @@ function buildSwings(
 		: [main];
 }
 
-// Swings per second: the swings' average base speed × the path's
-// `% increased` speed × the attack dual-wield "more" multiplier.
 function tickRateFor(
 	stats: ComputedCharacterStats,
 	isAttackDW: boolean,
@@ -693,8 +587,6 @@ function tickRateFor(
 	return averagedBase * speedMultiplier * dwMoreMult;
 }
 
-// ── Single non-iterating pass given a fixed set of "live" items ──
-
 function computeOnce(
 	input: StatEngineInput,
 	live: EquippedItem[],
@@ -710,24 +602,15 @@ function computeOnce(
 	const offHand = live.find((eq) => eq.slot === "offhand")?.item ?? null;
 	stats.path = determinePath(mainHand, input.classDef?.id);
 	const offHandType = offHand?.weaponType;
-	// Source of truth for "is this attack dual-wielding?". The public
-	// `isAttackDualWielding(stats)` helper below re-derives the same answer from
-	// `path` + `swings.length` for UI consumers; both must agree.
 	const isAttackDW =
 		stats.path === "attack" &&
 		!!offHand &&
 		!!offHandType &&
 		ATTACK_WEAPONS.has(offHandType);
 
-	// Apply DW block bonus before applyCaps so the 75% cap runs once.
 	if (isAttackDW) stats.blockChance += DUAL_WIELD_BLOCK_CHANCE_BONUS;
 	applyCaps(stats);
 
-	// Filter out the swinging weapons — their local flat-to-attacks is already
-	// baked into `computedStats` and consumed by buildSwing. Off-hand items
-	// that aren't weapons (shield/tome/quiver) DO contribute via the global
-	// flat mod pool — most notably the quiver, which carries those mods as
-	// its identity.
 	const gearFlat = collectGlobalFlatDamage(
 		live.filter(
 			(eq) =>
@@ -751,8 +634,6 @@ function computeOnce(
 	return stats;
 }
 
-// ── Public: broken-state fixed-point ──
-
 export function computeCharacterStats(
 	input: StatEngineInput,
 ): ComputedCharacterStats {
@@ -772,9 +653,6 @@ export function computeCharacterStats(
 			}
 		}
 
-		// Folds into the same fixed-point cascade as attribute requirements:
-		// a quiver whose bow becomes broken (and thus excluded from `live`)
-		// breaks too.
 		const mainHandLive = live.find((eq) => eq.slot === "weapon")?.item;
 		if (!mainHandLive || !isBow(mainHandLive)) {
 			for (const eq of input.equippedItems) {
@@ -785,7 +663,6 @@ export function computeCharacterStats(
 		}
 
 		if (newBroken.size === broken.size) {
-			// Stable — no new breaks this round.
 			stats.brokenItemIds = newBroken;
 			return stats;
 		}
@@ -796,18 +673,11 @@ export function computeCharacterStats(
 	return stats;
 }
 
-// ── Derived helpers for the UI panel ──
-
 export interface ArmorMitigation {
 	reductionPct: number;
 	atReferenceHit: number;
 }
 
-// PoE-style armor mitigation is hit-size-relative: the same armor pool
-// shaves a much bigger % off a 5-damage hit than off a 500-damage hit.
-// The stats panel asks for a reference hit size (typical incoming attack
-// at the player's expected encounter level) and returns the reduction
-// against it. See applyArmor in src/game/combat/damage.ts.
 export function computeArmorMitigation(
 	armor: number,
 	referenceHit: number,
@@ -840,9 +710,6 @@ export function effectiveCritChance(
 	return Math.min(CRIT_CHANCE_CAP, Math.max(CRIT_CHANCE_FLOOR, raw));
 }
 
-// Mirrors the internal `isAttackDW` check inside `computeOnce` — the engine
-// guarantees `swings.length === 2` iff attack DW is active, so this derives
-// the same answer for UI without re-reading the equipped items.
 export function isAttackDualWielding(stats: ComputedCharacterStats): boolean {
 	return stats.path === "attack" && stats.swings.length === 2;
 }
@@ -851,13 +718,6 @@ export function totalCritMultiplier(bonusFromMods: number): number {
 	return BASE_CRIT_MULTIPLIER + bonusFromMods;
 }
 
-// ── Broken state explanation ──
-
-/**
- * For a broken item, returns a short localized line (paraglide `broken_*`) for
- * every requirement currently unmet against the supplied totals. Empty if the
- * item is actually fine (caller should still gate on brokenItemIds).
- */
 export function describeBrokenReasons(
 	item: {
 		equipmentType?: string;

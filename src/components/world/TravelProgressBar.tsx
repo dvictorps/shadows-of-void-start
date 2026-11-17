@@ -9,13 +9,6 @@ type Props = {
 	arrivesAtMs: number;
 };
 
-/**
- * Bottom-pinned banner with a CSS `scaleX(0 → 1)` fill over the trip's
- * remaining time. Animation params lock on first render so the
- * optimistic→server `arrivesAtMs` swap (~100-200ms diff) doesn't
- * re-anchor the keyframe mid-trip. Caller keys the component on
- * `travelDestination` to guarantee a fresh mount per trip.
- */
 export default function TravelProgressBar({
 	fromName,
 	toName,
@@ -28,8 +21,6 @@ export default function TravelProgressBar({
 		return () => window.clearInterval(id);
 	}, []);
 
-	// Lock on first render (lazy initial state); ignore later arrivesAtMs
-	// updates so the CSS animation doesn't restart mid-trip.
 	const [animationStyle] = useState<CSSProperties>(() => ({
 		animation: `travel-fill ${Math.max(100, arrivesAtMs - Date.now())}ms linear both`,
 		transformOrigin: "left center",

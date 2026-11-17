@@ -12,11 +12,6 @@ import { assertInventoryItem, inInventoryOf } from "../../item-reads";
 import { fail } from "../errors";
 import { characterSessionProcedure, router } from "../init";
 
-// Vendor buy and sell. Both writes are guarded in SQL against a
-// concurrent request on the same character (ADR 0009: D1 has no interactive
-// transactions): a purchase only applies while the rubys still cover it, and
-// a sale only pays while every sold item is still in the inventory.
-
 export const vendorRouter = router({
 	vendorBuy: characterSessionProcedure
 		.input(
@@ -56,10 +51,7 @@ export const vendorRouter = router({
 					),
 				)
 				.returning({ rubys: characters.rubys, count: characters[counter] });
-			// Only a concurrent purchase can make the guard miss after the check
-			// above passed.
 			if (!updated) fail(SERVER_ERRORS.notEnoughRubys);
-			// The client patches both into its character cache.
 			return {
 				rubys: updated.rubys,
 				counterField: counter,
@@ -67,8 +59,6 @@ export const vendorRouter = router({
 			};
 		}),
 
-	// Inventory items only (equipped, stash and bag items can't be sold). The
-	// client always sends an array; a single sale is length 1.
 	vendorSellMany: characterSessionProcedure
 		.input(z.object({ itemIds: z.array(z.number().int().positive()) }))
 		.mutation(async ({ ctx, input }) => {
@@ -91,8 +81,6 @@ export const vendorRouter = router({
 			}
 
 			const sold = and(inArray(items.id, ids), inInventoryOf(character.id));
-			// Pay first, and only if every item is still there; then delete. A
-			// replayed sale finds the items gone and pays nothing.
 			const [paid] = await ctx.db.batch([
 				ctx.db
 					.update(characters)

@@ -1,14 +1,3 @@
-// World-route mutations bundled into one hook. There is no reactivity on D1
-// (ADR 0009), so every mutation writes its result into the react-query cache
-// (`src/lib/world-cache.ts`); the ones in ADR 0001's list also paint the
-// result optimistically in `onMutate` and roll back in `onError`.
-//
-// Single-active-session threading: every mutation is wrapped with
-// `useSessionedMutation` so the public signature stays session-free —
-// consumers (world.tsx, useViewMode) pass `{ characterId, ... }` while the
-// per-tab token is injected here. See docs/security/threat-model.md →
-// Threat #5.
-
 import { useMutation } from "@tanstack/react-query";
 
 import {
@@ -36,10 +25,6 @@ import {
 
 import { useSessionedMutation } from "./useSessionToken";
 
-// The optimistic travel predictions run the server's own decisions
-// (src/game/world/zone-actions.ts), so a trip the server would refuse is never
-// painted. At module scope because they read the clock: the mutation
-// callbacks call them when they fire, never during render.
 function predictTravel(character: TravelCharacter, destination: string) {
 	return resolveTravelStart(character, destination, Date.now());
 }
@@ -58,14 +43,11 @@ export function useWorldMutations({
 	const cache = useWorldCache(characterId);
 	const { keys } = cache;
 
-	// New items from the bag get their ids on the server, so the inventory
-	// takes the returned rows instead of guessing them optimistically.
 	const addToInventory = (rows: readonly ItemRow[]) => {
 		const inventory = cache.inventory();
 		if (inventory) cache.setInventory([...inventory, ...rows]);
 	};
 
-	// Camp pick and discard both take the entries out of the bag at once.
 	const removeFromBag = async ({ itemIds }: { itemIds: string[] }) => {
 		const rollback = await cache.snapshot([keys.zoneBag]);
 		const bag = cache.zoneBag();
@@ -110,8 +92,6 @@ export function useWorldMutations({
 		).mutateAsync,
 	);
 
-	// Optimistic: the bag empties and the visit ends at once; the kept items
-	// join the inventory when the server returns them.
 	const exitZone = useSessionedMutation(
 		useMutation(
 			trpc.items.exitZone.mutationOptions({
@@ -146,8 +126,6 @@ export function useWorldMutations({
 		).mutateAsync,
 	);
 
-	// Server-only (ADR 0001): the XP penalty is decided there. Softcore stays
-	// in /world, so the character is refetched; hardcore navigates away.
 	const respawnDead = useSessionedMutation(
 		useMutation(
 			trpc.combat.respawnDead.mutationOptions({
@@ -159,16 +137,12 @@ export function useWorldMutations({
 		).mutateAsync,
 	);
 
-	// `movementSpeed` is read when the mutation fires: useMutation picks up
-	// this render's options, so the closure is never stale.
 	const startTravel = useSessionedMutation(
 		useMutation(
 			trpc.combat.startTravel.mutationOptions({
 				onMutate: async ({ destinationNodeId }) => {
 					const rollback = await cache.snapshot([keys.character]);
 					const character = cache.character();
-					// This render's movement speed: the cached row's stat cache lags an
-					// equip until the next refetch.
 					const travel =
 						character &&
 						predictTravel(
@@ -215,8 +189,6 @@ export function useWorldMutations({
 		).mutateAsync,
 	);
 
-	// Optimistic so fast repeat clicks don't outrun the cache and trip "cap
-	// reached" / "Not enough rubys" from a stale view.
 	const vendorBuy = useSessionedMutation(
 		useMutation(
 			trpc.vendor.vendorBuy.mutationOptions({
@@ -247,8 +219,6 @@ export function useWorldMutations({
 		).mutateAsync,
 	);
 
-	// `consumeTeleportStone`, aliased to a name without the `use` prefix the
-	// hooks lint rule would flag.
 	const teleportStone = useSessionedMutation(
 		useMutation(
 			trpc.combat.consumeTeleportStone.mutationOptions({
@@ -270,8 +240,6 @@ export function useWorldMutations({
 					return { rollback };
 				},
 				onError: rollbackOnError,
-				// The full write, so the cache is right even when the prediction
-				// bailed: visit and bag cleared, and the city refill when it applies.
 				onSuccess: (written) => {
 					cache.patchCharacter({ ...CLEARED_VISIT, ...written });
 					cache.setZoneBag([]);
@@ -313,8 +281,6 @@ export function useWorldMutations({
 		).mutateAsync,
 	);
 
-	// Deposit and withdraw move what fits; the rest fails server-side, and
-	// then the client refetches both sides rather than guess which ones.
 	const depositToStash = useSessionedMutation(
 		useMutation(
 			trpc.stash.depositToStash.mutationOptions({

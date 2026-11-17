@@ -48,16 +48,12 @@ describe("classifyKill", () => {
 	});
 
 	it("a unique in a non-boss node still classifies as a boss kill", () => {
-		// Defensive: rarity is the source of truth for boss-ness, not the node.
 		const c = classifyKill("unique", "combat");
 		expect(c.isBossKill).toBe(true);
 		expect(c.dropTable).toBe("boss");
 	});
 
 	it("an undefined zone kind does not crash and treats rare as a miniboss", () => {
-		// recordKill falls back to currentLocation "city" → findNode may miss,
-		// leaving zoneKind undefined. A rare must not silently become a gauntlet
-		// rare just because the node didn't resolve.
 		const c = classifyKill("rare");
 		expect(c.isBossNodeRareKill).toBe(false);
 		expect(c.isMinibossKill).toBe(true);
@@ -86,8 +82,6 @@ describe("resolveZoneProgress", () => {
 	});
 
 	it("a non-granting kill while in camp clears the lingering camp flag", () => {
-		// Camp was set; the next regular kill (player chose to keep fighting)
-		// flips inCamp back to false.
 		expect(
 			resolveZoneProgress({
 				grantsCampTier: false,
@@ -154,8 +148,6 @@ describe("tallyBossKill", () => {
 	});
 
 	it("legacy char (undefined prior total) re-derives the total from counts, not 0+1", () => {
-		// The regression this guards: a pre-backfill char with bossKillCounts
-		// already populated must not have its leaderboard total reset to 1.
 		expect(tallyBossKill("gralfor", { gralfor: 11 })).toEqual({
 			bossKillCounts: { gralfor: 12 },
 			totalBossKills: 12,
@@ -167,7 +159,7 @@ describe("tallyBossKill", () => {
 			gralfor: 3,
 			other_boss: 4,
 		});
-		expect(totalBossKills).toBe(8); // (3+1) + 4
+		expect(totalBossKills).toBe(8);
 	});
 
 	it("does not mutate the input counts object", () => {

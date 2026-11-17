@@ -27,7 +27,6 @@ export const UTILITY_MODIFIERS = {
 		tiers: createStandardTiers(1, 1, 2, 4),
 	},
 
-	// ── Niche / filler mods (no tags — no synergy pull) ──
 	stunDurationIncrease: {
 		id: "stunDurationIncrease",
 		affixType: "suffix",

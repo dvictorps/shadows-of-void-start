@@ -8,21 +8,6 @@ import { lexiconPt } from "./lexicon/pt";
 import type { BaseEntry, ItemNameLexicon } from "./lexicon/types";
 import type { GeneratedItem } from "./types";
 
-// Localized display name for an item, rendered at display time from
-// templateId / nameBase / nameModifier / explicits / item.id.
-//
-// Composition (all rarities except rare+):
-//   1. Base name = `<modifier> <base>` (EN) or `<base> <modifier>` (PT,
-//      modifier inflects to base.gender if it's an adjective).
-//   2. Magic items also append the rolled prefix + suffix:
-//        EN: `<prefix> <base name> <suffix>`
-//        PT: `<base name> <prefix-gendered> <suffix>`
-//
-// Rare/legendary/epic skip the base composition entirely and use a UUID-
-// seeded two-word proper name from the locale's rare pools. Same item.id →
-// same name forever; locale switch picks the equivalent slot in the other
-// pool.
-
 type Locale = "en" | "pt";
 
 function selectLexicon(locale: Locale): ItemNameLexicon {
@@ -48,8 +33,6 @@ export function translateItemName(item: GeneratedItem): string {
 	return appendMagicAffixes(item, lex, locale, baseName);
 }
 
-// Public for the tooltip subtitle on rare+ items (template name underneath
-// the generated proper name).
 export function translateTemplateName(item: GeneratedItem): string {
 	const locale = currentLocale();
 	return renderBaseName(item, selectLexicon(locale), locale);
@@ -75,8 +58,6 @@ function renderBaseName(
 		: `${modifierWord} ${baseName}`;
 }
 
-// item.nameBase is a plain string on persisted items; ids no longer in the
-// lexicon resolve to undefined and callers fall back.
 function findBaseEntry(
 	item: GeneratedItem,
 	lex: ItemNameLexicon,
@@ -124,8 +105,6 @@ function renderAffixPrefix(
 }
 
 function renderProperName(item: GeneratedItem, lex: ItemNameLexicon): string {
-	// Two salts → two independent picks from one id, so pool sizes that share
-	// factors don't collapse onto the same slot.
 	const h1 = hashStringToUnit(item.id, 0);
 	const h2 = hashStringToUnit(item.id, 1);
 	const first = lex.rareFirstWords[Math.floor(h1 * lex.rareFirstWords.length)];

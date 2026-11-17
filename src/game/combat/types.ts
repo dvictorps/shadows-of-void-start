@@ -1,8 +1,3 @@
-// Combat state machine + enemy + boss-intro types shared between
-// useCombatLoop, useCombatTick, and the scene/tooltip components. Lifted out
-// of useCombatLoop so the tick hook (which imports `Enemy`) doesn't have to
-// reach back into a sibling hook file via a type-only cyclic import.
-
 import type {
 	MonsterDefinition,
 	MonsterModId,
@@ -23,39 +18,20 @@ export type CombatState =
 
 export function derivePhase(state: CombatState): CombatPhase {
 	if (state === "searching") return "exploration";
-	// Camp and post-miniboss share the 100% retention tier per
-	// CONTEXT.md → Bag retention tiers ("Boss kill → 100%"). The
-	// miniboss-victory panel pause is itself a safe banking moment: the
-	// player either retreats with the full bag they just earned, or
-	// continues hunting and gives up that safety until the next camp.
 	if (state === "acampamento" || state === "miniboss_victory") return "camp";
 	return "combat";
 }
 
-// Three-stage dramatic spawn for rare minibosses. The ticker stays paused
-// (gated on state === "engaged") for the full intro, so the player can't
-// pre-empt the build-up and the rare can't swing before its HP bar shows.
 export type RareIntroStage = "sprite" | "name" | "hp" | null;
 
 export const RARE_INTRO_STAGE_MS = {
-	// Each value is how long the stage holds BEFORE advancing — so it must be
-	// at least as long as the visual transition kicked off when the stage
-	// becomes active. Sprite enters with scale 1.2 → 1.0 over ~700 ms, then
-	// the nameplate fades + slides in over ~400 ms, then the HP bar.
 	sprite: 750,
 	name: 500,
 	hp: 500,
 } satisfies Record<Exclude<RareIntroStage, null>, number>;
 
-// Four-stage dramatic spawn for act bosses (`rarity: "unique"`). Adds an
-// `impact` beat between sprite and name where the entry sfx + screenshake
-// fire — that's the "boss has arrived" punctuation that distinguishes a
-// boss from a rare miniboss. See CONTEXT.md → Boss Cinematic.
 export type BossIntroStage = "sprite" | "impact" | "name" | "hp" | null;
 
-// Default timings for the boss intro. A boss overrides sprite and impact
-// with BossConfig.cinematic.spriteFadeInMs / .sfxBeatMs (`bossIntroStageMs`
-// in src/game/bosses); name and hp are the same for every boss.
 export const BOSS_INTRO_STAGE_MS_DEFAULT = {
 	sprite: 900,
 	impact: 600,
@@ -66,17 +42,10 @@ export const BOSS_INTRO_STAGE_MS_DEFAULT = {
 export type Enemy = {
 	def: MonsterDefinition;
 	currentHp: number;
-	// Live barrier value. Max lives on `scaled.barrier` (immutable per spawn).
-	// 0 when the monster has no barrier mod. The barrier cooldown is internal
-	// state owned by useCombatTick — only the live current value is exposed
-	// here for UI rendering.
 	currentBarrier: number;
 	level: number;
 	rarity: MonsterRarity;
 	mods: readonly MonsterModId[];
 	scaled: ScaledMonsterStats;
-	// Seeds for the rare proper-name generator. Sampled once on spawn so the
-	// rare's name stays stable across re-renders and locale switches.
-	// Non-rare spawns still carry the field (unused) to keep the shape narrow.
 	nameSeed: RareNameSeed;
 };

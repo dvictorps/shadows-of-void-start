@@ -1,8 +1,3 @@
-// The inventory modal: the paper doll and the bag side by side, equip /
-// unequip / swap / reorder by drag or through the click menu, discard behind a
-// confirmation. This file composes `inventory-modal/*` and owns what spans
-// them: the drag and menu state and the server calls. The drag decisions live
-// in `inventory-modal/drag.ts`. Pinned by InventoryModal.test.tsx.
 import {
 	closestCenter,
 	DndContext,
@@ -53,7 +48,6 @@ type ArgsOf<Name extends keyof InventoryMutations> = Parameters<
 	InventoryMutations[Name]
 >[0];
 
-/** The calls the modal makes; the route passes `useInventoryMutations`. */
 export interface InventoryServer {
 	reorderInventory: (args: ArgsOf<"reorderInventory">) => Promise<object>;
 	equipItem: (args: ArgsOf<"equipItem">) => Promise<object>;
@@ -100,8 +94,6 @@ export default function InventoryModal({
 	const confirm = useConfirmationModal();
 
 	const [active, setActive] = useState<DragSourceData | null>(null);
-	// A drag sits above the modal: dnd-kit's sensor cancels it on Escape by
-	// itself, and this layer keeps that Escape from closing the modal.
 	useEscapeLayer(active !== null);
 	const [menu, setMenu] = useState<{
 		source: DragSourceData;
@@ -139,9 +131,6 @@ export default function InventoryModal({
 
 	const validEquipSlots = useMemo<Set<EquippedSlot>>(() => {
 		if (!activeItem || active?.kind !== "inventory") return new Set();
-		// planEquip will run on the server too — this is the client preview to
-		// drive drop-zone highlight color. Don't pre-compute against current
-		// equipped set here; we just say "this slot is structurally eligible".
 		return new Set(validSlotsForItem(activeItem));
 	}, [activeItem, active]);
 
@@ -220,9 +209,6 @@ export default function InventoryModal({
 		}
 	};
 
-	// Plain per-render derivation: the trigger* handlers are recreated every
-	// render, so a memo would either go stale or never hit. Cheap — only a
-	// handful of entries, and only while a menu is open.
 	const menuActions = ((): MenuAction[] => {
 		if (!menu) return [];
 		const source = menu.source;

@@ -1,15 +1,6 @@
 import type { CharacterClassId } from "../classes/types";
 import type { GeneratedItem } from "./types";
 
-// ── Starter weapons ──
-// Fixed, hand-authored items that classes start equipped with. They do not pass
-// through the random generator. IDs are namespaced with the "starter:" prefix
-// so equipped-item references can distinguish them from rolled items later.
-
-// Starter weapons sit slightly above their T1 dropped equivalents so fresh
-// lvl 1 characters aren't gated by base damage. T1+ implicits (accuracy /
-// crit multi / spell damage) and the first rolled mods remain the upgrade driver.
-
 const rustySword: GeneratedItem = {
 	id: "starter:rusty_sword",
 	templateId: "rusty_sword",
@@ -45,9 +36,6 @@ const rustyDagger: GeneratedItem = {
 	weaponType: "dagger",
 	rarity: "normal",
 	itemLevel: 1,
-	// No icon: daggers have no sprite assets in `public/assets/sprites/armas/`
-	// at the moment (gap also affects all dropped dagger tiers). Falls back to
-	// the emoji override. Add a sprite + populate this field when art lands.
 	baseStats: {
 		minDamage: 5,
 		maxDamage: 8,
@@ -90,9 +78,6 @@ const crackedWand: GeneratedItem = {
 	},
 };
 
-// Rogue starter chestplate. Mirrors leather_chestplate_t1 (evasion 20) so the
-// fresh rogue has a non-zero defensive layer matching warrior's HP and mage's
-// barrier-from-class.
 const tatteredLeatherVest: GeneratedItem = {
 	id: "starter:tattered_leather_vest",
 	templateId: "leather_chestplate_t1",
@@ -109,7 +94,6 @@ const tatteredLeatherVest: GeneratedItem = {
 	computedDefenseStats: { evasion: 20 },
 };
 
-// Keyed by the persisted item id (a plain string), so lookups go through a Map.
 const STARTER_ITEMS: ReadonlyMap<string, GeneratedItem> = new Map([
 	["starter:rusty_sword", rustySword],
 	["starter:rusty_dagger", rustyDagger],
@@ -123,20 +107,12 @@ export const STARTER_WEAPON_BY_CLASS = {
 	mage: "starter:cracked_wand",
 } satisfies Record<CharacterClassId, string>;
 
-// Per-class starter armor — currently only rogues get one (warriors have HP
-// and mages have barrier from their class; rogues' evasion identity needs a
-// piece of leather to activate). `undefined` entries mean "no starter armor".
 export const STARTER_CHESTPLATE_BY_CLASS = {
 	warrior: undefined,
 	rogue: "starter:tattered_leather_vest",
 	mage: undefined,
 } satisfies Record<CharacterClassId, string | undefined>;
 
-/**
- * Resolve a starter-item id (e.g., "starter:rusty_sword") to its definition.
- * Returns null for unknown ids (including generated-item ids, which use a
- * different prefix).
- */
 export function findStarterItem(id: string): GeneratedItem | null {
 	return STARTER_ITEMS.get(id) ?? null;
 }

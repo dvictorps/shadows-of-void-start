@@ -2,8 +2,6 @@ import type { EquippedSlot } from "../stats/types";
 import type { GeneratedItem } from "./types";
 import type { WeaponType } from "./types/base";
 
-// ── Archetypes ──
-
 const ATTACK_WEAPONS: ReadonlySet<WeaponType> = new Set<WeaponType>([
 	"sword",
 	"dagger",
@@ -51,12 +49,6 @@ export function weaponArchetype(item: GeneratedItem): WeaponArchetype | null {
 	return null;
 }
 
-// ── Slot eligibility ──
-
-/**
- * Returns the equipment slots this item is allowed to occupy. Used for
- * drag-and-drop validation and for the click-dropdown's option list.
- */
 export function validSlotsForItem(item: GeneratedItem): EquippedSlot[] {
 	switch (item.equipmentType) {
 		case "helmet":
@@ -86,8 +78,6 @@ export function validSlotsForItem(item: GeneratedItem): EquippedSlot[] {
 	}
 }
 
-// ── Equip preview: determine displacements + same-archetype guard ──
-
 export interface EquipPlanInput {
 	item: GeneratedItem;
 	targetSlot: EquippedSlot;
@@ -95,9 +85,7 @@ export interface EquipPlanInput {
 }
 
 export interface EquipPlan {
-	/** Items already equipped that will be pushed back to inventory. */
 	displaced: Array<{ slot: EquippedSlot; item: GeneratedItem }>;
-	/** Failure reason if the equip can't proceed. */
 	reject?:
 		| "wrong-slot"
 		| "mixed-archetype"
@@ -106,15 +94,6 @@ export interface EquipPlan {
 		| "offhand-not-weapon";
 }
 
-/**
- * Pure computation of what an equip action would displace and whether it is
- * allowed. Used by client (preview) and server (validation). Does not check
- * level/attribute requirements — that's handled separately via the stat
- * engine (callers compute the post-displacement totals then check reqs).
- *
- * Off-hand kinds (shield/tome/quiver) and the bow + quiver pairing are
- * specified in CONTEXT.md → Off-hand and Bow + Quiver.
- */
 export function planEquip({
 	item,
 	targetSlot,
@@ -136,9 +115,6 @@ export function planEquip({
 		displaced = plan.displaced;
 	}
 
-	// The current target-slot occupant always displaces too (unless it's
-	// already in our displaced set — like if equipping to off-hand and main
-	// hand was 2H, the off-hand might be empty, so no double-add).
 	const occupant = currentEquipped.find((eq) => eq.slot === targetSlot);
 	if (occupant && !displaced.some((d) => d.slot === occupant.slot)) {
 		displaced.push(occupant);
@@ -149,35 +125,25 @@ export function planEquip({
 
 type Equipped = EquipPlan["displaced"][number];
 
-/** What a weapon going into the main hand pushes out of the off-hand. */
 function displacedByMainHand(
 	item: GeneratedItem,
 	offHand: Equipped | undefined,
 ): EquipPlan["displaced"] {
 	if (!offHand) return [];
 	const quiverOff = isQuiver(offHand.item);
-	// 2H to main: normally displaces any off-hand. Bow + quiver is the lone
-	// exception that survives.
 	if (isTwoHanded(item)) return isBow(item) && quiverOff ? [] : [offHand];
-	// 1H to main: a quiver in the off-hand is now an orphan (quiver requires
-	// a bow specifically). Auto-displace it.
 	return quiverOff ? [offHand] : [];
 }
 
-/** Whether `item` may go into the off-hand, and the 2H main it pushes out. */
 function planOffHand(
 	item: GeneratedItem,
 	mainHand: Equipped | undefined,
 ): EquipPlan {
 	if (isQuiver(item)) {
-		// Quiver requires a bow main hand. No auto-equip-bow magic — the
-		// player must already have a bow (or sequence the equips).
 		return mainHand && isBow(mainHand.item)
 			? { displaced: [] }
 			: { displaced: [], reject: "needs-bow" };
 	}
-	// Non-quiver to off-hand: displace a 2H main (bow included, since
-	// non-quiver off-hands can't coexist with a bow).
 	const twoHandedMain =
 		mainHand && isTwoHanded(mainHand.item) ? mainHand : undefined;
 	if (isWeapon(item)) {
@@ -197,7 +163,6 @@ function planOffHand(
 	return { displaced: twoHandedMain ? [twoHandedMain] : [] };
 }
 
-// Shared client + server — the server mutation calls this too. Keep pure.
 export function canSwapHands(
 	mainHand: GeneratedItem | null,
 	offHand: GeneratedItem | null,

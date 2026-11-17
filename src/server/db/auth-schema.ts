@@ -1,15 +1,6 @@
 import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-// Better Auth core tables (user / session / account / verification), written
-// by hand from Better Auth's Drizzle SQLite schema so they live next to the
-// game tables in one migration history. Column keys must match Better Auth's
-// field names; the DB names are snake_case through the `casing` option in
-// `client.ts` and `drizzle.config.ts`.
-//
-// Ids are text because Better Auth generates them. Timestamps use
-// `timestamp_ms` because the adapter reads and writes `Date` objects.
-
 export const USER_ROLES = ["user", "admin"] as const;
 
 const createdAt = () =>
@@ -28,7 +19,6 @@ export const user = sqliteTable("user", {
 	email: text().notNull().unique(),
 	emailVerified: integer({ mode: "boolean" }).notNull().default(false),
 	image: text(),
-	// See `additionalFields.role` in src/server/auth.ts.
 	role: text({ enum: USER_ROLES }).notNull().default("user"),
 	createdAt: createdAt(),
 	updatedAt: updatedAt(),

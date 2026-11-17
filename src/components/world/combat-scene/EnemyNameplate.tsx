@@ -6,10 +6,6 @@ import type { Enemy } from "#/hooks/useCombatLoop";
 
 import { type IntroStages, isStagedEnemy, nameplateVisible } from "./reveal";
 
-// Rarity-tinted nameplate colors mirror the item rarity palette so the
-// player reads "blue = magic, yellow = rare" consistently across UI. The
-// `unique` entry is a fallback — bosses override per-instance via
-// BossConfig.nameplateColor.
 const RARITY_NAMEPLATE_COLOR = {
 	normal: "#ffffff",
 	magic: "#8888ff",
@@ -17,9 +13,6 @@ const RARITY_NAMEPLATE_COLOR = {
 	unique: "#af6025",
 } satisfies Record<MonsterRarity, string>;
 
-// Glow reinforces rarity. Normal keeps only a readability shadow; magic/rare
-// add a color-matched halo. Rare's halo is stronger to preserve its drama
-// even though it shares the staging spotlight with the boss intro cascade.
 const RARITY_NAMEPLATE_SHADOW = {
 	normal: "0 2px 4px rgba(0, 0, 0, 0.9)",
 	magic: "0 0 14px rgba(136, 136, 255, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
@@ -27,11 +20,6 @@ const RARITY_NAMEPLATE_SHADOW = {
 	unique: "0 0 22px rgba(175, 96, 37, 0.75), 0 2px 4px rgba(0, 0, 0, 0.9)",
 } satisfies Record<MonsterRarity, string>;
 
-/**
- * The enemy nameplate slot. Reserves a fixed height so the nameplate
- * appearing during boss_intro (or any spawn) doesn't reflow the sprite
- * below — only opacity / y animate.
- */
 export default function EnemyNameplate({
 	enemy,
 	displayName,
@@ -41,9 +29,6 @@ export default function EnemyNameplate({
 }: {
 	enemy: Enemy | null;
 	displayName: string;
-	// Bosses get a per-instance nameplate color from BossConfig (rare yellow
-	// shouldn't double-duty as the boss color, and each boss can pick a hue
-	// that matches its theme — Gralfor: ember orange).
 	bossConfig: BossConfig | null;
 	stages: IntroStages;
 	hudFading: boolean;
@@ -89,8 +74,6 @@ function Nameplate({
 			transition={{
 				duration: 0.45,
 				ease: "easeOut",
-				// Stagger applies only to the reveal — keeping it on the
-				// fade-out would make the nameplate linger past the sprite.
 				delay: visible && !isStagedEnemy(enemy) ? 0.08 : 0,
 			}}
 		>

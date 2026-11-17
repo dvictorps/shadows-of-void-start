@@ -1,9 +1,5 @@
 // @vitest-environment jsdom
 
-// The shared XP bar: label, progressbar values, the clamped fill, and the
-// per-size label / track classes (the combat HUD's `hud`, the status card's
-// `md` / `sm`).
-
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 

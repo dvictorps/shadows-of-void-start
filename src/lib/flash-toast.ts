@@ -26,7 +26,5 @@ export function consumeFlashToast() {
 		if (parsed.success) {
 			toast[parsed.data.type](parsed.data.message);
 		}
-	} catch {
-		// malformed JSON — ignore
-	}
+	} catch {}
 }

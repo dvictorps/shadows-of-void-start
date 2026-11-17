@@ -9,19 +9,10 @@ import { lexiconEn } from "./lexicon/en";
 import { lexiconPt } from "./lexicon/pt";
 import { PT_EXPLICIT_FORMATTERS } from "./mod-i18n";
 
-// Cross-coverage check: a modifier that can roll as an explicit must have a
-// translation entry in every place a tooltip / name renderer reaches into.
-// Without this, adding a modifier without its lexicon + mod-i18n entries
-// silently falls back to the raw id at display time. Implicit-only mods
-// (applicableTo: []) render via PT_IMPLICIT_PATTERNS (regex on description)
-// and are out of scope here.
-
 const ROLLABLE_EXPLICITS = MODIFIER_IDS.filter(
 	(id) => getModifier(id).applicableTo.length > 0,
 );
 
-// Runtime affixType is the source of truth; affix-ids.ts mirrors it at type
-// level. A drift between the two surfaces as a missing lexicon entry below.
 const ROLLABLE_PREFIXES = ROLLABLE_EXPLICITS.filter(
 	(id): id is PrefixModifierId => getModifier(id).affixType === "prefix",
 );

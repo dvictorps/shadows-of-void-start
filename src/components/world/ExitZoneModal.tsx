@@ -19,10 +19,6 @@ type Props = {
 	onPickAll: (ids: string[]) => void | Promise<void>;
 	onDiscardAll: () => void | Promise<void>;
 	bagItems: BagEntry[];
-	// Maximum number of items the player can mark "keep". Camp/boss exits
-	// pass bagItems.length (no cap); exploração/combate retreats pass
-	// floor(bagItems.length × 0.3) min 1 (the 30% punishment tier).
-	// See CONTEXT.md → Bag retention tiers.
 	keepCap: number;
 };
 
@@ -42,25 +38,14 @@ export default function ExitZoneModal({
 	bagItems,
 	keepCap,
 }: Props) {
-	// Selection defaults empty each time the modal opens. Toggling fills the set.
 	const [rawSelected, setSelected] = useState<Set<string>>(new Set());
-	// Reset on the closed → open edge, during render ("adjust state when a
-	// prop changes"), so the first open frame never shows a stale selection.
 	const justOpened = useOpenedEdge(isOpen);
 	if (justOpened) setSelected(new Set());
-	// Without this the "Pegar selecionados (N)" button label keeps the
-	// pre-action N: ids whose item left the bag are dropped at render time.
 	const selected = useMemo(() => {
 		const present = new Set(bagItems.map((it) => it.bagId));
 		const next = new Set([...rawSelected].filter((id) => present.has(id)));
 		return next.size === rawSelected.size ? rawSelected : next;
 	}, [rawSelected, bagItems]);
-	// In-flight tracking for the four action handlers. Modal-close on the
-	// success path already covers the most common spam-click case, but a
-	// slow round-trip would leave the buttons live until the close fires —
-	// `useInFlight(isOpen)` bundles the early-return + try/finally + reset-
-	// on-close path so each handler stays a one-liner. `disabled` on the
-	// button ANDs in the flag.
 	const [isPickingSelected, runPickSelected] = useInFlight(isOpen);
 	const [isDiscardingSelected, runDiscardSelected] = useInFlight(isOpen);
 	const [isPickingAll, runPickAll] = useInFlight(isOpen);
@@ -70,8 +55,6 @@ export default function ExitZoneModal({
 	const selectedCount = selected.size;
 	const hasSelection = selectedCount > 0;
 	const hasItems = bagItems.length > 0;
-	// Cap only bites when it's below the full bag — at camp / boss exits
-	// keepCap equals bagItems.length and the UI flows as before.
 	const isCapped = keepCap < bagItems.length;
 	const atCap = selectedCount >= keepCap;
 
@@ -113,8 +96,6 @@ export default function ExitZoneModal({
 
 	const handlePickAll = () => {
 		if (!hasItems) return;
-		// Belt-and-suspenders — the button is hidden when isCapped, but a
-		// future regression here can't bypass the 30% cap.
 		if (isCapped) return;
 		return runPickAll(() =>
 			Promise.resolve(onPickAll(bagItems.map((it) => it.bagId))),
@@ -134,8 +115,6 @@ export default function ExitZoneModal({
 		await runDiscardAll(() => Promise.resolve(onDiscardAll()));
 	};
 
-	// Any action in-flight disables sibling buttons too so the user can't
-	// queue overlapping mutations (pick-all while discard-all is mid-flight).
 	const anyActionPending =
 		isPickingSelected ||
 		isDiscardingSelected ||

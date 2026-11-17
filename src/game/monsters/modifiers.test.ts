@@ -43,8 +43,6 @@ describe("modCountForRarity", () => {
 	it("matches CONTEXT.md: normal=0, magic=1, rare=4", () => {
 		expect(modCountForRarity("normal")).toBe(0);
 		expect(modCountForRarity("magic")).toBe(1);
-		// Rare spawns at the 2+2 affix cap — the eligibility filter inside
-		// rollMonsterMods always lands one of every prefix/suffix combination.
 		expect(modCountForRarity("rare")).toBe(4);
 	});
 });
@@ -71,7 +69,6 @@ describe("rollMonsterMods", () => {
 	it("caps at the affix cap (max 2+2) when count exceeds available mods", () => {
 		const poolSize = Object.keys(MONSTER_MODIFIERS).length;
 		const picked = rollMonsterMods(poolSize + 5);
-		// 2 prefixes + 2 suffixes per spawn, regardless of how high `count` is.
 		expect(picked).toHaveLength(4);
 		const prefixes = picked.filter(
 			(id) => MONSTER_MODIFIERS[id].affixType === "prefix",
@@ -84,9 +81,6 @@ describe("rollMonsterMods", () => {
 	});
 
 	it("never rolls 3+ of the same affix in a single spawn", () => {
-		// 200 rolls @ 3 mods each is enough to surface a violation if the cap
-		// is broken — without the cap, ~30% of rolls would draw 3 prefixes
-		// from the 5-prefix / 6-suffix pool.
 		for (let trial = 0; trial < 200; trial++) {
 			const picked = rollMonsterMods(3);
 			let prefixes = 0;
@@ -134,7 +128,6 @@ describe("applyMonsterMods", () => {
 	it("Additional Barrier grants a barrier pool = round(hp × 0.3)", () => {
 		const scaled = scaleMonsterStats(baseDef, 1);
 		const after = applyMonsterMods(scaled, ["monsterAdditionalBarrier"]);
-		// HP untouched; barrier = 100 × 0.3 = 30.
 		expect(after.hp).toBe(100);
 		expect(after.barrier).toBe(30);
 	});
@@ -143,7 +136,6 @@ describe("applyMonsterMods", () => {
 		const scaled = scaleMonsterStats(baseDef, 1);
 		const after = applyMonsterMods(scaled, ["monsterCriticalChanceIncrease"]);
 		expect(after.criticalChance).toBeCloseTo(12.5);
-		// Other crit stat unchanged.
 		expect(after.criticalMultiplier).toBe(50);
 	});
 
@@ -191,13 +183,11 @@ describe("applyMonsterMods", () => {
 
 	it("Accuracy mod adds 30 × level to baseline (level × 15)", () => {
 		const scaled = scaleMonsterStats(baseDef, 10);
-		// Baseline accuracy = level 10 × 15 = 150, +30×10 → 450
 		const after = applyMonsterMods(scaled, ["monsterIncreasedAccuracy"]);
 		expect(after.accuracy).toBe(450);
 	});
 
 	it("Evasion + Armor mods scale with monster level", () => {
-		// Level 1: +30 evasion, +15 armor — sane against a low-level player
 		const lvl1 = scaleMonsterStats(baseDef, 1);
 		const lvl1Mods = applyMonsterMods(lvl1, [
 			"monsterIncreasedEvasion",
@@ -206,8 +196,6 @@ describe("applyMonsterMods", () => {
 		expect(lvl1Mods.evasion).toBe(30);
 		expect(lvl1Mods.armor).toBe(15);
 
-		// Level 17 (~end of act 1): +510 evasion, +255 armor — comparable to
-		// the previous flat +500 / +200 numbers at the level they were tuned for.
 		const lvl17 = scaleMonsterStats(baseDef, 17);
 		const lvl17Mods = applyMonsterMods(lvl17, [
 			"monsterIncreasedEvasion",
@@ -218,9 +206,6 @@ describe("applyMonsterMods", () => {
 	});
 
 	it("barrier mod is applied LAST so it reads the post-Increased-Life HP", () => {
-		// Whatever order the roller picks, applyMonsterMods reorders so
-		// Additional Barrier sees the final HP — the player reads barrier as
-		// "30% of the displayed HP", not "30% of the base HP".
 		const scaled = scaleMonsterStats(baseDef, 1);
 		const orderA = applyMonsterMods(scaled, [
 			"monsterIncreasedLife",
@@ -230,7 +215,6 @@ describe("applyMonsterMods", () => {
 			"monsterAdditionalBarrier",
 			"monsterIncreasedLife",
 		]);
-		// Both orders produce: HP 100 × 1.5 = 150, barrier = round(150 × 0.3) = 45.
 		expect(orderA.hp).toBe(150);
 		expect(orderA.barrier).toBe(45);
 		expect(orderB.hp).toBe(150);

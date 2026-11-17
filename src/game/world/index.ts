@@ -11,10 +11,6 @@ export function findNode(act: Act, nodeId: string): WorldNode | null {
 	return act.nodes.find((n) => n.id === nodeId) ?? null;
 }
 
-/**
- * True if the node's progression gate is satisfied. City and ungated nodes
- * (entry zones) always pass. See CONTEXT.md → Progression gating.
- */
 export function isNodeAccessible(
 	node: WorldNode,
 	completedZones: ReadonlySet<string> | readonly string[] | undefined,

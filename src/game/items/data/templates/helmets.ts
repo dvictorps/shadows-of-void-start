@@ -1,9 +1,6 @@
 import type { EquipmentTemplate } from "./types";
 
-// Helmets — 3 armor types × 21 tiers
-// Plate: armor + str | Leather: evasion + dex | Silk: barrier + int
 export const HELMET_TEMPLATES: EquipmentTemplate[] = [
-	// ── Plate Helmets ──
 	{
 		id: "plate_helmet_t1",
 		nameBase: "plate_helm",
@@ -257,7 +254,6 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/armaduras/armadura/elmoPesado2.png",
 	},
 
-	// ── Leather Helmets ──
 	{
 		id: "leather_helmet_t1",
 		nameBase: "hood",
@@ -511,7 +507,6 @@ export const HELMET_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/armaduras/evasao/elmoEvasao2.png",
 	},
 
-	// ── Silk Helmets ──
 	{
 		id: "silk_helmet_t1",
 		nameBase: "hood",

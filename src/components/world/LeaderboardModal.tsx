@@ -11,14 +11,8 @@ import { m } from "#/paraglide/messages";
 
 import Modal from "../Modal";
 
-// The class filter's options, in the classes' declaration order.
 const CLASS_IDS = typedKeys(CLASS_DEFINITIONS);
 
-/**
- * The leaderboard: level or boss kills, softcore or hardcore, a class filter
- * and the hardcore fallen. The route fetches the snapshot for the tabs
- * picked (`useLeaderboardSnapshot`); `snapshot` is undefined while loading.
- */
 export default function LeaderboardModal({
 	isOpen,
 	onClose,
@@ -30,7 +24,6 @@ export default function LeaderboardModal({
 	isOpen: boolean;
 	onClose: () => void;
 	snapshot: LeaderboardSnapshot | null | undefined;
-	/** The snapshot query failed (it retries on its polling interval). */
 	failed?: boolean;
 	query: LeaderboardQuery;
 	onQueryChange: (query: LeaderboardQuery) => void;
@@ -66,7 +59,6 @@ export default function LeaderboardModal({
 			className="max-w-2xl"
 		>
 			<div className="space-y-4">
-				{/* Category tabs */}
 				<div className="flex gap-2">
 					<TabButton
 						active={category === "level"}
@@ -82,7 +74,6 @@ export default function LeaderboardModal({
 					</TabButton>
 				</div>
 
-				{/* Mode toggle + filters */}
 				<div className="flex flex-wrap items-center gap-3">
 					<div className="flex gap-1">
 						<TabButton
@@ -129,7 +120,6 @@ export default function LeaderboardModal({
 					)}
 				</div>
 
-				{/* Table */}
 				<div className="max-h-[50vh] overflow-y-auto">
 					<table className="w-full text-sm">
 						<thead>
@@ -210,7 +200,6 @@ function TabButton({
 	);
 }
 
-/** What the table says with no rows: failed, still loading, or truly empty. */
 function emptyMessage(
 	snapshot: LeaderboardSnapshot | null | undefined,
 	failed: boolean,

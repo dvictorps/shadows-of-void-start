@@ -1,7 +1,3 @@
-// The item tooltip's header-stat blocks as data: one row per stat line, with
-// the value already formatted and a flag for "a local mod changed this"
-// (painted blue). Pure, tested in stat-rows.test.ts; StatBlock renders them.
-
 import { elementName } from "#/game/combat/element-name";
 import { weaponArchetype } from "#/game/items/equipment";
 import {
@@ -29,7 +25,6 @@ function isAttackWeapon(item: GeneratedItem): boolean {
 	return "minDamage" in item.baseStats && !isSpellWeapon(item);
 }
 
-/** Physical, elemental, crit and speed lines of an attack weapon; [] otherwise. */
 export function attackWeaponRows(item: GeneratedItem): StatRow[] {
 	if (!isAttackWeapon(item)) return [];
 	const stats = item.baseStats;
@@ -81,7 +76,6 @@ export function attackWeaponRows(item: GeneratedItem): StatRow[] {
 	return rows;
 }
 
-/** Spell damage and base crit of a staff or wand; [] otherwise. */
 export function spellWeaponRows(item: GeneratedItem): StatRow[] {
 	if (!isSpellWeapon(item)) return [];
 	const { minDamage, maxDamage, criticalChance } = item.baseStats;
@@ -110,10 +104,6 @@ const DEFENSES = [
 	{ key: "blockChance", label: () => m.tooltip_block_chance(), suffix: "%" },
 ] as const;
 
-/**
- * The defense lines the base carries. `computedDefenseStats` is always emitted
- * for armor pieces, so "modified" compares values, not presence.
- */
 export function defenseRows(item: GeneratedItem): StatRow[] {
 	const stats = item.baseStats;
 	const computed = item.computedDefenseStats;

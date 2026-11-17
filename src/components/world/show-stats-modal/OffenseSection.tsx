@@ -11,7 +11,6 @@ import { m } from "#/paraglide/messages";
 import { increasedPools } from "./increased-pools";
 import { Row, SectionHeading } from "./Row";
 
-/** DPS, speed, accuracy, crit, per-hand damage and the increased pools; "unarmed" with no swing. */
 export function OffenseSection({ stats }: { stats: ComputedCharacterStats }) {
 	if (stats.swings.length === 0 || stats.path === "unarmed") {
 		return (
@@ -35,7 +34,6 @@ export function OffenseSection({ stats }: { stats: ComputedCharacterStats }) {
 		.join(" + ");
 
 	const dps = estimateDps(stats);
-	// One per hand: a dual wielder's weapons can differ in base crit.
 	const critChances = stats.swings
 		.map(
 			(s) =>

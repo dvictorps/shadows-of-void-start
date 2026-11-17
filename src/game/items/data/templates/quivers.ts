@@ -1,8 +1,6 @@
 import type { TemplateModifierId } from "../../lexicon/template-ids";
 import type { EquipmentTemplate } from "./types";
 
-// Bow-bound: enforced at equip-time and via broken-state in the stat engine.
-// See CONTEXT.md → "Bow + Quiver".
 interface QuiverTierSpec {
 	tier: number;
 	dropLevel: number;

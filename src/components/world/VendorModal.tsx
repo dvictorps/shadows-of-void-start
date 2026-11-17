@@ -1,7 +1,3 @@
-// The vendor: buy consumables, sell bag gear for rubys. This file composes
-// `vendor-modal/*` and owns what spans the tabs: the tab, the sell selection,
-// the per-product buy guard, the ruby deltas and the server calls. The buy
-// limits live in `vendor-modal/buy-limits.ts`. Pinned by VendorModal.test.tsx.
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -53,15 +49,11 @@ export default function VendorModal({
 		push: pushRubyDelta,
 		clear: clearRubyDeltas,
 	} = useExpiringList<Omit<RubyDelta, "id">>(RUBY_DELTA_LIFETIME_MS);
-	// Per-product spam-click guard. Server-side rate limiting is the real
-	// hardening — see docs/security/threat-model.md.
 	const [pendingBuys, setPendingBuys] = useState(
 		() => new Set<VendorProductId>(),
 	);
 	const [isSelling, runSell] = useInFlight(isOpen);
 
-	// Fresh session state on the closed → open edge, adjusted during render
-	// ("adjust state when a prop changes") so the first open frame is clean.
 	const justOpened = useOpenedEdge(isOpen);
 	if (justOpened) {
 		setSelected(new Set());
@@ -77,7 +69,6 @@ export default function VendorModal({
 		try {
 			await onBuy(productId, quantity);
 		} catch (err) {
-			// Reverse the optimistic delta so the visual matches the reverted balance.
 			pushRubyDelta({ amount: totalCost, sign: "+" });
 			toast.error(serverErrorMessage(err, m.vendor_buy_failed()));
 		} finally {
@@ -89,17 +80,12 @@ export default function VendorModal({
 		}
 	};
 
-	// Memoize the selection summary so toggling unrelated state (e.g., the
-	// `now` ticker on the seconds-remaining counter elsewhere in the world
-	// view) doesn't re-walk the inventory + recompute every sell price.
 	const { selectedItems, selectedTotal } = useMemo(() => {
 		const items = inventoryItems.filter((it) => selected.has(it.id));
 		const total = items.reduce((sum, it) => sum + computeSellPrice(it.data), 0);
 		return { selectedItems: items, selectedTotal: total };
 	}, [inventoryItems, selected]);
 
-	// Counts the selection still in the bag, not `selected.size` (it may hold
-	// ids sold elsewhere), so this isn't item-selection's `toggleAll`.
 	const handleToggleAll = () => {
 		setSelected(
 			selectedItems.length === inventoryItems.length
@@ -119,7 +105,6 @@ export default function VendorModal({
 			try {
 				await onSellMany(itemIds);
 			} catch (err) {
-				// Reverse the optimistic delta + restore the selection so the user can retry.
 				pushRubyDelta({ amount: total, sign: "-" });
 				setSelected(previousSelection);
 				toast.error(serverErrorMessage(err, m.vendor_sell_failed()));
@@ -135,9 +120,6 @@ export default function VendorModal({
 			className="max-w-4xl"
 		>
 			<div className="space-y-5">
-				{/* Header row: centered tab strip with ruby balance pinned right.
-				 * 3-col grid keeps the tabs visually centered in the modal width
-				 * regardless of how wide the balance grows. */}
 				<div className="grid grid-cols-3 items-center">
 					<div />
 					<div className="flex justify-center gap-6 border-white/15 border-b">
@@ -151,8 +133,6 @@ export default function VendorModal({
 					<RubyBalance rubys={rubys} deltas={rubyDeltas} />
 				</div>
 
-				{/* Tab body — fixed min height so switching tabs doesn't make the
-				 * modal jump around vertically. */}
 				<div className="flex min-h-[460px] flex-col">
 					{tab === "buy" ? (
 						<BuyTab

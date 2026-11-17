@@ -4,12 +4,6 @@ import { findModifier, type ModifierId } from "./data/modifiers";
 import { type DEFENSE_LABELS, resolveDefenseFormat } from "./generator";
 import type { GeneratedItem, RolledImplicit, RolledMod } from "./types";
 
-// Renders explicit RolledMod values to the active locale at display time. EN
-// reuses MODIFIERS[id].displayFormat and the same slot-aware resolver as the
-// generator. PT keeps a per-id formatter table because gender/word-order don't
-// translate well from the EN displayFormat. Slot-aware defense mods read
-// item.armorType to pick Armor/Evasion/Barrier (Armadura/Evasão/Barreira).
-
 type ArmorBase = keyof typeof DEFENSE_LABELS;
 
 const PT_DEFENSE_WORDS = {
@@ -31,9 +25,6 @@ function formatValue(mod: RolledMod): string {
 	return String(mod.value);
 }
 
-// Factories for repeated PT damage templates — share the formatter across the
-// weapon-local mod and its jewelry/quiver *Global twin (identical EN
-// displayFormat, identical PT output).
 type ModFormatter = (mod: RolledMod, item: GeneratedItem) => string;
 
 const ptPhysDamageToAttacks: ModFormatter = (m) =>
@@ -54,8 +45,6 @@ const ptTomeGainAsExtra =
 	(m) =>
 		`Ganha ${m.value}% do Dano de Conjuração como Dano de ${element} Adicional`;
 
-// Exported for the cross-coverage test in `translation-coverage.test.ts` —
-// catches drift between MODIFIERS and the PT formatter table at CI time.
 export const PT_EXPLICIT_FORMATTERS = {
 	strengthFlat: (m) => `+${m.value} de Força`,
 	dexterityFlat: (m) => `+${m.value} de Destreza`,
@@ -142,8 +131,6 @@ export const PT_EXPLICIT_FORMATTERS = {
 	itemRarityIncreaseSuffix: (m) => `+${m.value}% de Raridade de Itens`,
 } satisfies Partial<Record<ModifierId, ModFormatter>>;
 
-// String-keyed view for lookups by RolledMod.modifierId, which is a plain
-// string on persisted items.
 const PT_FORMATTER_BY_ID: ReadonlyMap<string, ModFormatter> = new Map(
 	Object.entries(PT_EXPLICIT_FORMATTERS),
 );
@@ -167,9 +154,6 @@ export function localizeMod(mod: RolledMod, item: GeneratedItem): string {
 	return renderEn(mod, item);
 }
 
-// Implicits translate via regex match on the stored EN description because
-// their displayFormat lives on the template, not on RolledImplicit. Migrating
-// to render-at-display needs displayFormat on RolledImplicit — deferred.
 const PT_IMPLICIT_PATTERNS: Array<{
 	test: RegExp;
 	render: (value: number, match: RegExpMatchArray) => string;
@@ -207,7 +191,6 @@ const PT_IMPLICIT_PATTERNS: Array<{
 		test: /^\+\d+ to Maximum Barrier$/i,
 		render: (v) => `+${v} de Barreira Máxima`,
 	},
-	// Legacy phrasing — older items rolled before templates added "to Maximum".
 	{ test: /^\+\d+ Maximum Life$/i, render: (v) => `+${v} de Vida Máxima` },
 	{ test: /^\+\d+ Maximum Mana$/i, render: (v) => `+${v} de Mana Máxima` },
 	{ test: /^\+\d+ Accuracy Rating$/i, render: (v) => `+${v} de Precisão` },

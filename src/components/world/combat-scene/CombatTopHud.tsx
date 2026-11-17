@@ -6,11 +6,6 @@ import { m } from "#/paraglide/messages";
 
 import { fillPercent } from "../fill-percent";
 
-/**
- * The top of the scene: the zone time bar, the ambush banner, the zone label
- * and the loot / Retreat actions. Everything but the time bar fades out
- * while a camp's text plays.
- */
 export default function CombatTopHud({
 	zoneName,
 	zoneLevel,
@@ -42,8 +37,6 @@ export default function CombatTopHud({
 				campThresholdsMs={campThresholdsMs}
 			/>
 
-			{/* Ambush cue — drops a centered banner while the pack is firing. See
-			 * CONTEXT.md → Ambush events. */}
 			<AnimatePresence>
 				{ambushActive && (
 					<motion.div
@@ -67,8 +60,6 @@ export default function CombatTopHud({
 					</motion.div>
 				)}
 			</AnimatePresence>
-			{/* Zone label + static zone level (the area's intrinsic difficulty;
-			 * the per-spawn monster level is shown separately on the nameplate). */}
 			<div
 				className={`absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60 transition-opacity duration-[1200ms] ease-out ${
 					hudFading ? "opacity-0" : "opacity-100"
@@ -78,7 +69,6 @@ export default function CombatTopHud({
 				<span className="text-base text-white/40">LV {zoneLevel}</span>
 			</div>
 
-			{/* Top-right action cluster: loot button then Retreat */}
 			<div
 				className={`absolute top-3 right-3 z-10 flex items-center gap-2 transition-opacity duration-[1200ms] ease-out ${
 					hudFading ? "pointer-events-none opacity-0" : "opacity-100"
@@ -114,8 +104,6 @@ export default function CombatTopHud({
 	);
 }
 
-// See CONTEXT.md → Time Bar. The bar itself stays full-opacity even during a
-// camp — players need to see where they paused.
 function ZoneTimeBar({
 	elapsedMs,
 	budgetMs,

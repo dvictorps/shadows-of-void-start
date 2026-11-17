@@ -7,11 +7,6 @@ import type { Database } from "./db/client";
 import { items, type StashMode } from "./db/schema";
 import { fail, notFound } from "./trpc/errors";
 
-// Item filters and reads shared by the routers. Every item write repeats the
-// expected owner and location in its WHERE clause (built here), so a stale or
-// replayed request matches no row instead of moving an item twice.
-
-/** This character's inventory items, or one of them. */
 export function inInventoryOf(characterId: number, id?: number) {
 	return and(
 		id === undefined ? undefined : eq(items.id, id),
@@ -20,7 +15,6 @@ export function inInventoryOf(characterId: number, id?: number) {
 	);
 }
 
-/** This character's equipped items, or one of them. */
 export function equippedOf(characterId: number, id?: number) {
 	return and(
 		id === undefined ? undefined : eq(items.id, id),
@@ -29,7 +23,6 @@ export function equippedOf(characterId: number, id?: number) {
 	);
 }
 
-/** The account's stash for one mode, or one item in it. */
 export function inStash(authUserId: string, mode: StashMode, id?: number) {
 	return and(
 		id === undefined ? undefined : eq(items.id, id),
@@ -52,7 +45,6 @@ export async function loadEquipped(
 	);
 }
 
-/** Inventory occupancy, for the slot allocator and overflow checks. */
 export async function loadInventorySlots(
 	db: Database,
 	characterId: number,
@@ -65,7 +57,6 @@ export async function loadInventorySlots(
 
 type ItemRow = typeof items.$inferSelect;
 
-/** Asserts a loaded row is one of this character's inventory items. */
 export function assertInventoryItem(
 	item: ItemRow | undefined,
 	characterId: number,

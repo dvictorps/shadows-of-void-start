@@ -2,9 +2,6 @@ import { hasOwnKey } from "../typed-object";
 import type { MonsterDefinition } from "./types";
 
 export const MONSTERS = {
-	// Early-zone monsters (lvl 1-4): physical softened, elemental stripped.
-	// Fresh lvl 1 characters have no resistances or mitigation. Cripta-onward
-	// monsters keep their original templates.
 	goblin: {
 		id: "goblin",
 		name: "Goblin",
@@ -178,10 +175,6 @@ export const MONSTERS = {
 
 export type MonsterId = keyof typeof MONSTERS;
 
-/**
- * Safe lookup for a monster id that may have come from persisted data or a
- * zone's pool. Returns null when the id is unknown.
- */
 export function findMonster(id: string): MonsterDefinition | null {
 	return hasOwnKey(MONSTERS, id) ? MONSTERS[id] : null;
 }

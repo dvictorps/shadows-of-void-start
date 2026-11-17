@@ -1,15 +1,5 @@
 // @vitest-environment jsdom
 
-// What the vendor modal renders and which callback each interaction makes:
-// opening and closing, the Buy / Sell tabs, the ruby balance and its floating
-// deltas, the buy cards (stepper, affordability and cap limits, the in-flight
-// guard), and the sell grid (selection, total, bulk sell).
-//
-// - The modal takes its calls as props (`onBuy`, `onSellMany`), so they are
-//   `vi.fn()` fakes. Sonner's toaster and framer-motion run for real (the
-//   deltas' removal timer is not under test).
-// - The ruby tooltip is Radix: it needs a Provider, and opens on focus.
-
 import {
 	act,
 	cleanup,
@@ -76,7 +66,6 @@ function setup(overrides: Setup = {}) {
 	return { ...result, onBuy, onSellMany, onClose, update };
 }
 
-/** A promise the test settles by hand. */
 function deferred() {
 	let resolve: () => void = () => {};
 	const promise = new Promise<void>((res) => {
@@ -85,13 +74,8 @@ function deferred() {
 	return { promise, resolve };
 }
 
-// ── DOM lookups ───────────────────────────────────────────────────────────
-
-// The tabs share their names with the action buttons ("Buy", "Sell"); the
-// tab strip comes first in the DOM.
 const tab = (name: string) =>
 	narrow(screen.getAllByRole("button", { name })[0], HTMLElement);
-/** The header row: tab strip, then the balance. */
 function balance() {
 	const header = narrow(tab(m.vendor_tab_buy()).closest(".grid"), HTMLElement);
 	return narrow(header.lastElementChild, HTMLElement);
@@ -130,8 +114,6 @@ afterEach(() => {
 	toast.dismiss();
 	vi.restoreAllMocks();
 });
-
-// ── Tests ─────────────────────────────────────────────────────────────────
 
 describe("VendorModal — open and close", () => {
 	it("renders nothing while closed", () => {
@@ -270,7 +252,6 @@ describe("VendorModal — buying", () => {
 		expect(buyButton(potionCard()).disabled).toBe(true);
 		await press(buyButton(potionCard()));
 		expect(t.onBuy).toHaveBeenCalledTimes(1);
-		// Another product stays available.
 		expect(buyButton(stoneCard()).disabled).toBe(false);
 		await act(async () => {
 			pending.resolve();
@@ -317,7 +298,6 @@ describe("VendorModal — sell tab", () => {
 		setup();
 		await openSell();
 		expect(screen.getByText(m.vendor_sell_empty())).toBeTruthy();
-		// Only the tab: no Sell action.
 		expect(
 			screen.getAllByRole("button", { name: m.vendor_sell_action() }),
 		).toHaveLength(1);

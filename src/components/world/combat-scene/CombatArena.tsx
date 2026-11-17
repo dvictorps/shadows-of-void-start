@@ -14,11 +14,6 @@ import { hpBarVisible, type IntroStages, isStagedEnemy } from "./reveal";
 import { useEnemySpriteMotion } from "./useEnemySpriteMotion";
 import ZoneCompletePanel from "./ZoneCompletePanel";
 
-/**
- * The scene's center: whatever occupies the enemy's spot in each state
- * (searching line, sprite, zone-complete panel, camp cinematic), the
- * popups over it, and the enemy HP bar slot under it.
- */
 export default function CombatArena({
 	stages,
 	enemy,
@@ -57,9 +52,6 @@ export default function CombatArena({
 		() => events.filter((e) => e.target === "enemy"),
 		[events],
 	);
-	// Latest event the player landed on the enemy with a weapon. Drives the
-	// HitFx mount (renders even on block, per design — block animates the
-	// visual but the enemy reaction below skips).
 	const lastSwingHit = useMemo(
 		() => enemyEvents.findLast((e) => e.weaponType && !e.isMiss) ?? null,
 		[enemyEvents],
@@ -110,7 +102,6 @@ export default function CombatArena({
 					/>
 				)}
 
-				{/* Damage popups stacked over enemy */}
 				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
 					<AnimatePresence>
 						{enemyEvents.map((event) => (
@@ -119,8 +110,6 @@ export default function CombatArena({
 					</AnimatePresence>
 				</div>
 
-				{/* XP popup mounts on victory and unmounts on the next search,
-				 * so AnimatePresence drives mount/exit instead of a manual queue. */}
 				<div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
 					<AnimatePresence>
 						{state === "victory" && lastKillXp !== undefined && (
@@ -130,9 +119,6 @@ export default function CombatArena({
 				</div>
 			</div>
 
-			{/* HP bar slot. Always reserved when an enemy is present so the
-			 * sprite above doesn't shift when the bar fades in during
-			 * boss_intro stage 3. */}
 			{enemy && state !== "miniboss_victory" && (
 				<EnemyHpBarSlot enemy={enemy} visible={hpBarVisible(stages)} />
 			)}

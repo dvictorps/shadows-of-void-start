@@ -39,8 +39,6 @@ export type CombatBottomHudProps = {
 	incense: number;
 	canUseIncense: boolean;
 	onUseIncense: () => void;
-	// Hover bubbles back to the parent so the world's TextLog can describe the
-	// consumable the player is pointing at. Null on mouse leave.
 	onConsumableHover?: HoverReporter;
 	classId?: string;
 	selectedElement?: SelectableElement;
@@ -48,10 +46,6 @@ export type CombatBottomHudProps = {
 	lastElementSwitchAt?: number;
 };
 
-/**
- * The bottom HUD: HP globe with the player's damage popups, the mage's
- * element selector, the XP bar and the consumable slots.
- */
 export default function CombatBottomHud({
 	hudFading,
 	events,
@@ -81,8 +75,6 @@ export default function CombatBottomHud({
 		() => events.filter((e) => e.target === "player"),
 		[events],
 	);
-	// Latest event where the player actually took damage. Drives the lighter
-	// health-globe shake — miss/block don't trigger it.
 	const lastPlayerHit = useMemo(
 		() => playerEvents.findLast((e) => !e.isMiss && !e.isBlocked) ?? null,
 		[playerEvents],
@@ -107,7 +99,6 @@ export default function CombatBottomHud({
 					size="xl"
 					hitToken={lastPlayerHit?.id ?? null}
 				/>
-				{/* Damage popups over the globe */}
 				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
 					<AnimatePresence>
 						{playerEvents.map((event) => (
@@ -128,8 +119,6 @@ export default function CombatBottomHud({
 
 			<XpBar xp={xp} xpNeeded={xpNeeded} size="hud" />
 
-			{/* Teleport stone — sends to city by default from the HUD (panic
-			 * exit). Non-city destinations are picked from the map view. */}
 			<SlotCell>
 				<ConsumableSlot
 					label={m.teleport_use_aria()}
@@ -141,8 +130,6 @@ export default function CombatBottomHud({
 				/>
 			</SlotCell>
 
-			{/* Incenso Etéreo — invokes a camp on demand. Blocked during boss
-			 * fight / camp / boss intro (see useCombatLoop.triggerIncense). */}
 			<SlotCell>
 				<ConsumableSlot
 					label={m.incense_use_aria()}
@@ -169,8 +156,6 @@ export default function CombatBottomHud({
 	);
 }
 
-// Each slot keeps its own column wrapper: CombatScene.test finds the bottom
-// HUD (to check its fade) as the potion button's grandparent.
 function SlotCell({ children }: { children: ReactNode }) {
 	return <div className="flex flex-col items-center gap-1">{children}</div>;
 }

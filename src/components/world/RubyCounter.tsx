@@ -6,11 +6,6 @@ type Props = {
 	rubys: number;
 };
 
-/**
- * Display-only ruby balance pinned to the bottom-right of the equipment panel.
- * Visual twin of the bottom-left `InventoryButton` so the panel reads as two
- * symmetric corners. Not interactive — pure status indicator.
- */
 export default function RubyCounter({ rubys }: Props) {
 	return (
 		<Tooltip content={m.ruby_tooltip()}>

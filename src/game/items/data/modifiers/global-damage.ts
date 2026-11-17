@@ -2,7 +2,6 @@ import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
 export const GLOBAL_DAMAGE_MODIFIERS = {
-	// ── Global damage % (prefixes) ──
 	globalPhysicalDamageIncrease: {
 		id: "globalPhysicalDamageIncrease",
 		affixType: "prefix",
@@ -116,7 +115,6 @@ export const GLOBAL_DAMAGE_MODIFIERS = {
 		tiers: createStandardTiers(10, 15, 80, 100),
 	},
 
-	// ── Global speed / crit (suffixes) ──
 	globalAttackSpeedIncrease: {
 		id: "globalAttackSpeedIncrease",
 		affixType: "suffix",
