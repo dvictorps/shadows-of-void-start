@@ -63,6 +63,31 @@ const EXACT = {
 	[SERVER_ERRORS.sessionLost]: m.error_session_lost,
 	[SERVER_ERRORS.notEnoughRubys]: m.error_not_enough_rubys,
 	[SERVER_ERRORS.invalidQuantity]: m.error_invalid_quantity,
+	[SERVER_ERRORS.travelInProgress]: m.error_already_traveling,
+	[SERVER_ERRORS.notInZone]: m.error_not_in_zone,
+	[SERVER_ERRORS.noCampsInBoss]: m.error_no_camps_in_boss,
+	[SERVER_ERRORS.campAlreadyUsed]: m.error_camp_already_used,
+	[SERVER_ERRORS.campNotReached]: m.error_camp_not_reached,
+	[SERVER_ERRORS.alreadyTraveling]: m.error_already_traveling,
+	[SERVER_ERRORS.alreadyAtDestination]: m.error_already_at_destination,
+	[SERVER_ERRORS.noTeleportStones]: m.error_no_teleport_stones,
+	[SERVER_ERRORS.destinationLocked]: m.error_destination_locked,
+	[SERVER_ERRORS.mustBeInCity]: m.error_must_be_in_city,
+	[SERVER_ERRORS.busyTravelling]: m.error_busy_travelling,
+	[SERVER_ERRORS.noPotions]: m.error_no_potions,
+	[SERVER_ERRORS.fullLife]: m.error_full_life,
+	[SERVER_ERRORS.noIncense]: m.error_no_incense,
+	[SERVER_ERRORS.incenseInBoss]: m.error_incense_in_boss,
+	[SERVER_ERRORS.travelNotComplete]: m.error_travel_not_complete,
+	[SERVER_ERRORS.onlyMagesSwitch]: m.error_only_mages_switch,
+	[SERVER_ERRORS.elementSwitchCooldown]: m.error_element_switch_cooldown,
+	[SERVER_ERRORS.bothHandsRequired]: m.error_both_hands_required,
+	[SERVER_ERRORS.handsNotInterchangeable]: m.error_hands_not_interchangeable,
+	[SERVER_ERRORS.itemNotInStash]: m.error_item_not_in_stash,
+	[SERVER_ERRORS.wrongStashMode]: m.error_wrong_stash_mode,
+	[SERVER_ERRORS.cannotRevokeSelf]: m.error_cannot_revoke_self,
+	[SERVER_ERRORS.userNotFound]: m.error_user_not_found,
+	[SERVER_ERRORS.adminRequired]: m.error_admin_required,
 } satisfies Record<string, () => string>;
 
 const REQUIREMENT = {
@@ -97,6 +122,10 @@ const PATTERNS: readonly ((msg: string) => string | null)[] = [
 		const cap = msg.match(/Phase cap exceeded: kept \d+ > cap (\d+)/)?.[1];
 		return cap ? m.error_phase_cap_exceeded({ cap: Number(cap) }) : null;
 	},
+	(msg) =>
+		msg.startsWith("discardFromBag") && msg.includes("is camp-only")
+			? m.error_discard_camp_only()
+			: null,
 	(msg) => (msg.includes("is camp-only") ? m.error_pick_camp_only() : null),
 	(msg) => {
 		const req = msg.match(
@@ -118,6 +147,11 @@ const PATTERNS: readonly ((msg: string) => string | null)[] = [
 	(msg) => (/^[a-z_]+ cap reached$/.test(msg) ? m.vendor_buy_at_cap() : null),
 	(msg) =>
 		msg.startsWith("Unknown product") ? m.error_unknown_product() : null,
+	// enterZone from a node that doesn't lead there: "Cannot enter <zone> from <node>".
+	(msg) =>
+		/^Cannot enter \S+ from \S+$/.test(msg)
+			? m.error_cannot_enter_from_here()
+			: null,
 ];
 
 function tryTranslate(raw: string): string | null {

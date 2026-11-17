@@ -135,9 +135,9 @@ export const stashRouter = router({
 			if (source.authUserId !== character.authUserId) {
 				fail(SERVER_ERRORS.notYourItem);
 			}
-			if (source.locationKind !== "stash") fail("Item is not in stash");
+			if (source.locationKind !== "stash") fail(SERVER_ERRORS.itemNotInStash);
 			const mode = stashModeOf(character);
-			if (source.stashMode !== mode) fail("Item is in a different stash mode");
+			if (source.stashMode !== mode) fail(SERVER_ERRORS.wrongStashMode);
 
 			const swapWith = input.swapWithItemId;
 			await ctx.db.batch([

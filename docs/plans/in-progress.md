@@ -10,13 +10,7 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ## Next session — pick up here
 
-**Owner focus (2026-11-16): refactor before gameplay.** No new mechanic, balance change or tuning request starts until the REFACTOR GATE below is empty. Polish (native PT review, `TemplateBaseId` codegen, rare-name bestiary, admin-dashboard latency, camp cinematic ambience) is out of the gate: the owner plays, feels and requests it after. When a doc/code divergence needs a call meanwhile, take the pragmatic one (usually: the doc follows the shipped behavior) and note it for the gameplay-feel pass.
-
-### REFACTOR GATE — what is left
-
-Items 1–19 are done (PRs up to #120; the history is in git). Rules: CLAUDE.md → Scaling rules; recipe: `docs/playbooks/adding-a-world-component.md`.
-
-20. **The rest of the server errors translated** — rule errors still shown raw in English: `src/game/world/zone-actions.ts` (travel / enter / exit refusals, all but `zone-locked`), `src/server/city.ts`, `src/server/trpc/routers/combat.ts`, `items.ts`, `stash.ts` (and `users.ts` / `SERVER_ERRORS.adminRequired`, admin only). Recipe: exact strings into `SERVER_ERRORS`, parametric ones as patterns in `src/lib/server-error-message.ts`, a paraglide key and a test case each; skip the ones the UI can't reach (say so in the test file). 1 PR.
+**REFACTOR GATE closed (2026-11-16, PR #121).** All 20 items shipped (history in git). The owner now plays and feels the game; gameplay tuning, new mechanics and the polish track (native PT review, `TemplateBaseId` codegen, rare-name bestiary, admin-dashboard latency, camp cinematic ambience) open on the owner's request. The guard-rails the gate left are lint errors, not docs: `complexity` ≤ 20, `no-server-calls-in-components`, `react/forbid-elements` and `shadcn/*` (CLAUDE.md → Scaling rules / Lint discipline). New server rule errors follow the recipe of `src/lib/server-error-message.ts`: a `SERVER_ERRORS` constant (or a pattern), a paraglide key, a test case.
 
 ### Open, not blocking
 
@@ -29,7 +23,7 @@ Items 1–19 are done (PRs up to #120; the history is in git). Rules: CLAUDE.md 
 
 ## Project health snapshot (as of 2026-11-16)
 
-**Current grade: A** (composite across architecture / code quality / docs / scalability / agent ergonomics). What holds it below A+ is the React layer's test coverage (a handful of world components and the `/world` wiring) and the last REFACTOR GATE item.
+**Current grade: A** (composite across architecture / code quality / docs / scalability / agent ergonomics). What holds it below A+ is the React layer's test coverage (a handful of world components and the `/world` wiring).
 
 This is a self-assessment from senior-review passes. It exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't. Closed work lives in git history, not here.
 
@@ -40,7 +34,7 @@ This is a self-assessment from senior-review passes. It exists to give downstrea
 | `npx tsc --noEmit`                | 0 errors                                                                                                  |
 | `pnpm lint:errors`                | 0 errors                                                                                                  |
 | `pnpm lint` warnings              | 0: `complexity`, `react/forbid-elements` and `shadcn/*` are all errors                                    |
-| `pnpm test` (Vitest)              | 1196 tests in 73 files: the `unit` project plus 5 tRPC integration files on a local D1 (`server` project) |
+| `pnpm test` (Vitest)              | 1223 tests in 73 files: the `unit` project plus 5 tRPC integration files on a local D1 (`server` project) |
 | `pnpm test:lint-rules`            | 18 rule-test files, all passing                                                                           |
 | Inline `oxlint-disable`           | 4, each with the external constraint written in the comment                                               |
 | `COMPLEXITY_DEBT`                 | Emptied and removed (item 10); `complexity` has no exceptions                                             |
@@ -66,7 +60,7 @@ Re-measure before quoting these numbers; they move with every gate PR.
 
 | Move                                                                                          | Outcome                                                    |
 | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| REFACTOR GATE closed: both debt lists empty and the untested list above covered               | Testing in components B → A.                               |
+| Tests for the remaining untested world components and the `/world` wiring                     | Testing in components B → A.                               |
 | Native PT review of `lexicon/pt.ts`                                                           | Translation quality B- → A.                                |
 | 3+ months of system additions (skills / passive) WITHOUT emergency refactor against the stubs | **A+** — architecture proven at scale, not just at theory. |
 
@@ -84,7 +78,7 @@ Re-measure before quoting these numbers; they move with every gate PR.
 ### Reading this from a fresh session
 
 1. Read this snapshot first — know where the project sits and what's at stake.
-2. Check the REFACTOR GATE above: it blocks new mechanics and tuning until it is closed.
+2. Check "Next session" above for what is open.
 3. When a major refactor lands, **update the relevant playbook + sentinel + codebase-map + CONTEXT.md + this file in the same PR** (see the "Doc-update discipline" section in `CLAUDE.md`).
 
 ---

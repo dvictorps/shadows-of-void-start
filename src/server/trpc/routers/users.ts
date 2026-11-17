@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { SERVER_ERRORS } from "#/lib/server-errors";
+
 import { USER_ROLES, user } from "../../db/schema";
 import { fail } from "../errors";
 import { adminProcedure, publicProcedure, router } from "../init";
@@ -31,13 +33,13 @@ export const usersRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			// The dashboard also disables this button; the server is the fence.
 			if (input.authUserId === ctx.session.user.id && input.role !== "admin") {
-				fail("Cannot revoke your own admin role");
+				fail(SERVER_ERRORS.cannotRevokeSelf);
 			}
 			const [updated] = await ctx.db
 				.update(user)
 				.set({ role: input.role })
 				.where(eq(user.id, input.authUserId))
 				.returning({ id: user.id });
-			if (!updated) fail("User not found");
+			if (!updated) fail(SERVER_ERRORS.userNotFound);
 		}),
 });
