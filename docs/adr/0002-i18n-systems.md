@@ -62,5 +62,5 @@ Tried; rejected. Tooltip mod lines and magic-item affix names have different sha
 ## Consequences
 
 - The "which system?" question is now a doc lookup, not an architecture decision. Future contributors read `i18n-which-system.md` and pick.
-- A future cross-coverage test (one vitest iterating MODIFIERS and asserting every modifier has both a lexicon prefixForms entry and a PT_EXPLICIT_FORMATTERS entry) would close the runtime fallback gap. Tracked in `docs/plans/in-progress.md` → Item naming lexicon follow-ups.
+- A future cross-coverage test (one vitest iterating MODIFIERS and asserting every modifier has both a lexicon prefixForms entry and a PT_EXPLICIT_FORMATTERS entry) would close the runtime fallback gap. Tracked in `docs/plans/lexicon-follow-ups.md`.
 - A new modifier shape (e.g. a percentage-range value like `+5-10% Cold Resistance`) that doesn't fit the existing mod-i18n formatter signature is the kind of change that justifies an ADR amendment rather than a silent workaround.

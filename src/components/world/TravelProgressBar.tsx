@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { useTicker } from "#/hooks/useTicker";
 import { m } from "#/paraglide/messages";
 
 type Props = {
@@ -14,19 +15,23 @@ export default function TravelProgressBar({
 	toName,
 	arrivesAtMs,
 }: Props) {
-	const [now, setNow] = useState(() => Date.now());
+	const [{ endsAtMs, durationMs }] = useState(() => {
+		const start = Date.now();
+		const end = Math.max(start + 100, arrivesAtMs);
+		return { endsAtMs: end, durationMs: end - start };
+	});
+	const secondsLeft = () =>
+		Math.max(0, Math.ceil((endsAtMs - Date.now()) / 1000));
+	const [remainingSeconds, setRemainingSeconds] = useState(secondsLeft);
 
-	useEffect(() => {
-		const id = window.setInterval(() => setNow(Date.now()), 1000);
-		return () => window.clearInterval(id);
-	}, []);
+	useTicker(remainingSeconds > 0, 250, () =>
+		setRemainingSeconds(secondsLeft()),
+	);
 
 	const [animationStyle] = useState<CSSProperties>(() => ({
-		animation: `travel-fill ${Math.max(100, arrivesAtMs - Date.now())}ms linear both`,
+		animation: `travel-fill ${durationMs}ms linear both`,
 		transformOrigin: "left center",
 	}));
-
-	const remainingSeconds = Math.max(0, Math.ceil((arrivesAtMs - now) / 1000));
 
 	return (
 		<div className="pointer-events-none absolute right-0 bottom-0 left-0 px-4 pb-4">

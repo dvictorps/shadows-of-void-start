@@ -72,7 +72,7 @@ A guaranteed rest point inside the zone. When the schedule reaches a camp slot, 
 Mechanical side effects during the camp:
 
 - Bar is paused.
-- Passive HP regen and barrier recovery tick naturally during the cinematic and modal time (no special "rest" UI — it's a side effect of being out of combat).
+- Passive HP regen ticks naturally during the cinematic and modal time (no special "rest" UI — it's a side effect of being out of combat). The barrier has no passive regen: only a pending 10 s refill countdown keeps ticking, and the barrier snaps back to full when it ends.
 - The bag is preserved as-is until the player commits to either option.
 
 Camps are the **only** path to retreating with 100% of the bag outside of a boss kill. This is the central economy lever of zone progression: planning around camp positions matters.
@@ -97,7 +97,7 @@ A distinct, more powerful enemy that gates progression to the next act. Lives in
 2. After the last gauntlet fight, the **act boss** spawns with its own [Boss Cinematic](#boss-cinematic).
 3. Player kills the act boss → the act is complete; next act unlocks.
 
-**No camps and no Incenso Etéreo inside a boss node.** Boss node = commitment. The `useEtherealIncense` action is rejected while the player is in a `kind: "boss"` node (same UI treatment as during an active boss fight — button greyed out).
+**No camps and no Incenso Etéreo inside a boss node.** Boss node = commitment. The `consumeEtherealIncense` mutation is rejected while the player is in a `kind: "boss"` node (same UI treatment as during an active boss fight — button greyed out).
 
 **Retreat between gauntlet fights** is allowed (the usual retreat button stays enabled in exploration phase) — bag retention is the standard 30% (combat tier). Re-entering the boss node restarts the gauntlet **from fight 1**; no checkpoint per rare killed.
 
@@ -195,7 +195,7 @@ This forces engagement with the vendor as the only ruby source and keeps drops a
 
 Loot is **staged server-side**, not instantly added to the inventory. The flow inside a zone:
 
-1. **Entering a zone** issues a `zoneSession` — a short-lived id that scopes the drops of this visit. The character document tracks the current session.
+1. **Entering a zone** issues a `zoneSession` — a short-lived id that scopes the drops of this visit. The character row tracks the current session (`currentZoneSession`).
 2. As the player kills monsters in a zone, the server rolls drops and stages each one in the character's **zone bag**: a JSON column on the character row (`characters.zone_bag`), each entry carrying a server-issued `bagId`. The kill writes the bag in the same row update it already makes, so an unclaimed drop costs nothing in the D1 write quota. The procedure that records a kill also returns the staged entries so the UI can show them immediately. Capacity is unlimited — filtering happens on exit.
 3. A notification button in the combat view (top-right, next to Retreat) shows the bag's running count and lets the player open a **preview modal** at any time to see what dropped so far.
 4. When the player chooses to **leave the zone** (Retreat, return to map, enter the city via map, etc.) a modal appears listing every item in the bag. The player picks which items to **keep** (transfer to inventory) or hits **"Get all"** to take everything. Discarded items are deleted permanently.
@@ -433,11 +433,11 @@ Combat is otherwise automatic, but the player has **three active controls today*
   - Uncapped. Vendor-only, 40 rubys.
 
 - **Incenso Etéreo**: consumable that triggers the camp cinematic at the player's chosen moment. Used during **exploração**, the next spawn doesn't occur and the modal opens with the same two options as a baked camp (Retornar com 100% / Seguir em frente). May be **activated during combate** and is then **queued** — it doesn't interrupt the current fight; immediately after the current enemy is resolved, the cinematic plays. Activation may also occur mid-ambush; the current mob completes, the remaining mobs in the ambush pack do NOT spawn, the cinematic takes over. **Does NOT activate during a boss fight** (boss = full commitment).
-  - Uncapped. **Drop only — never sold by vendors.** ~2-3% chance from any monster kill (independent roll, like potions). Lives on the character document as a counter (`char.etherealIncense: number`) until used.
+  - Uncapped. **Drop only — never sold by vendors.** ~2-3% chance from any monster kill (independent roll, like potions). Lives on the character row as a counter (`char.etherealIncense: number`) until used.
   - Cinematic uses the same structure as baked camps with different flavor text (e.g., "A fumaça arcana se dissipa pelos ares.", "O ar pesado e os sons perturbantes se reduzem à música do ambiente.").
   - HUD button is the 4th active control in combat; greyed out during boss fight, **inside any `kind: "boss"` node (gauntlet included)**, and while a camp cinematic is already active.
 
-The travel consumable is tracked on the character document as `teleportStones`. The wind crystal counter was retired in this consolidation; if any legacy data has it, treat as zero.
+The travel consumable is tracked on the character row as `teleportStones`. The wind crystal counter was retired in this consolidation; if any legacy data has it, treat as zero.
 
 Future skills will plug in as additional active controls; these three are the only ones in the MVP.
 
@@ -477,7 +477,7 @@ The Mage's class mechanic. A selector with three elements — **Fire**, **Cold**
 
 **Switching.** The player may switch elements **during combat** with a **5-second cooldown** between switches. No cooldown on the first selection. The cooldown creates a tactical cost — the Mage can adapt to monster resistances mid-fight, but not reactively per-swing.
 
-**Persistence.** The selected element is stored on the character document (`selectedElement: "fire" | "cold" | "lightning"`). Survives logout, refresh, and zone transitions. Default on character creation: **Fire**.
+**Persistence.** The selected element is stored on the character row (`selectedElement: "fire" | "cold" | "lightning"`). Survives logout, refresh, and zone transitions. Default on character creation: **Fire**.
 
 **UI.** Three element buttons on the combat HUD. The active element glows; inactive elements are dimmed. During cooldown, all buttons are locked with a visual cooldown indicator.
 
@@ -732,9 +732,9 @@ A connected combat node is **only travel-eligible if the player has completed th
 - Attempting to travel to a locked node surfaces a toast (`"Complete a zona anterior"`); the map's "you are here" pin stays put.
 - Teleport stones still respect this gate — jumping to a locked node is rejected (regardless of `unlockedNodes` membership).
 
-A zone enters the **Complete** state by killing the miniboss at least once (see Zone states). The time-bar progress for the current visit lives on the character document; the Complete set is persistent and per-character.
+A zone enters the **Complete** state by killing the miniboss at least once (see Zone states). The time-bar progress for the current visit lives on the character row; the Complete set is persistent and per-character.
 
-### State on the character document
+### State on the character row
 
 Four fields capture the player's location on the act map:
 
@@ -1143,7 +1143,7 @@ The off-hand slot accepts a weapon only if it matches the main-hand archetype. A
 
 ### Reactive feedback contract
 
-All four equip-flow mutations (`equipItem`, `unequipItem`, `pickFromBag`, `discardFromBag`) carry `withOptimisticUpdate` — the UI must reflect the change _before_ the server round-trips. The loot picker auto-closes the moment the bag goes to zero, regardless of whether that happened via "pegar tudo", "descartar tudo", or partial picks that incidentally emptied it. See ADR-0001 (Optimistic Mutations) for the architectural rationale.
+All four equip-flow mutations (`equipItem`, `unequipItem`, `pickFromBag`, `discardFromBag`) are optimistic: `onMutate` takes a `snapshot` of the affected queries and patches the cache, and `rollbackOnError` restores the snapshot if the server rejects (`src/lib/world-cache.ts`) — the UI must reflect the change _before_ the server round-trips. The loot picker auto-closes the moment the bag goes to zero, regardless of whether that happened via "pegar tudo", "descartar tudo", or partial picks that incidentally emptied it. See ADR-0001 (Optimistic Mutations) for the architectural rationale.
 
 ## Show Stats panel
 
@@ -1177,7 +1177,7 @@ Two independent ranking tabs:
 
 ### Data model
 
-- **Boss kill count** is tracked as a counter on the character document: `bossKillCounts: Record<string, number>` (keyed by boss id, e.g., `{ gralfor: 12 }`). Incremented atomically inside the existing `recordKill` mutation when `monsterRarity === "unique"`.
+- **Boss kill count** is tracked as a counter on the character row: `bossKillCounts: Record<string, number>` (keyed by boss id, e.g., `{ gralfor: 12 }`). Incremented atomically inside the existing `recordKill` mutation when `monsterRarity === "unique"`.
 - **No separate kill-history table.** The leaderboard only needs totals; per-kill timestamps and metadata are not stored.
 
 ### Snapshot

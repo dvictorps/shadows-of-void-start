@@ -148,7 +148,7 @@ If the mod is balance-sensitive (premium weight, exclusive slot), write the `wei
 
 ## Step 7 — Test the drop visually
 
-Run `npm run dev`, create or load a character, retreat from a zone with items in the bag, open the loot picker. Verify:
+Run `pnpm dev`, create or load a character, retreat from a zone with items in the bag, open the loot picker. Verify:
 
 1. The mod shows on dropped items with the right localized line in the tooltip body (step 5)
 2. Magic items that roll this mod get the right compound name in both locales (step 4) — e.g. "Mighty Iron Sword" / "Espada de Ferro Poderosa"

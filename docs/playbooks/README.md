@@ -15,7 +15,7 @@ Use these when the task matches an existing pattern. For one-off architectural c
 - [Adding a vendor product](./adding-a-vendor-product.md) — new consumable in the vendor catalog
 - [Adding an i18n key](./adding-an-i18n-key.md) — new user-facing string (paraglide)
 - [Which i18n system to use](./i18n-which-system.md) — decision tree: paraglide vs lexicon vs `mod-i18n.ts`
-- [Touching combat](./touching-combat.md) — read this before editing `useCombatLoop.ts`
+- [Touching combat](./touching-combat.md) — read this before editing `useCombatLoop.ts` / `useCombatTick.ts`
 - [Adding a procedure](./adding-a-procedure.md) — new tRPC endpoint on D1 (auth → load → decide → one write)
 - [Adding a world component](./adding-a-world-component.md) — new modal / panel / HUD block, or a new concern in one: the anti-monolith shape (decisions pure + tested, `server` prop, folder per component)
 
@@ -23,7 +23,7 @@ Use these when the task matches an existing pattern. For one-off architectural c
 
 - [Adding a skill](./adding-a-skill.md) — active skill (gem-style). System not yet implemented.
 - [Adding a passive](./adding-a-passive.md) — passive tree node. System not yet implemented.
-- [Adding a stash tab](./adding-a-stash-tab.md) — stash + ruby loop. System not yet implemented.
+- [Adding a stash tab](./adding-a-stash-tab.md) — purchasable extra stash tabs. The stash itself has shipped (one tab); extra tabs are not implemented.
 
 ## Conventions
 
@@ -32,7 +32,7 @@ Every playbook ends with the same validation sequence — you should always run 
 ```bash
 npx tsc --noEmit       # type-check
 npx vitest run         # all tests
-npx oxlint src/        # lint (oxfmt formats)
+pnpm lint:errors       # lint, must stay at zero (oxfmt formats)
 ```
 
 If your change touched `src/server/db/*-schema.ts`, generate the migration and apply it locally (the integration tests run the real migrations):
@@ -42,12 +42,12 @@ pnpm db:generate
 pnpm db:migrate:local
 ```
 
-Don't bypass these. If a check fails, fix it before adding more changes.
+Don't bypass these. If a check fails, fix it before adding more changes. CI (`.github/workflows/ci.yml`) runs `pnpm lint:errors`, `npx tsc --noEmit`, `pnpm test` and `pnpm test:lint-rules` on every push and PR to `dev` / `master`, but running them locally first is still the fast path.
 
 ## Type-check gate against drift
 
-The playbooks for adding a modifier / template / monster / zone / class each link to a sentinel file under [`_examples/`](./_examples/) that mirrors the exact compile-checked shape. The sentinels are included in `tsconfig.json` (via `**/*.ts`) so `npx tsc --noEmit` fails on the sentinel when a domain type changes incompatibly — the playbook must then be updated in the same PR.
+The playbooks for adding a modifier / template / monster / boss / zone / class each link to a sentinel file under [`_examples/`](./_examples/) that mirrors the exact compile-checked shape. The sentinels are included in `tsconfig.json` (via `**/*.ts`) so `npx tsc --noEmit` fails on the sentinel when a domain type changes incompatibly — the playbook must then be updated in the same PR.
 
-**Caveat — this is a local-only gate, not CI.** There is no `.github/workflows/` in the repo today, so nothing automatically runs `tsc --noEmit` on push. The sentinel only fires when _you_ (or a reviewing agent) run the validation sequence above before merging. If a PR lands without that run, a stale sentinel can ship undetected. Treat the discipline as load-bearing until a CI workflow gets wired up.
+CI runs `npx tsc --noEmit` on every push and PR to `dev` / `master`, so a stale sentinel fails the build. It only catches type drift: whether the playbook prose still matches the code is on you.
 
 When you change a domain shape **or** when you change a playbook example, update both. The sentinels exist to make that coupling hard to forget.

@@ -93,3 +93,5 @@ The other two pillars of the rework (no passive regen; 10s refill cooldown then 
 - `CONTEXT.md` → Combat Resolution → Defenses → Barrier (the canonical glossary entry, kept in sync with this ADR).
 - `docs/plans/in-progress.md` → Native monster barrier (the queued task that will reuse this mechanic on the enemy side).
 - ADR [0004 — Static data conventions](./0004-static-data-conventions.md) — barrier constants live in `src/game/combat/constants.ts` per Rule 1 (designer-tuned, not player-mutable).
+
+**Update (2026-11-16):** the monster barrier referenced above as queued in `docs/plans/in-progress.md` shipped in PR #57 (`feat/monster-barrier-crit`) on this same mechanic; that queue entry is gone.

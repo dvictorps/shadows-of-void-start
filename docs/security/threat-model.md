@@ -96,7 +96,7 @@ The exploit is bounded to "keep more of the current zone's loot than the rules p
 
 **Why it works**: combat phase is currently maintained only on the client (the combat loop tracks whether the player is in exploração / combate / camp). The server has no record of "this player is in camp right now," so it has nothing to compare the arg against. Same architectural cause as exploits #1 and #2.
 
-**Status**: queued as its own deferred work item in `docs/plans/in-progress.md` → "Server-authoritative camp/phase derivation" — that entry has the full schema + mutation plan. The fix is independent of Layers 1-3 below (it doesn't need rate limits or session combat; it just needs the server to track `inCamp` itself and derive phase from it instead of accepting an arg).
+**Status**: closed in PR #48 + #51 (see the heading): the server tracks `characters.inCamp` itself and derives the phase from it; the `phase` arg is gone.
 
 ### 4. No mutation-level rate limiting (MEDIUM severity)
 

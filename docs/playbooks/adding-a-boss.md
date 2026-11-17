@@ -135,7 +135,7 @@ npx tsc --noEmit
 npx vitest run
 ```
 
-Then in `npm run dev`:
+Then in `pnpm dev`:
 
 1. Travel to the boss node (it appears on the map once `gatedBy` is satisfied).
 2. Three rare fights play back-to-back; each runs the standard rare intro (sprite → name → HP).
@@ -145,7 +145,7 @@ Then in `npm run dev`:
 
 ## Gotcha: incense is banned in boss nodes
 
-The `useEtherealIncense` button is greyed out inside any `kind: "boss"` node — server-side too. Per CONTEXT.md → Incenso Etéreo. No code change needed when adding a new boss; the gate keys off `node.kind`, not the boss id.
+The incense button (`consumeEtherealIncense`) is greyed out inside any `kind: "boss"` node — server-side too. Per CONTEXT.md → Incenso Etéreo. No code change needed when adding a new boss; the gate keys off `node.kind`, not the boss id.
 
 ## Gotcha: gauntlet rare drops use the standard miniboss table
 

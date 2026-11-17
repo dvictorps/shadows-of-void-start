@@ -13,7 +13,7 @@ Run git diff (or git diff HEAD if there are staged changes) to see what changed.
 
 ## Phase 2: Launch Three Review Agents in Parallel
 
-Use the Agent tool to launch all three agents concurrently in a single message. Pass each agent the full diff so it has the complete context.
+Use the Agent tool to launch all three agents concurrently in a single message, each with `model: "sonnet"` (review doesn't need the session's model). Pass each agent the full diff so it has the complete context.
 
 ### Agent 1: Code Reuse Review
 

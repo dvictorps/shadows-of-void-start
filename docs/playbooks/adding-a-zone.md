@@ -88,7 +88,7 @@ npx tsc --noEmit
 npx vitest run
 ```
 
-Then load the world view in `npm run dev`, hover the node on the map to confirm the name renders correctly, click to enter, kill a mob, retreat, and check the loot bag for items at the expected ilvl band.
+Then load the world view in `pnpm dev`, hover the node on the map to confirm the name renders correctly, click to enter, kill a mob, retreat, and check the loot bag for items at the expected ilvl band.
 
 ## Future: boss zones
 

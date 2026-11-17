@@ -1,10 +1,10 @@
 # Touching combat
 
-Before you change `src/hooks/useCombatLoop.ts` or the pure combat math in `src/game/combat/`, read this. The combat loop has subtle constraints that will bite an agent that touches it casually.
+Before you change `src/hooks/useCombatLoop.ts`, `src/hooks/useCombatTick.ts` or the pure combat math in `src/game/combat/`, read this. The combat loop has subtle constraints that will bite an agent that touches it casually.
 
 ## The architecture
 
-Combat is a state machine driven by an interval ticker (50ms) in a single React hook.
+Combat is a state machine split across two React hooks: `useCombatLoop` owns the encounter state (`searching` → `engaged` → `victory`, plus the intro and camp states) and `useCombatTick` owns the 50ms interval ticker, the swing math and the refs it reads and writes mid-tick.
 
 ```
             ┌──────────┐  spawn delay  ┌──────────┐ enemy.hp = 0  ┌─────────┐
@@ -18,7 +18,7 @@ state:      │ searching│ ───────────── ▶│ enga
 Each tick at `engaged`:
 
 1. Update leech instances (delivers regen).
-2. Tick the barrier: regen 5%/s of max while above zero; count down the 10s cooldown after a break. See [ADR 0005](../adr/0005-barrier-regen-mechanic.md).
+2. Tick the barrier: there is no passive regen. `tickBarrier` only counts down `refillRemaining` (the 10s refill after a break) and snaps the barrier back to max when it reaches zero. The player's barrier ticks in `useBarrier`, the enemy's inside the combat tick. See [ADR 0005](../adr/0005-barrier-regen-mechanic.md).
 3. Advance `playerProgress` by `dt × stats.tickRate`.
 4. Advance `enemyProgress` by `dt × enemyAttackSpeed`.
 5. If `playerProgress >= 1`, subtract 1 and fire a player swing.
@@ -35,9 +35,9 @@ When the player swings:
 
 ### 1. React batching vs sync state
 
-You **cannot** rely on `useState` setters to be visible synchronously inside the same tick callback. We work around this with refs:
+You **cannot** rely on `useState` setters to be visible synchronously inside the same tick callback. We work around this with refs, most of them in `useCombatTick.ts`:
 
-- `stateRef.current` — read instead of `state`.
+- `stateRef.current` (`useCombatLoop`) — read instead of `state`.
 - `enemyRef.current` — read + mutate; setEnemy is just for re-render.
 - `playerHpRef.current` — same pattern.
 - `deadRef.current` — guards against double-firing death.
@@ -47,14 +47,14 @@ You **cannot** rely on `useState` setters to be visible synchronously inside the
 
 When you add a new piece of mid-tick state, follow the same pattern: declare both `const [foo, setFoo] = useState(...)` and `const fooRef = useRef(foo)`, and write to both (`fooRef.current = next; setFoo(next)`).
 
-### 2. The activation effect
+### 2. Zone entry vs pause
 
-`useCombatLoop` takes an `active: boolean` prop. When it flips:
+State is reset on zone entry, not on activation:
 
-- `active && !wasActive`: pull server HP, clear leech instances, reset swing index, switch to `searching`.
-- `!active && wasActive && !dead`: flush HP back to server via `syncHp`.
+- `startVisit()` (`useCombatLoop`, which calls `useCombatTick`'s own `startVisit`) runs when the player enters a zone. It pulls the server HP, clears leech instances, resets the swing index and the dead guard, and switches to `searching`.
+- `active: boolean` only pauses and resumes the tickers. On `!active && wasActive && !dead`, an effect in `useCombatTick` flushes unsynced HP and barrier to the server through `syncVitals`.
 
-If you change the combat hook to accept additional state that needs activation handling, add it to that `useEffect` block.
+If you add state that must reset per visit, reset it in `startVisit`. If it must reach the server when combat pauses, flush it alongside the `syncVitals` call.
 
 ### 3. The dead guard
 
@@ -77,7 +77,7 @@ Pure combat tests (`src/game/combat/*.test.ts`) pass `rng: rngFromUnit(() => 0.5
 
 - **Pure functions** in `src/game/combat/damage.ts`, `barrier.ts`, `leech.ts` — changing these is mechanically safe as long as the existing tests pass. They have no React or IO dependency.
 - **The damage formula** — read `CONTEXT.md` → "Damage formula" first. The formula is documented; if you change it, update the doc.
-- **The state machine transitions** — guarded but careful. Adding a new state (e.g. `stunned`) means adding ref tracking and respecting the activation transition.
+- **The state machine transitions** — guarded but careful. Adding a new state (e.g. `stunned`) means adding ref tracking and resetting it in `startVisit`.
 
 ## What's dangerous to change
 
@@ -91,7 +91,7 @@ Pure combat tests (`src/game/combat/*.test.ts`) pass `rng: rngFromUnit(() => 0.5
 npx tsc --noEmit
 npx vitest run src/game/combat/
 npx vitest run src/game/stats/
-npx oxlint src/hooks/ src/game/combat/
+pnpm lint:errors
 ```
 
-Then `npm run dev`, kill at least 5 mobs to verify victory transitions work, take damage to barrier to verify the regen ticks back up while above zero and a break triggers the 10s cooldown, and use a potion mid-combat to verify the optimistic update doesn't conflict with HP sync.
+Then `pnpm dev`, kill at least 5 mobs to verify victory transitions work, break the barrier to verify it stays empty for the 10s refill and then snaps back to full, and use a potion mid-combat to verify the optimistic update doesn't conflict with HP sync.

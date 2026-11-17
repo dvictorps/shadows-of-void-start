@@ -68,7 +68,7 @@ npx tsc --noEmit
 npx vitest run
 ```
 
-Then enter the zone in `npm run dev` and confirm the new monster shows up. Note the mob roll is uniformly random across `monsterPool` — to verify rare monsters in a pool, you may need to retry a few times.
+Then enter the zone in `pnpm dev` and confirm the new monster shows up. Note the mob roll is uniformly random across `monsterPool` — to verify rare monsters in a pool, you may need to retry a few times.
 
 ## Gotcha: damage balance
 

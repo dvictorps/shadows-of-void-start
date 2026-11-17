@@ -7,7 +7,7 @@ Read these in order if you're new to the codebase:
 1. **[CONTEXT.md](./CONTEXT.md)** — domain glossary. What the game's rules ARE. Single source of truth.
 2. **[docs/codebase-map.md](./docs/codebase-map.md)** — where each domain lives in the repo. Use this instead of grepping blindly.
 3. **[docs/playbooks/](./docs/playbooks/)** — task recipes (add modifier, add monster, touch combat, etc). If your task matches one, follow it.
-4. **[docs/plans/in-progress.md](./docs/plans/in-progress.md)** — decisions made but not yet executed. Check before starting work to avoid colliding with a planned refactor.
+4. **[docs/plans/in-progress.md](./docs/plans/in-progress.md)** — what is open now and the priority queue, short by rule. Future designs live one per file in `docs/plans/`; the project's grade and its gates in [`docs/plans/project-health.md`](./docs/plans/project-health.md).
 5. **[docs/adr/](./docs/adr/)** — architecture decisions (optimistic mutations, three-system i18n split, render-at-display naming, static-data conventions).
 
 ## Doc-update discipline (read this before you ship)
@@ -16,16 +16,16 @@ Read these in order if you're new to the codebase:
 
 **Update docs in the same PR as the code change. Concretely:**
 
-| If your PR…                                                                                       | Update…                                                                                                                                                                 |
-| ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Adds, removes, or renames a file/directory referenced in `docs/codebase-map.md`                   | The matching table row(s) in `codebase-map.md`                                                                                                                          |
-| Changes a game-design rule (combat formula, drop rate, balance number, retention tier, etc)       | The relevant section of `CONTEXT.md` — that file is the single source of truth                                                                                          |
-| Ships a queued item from `docs/plans/in-progress.md`                                              | Remove (or rewrite) the queued entry; closed work belongs in commit history, not this file                                                                              |
-| Materially changes line counts the docs cite (a refactor that breaks a "currently N lines" claim) | The cited number(s) in `codebase-map.md` and `in-progress.md`                                                                                                           |
-| Adds a new system that didn't exist before (skill, passive node, stash, leaderboard, etc)         | Write a new playbook under `docs/playbooks/` + a sentinel under `_examples/` + a `CONTEXT.md` section. If the choice is load-bearing, write a new ADR under `docs/adr/` |
-| Changes the shape of a type that a playbook documents (Modifier, Template, Monster, Zone, Class)  | The sentinel under `docs/playbooks/_examples/` AND the playbook's example block. `tsc --noEmit` will fail otherwise                                                     |
-| Reverses an architectural decision already in an ADR                                              | Append an "Update" or "Superseded by" note to the existing ADR; do NOT silently rewrite it                                                                              |
-| Closes a threat in `docs/security/threat-model.md`                                                | Mark the threat closed inline, link the PR/commit                                                                                                                       |
+| If your PR…                                                                                       | Update…                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Adds, removes, or renames a file/directory referenced in `docs/codebase-map.md`                   | The matching table row(s) in `codebase-map.md`                                                                                                                             |
+| Changes a game-design rule (combat formula, drop rate, balance number, retention tier, etc)       | The relevant section of `CONTEXT.md` — that file is the single source of truth                                                                                             |
+| Ships a queued item from `docs/plans/in-progress.md`                                              | Delete the entry, don't summarize it: `in-progress.md` lists only what is open. Closed work belongs in the commit / PR; a future plan gets its own `docs/plans/<topic>.md` |
+| Materially changes line counts the docs cite (a refactor that breaks a "currently N lines" claim) | The cited number(s) in `codebase-map.md` and `in-progress.md`                                                                                                              |
+| Adds a new system that didn't exist before (skill, passive node, stash, leaderboard, etc)         | Write a new playbook under `docs/playbooks/` + a sentinel under `_examples/` + a `CONTEXT.md` section. If the choice is load-bearing, write a new ADR under `docs/adr/`    |
+| Changes the shape of a type that a playbook documents (Modifier, Template, Monster, Zone, Class)  | The sentinel under `docs/playbooks/_examples/` AND the playbook's example block. `tsc --noEmit` will fail otherwise                                                        |
+| Reverses an architectural decision already in an ADR                                              | Append an "Update" or "Superseded by" note to the existing ADR; do NOT silently rewrite it                                                                                 |
+| Closes a threat in `docs/security/threat-model.md`                                                | Mark the threat closed inline, link the PR/commit                                                                                                                          |
 
 **Triggers that mean "find the doc and update it":**
 
