@@ -1,8 +1,12 @@
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MAX_POTIONS } from "#/game/combat/constants";
 import { xpToNextLevel } from "#/game/progression/levels";
+import { TRAVEL_ARRIVAL_GRACE_MS } from "#/game/world/zone-actions";
+import { SERVER_ERRORS } from "#/lib/server-errors";
+import { ARRIVAL_RETRY_MS, localTravelEnd } from "#/lib/travel-clock";
 
 import { db } from "../../db/client";
 import { items } from "../../db/schema";
@@ -150,6 +154,114 @@ describe("combat", () => {
 				destinationNodeId: "forest_profunda",
 			}),
 			"zone-locked",
+		);
+	});
+
+	describe("travel arrival", () => {
+		async function travellingHero(arrivesInMs: number) {
+			const account = await createAccount();
+			const hero = await createPlayableCharacter(account);
+			await account.caller.combat.startTravel({
+				...hero,
+				destinationNodeId: "forest_starter",
+			});
+			await patchCharacter(hero.characterId, {
+				travelArrivesAt: Date.now() + arrivesInMs,
+			});
+			return { arrive: () => account.caller.combat.arriveAtTravel(hero), hero };
+		}
+
+		it("refuses an arrival earlier than the grace", async () => {
+			const { arrive, hero } = await travellingHero(
+				TRAVEL_ARRIVAL_GRACE_MS + 5_000,
+			);
+			await expectServerError(arrive(), SERVER_ERRORS.travelNotComplete);
+			const row = await readCharacter(hero.characterId);
+			expect(row.currentLocation).toBe("city");
+			expect(row.travelDestination).toBe("forest_starter");
+		});
+
+		it("accepts an arrival inside the grace", async () => {
+			const { arrive } = await travellingHero(TRAVEL_ARRIVAL_GRACE_MS - 200);
+			expect(await arrive()).toEqual({ arrivedAt: "forest_starter" });
+		});
+
+		it("accepts an arrival after the trip and unlocks the node", async () => {
+			const { arrive, hero } = await travellingHero(-1);
+			expect(await arrive()).toEqual({ arrivedAt: "forest_starter" });
+			const row = await readCharacter(hero.characterId);
+			expect(row.currentLocation).toBe("forest_starter");
+			expect(row.travelArrivesAt).toBeNull();
+			expect(row.unlockedNodes).toEqual(["city", "forest_starter"]);
+		});
+	});
+
+	describe("travel arrival under client clock skew", () => {
+		const SERVER_START = 1_800_000_000_000;
+
+		beforeEach(() => {
+			vi.useFakeTimers({ toFake: ["Date"] });
+			vi.setSystemTime(SERVER_START);
+		});
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		async function startTrip(clientOffsetMs: number) {
+			const account = await createAccount();
+			const hero = await createPlayableCharacter(account);
+			const travel = await account.caller.combat.startTravel({
+				...hero,
+				destinationNodeId: "forest_starter",
+			});
+			const isEarly = (cause: unknown) => {
+				if (
+					cause instanceof TRPCError &&
+					cause.message === SERVER_ERRORS.travelNotComplete
+				) {
+					return true;
+				}
+				throw cause;
+			};
+			const arriveAfter = async (wait: number): Promise<number> => {
+				vi.setSystemTime(SERVER_START + wait);
+				for (;;) {
+					const refused = await account.caller.combat
+						.arriveAtTravel(hero)
+						.then(() => false, isEarly);
+					if (!refused) return Date.now() - SERVER_START;
+					vi.setSystemTime(Date.now() + ARRIVAL_RETRY_MS);
+				}
+			};
+			return { travel, clientNow: SERVER_START + clientOffsetMs, arriveAfter };
+		}
+
+		it.each([-9_000, 9_000])(
+			"waits exactly the trip from the optimistic snapshot (client offset %sms)",
+			async (offset) => {
+				const { travel, clientNow, arriveAfter } = await startTrip(offset);
+				const wait =
+					localTravelEnd(clientNow, clientNow, clientNow + travel.durationMs) -
+					clientNow;
+				expect(wait).toBe(travel.durationMs);
+				expect(await arriveAfter(wait)).toBe(travel.durationMs);
+			},
+		);
+
+		it.each([-9_000, 9_000])(
+			"never waits longer than the trip from the server's snapshot (client offset %sms)",
+			async (offset) => {
+				const { travel, clientNow, arriveAfter } = await startTrip(offset);
+				const wait =
+					localTravelEnd(clientNow, travel.startedAt, travel.arrivesAt) -
+					clientNow;
+				expect(wait).toBeLessThanOrEqual(travel.durationMs);
+				const arrivedAt = await arriveAfter(wait);
+				expect(arrivedAt).toBeLessThanOrEqual(travel.durationMs);
+				expect(arrivedAt).toBeGreaterThanOrEqual(
+					travel.durationMs - TRAVEL_ARRIVAL_GRACE_MS,
+				);
+			},
 		);
 	});
 
