@@ -4,39 +4,55 @@ import { seededRng } from "#/lib/rng";
 
 import {
 	cellIndexAt,
-	PATH_ROWS,
+	type PathCell,
 	type PathLayout,
 	pointAt,
 	rollPathLayout,
 	stopCellIndex,
 } from "./path-layout";
 
-const adjacent = (a: { x: number; y: number }, b: { x: number; y: number }) =>
-	Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
+const distance = (a: PathCell, b: PathCell) =>
+	Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+const steps = (a: PathCell, b: PathCell) =>
+	Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 
 describe("rollPathLayout", () => {
-	it("walks from the first column to the last, one tile at a time, inside the grid", () => {
+	it("walks one tile at a time, about one tile per second, inside its box", () => {
 		for (let seed = 0; seed < 100; seed++) {
-			const layout = rollPathLayout(35_000, seededRng(seed));
-			const { cells, cols } = layout;
-			expect(cells[0].x).toBe(0);
-			expect(cells.at(-1)?.x).toBe(cols - 1);
+			const { cells, cols, rows } = rollPathLayout(35_000, seededRng(seed));
+			expect(cells).toHaveLength(35);
 			for (let i = 1; i < cells.length; i++) {
-				expect(adjacent(cells[i - 1], cells[i])).toBe(true);
+				expect(steps(cells[i - 1], cells[i])).toBe(1);
 			}
 			for (const cell of cells) {
+				expect(cell.x).toBeGreaterThanOrEqual(0);
+				expect(cell.x).toBeLessThan(cols);
 				expect(cell.y).toBeGreaterThanOrEqual(0);
-				expect(cell.y).toBeLessThan(PATH_ROWS);
+				expect(cell.y).toBeLessThan(rows);
 			}
 		}
 	});
 
-	it("never crosses itself", () => {
+	it("never touches itself, not even at a corner, so it reads as one road", () => {
 		for (let seed = 0; seed < 100; seed++) {
-			const { cells } = rollPathLayout(50_000, seededRng(seed));
-			const keys = new Set(cells.map((c) => `${c.x},${c.y}`));
-			expect(keys.size).toBe(cells.length);
+			const { cells } = rollPathLayout(62_000, seededRng(seed));
+			for (let i = 0; i < cells.length; i++) {
+				for (let j = i + 3; j < cells.length; j++) {
+					expect(distance(cells[i], cells[j])).toBeGreaterThan(1);
+				}
+			}
 		}
+	});
+
+	it("heads off in different directions across rolls", () => {
+		const headings = new Set(
+			Array.from({ length: 40 }, (_, seed) => {
+				const { cells } = rollPathLayout(35_000, seededRng(seed));
+				const [a, b] = cells;
+				return `${b.x - a.x},${b.y - a.y}`;
+			}),
+		);
+		expect(headings.size).toBe(4);
 	});
 
 	it("grows with the budget", () => {
@@ -55,7 +71,7 @@ describe("rollPathLayout", () => {
 describe("positions along the path", () => {
 	const layout: PathLayout = {
 		cols: 2,
-		rows: PATH_ROWS,
+		rows: 2,
 		cells: [
 			{ x: 0, y: 0 },
 			{ x: 0, y: 1 },

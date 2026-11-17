@@ -11,49 +11,135 @@ export interface PathLayout {
 	cells: readonly PathCell[];
 }
 
-export const PATH_ROWS = 7;
 const MS_PER_TILE = 1000;
 const MIN_TILES = 8;
-const TILES_PER_COLUMN = 3;
+const AREA_PER_TILE = 3.2;
+const GRID_ASPECT = 2.4;
+const ATTEMPTS = 6;
+const GROWTH_PER_ATTEMPT = 1.25;
+const MAX_EXPANSIONS = 4000;
+const KEEP_HEADING = 0.55;
 
-function rollRun(
-	y: number,
-	vertical: number,
-	columnsLeft: number,
-	rng: Rng,
-): number {
-	const reach = Math.max(y, PATH_ROWS - 1 - y);
-	const lo = Math.max(0, vertical - columnsLeft * (PATH_ROWS - 1));
-	const hi = Math.min(vertical, reach);
-	if (hi <= lo) return hi;
-	const fair = Math.ceil((2 * vertical) / (columnsLeft + 1));
-	return randInt(lo, Math.max(lo, Math.min(hi, fair)), rng);
+const STEPS: readonly PathCell[] = [
+	{ x: 1, y: 0 },
+	{ x: 0, y: 1 },
+	{ x: -1, y: 0 },
+	{ x: 0, y: -1 },
+];
+
+const key = (c: PathCell) => `${c.x},${c.y}`;
+
+interface Grid {
+	w: number;
+	h: number;
 }
 
-function rollDirection(y: number, run: number, rng: Rng): 1 | -1 {
-	const canUp = y - run >= 0;
-	const canDown = y + run <= PATH_ROWS - 1;
-	if (canUp && canDown) return rng.unit() < 0.5 ? -1 : 1;
-	return canUp ? -1 : 1;
+function gridFor(target: number, scale: number): Grid {
+	const area = target * AREA_PER_TILE * scale;
+	const w = Math.ceil(Math.sqrt(area * GRID_ASPECT));
+	return { w, h: Math.max(3, Math.ceil(area / w)) };
+}
+
+function rollEdgeStart(grid: Grid, rng: Rng): PathCell {
+	const side = randInt(0, 3, rng);
+	const along = (size: number) => randInt(0, size - 1, rng);
+	if (side === 0) return { x: 0, y: along(grid.h) };
+	if (side === 1) return { x: grid.w - 1, y: along(grid.h) };
+	if (side === 2) return { x: along(grid.w), y: 0 };
+	return { x: along(grid.w), y: grid.h - 1 };
+}
+
+function touchesOnlyItsTail(
+	next: PathCell,
+	tail: ReadonlySet<string>,
+	onPath: ReadonlySet<string>,
+): boolean {
+	for (let dx = -1; dx <= 1; dx++) {
+		for (let dy = -1; dy <= 1; dy++) {
+			const near = key({ x: next.x + dx, y: next.y + dy });
+			if (onPath.has(near) && !tail.has(near)) return false;
+		}
+	}
+	return true;
+}
+
+function candidates(
+	path: readonly PathCell[],
+	onPath: ReadonlySet<string>,
+	grid: Grid,
+	rng: Rng,
+): PathCell[] {
+	const head = path.at(-1);
+	const prev = path.at(-2);
+	if (!head) return [];
+	const tail = new Set(path.slice(-2).map(key));
+	const open = STEPS.map((s) => ({ x: head.x + s.x, y: head.y + s.y })).filter(
+		(c) =>
+			c.x >= 0 &&
+			c.y >= 0 &&
+			c.x < grid.w &&
+			c.y < grid.h &&
+			!onPath.has(key(c)) &&
+			touchesOnlyItsTail(c, tail, onPath),
+	);
+	const shuffled = open
+		.map((c) => ({ c, r: rng.unit() }))
+		.toSorted((a, b) => a.r - b.r)
+		.map((e) => e.c);
+	if (!prev || rng.unit() >= KEEP_HEADING) return shuffled;
+	const ahead = key({ x: 2 * head.x - prev.x, y: 2 * head.y - prev.y });
+	return [
+		...shuffled.filter((c) => key(c) === ahead),
+		...shuffled.filter((c) => key(c) !== ahead),
+	];
+}
+
+function walk(target: number, grid: Grid, rng: Rng): PathCell[] | null {
+	const path: PathCell[] = [rollEdgeStart(grid, rng)];
+	const onPath = new Set([key(path[0])]);
+	const options: PathCell[][] = [candidates(path, onPath, grid, rng)];
+	let expansions = 0;
+	while (path.length < target) {
+		expansions += 1;
+		if (expansions > MAX_EXPANSIONS) return null;
+		const next = options.at(-1)?.shift();
+		if (!next) {
+			options.pop();
+			const dropped = path.pop();
+			if (!dropped || path.length === 0) return null;
+			onPath.delete(key(dropped));
+			continue;
+		}
+		path.push(next);
+		onPath.add(key(next));
+		options.push(candidates(path, onPath, grid, rng));
+	}
+	return path;
+}
+
+function fitToBox(cells: readonly PathCell[]): PathLayout {
+	const minX = Math.min(...cells.map((c) => c.x));
+	const minY = Math.min(...cells.map((c) => c.y));
+	const shifted = cells.map((c) => ({ x: c.x - minX, y: c.y - minY }));
+	return {
+		cols: Math.max(...shifted.map((c) => c.x)) + 1,
+		rows: Math.max(...shifted.map((c) => c.y)) + 1,
+		cells: shifted,
+	};
+}
+
+function straightLine(target: number): PathLayout {
+	return fitToBox(Array.from({ length: target }, (_, x) => ({ x, y: 0 })));
 }
 
 export function rollPathLayout(budgetMs: number, rng: Rng): PathLayout {
 	const target = Math.max(MIN_TILES, Math.round(budgetMs / MS_PER_TILE));
-	const cols = Math.ceil(target / TILES_PER_COLUMN);
-	let vertical = target - cols;
-	let y = randInt(0, PATH_ROWS - 1, rng);
-	const cells: PathCell[] = [];
-	for (let x = 0; x < cols; x++) {
-		cells.push({ x, y });
-		const run = rollRun(y, vertical, cols - 1 - x, rng);
-		const direction = rollDirection(y, run, rng);
-		for (let step = 0; step < run; step++) {
-			y += direction;
-			cells.push({ x, y });
-		}
-		vertical -= run;
+	for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+		const grid = gridFor(target, GROWTH_PER_ATTEMPT ** attempt);
+		const cells = walk(target, grid, rng);
+		if (cells) return fitToBox(cells);
 	}
-	return { cols, rows: PATH_ROWS, cells };
+	return straightLine(target);
 }
 
 const clamp01 = (fraction: number) => Math.min(1, Math.max(0, fraction));

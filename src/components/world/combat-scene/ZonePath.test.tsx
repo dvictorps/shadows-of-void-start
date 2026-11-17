@@ -37,7 +37,7 @@ function renderPath(overrides: Partial<Props> = {}) {
 	render(<ZonePath {...props} />);
 	const root = screen.getByRole("img", { name: m.zone_path_aria() });
 	const all = (kind: string) => [
-		...root.querySelectorAll<HTMLElement>(`[data-kind="${kind}"]`),
+		...root.querySelectorAll<SVGElement>(`[data-kind="${kind}"]`),
 	];
 	return { root, all };
 }
@@ -62,9 +62,7 @@ describe("ZonePath", () => {
 			"lich",
 			"lich",
 		]);
-		const swatch = document.createElement("span");
-		swatch.style.backgroundColor = MONSTERS.lich.pathColor;
-		expect(enemies[1].style.backgroundColor).toBe(swatch.style.backgroundColor);
+		expect(enemies[1].getAttribute("fill")).toBe(MONSTERS.lich.pathColor);
 	});
 
 	it("drops the encounters already behind the player and dims the used camp", () => {
@@ -89,16 +87,22 @@ describe("ZonePath", () => {
 			const { all } = renderPath({ elapsedMs });
 			const [player] = all("player");
 			cleanup();
-			return [player.style.left, player.style.top];
+			return player.style.transform;
 		};
-		const pct = (v: number, size: number) => `${((v + 0.5) / size) * 100}%`;
-		expect(at(0)).toEqual([
-			pct(first.x, layout.cols),
-			pct(first.y, layout.rows),
-		]);
-		expect(at(ROUTE.budgetMs)).toEqual([
-			pct(last.x, layout.cols),
-			pct(last.y, layout.rows),
-		]);
+		const centre = (c: { x: number; y: number }) =>
+			`translate(${c.x + 0.5}px, ${c.y + 0.5}px)`;
+		expect(at(0)).toBe(centre(first));
+		expect(at(ROUTE.budgetMs)).toBe(centre(last));
+	});
+
+	it("fits the whole path in view, whatever its size", () => {
+		const layout = rollPathLayout(ROUTE.budgetMs, seededRng(3));
+		const { root } = renderPath();
+		const [, , w, h] = (root.getAttribute("viewBox") ?? "")
+			.split(" ")
+			.map(Number);
+		expect(w).toBeGreaterThanOrEqual(layout.cols);
+		expect(h).toBeGreaterThanOrEqual(layout.rows);
+		expect(root.getAttribute("preserveAspectRatio")).toBe("xMidYMid meet");
 	});
 });
