@@ -4,11 +4,11 @@ import { type MonsterRarity, rollMonsterRarity } from "#/game/monsters";
 import type { CampSource } from "#/game/world";
 import {
 	type AmbushSchedule,
+	rollAmbushRarity,
 	rollAmbushSchedule,
 	rollSpawnGapMs,
 	type ZoneEncounterPlan,
 } from "#/game/world/encounter-schedule";
-import { chance } from "#/lib/rng";
 
 import { useTicker } from "./useTicker";
 
@@ -115,7 +115,7 @@ export function useEncounterSchedule({
 	const rollSpawnRarity = useCallback((): MonsterRarity => {
 		if (calmariaElapsedMsRef.current >= calmariaBudgetMs) return "rare";
 		if (ambushPlan && ambushPackRemainingRef.current > 0) {
-			return chance(ambushPlan.magicChance) ? "magic" : "normal";
+			return rollAmbushRarity(ambushPlan.magicChance);
 		}
 		return rollMonsterRarity();
 	}, [calmariaBudgetMs, ambushPlan]);

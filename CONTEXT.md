@@ -656,7 +656,7 @@ Magic monsters keep the affix-based naming above ("Goblin Furioso da Velocidade"
 
 ### Magic mob spawn rate
 
-10% of mid-zone spawns are magic; the rest are normal. The bar-fill spawn (miniboss) is always rare regardless. Mobs that are part of an **ambush event** override the 10% baseline with the ambush's own magic rate (~60% per `pack.magicChance` — see Encounter Schedule).
+10% of mid-zone spawns are magic; the rest are normal. The bar-fill spawn (miniboss) is always rare regardless. Mobs that are part of an **ambush event** override the 10% baseline with the ambush's own magic rate (the zone's `ambushes.magicChance`, rolled by `rollAmbushRarity` — see Encounter Schedule).
 
 ---
 
