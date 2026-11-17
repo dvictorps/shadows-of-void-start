@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
+import { BUILD_ID, BUILD_ID_HEADER } from "#/lib/app-version";
 import { createContext } from "#/server/trpc/context";
 import { appRouter } from "#/server/trpc/router";
 
@@ -10,7 +11,11 @@ function handle({ request }: { request: Request }) {
 		req: request,
 		router: appRouter,
 		createContext: () => createContext(request),
-		responseMeta: ({ ctx }) => ({ headers: ctx?.responseHeaders }),
+		responseMeta: ({ ctx }) => {
+			const headers = new Headers(ctx?.responseHeaders);
+			headers.set(BUILD_ID_HEADER, BUILD_ID);
+			return { headers };
+		},
 	});
 }
 

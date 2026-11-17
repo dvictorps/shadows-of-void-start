@@ -6,7 +6,13 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { configDefaults, defineConfig } from "vitest/config";
 
+process.env.SHADOWS_BUILD_ID ??= new Date().toISOString();
+const BUILD_ID = process.env.SHADOWS_BUILD_ID;
+
 const config = defineConfig({
+	define: {
+		__BUILD_ID__: JSON.stringify(BUILD_ID),
+	},
 	resolve: {
 		tsconfigPaths: true,
 	},

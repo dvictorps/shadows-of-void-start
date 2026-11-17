@@ -13,12 +13,14 @@ import { useEffect } from "react";
 
 import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
 import { SessionTokenProvider } from "#/hooks/useSessionToken";
+import { useUpdateAvailable } from "#/hooks/useUpdateAvailable";
 import { consumeFlashToast } from "#/lib/flash-toast";
 import { getLocale } from "#/paraglide/runtime";
 
 import Footer from "../components/Footer";
 import Header from "../components/Header";
 import Toaster from "../components/Toaster";
+import UpdateAvailableModal from "../components/UpdateAvailableModal";
 import PostHogProvider from "../integrations/posthog/provider";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import type { TRPC } from "../integrations/trpc/client";
@@ -91,6 +93,11 @@ function RootComponent() {
 	);
 }
 
+function UpdatePrompt() {
+	const { open, update, later } = useUpdateAvailable();
+	return <UpdateAvailableModal open={open} onUpdate={update} onLater={later} />;
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
 	const { pathname } = useLocation();
 	const chromeless = CHROMELESS_ROUTES.has(pathname);
@@ -116,6 +123,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 							</TooltipPrimitive.Provider>
 						</SessionTokenProvider>
 					</ConfirmationProvider>
+					<UpdatePrompt />
 					<Toaster />
 					<TanStackDevtools
 						config={{

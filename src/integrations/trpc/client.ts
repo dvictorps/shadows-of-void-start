@@ -11,6 +11,7 @@ import {
 	type TRPCOptionsProxy,
 } from "@trpc/tanstack-react-query";
 
+import { withBuildCheck } from "#/lib/app-version";
 import { createContext } from "#/server/trpc/context";
 import { type AppRouter, appRouter } from "#/server/trpc/router";
 
@@ -24,7 +25,12 @@ const getLinks = createIsomorphicFn()
 			createContext: async () => createContext(getRequest()),
 		}),
 	])
-	.client((): TRPCLink<AppRouter>[] => [httpBatchLink({ url: "/api/trpc" })]);
+	.client((): TRPCLink<AppRouter>[] => [
+		httpBatchLink({
+			url: "/api/trpc",
+			fetch: withBuildCheck((input, init) => fetch(input, init)),
+		}),
+	]);
 
 export function makeTRPCClient() {
 	return createTRPCClient<AppRouter>({ links: getLinks() });
