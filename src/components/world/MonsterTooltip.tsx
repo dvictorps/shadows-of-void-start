@@ -11,6 +11,7 @@ import {
 	translateMonsterModDescription,
 } from "#/game/world/i18n";
 import type { Enemy } from "#/hooks/useCombatLoop";
+import { intlLocale } from "#/lib/format";
 import { m } from "#/paraglide/messages";
 
 type ElementKey = "fire" | "cold" | "lightning" | "void";
@@ -37,7 +38,7 @@ function BossStatSheet({ enemy }: { enemy: Enemy }) {
 	return (
 		<div className="space-y-1 px-4 pt-1 pb-3 text-[0.92em]">
 			<div style={{ color: "rgba(220, 220, 220, 0.95)" }}>
-				{m.stat_hp()}: {scaled.hp.toLocaleString()}
+				{m.stat_hp()}: {scaled.hp.toLocaleString(intlLocale())}
 			</div>
 			<div style={{ color: "rgba(220, 220, 220, 0.95)" }}>
 				{m.stat_attack_speed()}: {scaled.attackSpeed.toFixed(2)}/s
@@ -105,7 +106,7 @@ export default function MonsterTooltip({
 					className="text-xs uppercase tracking-[0.2em]"
 					style={{ color: "rgba(255, 255, 255, 0.6)" }}
 				>
-					Lv {enemy.level}
+					{m.level_short({ level: enemy.level })}
 				</div>
 			</RarityHeader>
 			<TooltipSeparator />

@@ -1,13 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { findMonster, type MonsterModId } from "#/game/monsters";
+import { m } from "#/paraglide/messages";
 import { overwriteGetLocale } from "#/paraglide/runtime";
 
+import { ACT_1 } from ".";
 import {
 	type NameableEnemy,
 	type RareNameSeed,
 	translateEnemyName,
 	translateMonsterName,
+	translateNodeDescription,
+	translateNodeName,
 } from "./i18n";
 
 function makeRareEnemy(
@@ -305,5 +309,30 @@ describe("translateEnemyName — rare proper names", () => {
 			nameSeed: ZERO_SEED,
 		};
 		expect(translateEnemyName(enemy)).toBe("Goblin Furioso");
+	});
+});
+
+describe("translateNodeName", () => {
+	it.each(ACT_1.nodes.map((node) => [node.id, node] as const))(
+		"%s has a name and description in both locales",
+		(_id, node) => {
+			for (const locale of ["pt", "en"] as const) {
+				withLocale(locale, () => {
+					expect(translateNodeDescription(node)).not.toBeNull();
+				});
+			}
+			withLocale("pt", () => {
+				expect(translateNodeName(node)).not.toBe(node.name);
+			});
+		},
+	);
+
+	it("renders the boss lair in Portuguese", () => {
+		const lair = ACT_1.nodes.find((node) => node.id === "covil_gralfor");
+		if (!lair) throw new Error("missing covil_gralfor");
+		withLocale("pt", () => {
+			expect(translateNodeName(lair)).toBe(m.zone_covil_gralfor());
+			expect(translateNodeName(lair)).not.toBe(lair.name);
+		});
 	});
 });

@@ -67,6 +67,10 @@ const NODE_I18N = {
 		name: m.zone_fenda_vazio,
 		description: m.zone_fenda_vazio_description,
 	},
+	covil_gralfor: {
+		name: m.zone_covil_gralfor,
+		description: m.zone_covil_gralfor_description,
+	},
 } satisfies Record<string, NodeMessages>;
 
 export function translateNodeName(node: WorldNode): string {

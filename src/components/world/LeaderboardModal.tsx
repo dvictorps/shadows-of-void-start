@@ -7,6 +7,7 @@ import { CLASS_DEFINITIONS } from "#/game/classes/data";
 import { getClassDisplayName } from "#/game/classes/i18n";
 import { typedKeys } from "#/game/typed-object";
 import type { LeaderboardQuery, LeaderboardSnapshot } from "#/lib/api-types";
+import { intlLocale } from "#/lib/format";
 import { m } from "#/paraglide/messages";
 
 import Modal from "../Modal";
@@ -168,7 +169,7 @@ export default function LeaderboardModal({
 
 				{snapshot?.updatedAt && (
 					<div className="text-right text-[10px] text-white/30">
-						{new Date(snapshot.updatedAt).toLocaleTimeString()}
+						{new Date(snapshot.updatedAt).toLocaleTimeString(intlLocale())}
 					</div>
 				)}
 			</div>

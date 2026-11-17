@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
+import { m } from "#/paraglide/messages";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -25,12 +26,12 @@ function Home() {
 
 				{isPending ? (
 					<Button size="hero" variant="ghost-purple" disabled>
-						Play
+						{m.play_character_button()}
 					</Button>
 				) : (
 					<Button size="hero" variant="ghost-purple" asChild>
 						<Link to={playTarget} className="no-underline">
-							Play
+							{m.play_character_button()}
 						</Link>
 					</Button>
 				)}

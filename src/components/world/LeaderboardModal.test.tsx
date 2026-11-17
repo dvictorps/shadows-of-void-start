@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { narrow } from "#/components/dom-test-utils";
 import type { LeaderboardQuery, LeaderboardSnapshot } from "#/lib/api-types";
+import { intlLocale } from "#/lib/format";
 import { m } from "#/paraglide/messages";
 
 import LeaderboardModal from "./LeaderboardModal";
@@ -160,7 +161,7 @@ describe("LeaderboardModal — table", () => {
 	it("shows the snapshot's time", () => {
 		setup();
 		expect(
-			screen.getByText(new Date(UPDATED_AT).toLocaleTimeString()),
+			screen.getByText(new Date(UPDATED_AT).toLocaleTimeString(intlLocale())),
 		).toBeTruthy();
 	});
 });

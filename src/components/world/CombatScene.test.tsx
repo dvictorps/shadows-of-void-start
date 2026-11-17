@@ -191,7 +191,7 @@ describe("CombatScene — fixed HUD", () => {
 	it("shows the zone name and its static level", () => {
 		renderScene();
 		expect(screen.getByText("Whispering Woods")).toBeTruthy();
-		expect(screen.getByText("LV 2")).toBeTruthy();
+		expect(screen.getByText(m.level_short({ level: 2 }))).toBeTruthy();
 	});
 
 	it("shows XP as text and on the experience bar", () => {
@@ -212,7 +212,7 @@ describe("CombatScene — fixed HUD", () => {
 	it("disables the loot button with no badge while the bag is empty", () => {
 		const scene = renderScene({ bagCount: 0 });
 		const loot = narrow(
-			screen.getByRole("button", { name: "Loot bag (0 items)" }),
+			screen.getByRole("button", { name: m.loot_bag_aria_other({ count: 0 }) }),
 			HTMLButtonElement,
 		);
 		expect(loot.disabled).toBe(true);
@@ -223,7 +223,9 @@ describe("CombatScene — fixed HUD", () => {
 
 	it("badges the loot button with the bag count and opens the bag", () => {
 		const scene = renderScene({ bagCount: 4 });
-		const loot = screen.getByRole("button", { name: "Loot bag (4 items)" });
+		const loot = screen.getByRole("button", {
+			name: m.loot_bag_aria_other({ count: 4 }),
+		});
 		expect(loot.textContent).toBe("4");
 		fireEvent.click(loot);
 		expect(scene.props.onOpenBag).toHaveBeenCalledTimes(1);
@@ -381,7 +383,7 @@ describe("CombatScene — fight", () => {
 		const enemy = goblin();
 		renderScene({ state: "engaged", enemy });
 		fireEvent.mouseEnter(spriteHoverTarget(enemy));
-		expect(screen.getAllByText("Lv 3")).toHaveLength(1);
+		expect(screen.getAllByText(m.level_short({ level: 3 }))).toHaveLength(1);
 	});
 });
 
