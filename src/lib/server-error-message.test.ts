@@ -1,6 +1,12 @@
 // What each server error string translates to: the exact matches from
 // SERVER_ERRORS, the substring and parametric ones (wording kept inline at
 // the throw site), and the raw passthrough for anything unknown.
+//
+// Left untranslated on purpose: the refusals the UI can't reach, because the
+// client only ever sends ids it got from the server or the static data
+// (`Unknown combat zone / monster / destination`, `Unknown current location`,
+// `No route from … to …`, `Invalid camp threshold`, `Invalid slot`,
+// `Invalid stash slot`). They pass through raw, like any unknown message.
 
 import { describe, expect, it } from "vitest";
 
@@ -23,6 +29,34 @@ describe("translateServerError — exact matches", () => {
 		[SERVER_ERRORS.sessionLost, m.error_session_lost()],
 		[SERVER_ERRORS.notEnoughRubys, m.error_not_enough_rubys()],
 		[SERVER_ERRORS.invalidQuantity, m.error_invalid_quantity()],
+		[SERVER_ERRORS.travelInProgress, m.error_already_traveling()],
+		[SERVER_ERRORS.notInZone, m.error_not_in_zone()],
+		[SERVER_ERRORS.noCampsInBoss, m.error_no_camps_in_boss()],
+		[SERVER_ERRORS.campAlreadyUsed, m.error_camp_already_used()],
+		[SERVER_ERRORS.campNotReached, m.error_camp_not_reached()],
+		[SERVER_ERRORS.alreadyTraveling, m.error_already_traveling()],
+		[SERVER_ERRORS.alreadyAtDestination, m.error_already_at_destination()],
+		[SERVER_ERRORS.noTeleportStones, m.error_no_teleport_stones()],
+		[SERVER_ERRORS.destinationLocked, m.error_destination_locked()],
+		[SERVER_ERRORS.mustBeInCity, m.error_must_be_in_city()],
+		[SERVER_ERRORS.busyTravelling, m.error_busy_travelling()],
+		[SERVER_ERRORS.noPotions, m.error_no_potions()],
+		[SERVER_ERRORS.fullLife, m.error_full_life()],
+		[SERVER_ERRORS.noIncense, m.error_no_incense()],
+		[SERVER_ERRORS.incenseInBoss, m.error_incense_in_boss()],
+		[SERVER_ERRORS.travelNotComplete, m.error_travel_not_complete()],
+		[SERVER_ERRORS.onlyMagesSwitch, m.error_only_mages_switch()],
+		[SERVER_ERRORS.elementSwitchCooldown, m.error_element_switch_cooldown()],
+		[SERVER_ERRORS.bothHandsRequired, m.error_both_hands_required()],
+		[
+			SERVER_ERRORS.handsNotInterchangeable,
+			m.error_hands_not_interchangeable(),
+		],
+		[SERVER_ERRORS.itemNotInStash, m.error_item_not_in_stash()],
+		[SERVER_ERRORS.wrongStashMode, m.error_wrong_stash_mode()],
+		[SERVER_ERRORS.cannotRevokeSelf, m.error_cannot_revoke_self()],
+		[SERVER_ERRORS.userNotFound, m.error_user_not_found()],
+		[SERVER_ERRORS.adminRequired, m.error_admin_required()],
 	])("%s", (raw, expected) => {
 		expect(translateServerError(raw)).toBe(expected);
 	});
@@ -53,6 +87,10 @@ describe("translateServerError — substring and parametric matches", () => {
 			"pickFromBag is camp-only — must commit via exitZone",
 			m.error_pick_camp_only(),
 		],
+		[
+			"discardFromBag is camp-only — must commit via exitZone",
+			m.error_discard_camp_only(),
+		],
 		["Level 12 required", m.error_requirement_level({ value: 12 })],
 		["Strength 30 required", m.error_requirement_strength({ value: 30 })],
 		["Dexterity 25 required", m.error_requirement_dexterity({ value: 25 })],
@@ -66,6 +104,7 @@ describe("translateServerError — substring and parametric matches", () => {
 		["potion cap reached", m.vendor_buy_at_cap()],
 		["teleport_stone cap reached", m.vendor_buy_at_cap()],
 		["Unknown product: sword", m.error_unknown_product()],
+		["Cannot enter act1_3 from act1_1", m.error_cannot_enter_from_here()],
 	])("%s", (raw, expected) => {
 		expect(translateServerError(raw)).toBe(expected);
 	});

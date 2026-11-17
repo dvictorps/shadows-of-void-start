@@ -26,6 +26,7 @@ import {
 	resolveZoneEntry,
 	TRAVEL_ARRIVAL_GRACE_MS,
 } from "#/game/world/zone-actions";
+import { SERVER_ERRORS } from "#/lib/server-errors";
 
 import { characters, items } from "../../db/schema";
 import { loadEquipped } from "../../item-reads";
@@ -164,8 +165,8 @@ export const combatRouter = router({
 			if (!result.ok) {
 				fail(
 					result.reason === "no-potions"
-						? "No potions to use"
-						: "Already at full HP",
+						? SERVER_ERRORS.noPotions
+						: SERVER_ERRORS.fullLife,
 				);
 			}
 			// Guarded on the count we read, so two concurrent drinks spend two
@@ -178,7 +179,7 @@ export const combatRouter = router({
 				})
 				.where(and(byId(character), gt(characters.potions, 0)))
 				.returning({ potions: characters.potions });
-			if (!updated) fail("No potions to use");
+			if (!updated) fail(SERVER_ERRORS.noPotions);
 			return { hpCurrent: result.hpCurrent, potions: updated.potions };
 		}),
 
@@ -187,16 +188,16 @@ export const combatRouter = router({
 	consumeEtherealIncense: characterSessionProcedure.mutation(
 		async ({ ctx }) => {
 			const { character } = ctx;
-			if (character.etherealIncense <= 0) fail("No incense to use");
+			if (character.etherealIncense <= 0) fail(SERVER_ERRORS.noIncense);
 			if (findNode(ACT_1, character.currentLocation)?.kind === "boss") {
-				fail("Cannot use incense inside a boss node");
+				fail(SERVER_ERRORS.incenseInBoss);
 			}
 			const [updated] = await ctx.db
 				.update(characters)
 				.set({ etherealIncense: sql`${characters.etherealIncense} - 1` })
 				.where(and(byId(character), gt(characters.etherealIncense, 0)))
 				.returning({ etherealIncense: characters.etherealIncense });
-			if (!updated) fail("No incense to use");
+			if (!updated) fail(SERVER_ERRORS.noIncense);
 			return { etherealIncense: updated.etherealIncense };
 		},
 	),
@@ -204,7 +205,7 @@ export const combatRouter = router({
 	// Camp summoned by incense: no time gate, the consumed incense is the gate.
 	// Kept apart from `enterCamp` so the time-gated path can't be widened.
 	enterCampViaIncense: characterSessionProcedure.mutation(async ({ ctx }) => {
-		if (ctx.character.zoneStartedAt === null) fail("Not in a zone");
+		if (ctx.character.zoneStartedAt === null) fail(SERVER_ERRORS.notInZone);
 		await ctx.db
 			.update(characters)
 			.set({ inCamp: true })
@@ -391,7 +392,7 @@ export const combatRouter = router({
 			return { arrivedAt: character.currentLocation };
 		}
 		if (Date.now() < character.travelArrivesAt - TRAVEL_ARRIVAL_GRACE_MS) {
-			fail("Travel not complete");
+			fail(SERVER_ERRORS.travelNotComplete);
 		}
 		const update: CharacterUpdate = {
 			currentLocation: destination,
@@ -434,7 +435,7 @@ export const combatRouter = router({
 				.set(update)
 				.where(and(byId(character), gt(characters.teleportStones, 0)))
 				.returning({ teleportStones: characters.teleportStones });
-			if (!updated) fail("No teleport stones");
+			if (!updated) fail(SERVER_ERRORS.noTeleportStones);
 			// Everything it wrote, so the client cache doesn't depend on its
 			// optimistic guess (the zone visit and the bag are cleared too).
 			return {
@@ -457,7 +458,7 @@ export const combatRouter = router({
 		.input(z.object({ element: z.enum(SELECTABLE_ELEMENTS) }))
 		.mutation(async ({ ctx, input }) => {
 			const { character } = ctx;
-			if (character.classId !== "mage") fail("Only mages can switch elements");
+			if (character.classId !== "mage") fail(SERVER_ERRORS.onlyMagesSwitch);
 			// The client copies both into its cache (the cooldown overlay reads
 			// the server's switch time).
 			const unchanged = {
@@ -470,7 +471,7 @@ export const combatRouter = router({
 				character.lastElementSwitchAt !== null &&
 				now - character.lastElementSwitchAt < ELEMENT_SWITCH_COOLDOWN_MS
 			) {
-				fail("Element switch on cooldown");
+				fail(SERVER_ERRORS.elementSwitchCooldown);
 			}
 			await ctx.db
 				.update(characters)

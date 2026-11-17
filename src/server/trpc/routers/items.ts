@@ -15,6 +15,7 @@ import {
 } from "#/game/loot/bag";
 import { computeStatCache } from "#/game/stats/cache";
 import { EQUIPPED_SLOTS } from "#/game/stats/types";
+import { SERVER_ERRORS } from "#/lib/server-errors";
 
 import { characters, items, STASH_MODES } from "../../db/schema";
 import {
@@ -261,9 +262,9 @@ export const itemsRouter = router({
 		const equipped = await loadEquipped(ctx.db, characterId);
 		const main = equipped.find((e) => e.slot === "weapon");
 		const off = equipped.find((e) => e.slot === "offhand");
-		if (!main || !off) fail("Both hand slots must be filled");
+		if (!main || !off) fail(SERVER_ERRORS.bothHandsRequired);
 		if (!canSwapHands(main.item, off.item)) {
-			fail("Cannot swap: hands are not interchangeable");
+			fail(SERVER_ERRORS.handsNotInterchangeable);
 		}
 		await ctx.db.batch([
 			ctx.db

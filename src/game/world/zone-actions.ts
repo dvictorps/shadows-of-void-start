@@ -1,3 +1,5 @@
+import { SERVER_ERRORS } from "#/lib/server-errors";
+
 import { teleportStoneTravelSeconds } from "../combat/constants";
 import {
 	DEFAULT_ENCOUNTER_PLAN,
@@ -46,7 +48,7 @@ export function resolveZoneEntry(
 		return { ok: false, error: `Unknown combat zone: ${zoneId}` };
 	}
 	if (where.travelDestination !== null) {
-		return { ok: false, error: "Cannot enter — travel in progress" };
+		return { ok: false, error: SERVER_ERRORS.travelInProgress };
 	}
 	if (where.currentLocation !== zoneId) {
 		return {
@@ -80,9 +82,9 @@ export function resolveCampEntry(
 	now: number,
 ): Decision<{ alreadyInCamp: boolean }> {
 	if (state.zoneStartedAt === null)
-		return { ok: false, error: "Not in a zone" };
+		return { ok: false, error: SERVER_ERRORS.notInZone };
 	if (findNode(ACT_1, state.currentLocation)?.kind === "boss") {
-		return { ok: false, error: "No camps in boss nodes" };
+		return { ok: false, error: SERVER_ERRORS.noCampsInBoss };
 	}
 	const thresholds = state.campThresholdsMs ?? [];
 	const threshold = thresholds[thresholdIndex];
@@ -91,10 +93,10 @@ export function resolveCampEntry(
 	}
 	if (state.inCamp) return { ok: true, alreadyInCamp: true };
 	if (state.lastCampIndex !== null && thresholdIndex <= state.lastCampIndex) {
-		return { ok: false, error: "Camp threshold already consumed" };
+		return { ok: false, error: SERVER_ERRORS.campAlreadyUsed };
 	}
 	if (now - state.zoneStartedAt < threshold - ENTER_CAMP_GRACE_MS) {
-		return { ok: false, error: "Camp threshold not reached" };
+		return { ok: false, error: SERVER_ERRORS.campNotReached };
 	}
 	return { ok: true, alreadyInCamp: false };
 }
@@ -112,11 +114,11 @@ export function resolveTravelStart(
 	now: number,
 ): Decision<{ startedAt: number; arrivesAt: number }> {
 	if (where.travelDestination !== null) {
-		return { ok: false, error: "Already traveling" };
+		return { ok: false, error: SERVER_ERRORS.alreadyTraveling };
 	}
 	const fromId = where.currentLocation;
 	if (fromId === destinationId) {
-		return { ok: false, error: "Already at destination" };
+		return { ok: false, error: SERVER_ERRORS.alreadyAtDestination };
 	}
 	const fromNode = findNode(ACT_1, fromId);
 	if (!fromNode)
@@ -154,17 +156,17 @@ export function resolveTeleport(
 	now: number,
 ): Decision<{ startedAt: number; arrivesAt: number; toCity: boolean }> {
 	if (where.teleportStones <= 0)
-		return { ok: false, error: "No teleport stones" };
+		return { ok: false, error: SERVER_ERRORS.noTeleportStones };
 	const toCity = destinationId === "city";
 	if (!toCity) {
 		if (where.travelDestination !== null) {
-			return { ok: false, error: "Already traveling" };
+			return { ok: false, error: SERVER_ERRORS.alreadyTraveling };
 		}
 		if (where.currentLocation === destinationId) {
-			return { ok: false, error: "Already at destination" };
+			return { ok: false, error: SERVER_ERRORS.alreadyAtDestination };
 		}
 		if (!where.unlockedNodes.includes(destinationId)) {
-			return { ok: false, error: "Destination not yet unlocked" };
+			return { ok: false, error: SERVER_ERRORS.destinationLocked };
 		}
 		const destNode = findNode(ACT_1, destinationId);
 		if (!destNode) {
