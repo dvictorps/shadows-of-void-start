@@ -61,8 +61,9 @@ export const combatRouter = router({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const { character } = ctx;
-			const target = resolveKillTarget(input.monsterId, input.monsterLevel);
-			if (!target) fail(`Unknown monster: ${input.monsterId}`);
+			const claim = resolveKillTarget(input, character);
+			if (!claim.ok) fail(claim.error);
+			const { target } = claim;
 
 			const gain = resolveKillXp(character, target);
 			const levelUpStats =
@@ -77,7 +78,6 @@ export const combatRouter = router({
 			const outcome = resolveKill({
 				character,
 				monsterId: input.monsterId,
-				monsterRarity: input.monsterRarity,
 				target,
 				gain,
 				levelUpStats,

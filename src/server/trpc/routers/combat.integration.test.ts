@@ -85,6 +85,45 @@ describe("combat", () => {
 		);
 	});
 
+	it("bounds a forged monster level and rarity by the character's zone", async () => {
+		const account = await createAccount();
+		const hero = await createPlayableCharacter(account);
+		await enterZone(account, hero, "forest_profunda");
+		const kill = {
+			...hero,
+			monsterId: "goblin",
+			monsterRarity: "normal" as const,
+		};
+		const honest = await account.caller.combat.recordKill({
+			...kill,
+			monsterLevel: 3,
+		});
+		const forged = await account.caller.combat.recordKill({
+			...kill,
+			monsterLevel: 999,
+		});
+		expect(forged.xpGained).toBe(honest.xpGained);
+
+		await expectServerError(
+			account.caller.combat.recordKill({
+				...kill,
+				monsterLevel: 2,
+				monsterRarity: "unique",
+			}),
+			"Invalid kill: goblin as unique",
+		);
+		await expectServerError(
+			account.caller.combat.recordKill({
+				...hero,
+				monsterId: "gralfor",
+				monsterLevel: 17,
+				monsterRarity: "unique",
+			}),
+			"Invalid kill: gralfor as unique",
+		);
+		expect((await readCharacter(hero.characterId)).totalBossKills).toBe(0);
+	});
+
 	it("clamps synced HP to the cached max and heals with potions", async () => {
 		const account = await createAccount();
 		const hero = await createPlayableCharacter(account);

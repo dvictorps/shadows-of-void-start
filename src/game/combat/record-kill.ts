@@ -14,6 +14,7 @@ import {
 	rollCampThresholdsMs,
 } from "../world/encounter-schedule";
 import { ACT_1, findNode } from "../world/index";
+import { zoneContextFor } from "../world/zone-context";
 import {
 	ETHEREAL_INCENSE_DROP_CHANCE,
 	MAX_POTIONS,
@@ -24,20 +25,49 @@ import { classifyKill, resolveZoneProgress, tallyBossKill } from "./kill";
 export interface KillTarget {
 	templateId: string;
 	monsterLevel: number;
+	monsterRarity: MonsterRarity;
 	xpReward: number;
 }
 
+export interface KillClaim {
+	monsterId: string;
+	monsterLevel: number;
+	monsterRarity: MonsterRarity;
+}
+
 export function resolveKillTarget(
-	monsterId: string,
-	clientMonsterLevel: number,
-): KillTarget | null {
-	const template = findMonster(monsterId) ?? findBoss(monsterId)?.template;
-	if (!template) return null;
-	const monsterLevel = Math.max(1, Math.floor(clientMonsterLevel));
+	claim: KillClaim,
+	character: Pick<KillCharacter, "level" | "currentLocation">,
+): { ok: true; target: KillTarget } | { ok: false; error: string } {
+	const boss = findBoss(claim.monsterId);
+	const template = findMonster(claim.monsterId) ?? boss?.template;
+	if (!template) {
+		return { ok: false, error: `Unknown monster: ${claim.monsterId}` };
+	}
+	const zone = zoneContextFor(ACT_1, character.currentLocation);
+	if (
+		boss ? zone.bossNode?.bossId !== boss.id : claim.monsterRarity === "unique"
+	) {
+		return {
+			ok: false,
+			error: `Invalid kill: ${claim.monsterId} as ${claim.monsterRarity}`,
+		};
+	}
+	const center = zone.level ?? character.level;
+	const monsterLevel = boss
+		? boss.level
+		: Math.min(
+				center + 1,
+				Math.max(1, center - 1, Math.floor(claim.monsterLevel)),
+			);
 	return {
-		templateId: template.id,
-		monsterLevel,
-		xpReward: scaleMonsterStats(template, monsterLevel).xpReward,
+		ok: true,
+		target: {
+			templateId: template.id,
+			monsterLevel,
+			monsterRarity: boss ? "unique" : claim.monsterRarity,
+			xpReward: scaleMonsterStats(template, monsterLevel).xpReward,
+		},
 	};
 }
 
@@ -98,7 +128,6 @@ export function resolveKillXp(
 export function resolveKill(params: {
 	character: KillCharacter;
 	monsterId: string;
-	monsterRarity: MonsterRarity;
 	target: KillTarget;
 	gain: XpGainResult;
 	levelUpStats: StatCache | null;
@@ -109,7 +138,7 @@ export function resolveKill(params: {
 	const rng = params.rng ?? defaultRng;
 
 	const zone = findNode(ACT_1, character.currentLocation);
-	const kill = classifyKill(params.monsterRarity, zone?.kind);
+	const kill = classifyKill(target.monsterRarity, zone?.kind);
 	const progress = resolveZoneProgress({
 		grantsCampTier: kill.grantsCampTier,
 		zoneKind: zone?.kind,
@@ -166,7 +195,7 @@ export function resolveKill(params: {
 	const drops = character.currentZoneSession
 		? rollKillDrops(
 				kill.dropTable,
-				params.monsterRarity,
+				target.monsterRarity,
 				target.monsterLevel,
 				magicFind,
 				rng,
