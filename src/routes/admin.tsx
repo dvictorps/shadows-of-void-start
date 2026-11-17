@@ -49,10 +49,10 @@ const NAV_ITEMS: NavItem[] = [
 // scroll out of view and `<main>` is the only scroll container.
 function AdminShell({ children }: { children: ReactNode }) {
 	return (
-		<div className="flex h-[calc(100dvh-4rem)] bg-black text-white">
+		<div className="below-header flex bg-black text-white">
 			<aside className="flex w-56 shrink-0 flex-col justify-between border-r border-white/15 p-4">
 				<div>
-					<h2 className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-white/60">
+					<h2 className="mb-4 text-xs font-bold uppercase tracking-label text-white/60">
 						Admin
 					</h2>
 					<nav className="space-y-1">
@@ -74,11 +74,7 @@ function AdminShell({ children }: { children: ReactNode }) {
 					</nav>
 				</div>
 				<Link to="/character-select" className="no-underline">
-					<Button
-						type="button"
-						variant="starkMuted"
-						className="w-full uppercase tracking-wider"
-					>
+					<Button type="button" variant="starkMuted" caps className="w-full">
 						← Characters
 					</Button>
 				</Link>
@@ -101,7 +97,7 @@ function AdminLayout() {
 function AdminLayoutPending() {
 	return (
 		<AdminShell>
-			<p className="text-[10px] uppercase tracking-wider text-white/40">
+			<p className="text-2xs uppercase tracking-wider text-white/40">
 				{m.admin_loading()}
 			</p>
 		</AdminShell>

@@ -3,7 +3,7 @@ import {
 	RarityCard,
 	RarityHeader,
 	TooltipSeparator,
-} from "#/components/ui/rarity-card";
+} from "#/components/game/rarity-card";
 import type { BossConfig } from "#/game/bosses";
 import { elementName } from "#/game/combat/element-name";
 import {

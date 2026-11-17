@@ -3,8 +3,7 @@
 // What the combat scene renders and emits in each state of the loop: the
 // fixed HUD, exploration and ambush, the fight (nameplate, HP bar, damage
 // popups, tooltip), the rare and boss intro cascades, victory and the zone
-// complete panel, the camp cinematic, and the consumables. The safety net for
-// the CombatScene split (docs/plans/in-progress.md → agent-ergonomics item 4).
+// complete panel, the camp cinematic, and the consumables.
 //
 // - State comes in as props and callbacks are `vi.fn()`, the way CombatPane
 //   wires them. No module mocks: framer-motion, the camp cinematic and the

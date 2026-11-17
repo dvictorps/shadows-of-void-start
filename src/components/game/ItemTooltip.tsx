@@ -2,7 +2,7 @@
 // in a rarity-framed card. This file composes `item-tooltip/*`; the stat
 // lines are data built in `item-tooltip/stat-rows.ts`. Pinned by
 // ItemTooltip.test.tsx.
-import { RarityCard, TooltipSeparator } from "#/components/ui/rarity-card";
+import { RarityCard, TooltipSeparator } from "#/components/game/rarity-card";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 import { m } from "#/paraglide/messages";
 

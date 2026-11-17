@@ -205,12 +205,12 @@ export default defineConfig({
 		"you-might-not-need-an-effect/no-pass-data-to-parent": "warn",
 		"you-might-not-need-an-effect/no-pass-live-state-to-parent": "error",
 		"you-might-not-need-an-effect/no-reset-all-state-on-prop-change": "error",
-		"shadcn/no-restyle": ["warn", { allow: ["layout"] }],
-		"shadcn/no-raw-colors": "warn",
-		"shadcn/no-arbitrary-values": "warn",
-		"shadcn/no-inline-styles": "warn",
-		"shadcn/no-unknown-classes": "warn",
-		"shadcn/require-static-classes": "warn",
+		"shadcn/no-restyle": ["error", { allow: ["layout"] }],
+		"shadcn/no-raw-colors": "error",
+		"shadcn/no-arbitrary-values": "error",
+		"shadcn/no-inline-styles": "error",
+		"shadcn/no-unknown-classes": "error",
+		"shadcn/require-static-classes": "error",
 		"react/forbid-elements": [
 			"error",
 			{

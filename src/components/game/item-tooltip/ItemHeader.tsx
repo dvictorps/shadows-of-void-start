@@ -1,4 +1,4 @@
-import { RARITY_COLORS, RarityHeader } from "#/components/ui/rarity-card";
+import { RARITY_COLORS, RarityHeader } from "#/components/game/rarity-card";
 import { isTwoHanded } from "#/game/items/equipment";
 import {
 	translateItemName,

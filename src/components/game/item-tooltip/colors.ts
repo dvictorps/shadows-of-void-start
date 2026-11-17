@@ -1,4 +1,4 @@
-import { RARITY_COLORS } from "#/components/ui/rarity-card";
+import { RARITY_COLORS } from "#/components/game/rarity-card";
 
 /** A value a mod produced or changed (the magic blue). */
 export const MODIFIED_COLOR = RARITY_COLORS.magic;

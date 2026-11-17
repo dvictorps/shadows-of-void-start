@@ -1,4 +1,4 @@
-import { TooltipSeparator } from "#/components/ui/rarity-card";
+import { TooltipSeparator } from "#/components/game/rarity-card";
 import { isQuiver } from "#/game/items/equipment";
 import type { GeneratedItem } from "#/game/items/types";
 import { m } from "#/paraglide/messages";

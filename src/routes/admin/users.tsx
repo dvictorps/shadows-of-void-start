@@ -86,7 +86,7 @@ function AdminUsersPage() {
 			<div className="flex-1 overflow-y-auto border border-white/15">
 				<table className="w-full text-sm">
 					<thead className="sticky top-0 bg-black">
-						<tr className="border-b border-white/20 text-[10px] uppercase tracking-wider text-white/50">
+						<tr className="border-b border-white/20 text-2xs uppercase tracking-wider text-white/50">
 							<th
 								className="w-8"
 								aria-label={m.admin_users_col_toggle_aria()}
@@ -209,7 +209,7 @@ function UserRowDisplay({
 							{pending ? "…" : m.admin_promote_action()}
 						</Button>
 					) : (
-						<span className="text-[10px] uppercase tracking-wider text-white/40">
+						<span className="text-2xs uppercase tracking-wider text-white/40">
 							{m.admin_users_already_admin()}
 						</span>
 					)}
@@ -229,13 +229,13 @@ function UserRowDisplay({
 function RoleBadge({ role }: { role: "user" | "admin" }) {
 	if (role === "admin") {
 		return (
-			<span className="border border-white bg-white px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-black">
+			<span className="border border-white bg-white px-2 py-0.5 text-2xs font-medium uppercase tracking-wider text-black">
 				{m.admin_role_admin()}
 			</span>
 		);
 	}
 	return (
-		<span className="border border-white/30 bg-black px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white/60">
+		<span className="border border-white/30 bg-black px-2 py-0.5 text-2xs font-medium uppercase tracking-wider text-white/60">
 			{m.admin_role_user()}
 		</span>
 	);
@@ -267,7 +267,7 @@ function UserCharacters({ authUserId }: { authUserId: string }) {
 		<div className="overflow-hidden border border-white/15">
 			<table className="w-full text-xs">
 				<thead className="bg-white/5">
-					<tr className="border-b border-white/15 text-[10px] uppercase tracking-wider text-white/50">
+					<tr className="border-b border-white/15 text-2xs uppercase tracking-wider text-white/50">
 						<th className="px-3 py-1.5 text-left font-medium">
 							{m.admin_users_chars_col_name()}
 						</th>
@@ -300,7 +300,7 @@ function UserCharacters({ authUserId }: { authUserId: string }) {
 							</td>
 							<td className="px-3 py-1.5">
 								{c.hardcore ? (
-									<span className="text-red-300">
+									<span className="text-danger-soft">
 										{m.admin_users_chars_hardcore()}
 									</span>
 								) : (

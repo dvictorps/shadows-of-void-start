@@ -12,7 +12,7 @@ export function AdminPageHeader({
 	return (
 		<header className="flex items-end justify-between border-b border-white/15 pb-4">
 			<div>
-				<h1 className="display-title text-2xl uppercase tracking-[0.15em] text-white">
+				<h1 className="display-title text-2xl uppercase tracking-title text-white">
 					{title}
 				</h1>
 				<p className="mt-1 text-xs uppercase tracking-wider text-white/50">

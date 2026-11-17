@@ -3,8 +3,7 @@
 // What the stash modal renders and which callback each interaction makes:
 // opening and closing, the two grids, selection and the bulk Deposit /
 // Withdraw, shift-click transfer, and drag (reorder inside a panel, transfer
-// across). The safety net for the StashModal split (docs/plans/in-progress.md
-// → REFACTOR GATE item 3).
+// across).
 //
 // - The modal takes its calls as props (`onDeposit`, `onWithdraw`,
 //   `onReorderInventory`, `onReorderStash`), so they are `vi.fn()` fakes; the

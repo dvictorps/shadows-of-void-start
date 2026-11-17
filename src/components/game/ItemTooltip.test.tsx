@@ -12,7 +12,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { narrow } from "#/components/dom-test-utils";
-import { RARITY_COLORS } from "#/components/ui/rarity-card";
+import { RARITY_COLORS } from "#/components/game/rarity-card";
 import {
 	makeItem,
 	quiver,

@@ -4,8 +4,7 @@
 // makes: the name / class / level / DPS block, the attribute readouts and
 // their tooltips, the XP bar, the potion and teleport slots (count, when each
 // is enabled), the Show stats button, the health globe and the compact
-// layout. The safety net for the StatusCard refactor
-// (docs/plans/in-progress.md → REFACTOR GATE item 6). Pure render: props in,
+// layout. Pure render: props in,
 // DOM out; expected text comes from the same renderers (`m.*`,
 // `estimateDps`, `xpToNextLevel`), not literals.
 //

@@ -3,8 +3,7 @@
 // What the vendor modal renders and which callback each interaction makes:
 // opening and closing, the Buy / Sell tabs, the ruby balance and its floating
 // deltas, the buy cards (stepper, affordability and cap limits, the in-flight
-// guard), and the sell grid (selection, total, bulk sell). The safety net for
-// the VendorModal split (docs/plans/in-progress.md → REFACTOR GATE item 4).
+// guard), and the sell grid (selection, total, bulk sell).
 //
 // - The modal takes its calls as props (`onBuy`, `onSellMany`), so they are
 //   `vi.fn()` fakes. Sonner's toaster and framer-motion run for real (the

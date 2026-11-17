@@ -98,10 +98,7 @@ export default function CreateCharacterModal({
 		>
 			<form onSubmit={handleSubmit} className="space-y-5">
 				<div>
-					<Label
-						htmlFor="char-name"
-						className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60"
-					>
+					<Label htmlFor="char-name" variant="caps" className="mb-1.5 block">
 						{m.name_label()}
 					</Label>
 					<Input
@@ -113,7 +110,7 @@ export default function CreateCharacterModal({
 						required
 						autoFocus
 						placeholder={m.name_placeholder()}
-						className="border-white/40 bg-black text-white placeholder:text-white/30 focus:border-white"
+						variant="stark"
 					/>
 					<p className="mt-1 text-right text-xs text-white/40">
 						{name.length}/{MAX_NAME_LENGTH}
@@ -151,18 +148,18 @@ export default function CreateCharacterModal({
 					</p>
 				</div>
 
-				<label className="flex cursor-pointer items-start gap-2 border border-red-500/30 bg-red-950/10 p-3 transition hover:border-red-500/50">
+				<label className="flex cursor-pointer items-start gap-2 border border-danger-strong/30 bg-danger-muted/10 p-3 transition hover:border-danger-strong/50">
 					<input
 						type="checkbox"
 						checked={hardcore}
 						onChange={(e) => setHardcore(e.target.checked)}
-						className="mt-0.5 accent-red-500"
+						className="mt-0.5 accent-danger-strong"
 					/>
 					<div>
-						<div className="text-xs font-medium uppercase tracking-wider text-red-300">
+						<div className="text-xs font-medium uppercase tracking-wider text-danger-soft">
 							{m.hardcore_label()}
 						</div>
-						<div className="mt-0.5 text-[11px] leading-snug text-white/60">
+						<div className="mt-0.5 text-caption leading-snug text-white/60">
 							{m.hardcore_description()}
 						</div>
 					</div>
@@ -174,7 +171,8 @@ export default function CreateCharacterModal({
 						variant="starkMuted"
 						onClick={handleClose}
 						disabled={submitting}
-						className="px-5 py-2 uppercase tracking-wider"
+						size="wide"
+						caps
 					>
 						{m.cancel()}
 					</Button>
@@ -182,7 +180,8 @@ export default function CreateCharacterModal({
 						type="submit"
 						variant="stark"
 						disabled={submitting}
-						className="px-5 py-2 uppercase tracking-wider"
+						size="wide"
+						caps
 					>
 						{submitting ? m.creating() : m.create_action()}
 					</Button>

@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import ItemTooltip from "#/components/game/ItemTooltip";
 import { Button } from "#/components/ui/button";
+import { Label } from "#/components/ui/label";
 import { generateItem } from "#/game/items/generator";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 
@@ -34,7 +35,7 @@ function ItemGeneratorPage() {
 
 	return (
 		<div className="flex h-full flex-col gap-5">
-			<h1 className="display-title text-2xl uppercase tracking-[0.15em] text-white">
+			<h1 className="display-title text-2xl uppercase tracking-title text-white">
 				Item Generator / Generator de Itens
 			</h1>
 
@@ -61,12 +62,9 @@ function ItemGeneratorPage() {
 				</div>
 
 				<div>
-					<label
-						htmlFor="ilvl"
-						className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60"
-					>
+					<Label htmlFor="ilvl" variant="caps" className="mb-1.5 block">
 						Item Level: <span className="text-white">{itemLevel}</span>
-					</label>
+					</Label>
 					<input
 						id="ilvl"
 						type="range"

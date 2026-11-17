@@ -25,7 +25,7 @@ function AdminOverviewPage() {
 				title={m.admin_overview_title()}
 				subtitle={m.admin_overview_subtitle()}
 				right={
-					<span className="text-[10px] uppercase tracking-wider text-white/40">
+					<span className="text-2xs uppercase tracking-wider text-white/40">
 						{m.admin_overview_live_pill()}
 					</span>
 				}
@@ -89,7 +89,7 @@ function MetricCard({
 				: "text-white";
 	return (
 		<div className="border border-white/30 bg-black p-4 transition hover:border-white/60">
-			<p className="text-[10px] font-medium uppercase tracking-[0.2em] text-white/50">
+			<p className="text-2xs font-medium uppercase tracking-label text-white/50">
 				{label}
 			</p>
 			<p
@@ -97,7 +97,7 @@ function MetricCard({
 			>
 				{value}
 			</p>
-			<p className="mt-1 text-[10px] uppercase tracking-wider text-white/40">
+			<p className="mt-1 text-2xs uppercase tracking-wider text-white/40">
 				{hint}
 			</p>
 		</div>

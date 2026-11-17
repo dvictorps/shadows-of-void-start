@@ -8,7 +8,7 @@ export default function Header() {
 			<nav className="flex h-full items-center gap-3">
 				<Link
 					to="/"
-					className="display-title text-lg uppercase tracking-[0.2em] text-white no-underline"
+					className="display-title text-lg uppercase tracking-label text-white no-underline"
 				>
 					Shadows of Void
 				</Link>

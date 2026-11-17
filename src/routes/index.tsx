@@ -14,11 +14,7 @@ function Home() {
 			{/* Atmospheric radial vignette behind the title — purely decorative */}
 			<div
 				aria-hidden
-				className="pointer-events-none absolute inset-0"
-				style={{
-					background:
-						"radial-gradient(ellipse 60% 45% at 50% 42%, rgba(168, 85, 247, 0.18), rgba(88, 28, 135, 0.08) 45%, transparent 75%)",
-				}}
+				className="void-vignette pointer-events-none absolute inset-0"
 			/>
 
 			<div className="relative flex h-full flex-col items-center justify-center gap-12 px-6 py-6">
@@ -29,21 +25,11 @@ function Home() {
 				</h1>
 
 				{isPending ? (
-					<Button
-						size="lg"
-						variant="ghost-purple"
-						disabled
-						className="px-12 py-6 text-xl uppercase tracking-[0.25em]"
-					>
+					<Button size="hero" variant="ghost-purple" disabled>
 						Play
 					</Button>
 				) : (
-					<Button
-						size="lg"
-						variant="ghost-purple"
-						asChild
-						className="px-12 py-6 text-xl uppercase tracking-[0.25em]"
-					>
+					<Button size="hero" variant="ghost-purple" asChild>
 						<Link to={playTarget} className="no-underline">
 							Play
 						</Link>

@@ -29,12 +29,15 @@ Living examples: `src/components/world/InventoryModal.tsx` + `inventory-modal/`,
    - `narrow` from `src/components/dom-test-utils.ts`;
    - item and row builders from `src/components/world/item-test-fixtures.ts`;
    - drag-and-drop through dnd-kit's real `PointerSensor` on `src/components/world/dnd-test-harness.ts` (`installDragHarness()`, `drag`, `startDrag`);
-   - framer-motion on fake timers, sonner and the confirmation provider for real: the recipes are in `docs/plans/in-progress.md` → agent-ergonomics item 4 and the headers of `CombatScene.test.tsx` / `InventoryModal.test.tsx`.
+   - framer-motion runs for real on fake timers, but keep the clock faked for the whole file (its frame loop is a singleton that stalls if a pending frame is dropped), and call Testing Library's `cleanup` by hand (vitest runs without globals);
+   - `ConfirmationProvider` and sonner's `<Toaster />` run for real; `toast.dismiss()` in `afterEach`. A rule error is a `TRPCClientError.from({ error: { message, code, data: { code } } })`;
+   - the Escape layers (`useEscapeLayer`) read `key`, dnd-kit's sensor reads `code`: send both. While dragging, the overlay holds a second card with the same name, so look cards up per cell;
+   - a toggle (tab, picker card) is asserted through `aria-pressed`, never a class.
 6. Add the files to `docs/codebase-map.md`.
 
 ## Debt lists
 
-There are no debt lists: `complexity` and `shadows/no-server-calls-in-components` are errors on every file (`COMPLEXITY_DEBT` emptied on REFACTOR GATE item 10, its server-call sibling on item 8). New code meets the rules; don't bring a list back.
+There are no debt lists: `complexity` and `shadows/no-server-calls-in-components` are errors on every file (`COMPLEXITY_DEBT` and its server-call sibling were emptied and removed). New code meets the rules; don't bring a list back.
 
 ## Validation
 

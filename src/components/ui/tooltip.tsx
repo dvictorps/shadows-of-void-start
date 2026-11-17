@@ -20,7 +20,7 @@ export default function Tooltip({ content, children, side = "top" }: Props) {
 				<TooltipPrimitive.Content
 					side={side}
 					sideOffset={8}
-					className="display-title z-50 max-w-xs border border-white/60 bg-black px-3 py-1.5 text-white/90 text-xs uppercase tracking-wider shadow-[0_0_8px_rgba(0,0,0,0.8)]"
+					className="display-title z-50 max-w-xs border border-white/60 bg-black px-3 py-1.5 text-white/90 text-xs uppercase tracking-wider shadow-tooltip"
 				>
 					{content}
 				</TooltipPrimitive.Content>
