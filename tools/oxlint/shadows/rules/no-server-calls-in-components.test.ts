@@ -24,7 +24,6 @@ tester.run(
 	{
 		valid: [
 			{
-				// The server interface derives its argument types from the hook.
 				code: 'import type { useInventoryMutations } from "#/hooks/useInventoryMutations";',
 				options,
 				filename,
@@ -55,7 +54,6 @@ tester.run(
 				filename,
 			},
 			{
-				// The error class, not a call (component tests build rule errors).
 				code: 'import { TRPCClientError } from "@trpc/client";',
 				options,
 				filename,
@@ -99,7 +97,6 @@ tester.run(
 				errors: [error],
 			},
 			{
-				// verbatimModuleSyntax keeps `import {} from "…"`: the module loads.
 				code: 'import { type RouterOutputs } from "#/integrations/trpc/client";',
 				options,
 				filename,

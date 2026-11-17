@@ -6,16 +6,6 @@ import {
 	stringListOption,
 } from "../shared/modules.ts";
 
-/**
- * Components don't call the server. A component that reaches the tRPC client,
- * a query hook or a `use*Mutations` bundle can only be tested with the whole
- * transport mounted, so it goes untested, and an untested component only
- * grows (InventoryModal, CombatScene). The route or a hook makes the calls and
- * hands them down: data as props, calls as a `server` prop typed by an
- * interface the component declares (`InventoryServer`, `ExitFlowServer`).
- * `import type` stays allowed, so that interface can derive its argument
- * types from the hook.
- */
 export const noServerCallsInComponentsRule = defineRule({
 	meta: {
 		type: "problem",

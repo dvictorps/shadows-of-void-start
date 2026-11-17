@@ -6,12 +6,6 @@ import {
 	stringListOption,
 } from "../shared/modules.ts";
 
-/**
- * Server-only modules may reach the client bundle only as erased types. The
- * rule is switched off (in oxlint.config.ts) for the code that runs on the
- * Worker: `src/server`, the API routes, and the isomorphic server branch of
- * the tRPC client.
- */
 export const serverOnlyImportsRule = defineRule({
 	meta: {
 		type: "problem",

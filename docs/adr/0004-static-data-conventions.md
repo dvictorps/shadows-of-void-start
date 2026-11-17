@@ -83,3 +83,7 @@ Read `convex/schema.ts` above as `src/server/db/game-schema.ts` (D1 via Drizzle,
 
 - **Ids stay strings in the DB**, now as plain `text` columns with no CHECK constraint (`classId` is `text().$type<CharacterClassId>()`), so adding a class or monster still touches only `src/game/`. The reason is no longer a validator limitation but the migration cost: an enum in SQL would need a migration per new id.
 - **Every procedure validates static-data ids** with the matching `findX()` helper (or a Zod enum built from the game constants, e.g. `z.enum(MONSTER_RARITIES)`) and rejects unknown ones with a `TRPCError` (`fail()`), not a `ConvexError`.
+
+## Update (2026-11-16, no comments in code)
+
+Code carries no comments any more (`shadows/no-comments`, CLAUDE.md → Architecture as lint), so Rule 3's gate moves out of the schema: the reason a denormalized field is safe to cache is written in [codebase-map.md → Invariants and hazards](../codebase-map.md#invariants-and-hazards) (the `game-schema.ts` line), and a new cached field adds its own line there in the same PR. A cache without that line is the regression this ADR describes.

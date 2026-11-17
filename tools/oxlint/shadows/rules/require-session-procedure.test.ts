@@ -62,7 +62,6 @@ tester.run("shadows/require-session-procedure", requireSessionProcedureRule, {
 			errors: [error],
 		},
 		{
-			// An allow entry is per router: `create` is only allowed in `characters`.
 			code: "export const r = router({ create: authedProcedure.mutation(async () => {}) });",
 			options,
 			filename: combat,

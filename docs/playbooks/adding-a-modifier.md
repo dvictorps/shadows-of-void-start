@@ -144,7 +144,7 @@ Tests will catch:
 - Item naming: gender concord on adjective modifiers
 - Generator: spell-weapon exclusions, attack-weapon computed stats, armor defense by base, shields, jewelry eligibility, implicits, tier scaling
 
-If the mod is balance-sensitive (premium weight, exclusive slot), drop in a `weight: N` comment explaining the rationale — future agents won't know.
+If the mod is balance-sensitive (premium weight, exclusive slot), write the `weight: N` rationale into CONTEXT.md's section for that mod (code carries no comments, `shadows/no-comments`) — future agents won't know otherwise.
 
 ## Step 7 — Test the drop visually
 

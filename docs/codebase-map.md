@@ -336,6 +336,57 @@ The whole backend ([ADR 0009](./adr/0009-cloudflare-d1-trpc-backend.md)): schema
 
 ---
 
+## Invariants and hazards
+
+Code carries no comments (`shadows/no-comments`, CLAUDE.md → Architecture as lint), so a non-obvious WHY lives here, next to the file it guards. Add a line when you introduce one.
+
+**Combat and vitals**
+
+- `src/hooks/useCombatTick.ts`: every code path that creates a new `Enemy` must allocate a fresh `scaled` object. Its identity is what resets swing alternation between fights (`resetForFreshFight` runs lazily at the top of the engaged tick); reusing or mutating it in place silently stops the reset.
+- `src/hooks/useCombatTick.ts`: damage to the engaged monster reads the live enemy ref, not the top-of-tick snapshot, so an earlier write in the same tick (barrier regen, a swing before thorns) isn't spread-clobbered. Periodic `syncHp` is measured from the last write and self-skips when HP hasn't changed (write-quota saving); deactivation and every kill already flush HP.
+- `src/hooks/useCombatLoop.ts` / `useCombatTick.ts`: potion and incense counts come from the character query, never a local copy; a local copy let a kill's drop overwrite an optimistic drink ("drink ghost"). `overrideMaxHp` / `overrideMax` win the race with the level-up cache update.
+- `src/hooks/useBarrier.ts`: `initialBarrier` can arrive after mount (cold start); it is pulled in on prop change, or the periodic sync would overwrite the server with the local default. Every writer sets the ref together with the state.
+- `src/game/combat/vitals.ts`: every client-reported HP/barrier write-back is clamped to `[0, max]` and floored here; an omitted barrier is never written.
+- `src/game/monsters/scaling.ts`: the empty mod literal is copied fresh per spawn, since mods apply via spread.
+- `src/hooks/useCombatLoop.ts`: a rejected camp claim keeps the cinematic and lets the player retreat; the 30% bag cap then applies, which is the safe default.
+
+**Items and data**
+
+- `src/game/items/data/modifiers/affix-ids.ts`: the prefix/suffix id unions must stay in sync with each modifier's `affixType`; missing lexicon entries are caught by `translation-coverage.test.ts`, not the compiler.
+- `src/game/items/types/item.ts`: the naming fields are typed `string`, not the narrow unions, because persisted rows may carry ids an older template set used; the renderer falls back for them. Item data is never accepted from the client.
+- `src/game/items/generator.ts`: `computedDefenseStats` is emitted whenever the item has a defensive baseline or a defense/block mod (emitting only on rolled mods dropped base armor and shield block on Normal items).
+- `src/game/stats/compute.ts`: the `*ToAttacksFlat` ids are no-ops there (weapons are filtered out at the call site); the `*ToAttacksFlatGlobal` ids are the ones that roll on jewelry, gloves and quivers. The four spell-flat ids fold into the spell weapon's swing (`generator.ts`), not into character globals.
+- `src/game/items/item-name.ts`: two salts give two independent picks from one id, so pools that share factors don't collapse onto the same slot.
+
+**Client, session and UI**
+
+- Fire-and-forget `void` sites, each safe because nothing can reject unhandled: `reorderOrToast` (never rejects; `routes/world.tsx`, `WorldModals.tsx`), the claim in `useSessionClaim` (caught inside the in-flight call, so the latch is set before the flag drops), `transferOne` in `StashModal` (toasts its own refusals and failures), `setLocale` in `SettingsModal` (reloads the page), and framer-motion `start()` completion promises (`HealthGlobe`, `useEnemySpriteMotion`).
+- `src/hooks/useSessionToken.tsx`: the token is deliberately not persisted, so a refresh generates a fresh one and re-claims; `useSessionClaim` deliberately never re-claims after a takeover (two tabs would ping-pong), and a rejected claim latches instead of retrying (one request, not a burst against the Workers quota).
+- `src/hooks/useInFlight.ts`: a stale-epoch request settling must not release the guard of a request started after the reset.
+- `src/hooks/useExitFlow.ts`: the bag retention cap is frozen when the exit modal opens, so incremental picks don't shrink it.
+- `src/components/game/ItemCard.tsx`: never `disabled` a card without `onClick`; disabled buttons fire no pointer events and the hover tooltip dies. Rings and amulets render at half scale; belts render full-scale.
+- `src/components/world/combat-scene/EnemySprite.tsx`: a sprite unmounted between fights never fires `mouseleave`, and a detached element measures as an empty box at the origin, so the tooltip hides.
+- `src/lib/sfx.ts`: single-slot mode calls `pause()` before seeking to 0; Chrome otherwise replays a tail of the old buffer (heard as a doubled hit at high attack speed). Autoplay rejections are swallowed.
+
+**Server and tooling**
+
+- `src/server/auth.ts`: rate limiting is forced on (Better Auth's default keys it off `NODE_ENV`); the client IP header must be passed or the limiter is skipped; `tanstackStartCookies()` must stay the last plugin. Admin procedures read the role from D1, not the session (the cookie cache can hold a revoked role for 5 minutes).
+- `src/server/trpc/init.ts`: `isDev` comes from `import.meta.env.DEV`, because tRPC reads `process.env.NODE_ENV`, which the Worker build does not set (stack traces leaked on staging).
+- `src/server/trpc/context.ts`: Better Auth's refreshed cookie-cache `Set-Cookie` headers are collected here and added by `responseMeta` (`src/routes/api/trpc/$.ts`); without that every call after the 5-minute window hits D1.
+- `src/server/db/game-schema.ts`: D1 Free allows 100k rows written per day and every index a write touches costs a row, so no indexes on hot columns (xp, level, hp), integer primary keys, and the stat cache on `characters` is refreshed on equip / unequip / level-up (it is also the denormalization gate of ADR 0004).
+- `wrangler.jsonc`: the environment is picked at build time (`CLOUDFLARE_ENV` via `vite build --mode <env>`), not by `wrangler deploy --env`; the top level is local dev only.
+- CI (`.github/workflows/ci.yml`): Node is pinned to 24 by `.nvmrc` because Node 25+ ships a global `localStorage` that shadows jsdom's and breaks the paraglide runtime in jsdom tests; paraglide is compiled before lint and `tsc`, which import it. The Gemini reviewer (`.gemini/config.yaml`) only posts HIGH-severity findings, capped at 8 per PR.
+
+**Lint config (`oxlint.config.ts`)**
+
+- Off as style, not bugs: `prefer-readonly-parameter-types`, `strict-boolean-expressions`, `no-confusing-void-expression`, `strict-void-return`, `consistent-return`, `no-unnecessary-type-parameters`. `no-unsafe-type-assertion` is off because anti-slop governs casts (`SAFETY:` comment, no widen-then-assert).
+- `prefer-nullish-coalescing` ignores primitives: `||` on booleans, numbers and strings is deliberate (0, "" and false mean absent). `no-misused-promises` skips JSX attributes (React ignores a handler's return value). `only-throw-error` allows TanStack Router's `Redirect`.
+- `shadows/require-session-procedure` allow list: `characters.create` (no character yet), `characters.remove` (called from character select with no session; checks ownership with `assertOwnsCharacter`), `characters.claimCharacterSession` (creates the token). `adminProcedure` acts on other accounts. A new exception gets its reason added here.
+- `shadows/server-only-imports` is off for `src/integrations/trpc/client.ts` because its server branch (`localLink` during SSR) is compiled out of the client bundle by `createIsomorphicFn`. The `shadcn/*` rules are off in `src/components/world` and `src/components/game`: game art (rarity colors, glows, computed positions) has no token equivalent.
+- `shadows/no-comments` is off for the vendored `you-might-not-need-an-effect` plugin and for `docs/playbooks/_examples/`, whose comments are the teaching text of the playbooks.
+
+---
+
 ## Where to look when you ask…
 
 | Question                                                               | Start here                                                                                                                                    |
@@ -355,7 +406,7 @@ The whole backend ([ADR 0009](./adr/0009-cloudflare-d1-trpc-backend.md)): schema
 | "How are item tooltip mod lines translated?"                           | `src/game/items/mod-i18n.ts`                                                                                                                  |
 | "How are item names rendered (per locale)?"                            | `src/game/items/item-name.ts` + `lexicon/{en,pt}.ts`                                                                                          |
 | "Which i18n system should I use for new strings?"                      | `docs/playbooks/i18n-which-system.md`                                                                                                         |
-| "How do I add a component / modal without it becoming a monolith?"     | `docs/playbooks/adding-a-world-component.md` + CLAUDE.md → Scaling rules; debt lists in `oxlint.config.ts`                                    |
+| "How do I add a component / modal without it becoming a monolith?"     | `docs/playbooks/adding-a-world-component.md` + CLAUDE.md → Scaling rules                                                                      |
 | "How do I add a new vendor consumable?"                                | `docs/playbooks/adding-a-vendor-product.md`                                                                                                   |
 | "How do I start the skill / passive tree / stash system?"              | `docs/playbooks/adding-a-skill.md` (or `-passive`, `-stash-tab`) — stubs that list the open questions                                         |
 | "Why does this playbook example match the current types?"              | `docs/playbooks/_examples/` — sentinel files type-checked by `tsc --noEmit`                                                                   |

@@ -32,7 +32,6 @@ tester.run("shadows/no-unvalidated-json-parse", noUnvalidatedJsonParseRule, {
 		},
 		{ code: "const flash = JSON['parse'](raw);", errors: [error] },
 		{
-			// A second decode is not a validation: only the outer call passes.
 			code: "const flash = FlashSchema.parse(JSON.parse(JSON.parse(raw)));",
 			errors: [error],
 		},

@@ -6,13 +6,6 @@ import {
 	stringListOption,
 } from "../shared/modules.ts";
 
-/**
- * `src/game` is the pure engine: the server and the client both call it, and
- * its tests run without a DOM, a database or a network. Its imports are an
- * allowlist (set in oxlint.config.ts), so a new dependency is a decision made
- * in the config, not something an edit slips in. Type-only imports count too:
- * the engine doesn't depend on server shapes.
- */
 export const gameImportsRule = defineRule({
 	meta: {
 		type: "problem",

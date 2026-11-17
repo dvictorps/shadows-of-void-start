@@ -4,7 +4,6 @@ import type { ESTree } from "@oxlint/plugins";
 import { memberName } from "../shared/globals.ts";
 import { baseName, stringListOption } from "../shared/modules.ts";
 
-/** The identifier a builder chain starts from: `characterSessionProcedure` in `characterSessionProcedure.input(x).mutation`. */
 function chainRoot(expression: ESTree.Node): string | null {
 	let current = expression;
 	for (;;) {
@@ -15,7 +14,6 @@ function chainRoot(expression: ESTree.Node): string | null {
 	}
 }
 
-/** The key the procedure is registered under in its `router({ … })` object. */
 function procedureKey(node: ESTree.CallExpression): string | null {
 	const parent = node.parent;
 	if (parent?.type !== "Property" || parent.value !== node) return null;
@@ -25,22 +23,10 @@ function procedureKey(node: ESTree.CallExpression): string | null {
 		: null;
 }
 
-/** `src/server/trpc/routers/characters.ts` → `characters` (the key in `appRouter`). */
 function routerName(filename: string): string {
 	return baseName(filename).replace(/\..*$/, "");
 }
 
-/**
- * Every tRPC mutation goes through `characterSessionProcedure`: it loads the
- * character, checks ownership and the single-active-session token (threat #5
- * in docs/security/threat-model.md). Builders that are safe by construction
- * (`procedures`, e.g. `adminProcedure`) and named exceptions (`allow`, as
- * `router.procedure`) are listed in oxlint.config.ts.
- *
- * `router` is the file's base name, which matches its key in `appRouter`
- * (src/server/trpc/router.ts: one file per sub-router, ADR 0009). A nested
- * `router({ sub: router({ … }) })` would still key as `file.procedure`.
- */
 export const requireSessionProcedureRule = defineRule({
 	meta: {
 		type: "problem",

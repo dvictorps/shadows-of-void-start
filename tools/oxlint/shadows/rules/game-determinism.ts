@@ -4,7 +4,6 @@ import { isGlobalObject, memberName } from "../shared/globals.ts";
 
 type AmbientSource = { object: string; messageId: "randomness" | "clock" };
 
-// Method name → the global it must be read from to count as ambient.
 const AMBIENT_METHODS = new Map<string, AmbientSource[]>([
 	["random", [{ object: "Math", messageId: "randomness" }]],
 	["randomUUID", [{ object: "crypto", messageId: "randomness" }]],
@@ -18,15 +17,6 @@ const AMBIENT_METHODS = new Map<string, AmbientSource[]>([
 	],
 ]);
 
-/**
- * `src/game` never reads the clock or an ambient random source. Time enters as
- * a parameter; randomness goes through `#/lib/rng`, the one seam a test (or a
- * future seeded RNG) can replace.
- *
- * Out of scope on purpose: aliasing the globals (`globalThis.crypto…`,
- * `const { random } = Math`). The rule stops the accidental call, not a
- * deliberate workaround, which review catches.
- */
 export const gameDeterminismRule = defineRule({
 	meta: {
 		type: "problem",

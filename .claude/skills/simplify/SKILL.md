@@ -34,7 +34,7 @@ Review the same changes for hacky patterns:
 - Stringly-typed code: using raw strings where constants, enums (string unions), or branded types already exist in the codebase
 - Unnecessary JSX nesting: wrapper Boxes/elements that add no layout value — check if inner component props (flexShrink, alignItems, etc.) already provide the needed behavior
 - Nested conditionals: ternary chains (a ? x : b ? y : ...), nested if/else, or nested switch 3+ levels deep — flatten with early returns, guard clauses, a lookup table, or an if/else-if cascade
-- Unnecessary comments: comments explaining WHAT the code does (well-named identifiers already do that), narrating the change, or referencing the task/caller — delete; keep only non-obvious WHY (hidden constraints, subtle invariants, workarounds)
+- Comments: code carries none (`shadows/no-comments`). Delete any comment the change added; a non-obvious WHY (hidden constraint, subtle invariant, workaround) moves to the .md docs (CONTEXT.md, docs/codebase-map.md → Invariants and hazards, a playbook or an ADR). Only lint directives with their adjacent justification, the `SAFETY:` comment before a cast, `@vitest-environment` and `/// <reference>` stay
 
 ### Agent 3: Efficiency Review
 
