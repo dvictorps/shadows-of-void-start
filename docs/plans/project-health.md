@@ -6,18 +6,19 @@ This is a self-assessment from senior-review passes. It exists to give downstrea
 
 ## Measured (2026-11-17, on `dev` after PR #127)
 
-| Gate                              | Value                                                                                                     |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `npx tsc --noEmit`                | 0 errors                                                                                                  |
-| `pnpm lint:errors`                | 0 errors                                                                                                  |
-| `pnpm lint` warnings              | 0: `complexity`, `react/forbid-elements`, `shadcn/*` and `shadows/no-comments` are all errors             |
-| `pnpm test` (Vitest)              | 1369 tests in 85 files: the `unit` project plus 5 tRPC integration files on a local D1 (`server` project) |
-| `pnpm test:lint-rules`            | 19 rule-test files, all passing                                                                           |
-| Inline `oxlint-disable`           | 4, each with its external constraint in the comment beside it; 2 `SAFETY:` casts                          |
-| `COMPLEXITY_DEBT`                 | Emptied and removed (item 10); `complexity` has no exceptions                                             |
-| `SERVER_CALLS_IN_COMPONENTS_DEBT` | Emptied and removed (item 8); the rule has no exceptions                                                  |
-| Comments in code                  | 38 lines, all allowed directives (was 4,185 lines, 8% of 52.7k code lines; code bytes −16%)               |
-| CI (`.github/workflows/ci.yml`)   | Lint, `tsc`, `pnpm test` and `pnpm test:lint-rules` on every push and PR to `dev` / `master`              |
+| Gate                                                    | Value                                                                                                                                                     |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npx tsc --noEmit`                                      | 0 errors                                                                                                                                                  |
+| `pnpm lint:errors`                                      | 0 errors                                                                                                                                                  |
+| `pnpm lint` warnings                                    | 0: `complexity`, `react/forbid-elements`, `shadcn/*` and `shadows/no-comments` are all errors                                                             |
+| `pnpm test` (Vitest)                                    | 1369 tests in 85 files: the `unit` project plus 5 tRPC integration files on a local D1 (`server` project)                                                 |
+| `pnpm test:lint-rules`                                  | 19 rule-test files, all passing                                                                                                                           |
+| Inline `oxlint-disable`                                 | 4, each with its external constraint in the comment beside it; 2 `SAFETY:` casts                                                                          |
+| `COMPLEXITY_DEBT`                                       | Emptied and removed (item 10); `complexity` has no exceptions                                                                                             |
+| `SERVER_CALLS_IN_COMPONENTS_DEBT`                       | Emptied and removed (item 8); the rule has no exceptions                                                                                                  |
+| Comments in code                                        | 38 lines, all allowed directives (was 4,185 lines, 8% of 52.7k code lines; code bytes −16%)                                                               |
+| CI (`.github/workflows/ci.yml`)                         | Lint, `tsc`, `pnpm test` and `pnpm test:lint-rules` on every push and PR to `dev` / `master`                                                              |
+| Staging deploy (`.github/workflows/deploy-staging.yml`) | After CI passes on a push to `dev`: `pnpm db:migrate:staging` + `pnpm deploy:staging`; needs the `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets |
 
 Re-measure before quoting these numbers; they move with every gate PR.
 

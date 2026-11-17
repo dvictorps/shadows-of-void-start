@@ -48,7 +48,7 @@ pnpm format   # Format with oxfmt
 The app is one Cloudflare Worker with a D1 database per environment (see `docs/adr/0009-cloudflare-d1-trpc-backend.md`).
 
 ```bash
-pnpm db:migrate:staging && pnpm deploy:staging        # staging, from any branch
+pnpm db:migrate:staging && pnpm deploy:staging        # staging, by hand from any branch (CI does it on every green push to dev)
 pnpm db:migrate:production && pnpm deploy:production  # production, from master after merging dev
 ```
 

@@ -33,4 +33,4 @@ pnpm test                 # unit + server (workerd) projects
 pnpm lint:errors
 ```
 
-If the schema changed: `pnpm db:migrate:staging`, then `pnpm deploy:staging`. Production deploys need the owner's go-ahead.
+Staging migrates and deploys itself once the change lands on `dev` and CI passes (`deploy-staging.yml`); to try a branch on staging first, run `pnpm db:migrate:staging`, then `pnpm deploy:staging`. Production deploys need the owner's go-ahead.

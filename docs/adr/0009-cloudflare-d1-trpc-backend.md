@@ -113,3 +113,7 @@ Production runs on the Worker `shadows-of-void-production` at `https://shadows-o
 - **Smoke test:** a full click-through in a browser on staging (sign-up, character, travel, zone, kills, camp, exit with loot, vendor, stash, leaderboard, admin with an account promoted by SQL) found no functional bug. Production was smoke-tested over HTTP after the deploy (SSR pages 200, auth session endpoint, tRPC rejecting an anonymous call with 401); the owner accepted the staging click-through for production, since the build and the plan are the same.
 - **Measured CPU with real browser play (staging, Workers Free, 107 requests, none rejected):** `recordKill` median 3 ms, p90 6 ms, max 9 ms over 31 kills (phase 3's scripted median was 5 ms, same max); `consumePotion` 3 ms; `exitZone` 5 ms; `equipItem` 7 ms; `characters.create` 10 ms; the hourly leaderboard cron 9 ms; SSR `/` 44 ms and `/character-select` 23–61 ms; sign-up 128 ms. Only SSR and password hashing exceed the nominal 10 ms, as in earlier phases.
 - **Still to watch:** the D1 rows-written counter for the first week of real play, against the envelope in [beta-readiness.md](../plans/beta-readiness.md).
+
+## Update (2026-11-17, staging deploys on push)
+
+Staging no longer waits for a hand deploy: `.github/workflows/deploy-staging.yml` runs after CI passes on a push to `dev`, applies the staging D1 migrations and deploys the commit CI checked. Production is unchanged: a release is still `dev` → `master` and a manual `pnpm deploy:production` with the owner's go-ahead.

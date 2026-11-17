@@ -163,7 +163,7 @@ The whole backend ([ADR 0009](./adr/0009-cloudflare-d1-trpc-backend.md)): schema
 
 **Environments:** `wrangler.jsonc` has a top level (local `pnpm dev`, local D1 under `.wrangler/`) plus `staging` and `production`. The Cloudflare Vite plugin picks the environment at build time from `CLOUDFLARE_ENV` in `.env.staging` / `.env.production`, so deploy with `pnpm deploy:staging` / `pnpm deploy:production`, not `wrangler deploy --env`. Local secrets live in `.dev.vars` (template: `.dev.vars.example`).
 
-**Release flow:** feature PRs merge into `dev`; staging is deployed by hand from any branch. A release is `dev` → `master`, then `pnpm db:migrate:production` (if `drizzle/` changed) and `pnpm deploy:production` from `master`. Nothing deploys on push; production deploys need the owner's go-ahead. Production runs at `https://shadows-of-void-production.dvictorps.workers.dev`, staging at `https://shadows-of-void-staging.dvictorps.workers.dev`.
+**Release flow:** feature PRs merge into `dev`; every push to `dev` whose CI passes deploys staging (`.github/workflows/deploy-staging.yml`: `pnpm db:migrate:staging` then `pnpm deploy:staging` at the commit CI checked, one run at a time, with the repo secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`). A hand deploy from any branch still works and is overwritten by the next push to `dev`. A release is `dev` → `master`, then `pnpm db:migrate:production` (if `drizzle/` changed) and `pnpm deploy:production` from `master`. Production never deploys on push; it needs the owner's go-ahead. Production runs at `https://shadows-of-void-production.dvictorps.workers.dev`, staging at `https://shadows-of-void-staging.dvictorps.workers.dev`.
 
 ---
 
