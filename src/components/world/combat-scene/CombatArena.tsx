@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 
 import type { BossConfig } from "#/game/bosses";
 import type { CampSource, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
@@ -19,7 +19,11 @@ import { useEnemySpriteMotion } from "./useEnemySpriteMotion";
 import ZoneCompletePanel from "./ZoneCompletePanel";
 import ZonePath, { type ZonePathState } from "./ZonePath";
 
-const FADE_S = 0.4;
+const FADE_S = 0.5;
+const LAYER_CLASS = {
+	path: "absolute inset-0 px-6 pt-16 pb-4",
+	fight: "absolute inset-0 flex flex-col items-center gap-4",
+} as const;
 
 export default function CombatArena({
 	stages,
@@ -36,6 +40,7 @@ export default function CombatArena({
 	campSource,
 	onDismissCamp,
 	path,
+	nameplate,
 }: {
 	stages: IntroStages;
 	enemy: Enemy | null;
@@ -51,6 +56,7 @@ export default function CombatArena({
 	campSource: CampSource;
 	onDismissCamp: () => void;
 	path: ZonePathState;
+	nameplate: ReactNode;
 }) {
 	const { state } = stages;
 	const enemyEvents = useMemo(
@@ -71,7 +77,7 @@ export default function CombatArena({
 
 	if (view === "camp") {
 		return (
-			<div className="relative flex flex-1 items-center justify-center">
+			<div className="relative flex min-h-0 flex-1 items-center justify-center">
 				<CampScreen
 					zoneId={zoneId}
 					source={campSource}
@@ -83,64 +89,65 @@ export default function CombatArena({
 	}
 
 	return (
-		<AnimatePresence mode="wait" initial={false}>
-			<motion.div
-				key={view}
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				exit={{ opacity: 0 }}
-				transition={{ duration: FADE_S, ease: "easeInOut" }}
-				className="relative flex flex-1 flex-col items-center justify-center gap-4"
-			>
-				{view === "path" ? (
-					<div className="flex w-full flex-1 items-center justify-center px-6">
+		<div className="relative min-h-0 flex-1">
+			<AnimatePresence initial={false}>
+				<motion.div
+					key={view}
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					exit={{ opacity: 0 }}
+					transition={{ duration: FADE_S, ease: "easeInOut" }}
+					className={LAYER_CLASS[view]}
+				>
+					{view === "path" ? (
 						<ZonePath {...path} />
-					</div>
-				) : (
-					<>
-						<div className="relative flex flex-1 items-center justify-center">
-							{state === "miniboss_victory" && (
-								<ZoneCompletePanel
-									onContinue={onDismissMinibossModal}
-									onRetreat={onRetreat}
-									showContinue={!isBossNode}
-								/>
-							)}
-							{enemy && enemyOnStage && (
-								<EnemySprite
-									enemy={enemy}
-									displayName={displayName}
-									bossConfig={bossConfig}
-									enemyControls={enemyControls}
-									redFlashControls={redFlashControls}
-									lastSwingHit={lastSwingHit}
-								/>
-							)}
+					) : (
+						<>
+							{nameplate}
+							<div className="relative flex w-full flex-1 items-center justify-center">
+								{state === "miniboss_victory" && (
+									<ZoneCompletePanel
+										onContinue={onDismissMinibossModal}
+										onRetreat={onRetreat}
+										showContinue={!isBossNode}
+									/>
+								)}
+								{enemy && enemyOnStage && (
+									<EnemySprite
+										enemy={enemy}
+										displayName={displayName}
+										bossConfig={bossConfig}
+										enemyControls={enemyControls}
+										redFlashControls={redFlashControls}
+										lastSwingHit={lastSwingHit}
+									/>
+								)}
 
-							<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-								<AnimatePresence>
-									{enemyEvents.map((event) => (
-										<FloatingDamage key={event.id} event={event} />
-									))}
-								</AnimatePresence>
+								<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+									<AnimatePresence>
+										{enemyEvents.map((event) => (
+											<FloatingDamage key={event.id} event={event} />
+										))}
+									</AnimatePresence>
+								</div>
+
+								<div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
+									<AnimatePresence>
+										{state === "victory" && lastKillXp !== undefined && (
+											<FloatingXp amount={lastKillXp} />
+										)}
+									</AnimatePresence>
+								</div>
 							</div>
 
-							<div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
-								<AnimatePresence>
-									{state === "victory" && lastKillXp !== undefined && (
-										<FloatingXp amount={lastKillXp} />
-									)}
-								</AnimatePresence>
-							</div>
-						</div>
-
-						{enemy && state !== "miniboss_victory" && (
-							<EnemyHpBarSlot enemy={enemy} visible={hpBarVisible(stages)} />
-						)}
-					</>
-				)}
-			</motion.div>
-		</AnimatePresence>
+							{enemy && state !== "miniboss_victory" && (
+								<EnemyHpBarSlot enemy={enemy} visible={hpBarVisible(stages)} />
+							)}
+						</>
+					)}
+				</motion.div>
+			</AnimatePresence>
+		</div>
 	);
 }
 

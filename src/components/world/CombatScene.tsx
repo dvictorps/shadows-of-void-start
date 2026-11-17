@@ -94,12 +94,6 @@ export default function CombatScene({
 				onOpenBag={onOpenBag}
 				onRetreat={onRetreat}
 			/>
-			<EnemyNameplate
-				enemy={enemy}
-				displayName={enemyDisplayName}
-				bossConfig={bossConfig}
-				stages={stages}
-			/>
 			<CombatArena
 				stages={stages}
 				enemy={enemy}
@@ -115,6 +109,14 @@ export default function CombatScene({
 				campSource={campSource}
 				onDismissCamp={onDismissCamp}
 				path={path}
+				nameplate={
+					<EnemyNameplate
+						enemy={enemy}
+						displayName={enemyDisplayName}
+						bossConfig={bossConfig}
+						stages={stages}
+					/>
+				}
 			/>
 			<CombatBottomHud events={events} {...bottomHud} />
 		</section>

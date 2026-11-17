@@ -1,7 +1,7 @@
 # Zone Path tileset (deferred)
 
 **Status**: Planned, waiting on the owner's tiles.
-**Today**: the Zone Path (CONTEXT.md → Zone Path) is drawn in CSS by `src/components/world/combat-scene/ZonePath.tsx`: stone tiles, a gold exit, amber campfires, dots per monster `pathColor`, a white walker.
+**Today**: the Zone Path (CONTEXT.md → Zone Path) is drawn as an SVG of plain shapes by `src/components/world/combat-scene/ZonePath.tsx`: stone tiles, a gold exit, amber campfires, dots per monster `pathColor`, a white walker.
 
 ## Scope
 
