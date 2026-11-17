@@ -31,7 +31,7 @@ import {
 import type { ComputedCharacterStats } from "#/game/stats/types";
 import type { BossNodeConfig, CampSource } from "#/game/world";
 import type { ZoneEncounterPlan } from "#/game/world/encounter-schedule";
-import { pickRandom } from "#/lib/rng";
+import { pickRandom, randomUnit } from "#/lib/rng";
 import { playKillSfx, playSfx } from "#/lib/sfx";
 
 import type { BarrierApi } from "./useBarrier";
@@ -469,9 +469,9 @@ export function useCombatLoop({
 			mods,
 			scaled,
 			nameSeed: {
-				primary: Math.random(),
-				secondary: Math.random(),
-				epithet: Math.random(),
+				primary: randomUnit(),
+				secondary: randomUnit(),
+				epithet: randomUnit(),
 			},
 		};
 	}

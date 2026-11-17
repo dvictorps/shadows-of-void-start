@@ -14,9 +14,8 @@ When a planned item starts, move it to a feature branch and reference back here.
 
 ### REFACTOR GATE — what is left
 
-Items 1–18 are done (PRs up to #119; the history is in git). Rules: CLAUDE.md → Scaling rules; recipe: `docs/playbooks/adding-a-world-component.md`.
+Items 1–19 are done (PRs up to #120; the history is in git). Rules: CLAUDE.md → Scaling rules; recipe: `docs/playbooks/adding-a-world-component.md`.
 
-19. **Combat rolls on one `Rng`** — `rollPlayerSwing` / `rollEnemyAttack` (`src/game/combat/damage.ts`) take a `random` for hit and crit, but their damage rolls call `randInt` on the ambient source, so a test that injects `random` doesn't control the damage; `rollMonsterRarity` / `rollMonsterMods` (`src/game/monsters/modifiers.ts`) still take the older `random: () => number`. Move them onto the `Rng` (same draws in the same order by default) and the monster-name seeds in `useCombatLoop.spawnMob` (`Math.random()` ×3) onto `randomUnit`. A refactor, no behavior change. 1 PR.
 20. **The rest of the server errors translated** — rule errors still shown raw in English: `src/game/world/zone-actions.ts` (travel / enter / exit refusals, all but `zone-locked`), `src/server/city.ts`, `src/server/trpc/routers/combat.ts`, `items.ts`, `stash.ts` (and `users.ts` / `SERVER_ERRORS.adminRequired`, admin only). Recipe: exact strings into `SERVER_ERRORS`, parametric ones as patterns in `src/lib/server-error-message.ts`, a paraglide key and a test case each; skip the ones the UI can't reach (say so in the test file). 1 PR.
 
 ### Open, not blocking
@@ -30,7 +29,7 @@ Items 1–18 are done (PRs up to #119; the history is in git). Rules: CLAUDE.md 
 
 ## Project health snapshot (as of 2026-11-16)
 
-**Current grade: A** (composite across architecture / code quality / docs / scalability / agent ergonomics). What holds it below A+ is the React layer's test coverage (a handful of world components and the `/world` wiring) and the two REFACTOR GATE items left.
+**Current grade: A** (composite across architecture / code quality / docs / scalability / agent ergonomics). What holds it below A+ is the React layer's test coverage (a handful of world components and the `/world` wiring) and the last REFACTOR GATE item.
 
 This is a self-assessment from senior-review passes. It exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't. Closed work lives in git history, not here.
 
@@ -41,7 +40,7 @@ This is a self-assessment from senior-review passes. It exists to give downstrea
 | `npx tsc --noEmit`                | 0 errors                                                                                                  |
 | `pnpm lint:errors`                | 0 errors                                                                                                  |
 | `pnpm lint` warnings              | 0: `complexity`, `react/forbid-elements` and `shadcn/*` are all errors                                    |
-| `pnpm test` (Vitest)              | 1192 tests in 73 files: the `unit` project plus 5 tRPC integration files on a local D1 (`server` project) |
+| `pnpm test` (Vitest)              | 1196 tests in 73 files: the `unit` project plus 5 tRPC integration files on a local D1 (`server` project) |
 | `pnpm test:lint-rules`            | 18 rule-test files, all passing                                                                           |
 | Inline `oxlint-disable`           | 4, each with the external constraint written in the comment                                               |
 | `COMPLEXITY_DEBT`                 | Emptied and removed (item 10); `complexity` has no exceptions                                             |

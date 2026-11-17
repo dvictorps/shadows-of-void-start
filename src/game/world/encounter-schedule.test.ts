@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { seededRng } from "#/lib/rng";
+
 import {
 	DEFAULT_ENCOUNTER_PLAN,
 	encounterPlanForNode,
@@ -10,6 +12,14 @@ import {
 } from "./encounter-schedule";
 
 describe("rollSpawnGapMs", () => {
+	it("follows the injected rng", () => {
+		const roll = (seed: number) => [
+			rollSpawnGapMs(DEFAULT_ENCOUNTER_PLAN, seededRng(seed)),
+			rollAmbushSchedule(DEFAULT_ENCOUNTER_PLAN, seededRng(seed)),
+		];
+		expect(roll(9)).toEqual(roll(9));
+	});
+
 	const plan: ZoneEncounterPlan = {
 		calmariaBudgetSeconds: 35,
 		gapBetweenSpawns: { min: 1.5, max: 3 },

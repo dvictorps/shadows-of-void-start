@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { rngFromUnit, seededRng } from "../../lib/rng";
 import type { ComputedCharacterStats, SwingProfile } from "../stats/types";
 import {
 	applyDamageToBarrierThenLife,
@@ -81,7 +82,7 @@ describe("rollPlayerSwing", () => {
 			swing: swing(),
 			stats: statsAttack(),
 			defender: dummyDefender,
-			random: () => 0.5, // never crits, never misses
+			rng: rngFromUnit(() => 0.5), // never crits, never misses
 		});
 		expect(result.isMiss).toBe(false);
 		expect(result.isCrit).toBe(false);
@@ -96,7 +97,7 @@ describe("rollPlayerSwing", () => {
 				increased: { ...statsAttack().increased, physical: 50 },
 			}),
 			defender: dummyDefender,
-			random: () => 0.5,
+			rng: rngFromUnit(() => 0.5),
 		});
 		expect(result.amount).toBe(15); // 10 × 1.5
 	});
@@ -106,7 +107,7 @@ describe("rollPlayerSwing", () => {
 			swing: swing({ physicalDamage: { min: 100, max: 100 } }),
 			stats: statsAttack(),
 			defender: { ...dummyDefender, armor: 1000 },
-			random: () => 0.5,
+			rng: rngFromUnit(() => 0.5),
 		});
 		// armor 1000 vs 100-damage hit → reduction = 1000/(1000+1000) = 50%
 		expect(result.amount).toBe(50);
@@ -117,14 +118,7 @@ describe("rollPlayerSwing", () => {
 			swing: swing({ baseCritChance: 100 }), // always crits
 			stats: statsAttack(),
 			defender: dummyDefender,
-			random: (() => {
-				let calls = 0;
-				return () => {
-					calls += 1;
-					// First call (hit check) succeeds; second call (crit check) succeeds.
-					return calls === 1 ? 0.0 : 0.0;
-				};
-			})(),
+			rng: rngFromUnit(() => 0), // 0 → hits, min damage, crits
 		});
 		expect(result.isCrit).toBe(true);
 		// base 10 × crit (1 + 50/100) = 15
@@ -136,7 +130,7 @@ describe("rollPlayerSwing", () => {
 			swing: swing(),
 			stats: statsAttack({ accuracy: 0 }),
 			defender: { ...dummyDefender, evasion: 1000 },
-			random: () => 0.5, // 0.5 > clamped hit chance (=0.05)
+			rng: rngFromUnit(() => 0.5), // 0.5 > clamped hit chance (=0.05)
 		});
 		expect(result.isMiss).toBe(true);
 		expect(result.amount).toBe(0);
@@ -152,7 +146,7 @@ describe("rollPlayerSwing", () => {
 			// but spell path skips the check entirely.
 			stats: statsAttack({ path: "spell", accuracy: 0 }),
 			defender: { ...dummyDefender, evasion: 10000 },
-			random: () => 0.99,
+			rng: rngFromUnit(() => 0.99),
 		});
 		expect(result.isMiss).toBe(false);
 		expect(result.amount).toBe(50);
@@ -169,7 +163,7 @@ describe("rollPlayerSwing", () => {
 				...dummyDefender,
 				resistances: { cold: 0, fire: 50, lightning: 0, void: 0 },
 			},
-			random: () => 0.5,
+			rng: rngFromUnit(() => 0.5),
 		});
 		expect(result.amount).toBe(50); // 100 × (1 - 0.5)
 	});
@@ -188,7 +182,7 @@ describe("rollPlayerSwing", () => {
 				gainAsExtraSpell: { cold: 0, fire: 20, lightning: 0, void: 0 },
 			}),
 			defender: dummyDefender,
-			random: () => 0.5,
+			rng: rngFromUnit(() => 0.5),
 		});
 		expect(result.amount).toBe(120);
 		expect(result.breakdown.cold).toBe(100);
@@ -209,7 +203,7 @@ describe("rollPlayerSwing", () => {
 				gainAsExtraSpell: { cold: 10, fire: 0, lightning: 0, void: 0 },
 			}),
 			defender: dummyDefender,
-			random: () => 0.5,
+			rng: rngFromUnit(() => 0.5),
 		});
 		expect(result.amount).toBe(110);
 		expect(result.breakdown.fire).toBe(100);
@@ -232,7 +226,7 @@ describe("rollPlayerSwing", () => {
 				...dummyDefender,
 				resistances: { cold: 0, fire: 50, lightning: 0, void: 0 },
 			},
-			random: () => 0.5,
+			rng: rngFromUnit(() => 0.5),
 		});
 		expect(result.breakdown.fire).toBe(10);
 		expect(result.amount).toBe(110);
@@ -249,7 +243,7 @@ describe("rollPlayerSwing", () => {
 				gainAsExtraSpell: { cold: 0, fire: 50, lightning: 0, void: 0 },
 			}),
 			defender: dummyDefender,
-			random: () => 0.5,
+			rng: rngFromUnit(() => 0.5),
 		});
 		expect(result.breakdown.fire).toBe(0);
 		expect(result.amount).toBe(100);
@@ -267,7 +261,7 @@ describe("rollEnemyAttack", () => {
 			elementalDamage: [],
 			defender: { ...dummyDefender, evasion: 0 },
 			enemyCriticalChance: 0,
-			random: () => 0.0,
+			rng: rngFromUnit(() => 0.0),
 		});
 		expect(result.amount).toBe(10);
 		expect(result.breakdown.physical).toBe(10);
@@ -281,7 +275,7 @@ describe("rollEnemyAttack", () => {
 			elementalDamage: [],
 			defender: { ...dummyDefender, armor: 1000 },
 			enemyCriticalChance: 0,
-			random: () => 0.0,
+			rng: rngFromUnit(() => 0.0),
 		});
 		// 1000 armor vs 100-damage hit → 1000/(1000+1000) = 50% reduction
 		expect(result.amount).toBe(50);
@@ -297,7 +291,7 @@ describe("rollEnemyAttack", () => {
 				resistances: { cold: 0, fire: 50, lightning: 0, void: 0 },
 			},
 			enemyCriticalChance: 0,
-			random: () => 0.0,
+			rng: rngFromUnit(() => 0.0),
 		});
 		// armor doesn't touch elements; 50% fire resist halves the hit
 		expect(result.amount).toBe(50);
@@ -312,7 +306,7 @@ describe("rollEnemyAttack", () => {
 			elementalDamage: [{ element: "Cold", min: 30, max: 30 }],
 			defender: { ...dummyDefender },
 			enemyCriticalChance: 0,
-			random: () => 0.0,
+			rng: rngFromUnit(() => 0.0),
 		});
 		expect(result.amount).toBe(50);
 		expect(result.breakdown.physical).toBe(20);
@@ -326,13 +320,15 @@ describe("rollEnemyAttack", () => {
 			elementalDamage: [],
 			defender: { ...dummyDefender, blockChance: 75 },
 			// First call (hit check) succeeds; second call (block roll: 0 < 75) blocks.
-			random: (() => {
-				let calls = 0;
-				return () => {
-					calls += 1;
-					return calls === 1 ? 0.0 : 0.0;
-				};
-			})(),
+			rng: rngFromUnit(
+				(() => {
+					let calls = 0;
+					return () => {
+						calls += 1;
+						return calls === 1 ? 0.0 : 0.0;
+					};
+				})(),
+			),
 		});
 		expect(result.isBlocked).toBe(true);
 		expect(result.isMiss).toBe(false);
@@ -347,13 +343,15 @@ describe("rollEnemyAttack", () => {
 			defender: { ...dummyDefender, blockChance: 25 },
 			enemyCriticalChance: 0,
 			// Hit succeeds; block roll: 0.99 * 100 = 99 ≥ 25 → no block.
-			random: (() => {
-				let calls = 0;
-				return () => {
-					calls += 1;
-					return calls === 1 ? 0.0 : 0.99;
-				};
-			})(),
+			rng: rngFromUnit(
+				(() => {
+					let calls = 0;
+					return () => {
+						calls += 1;
+						return calls === 1 ? 0.0 : 0.99;
+					};
+				})(),
+			),
 		});
 		expect(result.isBlocked).toBe(false);
 		expect(result.amount).toBe(50);
@@ -367,7 +365,7 @@ describe("rollEnemyAttack", () => {
 			defender: { ...dummyDefender },
 			enemyCriticalChance: 100, // guaranteed crit
 			enemyCriticalMultiplier: 50, // +50% → 1.5×
-			random: () => 0.0,
+			rng: rngFromUnit(() => 0.0),
 		});
 		expect(result.isCrit).toBe(true);
 		// 100 phys × 1.5 = 150, 60 fire × 1.5 = 90 → total 240.
@@ -384,7 +382,7 @@ describe("rollEnemyAttack", () => {
 			defender: { ...dummyDefender },
 			enemyCriticalChance: 0,
 			enemyCriticalMultiplier: 200,
-			random: () => 0.0, // would crit with any non-zero chance
+			rng: rngFromUnit(() => 0.0), // would crit with any non-zero chance
 		});
 		expect(result.isCrit).toBe(false);
 		expect(result.amount).toBe(50);
@@ -399,7 +397,7 @@ describe("rollEnemyAttack", () => {
 			defender: { ...dummyDefender },
 			enemyCriticalChance: 0,
 			enemyGainAsExtra: { cold: 0, fire: 0, lightning: 0, void: 30 },
-			random: () => 0.0,
+			rng: rngFromUnit(() => 0.0),
 		});
 		expect(result.breakdown.physical).toBe(100);
 		expect(result.breakdown.void).toBe(30);
@@ -418,7 +416,7 @@ describe("rollEnemyAttack", () => {
 			},
 			enemyCriticalChance: 0,
 			enemyGainAsExtra: { cold: 0, fire: 0, lightning: 0, void: 30 },
-			random: () => 0.0,
+			rng: rngFromUnit(() => 0.0),
 		});
 		expect(result.breakdown.physical).toBe(100);
 		expect(result.breakdown.void).toBe(7);
@@ -435,7 +433,7 @@ describe("rollEnemyAttack", () => {
 			defender: { ...dummyDefender },
 			enemyCriticalChance: 0,
 			enemyGainAsExtra: { cold: 30, fire: 30, lightning: 0, void: 0 },
-			random: () => 0.0,
+			rng: rngFromUnit(() => 0.0),
 		});
 		expect(result.breakdown.cold).toBe(30);
 		expect(result.breakdown.fire).toBe(30);
@@ -443,13 +441,13 @@ describe("rollEnemyAttack", () => {
 	});
 
 	it("baseline crit chance fires when defaults are used (5% floor)", () => {
-		// random() * 100 < 5 → 0.04 fires crit, 0.06 does not.
+		// rng.unit() * 100 < 5 → 0.04 fires crit, 0.06 does not.
 		const r1 = rollEnemyAttack({
 			enemyAccuracy: 100,
 			physicalDamage: { min: 50, max: 50 },
 			elementalDamage: [],
 			defender: { ...dummyDefender },
-			random: () => 0.04,
+			rng: rngFromUnit(() => 0.04),
 		});
 		expect(r1.isCrit).toBe(true);
 		// 50 × 1.5 (default 50% multiplier) = 75.
@@ -460,10 +458,41 @@ describe("rollEnemyAttack", () => {
 			physicalDamage: { min: 50, max: 50 },
 			elementalDamage: [],
 			defender: { ...dummyDefender },
-			random: () => 0.06,
+			rng: rngFromUnit(() => 0.06),
 		});
 		expect(r2.isCrit).toBe(false);
 		expect(r2.amount).toBe(50);
+	});
+});
+
+describe("damage rolls follow the injected rng", () => {
+	const wide = { min: 1, max: 100_000 };
+	const amounts = (roll: (seed: number) => number) => [1, 2, 3, 4].map(roll);
+
+	it("rollPlayerSwing: the same seed rolls the same damage", () => {
+		const roll = (seed: number) =>
+			rollPlayerSwing({
+				swing: swing({
+					physicalDamage: wide,
+					elementalDamage: [{ element: "Fire", ...wide }],
+				}),
+				stats: statsAttack(),
+				defender: dummyDefender,
+				rng: seededRng(seed),
+			}).amount;
+		expect(amounts(roll)).toEqual(amounts(roll));
+	});
+
+	it("rollEnemyAttack: the same seed rolls the same damage", () => {
+		const roll = (seed: number) =>
+			rollEnemyAttack({
+				enemyAccuracy: 1_000_000,
+				physicalDamage: wide,
+				elementalDamage: [{ element: "Cold", ...wide }],
+				defender: dummyDefender,
+				rng: seededRng(seed),
+			}).amount;
+		expect(amounts(roll)).toEqual(amounts(roll));
 	});
 });
 
