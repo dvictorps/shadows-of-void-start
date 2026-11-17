@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { seededRng } from "#/lib/rng";
+import { rngFromUnit, seededRng } from "#/lib/rng";
 
 import {
 	DEFAULT_ENCOUNTER_PLAN,
 	encounterPlanForNode,
+	rollAmbushRarity,
 	rollAmbushSchedule,
 	rollCampThresholdsMs,
 	rollSpawnGapMs,
@@ -149,6 +150,56 @@ describe("rollAmbushSchedule", () => {
 				);
 			}
 		}
+	});
+});
+
+describe("rollAmbushRarity", () => {
+	it("returns magic when rng.unit() < magicChance", () => {
+		expect(
+			rollAmbushRarity(
+				0.3,
+				rngFromUnit(() => 0),
+			),
+		).toBe("magic");
+		expect(
+			rollAmbushRarity(
+				0.3,
+				rngFromUnit(() => 0.29),
+			),
+		).toBe("magic");
+	});
+
+	it("returns normal otherwise", () => {
+		expect(
+			rollAmbushRarity(
+				0.3,
+				rngFromUnit(() => 0.3),
+			),
+		).toBe("normal");
+		expect(
+			rollAmbushRarity(
+				0.3,
+				rngFromUnit(() => 0.99),
+			),
+		).toBe("normal");
+		expect(
+			rollAmbushRarity(
+				0,
+				rngFromUnit(() => 0),
+			),
+		).toBe("normal");
+	});
+
+	it("is reproducible under a seeded rng", () => {
+		const roll = (seed: number) => {
+			const rng = seededRng(seed);
+			return Array.from({ length: 200 }, () => rollAmbushRarity(0.5, rng));
+		};
+		const first = roll(7);
+		expect(roll(7)).toEqual(first);
+		const magic = first.filter((r) => r === "magic").length;
+		expect(magic).toBeGreaterThan(70);
+		expect(magic).toBeLessThan(130);
 	});
 });
 

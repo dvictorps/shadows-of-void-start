@@ -1,4 +1,11 @@
-import { defaultRng, randInt, randSymmetric, type Rng } from "../../lib/rng";
+import {
+	chance,
+	defaultRng,
+	randInt,
+	randSymmetric,
+	type Rng,
+} from "../../lib/rng";
+import type { MonsterRarity } from "../monsters";
 import type { WorldNode } from "./types";
 
 export interface ZoneEncounterPlan {
@@ -76,4 +83,11 @@ export function rollAmbushSchedule(
 			packSize: randInt(packSize.min, packSize.max, rng),
 		}))
 		.toSorted((a, b) => a.thresholdMs - b.thresholdMs);
+}
+
+export function rollAmbushRarity(
+	magicChance: number,
+	rng: Rng = defaultRng,
+): MonsterRarity {
+	return chance(magicChance, rng) ? "magic" : "normal";
 }
