@@ -1,3 +1,5 @@
+import { fillPercent } from "../fill-percent";
+
 export default function EnemyHpBar({
 	current,
 	max,
@@ -9,11 +11,8 @@ export default function EnemyHpBar({
 	currentBarrier: number;
 	maxBarrier: number;
 }) {
-	const pct = max > 0 ? Math.max(0, Math.min(100, (current / max) * 100)) : 0;
-	const barrierPct =
-		maxBarrier > 0
-			? Math.max(0, Math.min(100, (currentBarrier / maxBarrier) * 100))
-			: 0;
+	const pct = fillPercent(current, max);
+	const barrierPct = fillPercent(currentBarrier, maxBarrier);
 	const showBarrier = maxBarrier > 0;
 	return (
 		<div className="mb-4 flex w-full max-w-sm flex-col items-center gap-1">

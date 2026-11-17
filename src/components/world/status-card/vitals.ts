@@ -19,8 +19,8 @@ export type VitalsInput = {
 
 /**
  * What the status card shows and allows: the live numbers (an override wins
- * over the character row; the barrier reads full without one), the XP bar's
- * fill, and when each consumable can be used (a missing handler disables it).
+ * over the character row; the barrier reads full without one) and when each
+ * consumable can be used (a missing handler disables it).
  */
 export function statusVitals(input: VitalsInput) {
 	const { character, stats } = input;
@@ -38,7 +38,6 @@ export function statusVitals(input: VitalsInput) {
 		teleportStones: input.teleportStones,
 		xp,
 		xpNeeded,
-		xpPct: Math.min(100, (xp / xpNeeded) * 100),
 		canUsePotion: input.hasPotionHandler && potions > 0 && hp < maxHp,
 		canUseTeleportStone:
 			input.hasTeleportHandler &&

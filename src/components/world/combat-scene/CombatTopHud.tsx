@@ -4,6 +4,8 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { m } from "#/paraglide/messages";
 
+import { fillPercent } from "../fill-percent";
+
 /**
  * The top of the scene: the zone time bar, the ambush banner, the zone label
  * and the loot / Retreat actions. Everything but the time bar fades out
@@ -123,8 +125,6 @@ function ZoneTimeBar({
 	budgetMs: number;
 	campThresholdsMs: readonly number[];
 }) {
-	const pctOfBudget = (ms: number) =>
-		budgetMs > 0 ? (ms / budgetMs) * 100 : 0;
 	return (
 		<div
 			role="progressbar"
@@ -136,14 +136,14 @@ function ZoneTimeBar({
 		>
 			<div
 				className="h-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 transition-[width] duration-100 ease-linear"
-				style={{ width: `${Math.min(100, pctOfBudget(elapsedMs))}%` }}
+				style={{ width: `${fillPercent(elapsedMs, budgetMs)}%` }}
 			/>
 			{campThresholdsMs.map((thresholdMs) => (
 				<span
 					key={thresholdMs}
 					aria-hidden
 					className="-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/2 h-3 w-1 bg-amber-200 shadow-[0_0_6px_rgba(252,211,77,0.85)]"
-					style={{ left: `${pctOfBudget(thresholdMs)}%` }}
+					style={{ left: `${fillPercent(thresholdMs, budgetMs)}%` }}
 				/>
 			))}
 		</div>

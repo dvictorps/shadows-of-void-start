@@ -9,6 +9,7 @@ import { m } from "#/paraglide/messages";
 import { ConsumableSlot } from "../ConsumableSlot";
 import ElementSelector from "../ElementSelector";
 import HealthGlobe from "../HealthGlobe";
+import { XpBar } from "../XpBar";
 import FloatingDamage from "./FloatingDamage";
 
 export type ConsumableKey =
@@ -125,7 +126,7 @@ export default function CombatBottomHud({
 				/>
 			)}
 
-			<XpBar xp={xp} xpNeeded={xpNeeded} />
+			<XpBar xp={xp} xpNeeded={xpNeeded} size="hud" />
 
 			{/* Teleport stone — sends to city by default from the HUD (panic
 			 * exit). Non-city destinations are picked from the map view. */}
@@ -164,30 +165,6 @@ export default function CombatBottomHud({
 					art="/assets/sprites/ui/pocaoCura.png"
 				/>
 			</SlotCell>
-		</div>
-	);
-}
-
-function XpBar({ xp, xpNeeded }: { xp: number; xpNeeded: number }) {
-	const xpPct = xpNeeded > 0 ? Math.min(100, (xp / xpNeeded) * 100) : 0;
-	return (
-		<div className="flex-1 space-y-1">
-			<div className="text-[10px] uppercase tracking-wider text-yellow-300/80">
-				{m.status_xp_label({ current: xp, needed: xpNeeded })}
-			</div>
-			<div
-				role="progressbar"
-				aria-label={m.xp_bar_aria()}
-				aria-valuenow={xp}
-				aria-valuemin={0}
-				aria-valuemax={xpNeeded}
-				className="h-3 w-full overflow-hidden rounded-full bg-white/10"
-			>
-				<div
-					className="h-full bg-yellow-300 transition-[width] duration-200"
-					style={{ width: `${xpPct}%` }}
-				/>
-			</div>
 		</div>
 	);
 }
