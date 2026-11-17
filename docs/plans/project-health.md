@@ -1,17 +1,17 @@
-# Project health snapshot (as of 2026-11-16)
+# Project health snapshot (as of 2026-11-17)
 
-**Current grade: A** (composite across architecture / code quality / docs / scalability / agent ergonomics), confirmed after the REFACTOR GATE closed and the no-comments / docs-drift pass (PR #122). What holds it below A+: the client mutation hooks and five world components have no tests (Testing B+ in that layer), the bulk-translated PT lexicon (B-), and the A+ bar's own condition, new systems shipped against the stubs without an emergency refactor. The ordered path is in `in-progress.md` → "Priority queue: the path to A+".
+**Current grade: A** (composite across architecture / code quality / docs / scalability / agent ergonomics), confirmed after the engineering queue toward A+ closed (PRs #123–#127: mutation-hook, world-component and `/world` wiring tests, the ambush roll on the injected `Rng`, the accessibility leftovers). Testing is now A across `src/game/`, procedures, hooks and components. What holds it below A+ is no longer engineering debt: the bulk-translated PT lexicon (B-, a launch requirement) and the A+ bar's own condition, a new system shipped against its stub without an emergency refactor (waiting on the next feature). Both are in `in-progress.md` → "Priority queue: the path to A+".
 
 This is a self-assessment from senior-review passes. It exists to give downstream agents a quick read on what's solid and what's debt — pick work that moves the needle, skip work that doesn't. Closed work lives in git history, not here.
 
-## Measured (2026-11-16, on `chore/no-code-comments`)
+## Measured (2026-11-17, on `dev` after PR #127)
 
 | Gate                              | Value                                                                                                     |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `npx tsc --noEmit`                | 0 errors                                                                                                  |
 | `pnpm lint:errors`                | 0 errors                                                                                                  |
 | `pnpm lint` warnings              | 0: `complexity`, `react/forbid-elements`, `shadcn/*` and `shadows/no-comments` are all errors             |
-| `pnpm test` (Vitest)              | 1226 tests in 74 files: the `unit` project plus 5 tRPC integration files on a local D1 (`server` project) |
+| `pnpm test` (Vitest)              | 1369 tests in 85 files: the `unit` project plus 5 tRPC integration files on a local D1 (`server` project) |
 | `pnpm test:lint-rules`            | 19 rule-test files, all passing                                                                           |
 | Inline `oxlint-disable`           | 4, each with its external constraint in the comment beside it; 2 `SAFETY:` casts                          |
 | `COMPLEXITY_DEBT`                 | Emptied and removed (item 10); `complexity` has no exceptions                                             |
@@ -31,16 +31,15 @@ Re-measure before quoting these numbers; they move with every gate PR.
 - **Translation quality: B-** — 130 PT lexicon entries were AI-bulk-translated; four hand-revised entries caught real awkwardness, so expect 5–10 more. Fine for indie pre-release, not for a paid Brazilian release.
 - **Agent ergonomics for ONBOARDING: A+** — `CONTEXT.md` + `CLAUDE.md` + `codebase-map.md` get an agent productive in ~30 minutes.
 - **Agent ergonomics for MODIFYING existing things: A** — the conventions (pure engine, session middleware, server-only modules, validated JSON, handled promises, SAFETY-commented casts, `complexity` ≤ 20, no server calls in components) are lint errors, run by pre-commit / pre-push and by CI. The `/world` route is ~650 lines of flat wiring; a `complexity` error on `WorldLayout` is the re-mixing trigger.
-- **TESTING as a refactor/bugfix safety net: A in `src/game/` + procedures, A- in the hooks, B+ in the components** — the pure domain is blanketed; every tRPC router has integration tests on a real local D1; the combat state machine and the `/world` flows (`useCombatLoop`, `useCombatTick`, `useEncounterSchedule`, `useExitFlow`, `useSessionClaim`, `useIncenseGuard`) run on fake timers with the server injected. Component tests pin `CombatScene`, `InventoryModal`, `StashModal`, `VendorModal`, `ItemTooltip`, `StatusCard`, `ShowStatsModal`, `LeaderboardModal`, `CreateCharacterModal`, `Modal`, `XpBar`, `TravelProgressBar` and `RubyCounter`. **No tests yet:** the mutation hooks `useWorldMutations` (418 lines), `useInventoryMutations`, `useCombatMutations` and `useViewMode`; the components `MapScene`, `ExitZoneModal`, `EquipmentPanel`, `ItemContextMenu`, `WorldModals`; and the `/world` wiring. This is the line that keeps the composite at A.
+- **TESTING as a refactor/bugfix safety net: A** — the pure domain is blanketed; every tRPC router has integration tests on a real local D1; the combat state machine and the `/world` flows (`useCombatLoop`, `useCombatTick`, `useEncounterSchedule`, `useExitFlow`, `useSessionClaim`, `useIncenseGuard`, `useViewMode`) run on fake timers with the server injected. The mutation bundles (`useWorldMutations`, `useInventoryMutations`, `useCombatMutations`) run unmodified on a real tRPC client over an in-memory fetch (`fakeTrpc` + `src/hooks/trpc-hook-harness.tsx`), pinning the optimistic writes, the rollbacks and the invalidations. Every world component with behavior has a test, and `src/routes/-world.test.tsx` smoke-tests the route's wiring on the same fake. Mutation checks: each pinned binding was broken by hand and seen to fail. Not covered: the `character-select` and admin routes (no route harness use yet).
 - **Agent ergonomics for ADDING NEW systems (skills, passive tree): B** — stub playbooks list the decisions and ADRs each queued domain needs. The grade returns to A once the first new system ships against its stub without an emergency refactor.
 
 ## What raises the grade
 
-| Move                                                                                          | Outcome                                                                  |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Tests for the mutation hooks, the five untested world components and the `/world` wiring      | Testing B+ → A in hooks and components; composite stays A, closer to A+. |
-| Native PT review of `lexicon/pt.ts`                                                           | Translation quality B- → A.                                              |
-| 3+ months of system additions (skills / passive) WITHOUT emergency refactor against the stubs | **A+** — architecture proven at scale, not just at theory.               |
+| Move                                                                                          | Outcome                                                    |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Native PT review of `lexicon/pt.ts`                                                           | Translation quality B- → A.                                |
+| 3+ months of system additions (skills / passive) WITHOUT emergency refactor against the stubs | **A+** — architecture proven at scale, not just at theory. |
 
 ## What lowers the grade
 
