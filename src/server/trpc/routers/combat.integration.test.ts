@@ -9,7 +9,7 @@ import { ACT_1 } from "#/game/world";
 import { TRAVEL_ARRIVAL_GRACE_MS } from "#/game/world/zone-actions";
 import { zoneContextFor } from "#/game/world/zone-context";
 import { SERVER_ERRORS } from "#/lib/server-errors";
-import { ARRIVAL_RETRY_MS, localTravelEnd } from "#/lib/travel-clock";
+import { ARRIVAL_RETRY_MS, travelWindow } from "#/lib/travel-clock";
 
 import { db } from "../../db/client";
 import { items } from "../../db/schema";
@@ -375,9 +375,11 @@ describe("combat", () => {
 			"waits exactly the trip from the optimistic snapshot (client offset %sms)",
 			async (offset) => {
 				const { travel, clientNow, arriveAfter } = await startTrip(offset);
-				const wait =
-					localTravelEnd(clientNow, clientNow, clientNow + travel.durationMs) -
-					clientNow;
+				const wait = travelWindow(
+					clientNow,
+					clientNow,
+					clientNow + travel.durationMs,
+				).remainingMs;
 				expect(wait).toBe(travel.durationMs);
 				expect(await arriveAfter(wait)).toBe(travel.durationMs);
 			},
@@ -387,15 +389,32 @@ describe("combat", () => {
 			"never waits longer than the trip from the server's snapshot (client offset %sms)",
 			async (offset) => {
 				const { travel, clientNow, arriveAfter } = await startTrip(offset);
-				const wait =
-					localTravelEnd(clientNow, travel.startedAt, travel.arrivesAt) -
-					clientNow;
+				const wait = travelWindow(
+					clientNow,
+					travel.startedAt,
+					travel.arrivesAt,
+				).remainingMs;
 				expect(wait).toBeLessThanOrEqual(travel.durationMs);
 				const arrivedAt = await arriveAfter(wait);
 				expect(arrivedAt).toBeLessThanOrEqual(travel.durationMs);
 				expect(arrivedAt).toBeGreaterThanOrEqual(
 					travel.durationMs - TRAVEL_ARRIVAL_GRACE_MS,
 				);
+			},
+		);
+
+		it.each([-9_000, 9_000])(
+			"waits exactly the trip from the server's snapshot once the clock is synced (client offset %sms)",
+			async (offset) => {
+				const { travel, clientNow, arriveAfter } = await startTrip(offset);
+				const synced = clientNow - offset;
+				const wait = travelWindow(
+					synced,
+					travel.startedAt,
+					travel.arrivesAt,
+				).remainingMs;
+				expect(wait).toBe(travel.durationMs);
+				expect(await arriveAfter(wait)).toBe(travel.durationMs);
 			},
 		);
 	});

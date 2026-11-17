@@ -10,6 +10,9 @@ import { vendorRouter } from "./routers/vendor";
 
 export const appRouter = router({
 	health: publicProcedure.query(() => ({ ok: true })),
+	clock: router({
+		now: publicProcedure.query(() => ({ now: Date.now() })),
+	}),
 	users: usersRouter,
 	admin: adminRouter,
 	characters: charactersRouter,

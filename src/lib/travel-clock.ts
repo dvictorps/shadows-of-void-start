@@ -6,13 +6,16 @@ export type TravelSnapshot = {
 	arrivesAt: number;
 };
 
-export function localTravelEnd(
-	now: number,
+export type TravelWindow = { remainingMs: number; durationMs: number };
+
+export function travelWindow(
+	serverNow: number,
 	startedAt: number | null,
 	arrivesAt: number,
-): number {
-	const remaining = Math.max(0, arrivesAt - now);
-	if (startedAt === null) return now + remaining;
+): TravelWindow {
+	const remaining = Math.max(0, arrivesAt - serverNow);
+	if (startedAt === null)
+		return { remainingMs: remaining, durationMs: remaining };
 	const duration = Math.max(0, arrivesAt - startedAt);
-	return now + Math.min(remaining, duration);
+	return { remainingMs: Math.min(remaining, duration), durationMs: duration };
 }

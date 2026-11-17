@@ -16,6 +16,7 @@ import {
 } from "#/game/world/zone-actions";
 import { useTRPC } from "#/integrations/trpc/client";
 import type { ItemRow } from "#/lib/api-types";
+import { serverNow } from "#/lib/server-clock";
 import {
 	moveToSlot,
 	rollbackOnError,
@@ -26,10 +27,10 @@ import {
 import { useSessionedMutation } from "./useSessionToken";
 
 function predictTravel(character: TravelCharacter, destination: string) {
-	return resolveTravelStart(character, destination, Date.now());
+	return resolveTravelStart(character, destination, serverNow());
 }
 function predictTeleport(character: TravelCharacter, destination: string) {
-	return resolveTeleport(character, destination, Date.now());
+	return resolveTeleport(character, destination, serverNow());
 }
 
 export function useWorldMutations({

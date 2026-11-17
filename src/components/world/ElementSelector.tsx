@@ -8,6 +8,7 @@ import {
 	SELECTABLE_ELEMENTS,
 	type SelectableElement as Element,
 } from "#/game/stats/types";
+import { serverNow } from "#/lib/server-clock";
 
 const ELEMENT_CONFIG = {
 	fire: {
@@ -50,14 +51,14 @@ export default function ElementSelector({
 	const cooldownEnd = lastSwitchAt
 		? lastSwitchAt + ELEMENT_SWITCH_COOLDOWN_MS
 		: 0;
-	const [now, setNow] = useState(() => Date.now());
+	const [now, setNow] = useState(serverNow);
 
 	const remaining = Math.max(0, cooldownEnd - now);
 	const onCooldown = remaining > 0;
 
 	useEffect(() => {
 		if (!onCooldown) return;
-		const id = setInterval(() => setNow(Date.now()), 100);
+		const id = setInterval(() => setNow(serverNow()), 100);
 		return () => clearInterval(id);
 	}, [onCooldown]);
 

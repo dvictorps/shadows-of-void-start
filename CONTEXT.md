@@ -727,7 +727,7 @@ time_seconds = max(0.5, distance / (1 + 2 × movementSpeed/100))
 
 The 2× coefficient on movement speed is intentional — boots can roll up to ~30% MS in early game and we want the player to _feel_ that gear choice on the world map, not see a barely-perceptible improvement. The 0.5s floor keeps travel always visible.
 
-The server owns the trip (`travelStartedAt` / `travelArrivesAt`, on its clock) and refuses an arrival more than 1s early. The client never compares those timestamps against its own clock: the bar, the counter and the arrival call all wait at most the trip's **length** from when the client first saw it, so a player whose system clock is off still waits exactly the travel time. After a reload mid-trip with a clock that runs ahead, the client may call early; the refusal retries every second until the server's end, so the wait never exceeds the trip either way.
+The server owns the trip (`travelStartedAt` / `travelArrivesAt`, on its clock) and refuses an arrival more than 1s early. The client reads those timestamps on its estimate of the **server's clock** (`serverNow()`: the local clock plus an offset measured against `clock.now` when `/world` opens and when the tab returns to view after 5 minutes or more), so a player whose system clock is off still sees the real remaining time, also after a reload mid-trip, where the bar resumes at the share already travelled. The wait is still capped at the trip's **length**, so an offset not yet measured never stretches it; an arrival called early in that window is refused and retried every second until the server's end.
 
 ### Unlocked nodes
 
@@ -751,13 +751,13 @@ Four fields capture the player's location on the act map:
 - `currentLocation` — the node id the character is at. Defaults to `"city"` on character creation and on respawn. **During travel it intentionally remains pointing at the source node** — that's what keeps the yellow "you are here" pin anchored to where the player departed from until arrival commits.
 - `travelDestination` — set to the target node id at travel start; cleared on arrival.
 - `travelStartedAt` — Unix ms timestamp the trip began. Used by the client to render the progress bar correctly even after a page refresh (without it, the bar would jump from 0 to 100% in the final second).
-- `travelArrivesAt` — Unix ms timestamp the trip completes. The client uses this to schedule the auto-arrival mutation. Server validates it (with a small grace window for clock skew) before allowing `arriveAtTravel` to complete.
+- `travelArrivesAt` — Unix ms timestamp the trip completes. The client uses this to schedule the auto-arrival mutation. Server validates it (with a 1s grace window) before allowing `arriveAtTravel` to complete.
 
 ### Behaviour rules
 
 - **Re-entering the same node is instant.** If the player retreats from a zone and clicks the same node again, no travel — they're already there.
 - **Disconnected nodes can't be travelled to directly** by walking. Teleport stones unlock that path — clicking an unconnected node on the map opens a stone-confirmation if the node is in `unlockedNodes` and not zone-locked. Without a stone, the toast is "no route".
-- **Travel survives refresh.** `travelArrivesAt` lives in the DB. On reload the client recomputes remaining time and schedules `arriveAtTravel` accordingly. Tab closed for longer than the travel? The next load arrives immediately.
+- **Travel survives refresh.** `travelArrivesAt` lives in the DB. On reload the client recomputes the remaining time on the server's clock and schedules `arriveAtTravel` accordingly, once the tab has claimed the character's session. Tab closed for longer than the travel? The next load arrives immediately.
 - **No mid-travel actions.** Combat doesn't tick (the character isn't in any zone), `enterZone` rejects while travelling, and there's no cancel button. Future: teleport stones interrupt in-flight travel and re-target to the chosen destination.
 - **Death resets to the city** and clears any in-flight travel.
 
