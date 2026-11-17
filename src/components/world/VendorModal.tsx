@@ -174,6 +174,7 @@ function TabButton({
 			type="button"
 			variant="starkText"
 			size="inline"
+			aria-pressed={active}
 			onClick={onClick}
 			className={`display-title relative rounded-none px-2 pb-2 text-base font-normal uppercase tracking-[0.2em] ${
 				active ? "text-white" : "text-white/40 hover:text-white/70"

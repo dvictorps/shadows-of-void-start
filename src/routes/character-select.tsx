@@ -218,17 +218,12 @@ function CharacterListRow({
 	const className = getClassDisplayName(character.classId);
 
 	return (
-		<li
-			className={`flex items-center border transition ${
-				selected
-					? "border-white bg-white/10"
-					: "border-white/30 bg-black hover:bg-white/5"
-			}`}
-		>
+		<li className="flex items-center gap-2">
 			<Button
 				type="button"
-				variant="ghost"
+				variant="toggle"
 				size="tall"
+				aria-pressed={selected}
 				onClick={onSelect}
 				className="min-w-0 flex-1 justify-start"
 			>
@@ -248,7 +243,7 @@ function CharacterListRow({
 					size="icon-sm"
 					onClick={onDelete}
 					aria-label={m.delete_aria_label({ name: character.name })}
-					className="m-2 shrink-0"
+					className="shrink-0"
 				>
 					<Trash2 aria-hidden="true" />
 				</Button>
