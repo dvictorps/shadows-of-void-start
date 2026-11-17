@@ -2,11 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import LanguagePicker from "#/components/LanguagePicker";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { authClient } from "#/lib/auth-client";
+import { authErrorMessage } from "#/lib/auth-error-message";
 import { queueFlashToast } from "#/lib/flash-toast";
+import { m } from "#/paraglide/messages";
 
 export const Route = createFileRoute("/sign-in")({
 	component: SignInPage,
@@ -27,12 +30,16 @@ function SignInPage() {
 
 		const callbacks = {
 			onSuccess: () => {
-				queueFlashToast("success", isSignUp ? "Account created" : "Signed in");
+				queueFlashToast(
+					"success",
+					isSignUp ? m.auth_account_created() : m.auth_signed_in(),
+				);
 				window.location.href = "/character-select";
 			},
-			onError: (ctx: { error: { message: string } }) => {
-				setError(ctx.error.message);
-				toast.error(ctx.error.message);
+			onError: (ctx: { error: { message: string; code?: string } }) => {
+				const message = authErrorMessage(ctx.error.code);
+				setError(message);
+				toast.error(message);
 			},
 		};
 
@@ -47,8 +54,13 @@ function SignInPage() {
 		}
 	};
 
+	const title = isSignUp ? m.auth_sign_up_title() : m.auth_sign_in_title();
+
 	return (
-		<main className="min-h-screen bg-black text-white">
+		<main className="relative min-h-screen bg-black text-white">
+			<div className="absolute top-4 right-4">
+				<LanguagePicker />
+			</div>
 			<div className="mx-auto flex min-h-screen max-w-350 flex-col items-center justify-center gap-16 px-6 py-12 md:flex-row md:justify-between md:gap-32 md:px-20">
 				<div className="flex w-full items-center justify-center md:flex-1 md:justify-start">
 					<h1 className="display-title glow-purple text-center text-6xl uppercase leading-display md:text-left md:text-8xl">
@@ -60,22 +72,20 @@ function SignInPage() {
 
 				<div className="w-full max-w-sm">
 					<div className="space-y-6">
-						<h2 className="text-2xl font-semibold text-white">
-							{isSignUp ? "Create account" : "Sign in"}
-						</h2>
+						<h2 className="text-2xl font-semibold text-white">{title}</h2>
 
 						<form onSubmit={handleSubmit} className="space-y-4">
 							{isSignUp && (
 								<div>
 									<Label htmlFor="name" className="sr-only">
-										Name
+										{m.name_label()}
 									</Label>
 									<Input
 										id="name"
 										type="text"
 										value={name}
 										onChange={(e) => setName(e.target.value)}
-										placeholder="Name"
+										placeholder={m.name_label()}
 										required
 									/>
 								</div>
@@ -83,28 +93,28 @@ function SignInPage() {
 
 							<div>
 								<Label htmlFor="email" className="sr-only">
-									Email
+									{m.auth_email()}
 								</Label>
 								<Input
 									id="email"
 									type="email"
 									value={email}
 									onChange={(e) => setEmail(e.target.value)}
-									placeholder="Email"
+									placeholder={m.auth_email()}
 									required
 								/>
 							</div>
 
 							<div>
 								<Label htmlFor="password" className="sr-only">
-									Password
+									{m.auth_password()}
 								</Label>
 								<Input
 									id="password"
 									type="password"
 									value={password}
 									onChange={(e) => setPassword(e.target.value)}
-									placeholder="Password"
+									placeholder={m.auth_password()}
 									required
 									minLength={8}
 								/>
@@ -118,16 +128,12 @@ function SignInPage() {
 								className="w-full"
 								disabled={loading}
 							>
-								{loading
-									? "Loading..."
-									: isSignUp
-										? "Create account"
-										: "Sign in"}
+								{loading ? m.loading() : title}
 							</Button>
 						</form>
 
 						<p className="text-center text-sm text-muted-foreground">
-							{isSignUp ? "Have an account?" : "No account?"}{" "}
+							{isSignUp ? m.auth_have_account() : m.auth_no_account()}{" "}
 							<Button
 								type="button"
 								variant="voidLink"
@@ -137,7 +143,9 @@ function SignInPage() {
 									setError("");
 								}}
 							>
-								{isSignUp ? "Sign in" : "Sign up"}
+								{isSignUp
+									? m.auth_switch_to_sign_in()
+									: m.auth_switch_to_sign_up()}
 							</Button>
 						</p>
 					</div>
