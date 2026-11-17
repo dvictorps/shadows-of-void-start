@@ -1,4 +1,4 @@
-import { randomUnit } from "#/lib/rng";
+import { defaultRng, type Rng } from "#/lib/rng";
 
 import { typedKeys } from "../typed-object";
 import { type ScaledMonsterStats, scaleRange } from "./scaling";
@@ -234,10 +234,8 @@ const MAGIC_SPAWN_CHANCE = 0.1;
 // stacking three prefixes ("Storm-Hardened Swift Fire-Hardened Goblin").
 const AFFIX_CAP = 2;
 
-export function rollMonsterRarity(
-	random: () => number = randomUnit,
-): MonsterRarity {
-	return random() < MAGIC_SPAWN_CHANCE ? "magic" : "normal";
+export function rollMonsterRarity(rng: Rng = defaultRng): MonsterRarity {
+	return rng.unit() < MAGIC_SPAWN_CHANCE ? "magic" : "normal";
 }
 
 export function modCountForRarity(rarity: MonsterRarity): number {
@@ -259,7 +257,7 @@ export function modCountForRarity(rarity: MonsterRarity): number {
 
 export function rollMonsterMods(
 	count: number,
-	random: () => number = randomUnit,
+	rng: Rng = defaultRng,
 ): MonsterModId[] {
 	if (count <= 0) return [];
 	const pool = [...ALL_MONSTER_MOD_IDS];
@@ -276,7 +274,7 @@ export function rollMonsterMods(
 			MONSTER_MODIFIERS[id].affixType === "prefix" ? prefixOpen : suffixOpen,
 		);
 		if (eligible.length === 0) break;
-		const idx = Math.floor(random() * eligible.length);
+		const idx = Math.floor(rng.unit() * eligible.length);
 		const id = eligible[idx];
 		picked.push(id);
 		if (MONSTER_MODIFIERS[id].affixType === "prefix") prefixCount += 1;

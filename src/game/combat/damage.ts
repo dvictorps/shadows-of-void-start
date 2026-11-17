@@ -1,4 +1,4 @@
-import { randInt, randomUnit } from "../../lib/rng";
+import { defaultRng, randInt, type Rng } from "../../lib/rng";
 import type { MonsterElementDamage } from "../monsters/types";
 import type { ComputedCharacterStats, SwingProfile } from "../stats/types";
 import {
@@ -97,7 +97,8 @@ interface PlayerSwingArgs {
 	swing: SwingProfile;
 	stats: ComputedCharacterStats;
 	defender: DefenderProfile;
-	random?: () => number;
+	/** Source for every roll. */
+	rng?: Rng;
 }
 
 /**
@@ -108,7 +109,7 @@ export function rollPlayerSwing({
 	swing,
 	stats,
 	defender,
-	random = randomUnit,
+	rng = defaultRng,
 }: PlayerSwingArgs): RolledSwing {
 	const isAttack = stats.path === "attack";
 	const isSpell = stats.path === "spell";
@@ -116,7 +117,7 @@ export function rollPlayerSwing({
 	// Spells bypass the accuracy/evasion gate entirely — they always land.
 	// Attacks roll against the defender's evasion using the attacker's accuracy.
 	if (!isSpell) {
-		const hit = random() <= hitChance(stats.accuracy, defender.evasion);
+		const hit = rng.unit() <= hitChance(stats.accuracy, defender.evasion);
 		if (!hit) {
 			return {
 				amount: 0,
@@ -129,13 +130,17 @@ export function rollPlayerSwing({
 	}
 
 	// 1. Roll flat damage per type using the swing's base ranges.
-	const physBase = randInt(swing.physicalDamage.min, swing.physicalDamage.max);
+	const physBase = randInt(
+		swing.physicalDamage.min,
+		swing.physicalDamage.max,
+		rng,
+	);
 	// Keyed by the swing's display element name ("Cold", ...), a plain string.
 	const elementRolls = new Map<string, number>();
 	for (const e of swing.elementalDamage) {
 		elementRolls.set(
 			e.element,
-			(elementRolls.get(e.element) ?? 0) + randInt(e.min, e.max),
+			(elementRolls.get(e.element) ?? 0) + randInt(e.min, e.max, rng),
 		);
 	}
 	const rolled = (element: string) => elementRolls.get(element) ?? 0;
@@ -174,7 +179,7 @@ export function rollPlayerSwing({
 		CRIT_CHANCE_FLOOR,
 		CRIT_CHANCE_CAP,
 	);
-	const isCrit = random() * 100 < finalCrit;
+	const isCrit = rng.unit() * 100 < finalCrit;
 	const critMult = isCrit
 		? 1 + (BASE_CRIT_MULTIPLIER + stats.bonusCritMultiplier) / 100
 		: 1;
@@ -235,7 +240,8 @@ interface EnemyAttackArgs {
 	// after rolling but before crit + mitigation. Mirrors the player's
 	// gainAsExtraSpell tome family. Omitted/undefined = no conversion.
 	enemyGainAsExtra?: ElementalGainPct;
-	random?: () => number;
+	/** Source for every roll. */
+	rng?: Rng;
 }
 
 /**
@@ -253,9 +259,9 @@ export function rollEnemyAttack({
 	enemyCriticalChance = 5,
 	enemyCriticalMultiplier = 50,
 	enemyGainAsExtra,
-	random = randomUnit,
+	rng = defaultRng,
 }: EnemyAttackArgs): RolledSwing {
-	const hit = random() <= hitChance(enemyAccuracy, defender.evasion);
+	const hit = rng.unit() <= hitChance(enemyAccuracy, defender.evasion);
 	if (!hit) {
 		return {
 			amount: 0,
@@ -271,7 +277,7 @@ export function rollEnemyAttack({
 	// as a "hit" for the attacker's bookkeeping (per CONTEXT.md: triggers
 	// thorns reflection, on-hit, etc) but deals zero damage.
 	const blockChance = defender.blockChance ?? 0;
-	if (blockChance > 0 && random() * 100 < blockChance) {
+	if (blockChance > 0 && rng.unit() * 100 < blockChance) {
 		return {
 			amount: 0,
 			isCrit: false,
@@ -287,6 +293,7 @@ export function rollEnemyAttack({
 	const physRaw = randInt(
 		Math.max(0, physicalDamage.min),
 		Math.max(physicalDamage.min, physicalDamage.max),
+		rng,
 	);
 	const elementRolls = {
 		Cold: 0,
@@ -298,6 +305,7 @@ export function rollEnemyAttack({
 		elementRolls[e.element] += randInt(
 			Math.max(0, e.min),
 			Math.max(e.min, e.max),
+			rng,
 		);
 	}
 
@@ -328,7 +336,7 @@ export function rollEnemyAttack({
 	// out of crit (e.g. tests, future "anti-crit" mob). Capped at 100% so
 	// stacked crit-chance mods don't overflow.
 	const finalCritChance = clamp(enemyCriticalChance, 0, CRIT_CHANCE_CAP);
-	const isCrit = random() * 100 < finalCritChance;
+	const isCrit = rng.unit() * 100 < finalCritChance;
 	const critMult = isCrit ? 1 + enemyCriticalMultiplier / 100 : 1;
 
 	const physFinal = applyArmor(physRaw * critMult, defender.armor);

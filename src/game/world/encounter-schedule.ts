@@ -88,9 +88,12 @@ export function encounterPlanForNode(
 }
 
 /** Roll a fresh calmaria duration (ms) for the next spawn. */
-export function rollSpawnGapMs(plan: ZoneEncounterPlan): number {
+export function rollSpawnGapMs(
+	plan: ZoneEncounterPlan,
+	rng: Rng = defaultRng,
+): number {
 	const { min, max } = plan.gapBetweenSpawns;
-	return randInt(Math.round(min * 1000), Math.round(max * 1000));
+	return randInt(Math.round(min * 1000), Math.round(max * 1000), rng);
 }
 
 // Jitter applied to each camp anchor on activation so the player can't decode
@@ -132,16 +135,19 @@ export type AmbushSchedule = { thresholdMs: number; packSize: number };
  * each pack's size. Returns empty when the plan has no `ambushes` block.
  * Called once per zone activation, mirroring `rollCampThresholdsMs`.
  */
-export function rollAmbushSchedule(plan: ZoneEncounterPlan): AmbushSchedule[] {
+export function rollAmbushSchedule(
+	plan: ZoneEncounterPlan,
+	rng: Rng = defaultRng,
+): AmbushSchedule[] {
 	if (!plan.ambushes) return [];
 	const { fractions, packSize } = plan.ambushes;
 	const budgetMs = plan.calmariaBudgetSeconds * 1000;
 	return fractions
 		.map((fraction) => ({
 			thresholdMs: Math.round(
-				(fraction + randSymmetric(AMBUSH_JITTER)) * budgetMs,
+				(fraction + randSymmetric(AMBUSH_JITTER, rng)) * budgetMs,
 			),
-			packSize: randInt(packSize.min, packSize.max),
+			packSize: randInt(packSize.min, packSize.max, rng),
 		}))
 		.toSorted((a, b) => a.thresholdMs - b.thresholdMs);
 }

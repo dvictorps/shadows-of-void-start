@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { rngFromUnit, seededRng } from "#/lib/rng";
+
 import {
 	applyMonsterMods,
 	MONSTER_MODIFIERS,
@@ -25,15 +27,15 @@ const baseDef: MonsterDefinition = {
 };
 
 describe("rollMonsterRarity", () => {
-	it("returns magic when random < 0.1", () => {
-		expect(rollMonsterRarity(() => 0)).toBe("magic");
-		expect(rollMonsterRarity(() => 0.09)).toBe("magic");
+	it("returns magic when rng.unit() < 0.1", () => {
+		expect(rollMonsterRarity(rngFromUnit(() => 0))).toBe("magic");
+		expect(rollMonsterRarity(rngFromUnit(() => 0.09))).toBe("magic");
 	});
 
 	it("returns normal otherwise", () => {
-		expect(rollMonsterRarity(() => 0.1)).toBe("normal");
-		expect(rollMonsterRarity(() => 0.5)).toBe("normal");
-		expect(rollMonsterRarity(() => 0.99)).toBe("normal");
+		expect(rollMonsterRarity(rngFromUnit(() => 0.1))).toBe("normal");
+		expect(rollMonsterRarity(rngFromUnit(() => 0.5))).toBe("normal");
+		expect(rollMonsterRarity(rngFromUnit(() => 0.99))).toBe("normal");
 	});
 });
 
@@ -52,6 +54,13 @@ describe("rollMonsterMods", () => {
 		const picked = rollMonsterMods(3);
 		expect(picked).toHaveLength(3);
 		expect(new Set(picked).size).toBe(3);
+	});
+
+	it("follows the injected rng: the same seed picks the same mods", () => {
+		const picks = (seed: number) => rollMonsterMods(4, seededRng(seed));
+		for (const seed of [1, 2, 3, 4, 5]) {
+			expect(picks(seed)).toEqual(picks(seed));
+		}
 	});
 
 	it("returns empty for non-positive count", () => {

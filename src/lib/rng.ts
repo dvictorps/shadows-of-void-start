@@ -3,8 +3,9 @@
 // `shadows/game-determinism`), so every roll goes through here.
 //
 // The helpers draw from an `Rng`, `defaultRng` unless one is passed. Item
-// generation and drops take an `rng` parameter (`generateItem`, `rollDrop`,
-// …), so a test can hand them `seededRng(seed)` and get the same items back.
+// generation, drops and combat rolls take an `rng` parameter (`generateItem`,
+// `rollDrop`, `rollPlayerSwing`, `rollMonsterMods`, …), so a test can hand
+// them `seededRng(seed)` and get the same rolls back.
 
 /** A random source: uniform floats in [0, 1) and fresh ids. */
 export interface Rng {
@@ -42,7 +43,15 @@ export function seededRng(seed: number): Rng {
 	return { unit, id };
 }
 
-/** Uniform float in [0, 1). The default `random` source for engine functions that take one. */
+/**
+ * An `Rng` over a bare unit source: a test's scripted sequence of rolls
+ * (`() => 0.5`, or one value per call). Ids come from a fixed seed.
+ */
+export function rngFromUnit(unit: () => number): Rng {
+	return { ...seededRng(0), unit };
+}
+
+/** Uniform float in [0, 1) from the ambient source. */
 export function randomUnit(): number {
 	return defaultRng.unit();
 }

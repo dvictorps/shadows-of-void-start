@@ -71,7 +71,7 @@ If you add anything that touches `playerHp` post-death, gate it on `!deadRef.cur
 
 ### 5. Tests use deterministic randoms
 
-Pure combat tests (`src/game/combat/*.test.ts`) pass `random: () => 0.5` to force hits + no crits. If you add a new path that branches on `random()`, write the test with an explicit random fn that produces the path you want to test.
+Pure combat tests (`src/game/combat/*.test.ts`) pass `rng: rngFromUnit(() => 0.5)` to force hits + no crits (the same `rng` feeds the hit, block, damage and crit rolls, in that order). If you add a new path that branches on `rng.unit()`, script the rolls with `rngFromUnit` to reach the path you want, or pass `seededRng(seed)` when the test only needs the rolls to be reproducible.
 
 ## What's safe to change
 
