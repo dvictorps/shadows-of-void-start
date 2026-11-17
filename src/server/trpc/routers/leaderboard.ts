@@ -8,9 +8,6 @@ import {
 } from "../../db/schema";
 import { publicProcedure, router } from "../init";
 
-// The snapshot is written by the
-// hourly cron (src/server/leaderboard.ts); clients refetch on an interval
-// instead of subscribing (ADR 0009). Public.
 export const leaderboardRouter = router({
 	getSnapshot: publicProcedure
 		.input(

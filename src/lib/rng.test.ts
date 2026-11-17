@@ -35,8 +35,6 @@ describe("hashStringToUnit", () => {
 		const values = Array.from({ length: 400 }, (_, i) =>
 			hashStringToUnit(`evt-${i}`),
 		);
-		// No collisions, and every tenth of [0, 1) gets a fair share (expected
-		// 40 per bucket; a weak hash on sequential ids clusters badly).
 		expect(new Set(values).size).toBe(values.length);
 		const buckets = Array.from({ length: 10 }, () => 0);
 		for (const v of values) buckets[Math.floor(v * 10)] += 1;

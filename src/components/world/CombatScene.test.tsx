@@ -1,19 +1,5 @@
 // @vitest-environment jsdom
 
-// What the combat scene renders and emits in each state of the loop: the
-// fixed HUD, exploration and ambush, the fight (nameplate, HP bar, damage
-// popups, tooltip), the rare and boss intro cascades, victory and the zone
-// complete panel, the camp cinematic, and the consumables.
-//
-// - State comes in as props and callbacks are `vi.fn()`, the way CombatPane
-//   wires them. No module mocks: framer-motion, the camp cinematic and the
-//   element selector all run for real.
-// - Time runs on fake timers. framer-motion's frame loop rides the faked
-//   requestAnimationFrame, so after `advance()` an animated element carries
-//   its target `style.opacity`. The camp cinematic chains a timer per stage,
-//   so `advance()` steps in small slices, each inside its own `act`.
-// - Death is not here: CombatScene has no death state (the route owns it).
-
 import {
 	act,
 	cleanup,
@@ -112,7 +98,6 @@ function renderScene(overrides: Partial<Props> = {}) {
 	};
 }
 
-/** Runs fake time forward in slices so chained timers each commit. */
 async function advance(ms: number, slice = 100) {
 	for (let elapsed = 0; elapsed < ms; elapsed += slice) {
 		await act(async () => {
@@ -121,17 +106,12 @@ async function advance(ms: number, slice = 100) {
 	}
 }
 
-// Covers the scene's longest transition (the XP popup, 0.8 s).
 const SETTLE_MS = 800;
 
-// When each camp beat is on screen, from CampCinematic's pacing (line holds
-// of 2 s / 3 s / 3 s, each line's 1.2 s exit before the next shows, 2.2 s of
-// exit + pause before the panel), plus 100 ms of slack.
 const CAMP_LINE_2_SHOWN_MS = 3300;
 const CAMP_LINE_3_SHOWN_MS = 6300;
 const CAMP_PANEL_SHOWN_MS = 10_300;
 
-/** A level-3 goblin at 12 / 20 HP. */
 function goblin(overrides: EnemyOverrides = {}): Enemy {
 	return makeEnemy(20, {
 		def: MONSTERS.goblin,
@@ -156,8 +136,6 @@ function ev(overrides: Partial<DamageEvent>): DamageEvent {
 	return { id: `ev-${eventSeq}`, amount: 7, target: "enemy", ...overrides };
 }
 
-// The nameplate and HP bar stay mounted while an enemy is present; their
-// visibility is the opacity framer-motion animates them to.
 function nameplate(enemy: Enemy) {
 	return narrow(
 		screen.getAllByText(`Lv ${enemy.level}`)[0].parentElement,
@@ -170,7 +148,6 @@ function hpBar(enemy: Enemy) {
 	);
 	return narrow(text.parentElement?.parentElement, HTMLElement);
 }
-// The element carrying the sprite's mouseenter / mouseleave.
 function spriteHoverTarget(enemy: Enemy) {
 	const sprite = screen.getByRole("img", { name: translateEnemyName(enemy) });
 	return narrow(sprite.parentElement?.parentElement, HTMLElement);
@@ -182,10 +159,6 @@ function healthGlobeArea() {
 	);
 }
 
-// One fake clock for the whole file. framer-motion's frame loop is a module
-// singleton: once it has requested a frame, it waits for that frame before
-// scheduling another, so swapping the clock between tests (which drops the
-// pending requestAnimationFrame) would freeze every later animation.
 beforeAll(() => {
 	vi.useFakeTimers();
 	setGlobalSfxVolume(0);
@@ -195,8 +168,6 @@ afterAll(() => {
 	vi.useRealTimers();
 });
 
-// Vitest runs without globals, so Testing Library can't register its own
-// unmount between tests.
 afterEach(() => {
 	cleanup();
 });
@@ -351,7 +322,6 @@ describe("CombatScene — fight", () => {
 		expect(screen.getByText("5").classList).toContain("text-purple-300");
 		expect(screen.getByText("9").classList).toContain("text-white");
 		expect(screen.getByText("+6").classList).toContain("text-green-400");
-		// A heal that rounds to zero renders nothing.
 		expect(screen.queryByText("+0")).toBeNull();
 	});
 
@@ -394,13 +364,10 @@ describe("CombatScene — fight", () => {
 		const enemy = goblin();
 		renderScene({ state: "engaged", enemy });
 		fireEvent.mouseEnter(spriteHoverTarget(enemy));
-		// Only the nameplate carries the level; the tooltip would repeat it.
 		expect(screen.getAllByText("Lv 3")).toHaveLength(1);
 	});
 });
 
-// Renders an intro stage, lets the reveal settle, and reads the cascade:
-// the sprite is always up, the nameplate and HP bar by opacity.
 async function introCascade(props: Partial<Props> & { enemy: Enemy }) {
 	renderScene(props);
 	await advance(SETTLE_MS);
@@ -483,7 +450,6 @@ describe("CombatScene — victory", () => {
 		scene.update({ state: "victory", lastKillXp: 7 });
 		expect(screen.getByText("+7 XP")).toBeTruthy();
 		await advance(SETTLE_MS);
-		// The sprite stays mounted while it fades out.
 		expect(
 			screen.getByRole("img", { name: translateEnemyName(enemy) }),
 		).toBeTruthy();
@@ -548,7 +514,6 @@ describe("CombatScene — camp", () => {
 		const faded = [label, actions, bottom].map((el) =>
 			narrow(el, HTMLElement).classList.contains("opacity-0"),
 		);
-		// The three HUD blocks fade together.
 		expect(new Set(faded).size).toBe(1);
 		return faded[0];
 	}
@@ -733,7 +698,6 @@ describe("CombatScene — mage element selector", () => {
 		expect(elementButton("snowflake").disabled).toBe(true);
 		expect(elementButton("zap").disabled).toBe(true);
 
-		// The selector polls on an interval, no chained commits: one slice.
 		await advance(
 			ELEMENT_SWITCH_COOLDOWN_MS + 200,
 			ELEMENT_SWITCH_COOLDOWN_MS + 200,

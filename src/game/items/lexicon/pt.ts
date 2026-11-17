@@ -1,10 +1,5 @@
 import type { ItemNameLexicon } from "./types";
 
-// Portuguese item-naming lexicon. Bases carry grammatical gender; modifiers
-// are either invariant phrases ("de Ferro", "do Soldado") or gendered
-// adjectives ("Sagrado/Sagrada") that agree with the base's gender at
-// render time. The renderer composes as "<base> <modifier>" (PT word order).
-
 export const lexiconPt: ItemNameLexicon = {
 	bases: {
 		sword: { name: "Espada", gender: "f" },

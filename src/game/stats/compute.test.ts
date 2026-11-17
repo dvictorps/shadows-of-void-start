@@ -147,7 +147,6 @@ describe("computeCharacterStats — base", () => {
 			dexterity: 5,
 			intelligence: 5,
 		});
-		// 70 class base + 10 Str * 5 life/point = 120.
 		expect(stats.maxLife).toBe(120);
 		expect(stats.maxBarrier).toBe(0);
 		expect(stats.path).toBe("unarmed");
@@ -160,7 +159,6 @@ describe("computeCharacterStats — base", () => {
 			level: 10,
 			equippedItems: [],
 		});
-		// 70 class base + 9 * 10 from level + 10 Str * 5 = 210.
 		expect(stats.maxLife).toBe(70 + 9 * 10 + 10 * 5);
 	});
 
@@ -170,7 +168,6 @@ describe("computeCharacterStats — base", () => {
 			level: 1,
 			equippedItems: [],
 		});
-		// 20 barrier × (1 + 10 INT × 1% / 100) = 20 × 1.10 = 22.
 		expect(stats.maxBarrier).toBe(22);
 		expect(stats.attributes.intelligence).toBe(10);
 	});
@@ -242,13 +239,10 @@ describe("computeCharacterStats — equipment contributions", () => {
 		expect(stats.swings[0].source).toBe("mainHand");
 		expect(stats.swings[1].source).toBe("offHand");
 		expect(isAttackDualWielding(stats)).toBe(true);
-		// avg(1.5, 1.6) × 1.10 = 1.55 × 1.10 = 1.705
 		expect(stats.tickRate).toBeCloseTo(1.705);
 	});
 
 	it("shield blockChance comes only from computedDefenseStats (no double-count via explicits)", () => {
-		// If compute.ts ever re-adds blockChanceIncrease via applyModifierValue
-		// this fails — expected 44, would get 44 + 4 = 48.
 		const shield: GeneratedItem = {
 			id: "test-shield",
 			templateId: "test_shield",
@@ -376,7 +370,6 @@ describe("computeCharacterStats — equipment contributions", () => {
 		expect(stats.swings).toHaveLength(2);
 		expect(isAttackDualWielding(stats)).toBe(false);
 		expect(stats.blockChance).toBe(0);
-		// avg(1.0, 1.0) with no DW more multiplier
 		expect(stats.tickRate).toBeCloseTo(1.0);
 	});
 
@@ -450,14 +443,10 @@ describe("computeCharacterStats — broken state", () => {
 			equippedItems: eq,
 		});
 		expect(stats.brokenItemIds.has("h1")).toBe(true);
-		expect(stats.attributes.strength).toBe(10); // class base only — helmet broken
+		expect(stats.attributes.strength).toBe(10);
 	});
 
 	it("self-sustaining helmet: gives +15 STR, requires STR 15, stays functional when STR floor met by self", () => {
-		// Warrior has STR 10. Add a ring giving +5 STR (puts total at 15). Then the
-		// helmet requires STR 15 and gives +15. With ring contributing, totals are
-		// 30 — helmet's requirement met. The broken-state check passes including
-		// the helmet's own contribution.
 		const eq: EquippedItem[] = [
 			{
 				slot: "ring1",
@@ -478,11 +467,6 @@ describe("computeCharacterStats — broken state", () => {
 	});
 
 	it("broken cascade: removing the STR ring breaks the helmet that depended on it", () => {
-		// Same setup as above but ring removed → helmet alone would need STR 15
-		// from a base of STR 10 + self 15 = 25 → ok actually it passes.
-		// Construct a case where the helmet cannot self-sustain: helmet gives +5
-		// STR, requires STR 15. Class STR 10 + self 5 = 15 → just passes.
-		// Now require STR 16: 10 + 5 = 15 < 16 → broken.
 		const eq: EquippedItem[] = [
 			{
 				slot: "helmet",
@@ -512,7 +496,6 @@ describe("computeCharacterStats — broken state", () => {
 			equippedItems: eq,
 		});
 		expect(stats.brokenItemIds.has("q")).toBe(true);
-		// The dex mod must not have applied — class baseline only.
 		expect(stats.attributes.dexterity).toBe(
 			warrior.baseStats.attributes.dexterity,
 		);
@@ -535,10 +518,6 @@ describe("computeCharacterStats — broken state", () => {
 	});
 
 	it("quiver's global flat-to-attacks mods contribute to the bow's swing damage", () => {
-		// Regression: prior to the off-hand filter fix, equipping a quiver with
-		// flat-to-attacks globals silently dropped those mods from the gear pool
-		// (the call site filtered out all off-hand items). This test pins the
-		// fix: cold damage from a quiver shows up in the resulting swing.
 		const eq: EquippedItem[] = [
 			{ slot: "weapon", item: bow("bw") },
 			{
@@ -562,7 +541,6 @@ describe("computeCharacterStats — broken state", () => {
 });
 
 describe("describeBrokenReasons", () => {
-	// Warrior baseline at level 1: Str 10, Dex 5, Int 5.
 	const totals = computeCharacterStats({
 		classDef: warrior,
 		level: 1,
@@ -605,9 +583,6 @@ describe("describeBrokenReasons", () => {
 
 describe("derived helpers", () => {
 	it("armor mitigation follows armor / (armor + 10×referenceHit), capped 85%", () => {
-		// Same numerics as before — the arg semantically renamed from
-		// "enemy level" to "reference hit size" so the panel preview
-		// matches the gameplay PoE-style formula.
 		expect(computeArmorMitigation(100, 10).reductionPct).toBeCloseTo(50);
 		expect(computeArmorMitigation(100, 50).reductionPct).toBeCloseTo(16.67, 1);
 		expect(computeArmorMitigation(10000, 10).reductionPct).toBe(85);
@@ -615,11 +590,8 @@ describe("derived helpers", () => {
 	});
 
 	it("evasion avoid uses hitChance = acc / (acc + evasion/4), clamped", () => {
-		// Equal accuracy and evasion/4 → 50% hit, 50% avoid
 		expect(computeEvasionAvoid(400, 100).avoidPct).toBeCloseTo(50);
-		// No evasion → 5% avoid (capped at 95% hit)
 		expect(computeEvasionAvoid(0, 100).avoidPct).toBeCloseTo(5);
-		// Massive evasion → 95% avoid (capped)
 		expect(computeEvasionAvoid(100000, 100).avoidPct).toBeCloseTo(95);
 	});
 
@@ -631,7 +603,6 @@ describe("derived helpers", () => {
 });
 
 describe("attribute bonuses", () => {
-	// Warrior baseline: Str=10, Dex=5, Int=5.
 	const warriorClass = CLASS_DEFINITIONS.warrior;
 
 	it("Str adds 1% melee damage per point", () => {
@@ -640,7 +611,6 @@ describe("attribute bonuses", () => {
 			level: 1,
 			equippedItems: [],
 		});
-		// 10 Str → +10% melee, no other increased.melee source at L1 unarmed.
 		expect(stats.increased.melee).toBe(10);
 	});
 
@@ -650,7 +620,6 @@ describe("attribute bonuses", () => {
 			level: 1,
 			equippedItems: [],
 		});
-		// 70 (warrior base) + 0 (L1 → no level bonus yet) + 10 Str * 5 = 120.
 		expect(stats.maxLife).toBe(120);
 	});
 
@@ -660,13 +629,10 @@ describe("attribute bonuses", () => {
 			level: 1,
 			equippedItems: [],
 		});
-		// 5 Dex → +10 accuracy on top of the class baseline.
 		expect(stats.accuracy).toBeGreaterThanOrEqual(10);
 	});
 
 	it("Dex adds 1% evasion increased per point via the global fold", () => {
-		// Equip a leather helmet so there is a flat evasion source to multiply.
-		// Warrior has 5 Dex baseline → +5% evasion increased.
 		const eq: EquippedItem[] = [
 			{
 				slot: "helmet",
@@ -681,12 +647,10 @@ describe("attribute bonuses", () => {
 			level: 1,
 			equippedItems: eq,
 		});
-		// 100 flat evasion * (1 + 5%) = 105 rounded.
 		expect(stats.evasion).toBe(105);
 	});
 
 	it("Dex evasion% does nothing without a flat evasion source (no double-dipping)", () => {
-		// Warrior with no leather and no flat evasion mods — Dex × 1% × 0 = 0.
 		const stats = computeCharacterStats({
 			classDef: warriorClass,
 			level: 1,
@@ -705,7 +669,6 @@ describe("attribute bonuses", () => {
 			level: 1,
 			equippedItems: [],
 		});
-		// 10 Int → +10% barrier → 100 × 1.10 = 110.
 		expect(base.maxBarrier).toBe(110);
 	});
 });

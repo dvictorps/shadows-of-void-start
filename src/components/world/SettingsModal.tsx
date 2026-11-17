@@ -37,7 +37,6 @@ export default function SettingsModal({ isOpen, onClose }: Props) {
 						value={current}
 						onChange={(e) => {
 							const next = e.target.value;
-							// setLocale reloads the page; there is nothing to await.
 							if (isLocale(next) && next !== current) void setLocale(next);
 						}}
 						className="w-full px-3 py-2 text-sm uppercase tracking-wider"

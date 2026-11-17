@@ -1,10 +1,5 @@
 import type { BossConfig } from "./types";
 
-// Gralfor, O Persistente — the act-1 boss. Half phys / half fire damage with
-// fire resistance and cold vulnerability, forcing the player into either a
-// cold-element build or a balanced mitigation profile. See CONTEXT.md →
-// Boss + Act Boss. Stats calibrated against the level-14 olho_do_vazio rare
-// (the strongest rare in the act): ~3.3× HP, ~1.3× damage, lvl 17.
 export const GRALFOR: BossConfig = {
 	id: "gralfor",
 	nameKey: "boss_gralfor_name",

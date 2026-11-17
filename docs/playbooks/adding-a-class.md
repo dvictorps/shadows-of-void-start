@@ -24,7 +24,7 @@ The exact compile-checked shape lives in [`_examples/class-example.ts`](./_examp
 
 `CharacterClassId` is a hand-maintained closed union in `types.ts` (`"warrior" | "mage" | "rogue"`). To register a new class, add the id to that union first — every consumer (starter-gear map, class-name i18n maps in step 4) will then fail compile until you wire it through.
 
-## Step 2 — Hook up the starter weapon
+## Step 2 — Hook up the starter gear
 
 Open `src/game/items/starter-gear.ts`:
 
@@ -34,11 +34,11 @@ Open `src/game/items/starter-gear.ts`:
 const blessedHammer: GeneratedItem = {
 	id: "starter:blessed_hammer",
 	templateId: "blessed_hammer",
-	templateName: "Blessed Hammer",
+	nameBase: "mace",
+	nameModifier: "blessed",
 	equipmentType: "weapon",
 	weaponType: "mace",
 	rarity: "normal",
-	name: "Blessed Hammer",
 	itemLevel: 1,
 	baseStats: {
 		minDamage: 2,
@@ -58,23 +58,37 @@ const blessedHammer: GeneratedItem = {
 };
 ```
 
-2. Register it in `STARTER_ITEMS` and `STARTER_WEAPON_BY_CLASS`:
+The name is rendered at display time from `nameBase` (a `TemplateBaseId`) and `nameModifier` (a `TemplateModifierId`), so both need entries in `src/game/items/lexicon/template-ids.ts` and the `en` / `pt` lexicons ([ADR 0003](../adr/0003-render-at-display-names.md)). `"blessed"` above is an example; add it, or reuse an existing modifier id.
+
+2. Register it in `STARTER_ITEMS` (a `ReadonlyMap`) and `STARTER_WEAPON_BY_CLASS`:
 
 ```ts
-const STARTER_ITEMS = {
-    ...
-    "starter:blessed_hammer": blessedHammer,
-};
+const STARTER_ITEMS: ReadonlyMap<string, GeneratedItem> = new Map([
+	["starter:rusty_sword", rustySword],
+	// ...
+	["starter:blessed_hammer", blessedHammer],
+]);
 
 export const STARTER_WEAPON_BY_CLASS = {
-    warrior: "starter:rusty_sword",
-    rogue: "starter:rusty_dagger",
-    mage: "starter:cracked_wand",
-    templar: "starter:blessed_hammer",
-};
+	warrior: "starter:rusty_sword",
+	rogue: "starter:rusty_dagger",
+	mage: "starter:cracked_wand",
+	templar: "starter:blessed_hammer",
+} satisfies Record<CharacterClassId, string>;
 ```
 
-Character creation (`characters.create` → `planNewCharacter` in `src/game/classes/new-character.ts`) reads `STARTER_WEAPON_BY_CLASS[classId]` and inserts it as the equipped weapon. No server changes needed.
+3. Add the class to `STARTER_CHESTPLATE_BY_CLASS`: a starter chestplate id (defined and registered in `STARTER_ITEMS` like the weapon, e.g. the rogue's `starter:tattered_leather_vest`), or `undefined` for none:
+
+```ts
+export const STARTER_CHESTPLATE_BY_CLASS = {
+	warrior: undefined,
+	rogue: "starter:tattered_leather_vest",
+	mage: undefined,
+	templar: undefined,
+} satisfies Record<CharacterClassId, string | undefined>;
+```
+
+Both maps are `satisfies Record<CharacterClassId, …>`, so a class id missing from either fails `tsc`. Character creation (`characters.create` → `planNewCharacter` in `src/game/classes/new-character.ts`) reads both maps and inserts the weapon and, if any, the chestplate as equipped. No server changes needed.
 
 ## Step 3 — Localize the class name + description
 
@@ -101,10 +115,10 @@ TS will flag any of these you miss — `Record<CharacterClassId, () => string>` 
 ```bash
 npx tsc --noEmit
 npx vitest run
-npx oxlint src/
+pnpm lint:errors
 ```
 
-Then `npm run dev`, open the character-select modal, scroll the class list, verify:
+Then `pnpm dev`, open the character-select modal, scroll the class list, verify:
 
 - Name renders in PT and EN (toggle locale via settings modal).
 - Description renders correctly.
@@ -112,4 +126,4 @@ Then `npm run dev`, open the character-select modal, scroll the class list, veri
 
 ## Future: per-class identity
 
-The class system today is **starting attributes + starter weapon** only. When passive trees and active skills land, each class gets a passive tree branch and 1-3 starter skills — that work hasn't started yet and is tracked in [`docs/plans/in-progress.md`](../plans/in-progress.md).
+The class system today is **starting attributes + starter weapon** only. When passive trees and active skills land, each class gets a passive tree branch and 1-3 starter skills — that work hasn't started yet and is tracked in [`docs/plans/passive-tree-and-skills.md`](../plans/passive-tree-and-skills.md).

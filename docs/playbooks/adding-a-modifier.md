@@ -144,11 +144,11 @@ Tests will catch:
 - Item naming: gender concord on adjective modifiers
 - Generator: spell-weapon exclusions, attack-weapon computed stats, armor defense by base, shields, jewelry eligibility, implicits, tier scaling
 
-If the mod is balance-sensitive (premium weight, exclusive slot), drop in a `weight: N` comment explaining the rationale — future agents won't know.
+If the mod is balance-sensitive (premium weight, exclusive slot), write the `weight: N` rationale into CONTEXT.md's section for that mod (code carries no comments, `shadows/no-comments`) — future agents won't know otherwise.
 
 ## Step 7 — Test the drop visually
 
-Run `npm run dev`, create or load a character, retreat from a zone with items in the bag, open the loot picker. Verify:
+Run `pnpm dev`, create or load a character, retreat from a zone with items in the bag, open the loot picker. Verify:
 
 1. The mod shows on dropped items with the right localized line in the tooltip body (step 5)
 2. Magic items that roll this mod get the right compound name in both locales (step 4) — e.g. "Mighty Iron Sword" / "Espada de Ferro Poderosa"

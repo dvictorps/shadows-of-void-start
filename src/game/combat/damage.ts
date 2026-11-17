@@ -11,10 +11,6 @@ const HIT_CHANCE_MIN = 0.05;
 const HIT_CHANCE_MAX = 0.95;
 const ARMOR_REDUCTION_CAP = 0.85;
 
-// Per-element "gain X% of total damage as extra <element>" used by the enemy
-// gain-as-extra path (and `ScaledMonsterStats.gainAsExtraDamage`). The player's
-// `gainAsExtraSpell` follows the same shape — consolidating that side is a
-// follow-up (no behaviour difference today).
 export interface ElementalGainPct {
 	cold: number;
 	fire: number;
@@ -60,8 +56,6 @@ interface DefenderProfile {
 	blockChance?: number;
 }
 
-// ── Helpers ──
-
 function clamp(n: number, lo: number, hi: number): number {
 	return Math.min(hi, Math.max(lo, n));
 }
@@ -72,10 +66,6 @@ function hitChance(attackerAcc: number, defenderEva: number): number {
 	return clamp(raw, HIT_CHANCE_MIN, HIT_CHANCE_MAX);
 }
 
-// PoE-style armor: reduction scales with the size of the hit, not with the
-// attacker's level. The same armor pool mitigates many small hits hard but
-// barely dents one big hit, so armor reads as a "tank against trash" stat
-// instead of a flat damage multiplier. Cap at 85% mirrors PoE's cap.
 function applyArmor(physical: number, armor: number): number {
 	if (armor <= 0 || physical <= 0) return physical;
 	const reduction = clamp(
@@ -91,20 +81,13 @@ function applyResistance(elemental: number, resistance: number): number {
 	return elemental * (1 - clamp(resistance, -100, 75) / 100);
 }
 
-// ── Player swing ──
-
 interface PlayerSwingArgs {
 	swing: SwingProfile;
 	stats: ComputedCharacterStats;
 	defender: DefenderProfile;
-	/** Source for every roll. */
 	rng?: Rng;
 }
 
-/**
- * Roll one player swing using the full damage formula. Returns the final
- * damage to apply to the defender plus a breakdown of how it landed.
- */
 export function rollPlayerSwing({
 	swing,
 	stats,
@@ -114,8 +97,6 @@ export function rollPlayerSwing({
 	const isAttack = stats.path === "attack";
 	const isSpell = stats.path === "spell";
 
-	// Spells bypass the accuracy/evasion gate entirely — they always land.
-	// Attacks roll against the defender's evasion using the attacker's accuracy.
 	if (!isSpell) {
 		const hit = rng.unit() <= hitChance(stats.accuracy, defender.evasion);
 		if (!hit) {
@@ -129,13 +110,11 @@ export function rollPlayerSwing({
 		}
 	}
 
-	// 1. Roll flat damage per type using the swing's base ranges.
 	const physBase = randInt(
 		swing.physicalDamage.min,
 		swing.physicalDamage.max,
 		rng,
 	);
-	// Keyed by the swing's display element name ("Cold", ...), a plain string.
 	const elementRolls = new Map<string, number>();
 	for (const e of swing.elementalDamage) {
 		elementRolls.set(
@@ -145,7 +124,6 @@ export function rollPlayerSwing({
 	}
 	const rolled = (element: string) => elementRolls.get(element) ?? 0;
 
-	// 2. Sum increased pools per element, applied additively then once.
 	const inc = stats.increased;
 	const pathSpecific = isAttack ? inc.melee : isSpell ? inc.spell : 0;
 	const physIncreased = inc.physical + pathSpecific;
@@ -161,7 +139,6 @@ export function rollPlayerSwing({
 	let lightning = rolled("Lightning") * (1 + elementBonus(inc.lightning) / 100);
 	let voidDmg = rolled("Void") * (1 + elementBonus(inc.void) / 100);
 
-	// See CONTEXT.md → "Gain as Extra Elemental".
 	if (isSpell) {
 		const gain = stats.gainAsExtraSpell;
 		if (gain.cold > 0 || gain.fire > 0 || gain.lightning > 0 || gain.void > 0) {
@@ -173,7 +150,6 @@ export function rollPlayerSwing({
 		}
 	}
 
-	// 3. Crit roll — use the swinging weapon's base crit + global multiplier.
 	const finalCrit = clamp(
 		swing.baseCritChance * (1 + inc.criticalChance / 100),
 		CRIT_CHANCE_FLOOR,
@@ -184,7 +160,6 @@ export function rollPlayerSwing({
 		? 1 + (BASE_CRIT_MULTIPLIER + stats.bonusCritMultiplier) / 100
 		: 1;
 
-	// 4. Apply defender mitigation: armor for physical, resists per element.
 	const physFinal = applyArmor(phys * critMult, defender.armor);
 	const coldFinal = applyResistance(cold * critMult, defender.resistances.cold);
 	const fireFinal = applyResistance(fire * critMult, defender.resistances.fire);
@@ -220,37 +195,17 @@ export function rollPlayerSwing({
 	};
 }
 
-// ── Enemy attack ──
-
 interface EnemyAttackArgs {
-	// Pre-scaled by `scaleMonsterStats` (+ monster mods) at spawn — damage.ts
-	// stays decoupled from MonsterDefinition and the scaling curve. `accuracy`
-	// defaults to `level × 10` upstream; monster mods like Increased Accuracy
-	// fold into this value.
 	enemyAccuracy: number;
 	physicalDamage: { min: number; max: number };
 	elementalDamage: readonly MonsterElementDamage[];
 	defender: DefenderProfile;
-	// Crit chance % and multiplier % on the monster (post-mods). Default to
-	// the baseline 5% / 50% if omitted so callers that haven't migrated yet
-	// still get the floor behaviour (every monster carries a baseline crit).
 	enemyCriticalChance?: number;
 	enemyCriticalMultiplier?: number;
-	// Per-element "gain X% of total damage as extra <element>", applied
-	// after rolling but before crit + mitigation. Mirrors the player's
-	// gainAsExtraSpell tome family. Omitted/undefined = no conversion.
 	enemyGainAsExtra?: ElementalGainPct;
-	/** Source for every roll. */
 	rng?: Rng;
 }
 
-/**
- * Roll one enemy attack. Mirrors `rollPlayerSwing`'s damage pipeline:
- * roll a flat amount per type (physical + each element on the template),
- * crit-roll against the monster's chance, mitigate physical via armor and
- * each element via its resistance, sum. Defender's evasion gates the hit
- * before any of the damage math runs.
- */
 export function rollEnemyAttack({
 	enemyAccuracy,
 	physicalDamage,
@@ -272,10 +227,6 @@ export function rollEnemyAttack({
 		};
 	}
 
-	// Block roll — only the player carries a shield in MVP, so blockChance on
-	// the defender profile is non-zero only when defending. A blocked hit lands
-	// as a "hit" for the attacker's bookkeeping (per CONTEXT.md: triggers
-	// thorns reflection, on-hit, etc) but deals zero damage.
 	const blockChance = defender.blockChance ?? 0;
 	if (blockChance > 0 && rng.unit() * 100 < blockChance) {
 		return {
@@ -287,9 +238,6 @@ export function rollEnemyAttack({
 		};
 	}
 
-	// Roll base damages BEFORE crit so gain-as-extra can read the unboosted
-	// total — crit then multiplies everything uniformly (mirror of the
-	// player spell-side order in rollPlayerSwing).
 	const physRaw = randInt(
 		Math.max(0, physicalDamage.min),
 		Math.max(physicalDamage.min, physicalDamage.max),
@@ -309,9 +257,6 @@ export function rollEnemyAttack({
 		);
 	}
 
-	// Gain-as-extra: each element grows by X% of the total damage rolled.
-	// Computed once against the pre-conversion total so two stacked mods
-	// (Cold + Fire) both reference the same base — no compounding loop.
 	if (
 		enemyGainAsExtra &&
 		(enemyGainAsExtra.cold > 0 ||
@@ -331,10 +276,6 @@ export function rollEnemyAttack({
 		elementRolls.Void += total * (enemyGainAsExtra.void / 100);
 	}
 
-	// No floor on the enemy side — the 5% baseline lives in
-	// `scaleMonsterStats`, so a caller that explicitly passes 0 is opting
-	// out of crit (e.g. tests, future "anti-crit" mob). Capped at 100% so
-	// stacked crit-chance mods don't overflow.
 	const finalCritChance = clamp(enemyCriticalChance, 0, CRIT_CHANCE_CAP);
 	const isCrit = rng.unit() * 100 < finalCritChance;
 	const critMult = isCrit ? 1 + enemyCriticalMultiplier / 100 : 1;
@@ -379,8 +320,6 @@ export function rollEnemyAttack({
 		breakdown,
 	};
 }
-
-// ── Barrier / Life split ──
 
 export interface DamageApplyResult {
 	newBarrier: number;

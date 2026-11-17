@@ -5,11 +5,6 @@ import { m } from "#/paraglide/messages";
 
 import { DIM_COLOR } from "./colors";
 
-/**
- * "Requires" with the level (above 1) and attributes on one line, and a
- * quiver's bow line. Renders nothing for an item with neither (a level-1 item
- * with no attribute requirement).
- */
 export default function Requirements({ item }: { item: GeneratedItem }) {
 	const reqs = item.requirements;
 	const hasReq = !!(

@@ -1,17 +1,5 @@
 // @vitest-environment jsdom
 
-// What the sidebar's status card renders and which callback each control
-// makes: the name / class / level / DPS block, the attribute readouts and
-// their tooltips, the XP bar, the potion and teleport slots (count, when each
-// is enabled), the Show stats button, the health globe and the compact
-// layout. Pure render: props in,
-// DOM out; expected text comes from the same renderers (`m.*`,
-// `estimateDps`, `xpToNextLevel`), not literals.
-//
-// - The tooltips are Radix: they need a Provider, and open on focus.
-// - jsdom has no `matchMedia` (useCompactViewport); a stub answers "wide"
-//   unless a test sets `compact`.
-
 import {
 	act,
 	cleanup,
@@ -113,7 +101,6 @@ const showButton = () =>
 	);
 const globe = () => screen.getByRole("img", { name: m.health_globe_aria() });
 
-/** The line whose label span reads `label`, e.g. "Level:". */
 function line(label: string) {
 	return narrow(screen.getByText(label).parentElement, HTMLElement);
 }
@@ -197,7 +184,6 @@ describe("StatusCard — attributes", () => {
 		] as const;
 		for (const [readout, tooltip] of cases) {
 			await focus(screen.getByText(readout));
-			// Multi-line text: compare whole nodes, not the normalized default.
 			expect(
 				screen.getAllByText((_, node) => node?.textContent === tooltip).length,
 			).toBeGreaterThan(0);

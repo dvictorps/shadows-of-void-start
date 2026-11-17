@@ -70,7 +70,6 @@ describe("useEscapeLayer", () => {
 	it("stops listening once the stack is empty", () => {
 		const added = vi.spyOn(window, "addEventListener");
 		const removed = vi.spyOn(window, "removeEventListener");
-		// Widened: the spy types `type` by a narrower overload than "keydown".
 		const keydown: string = "keydown";
 		const keydownCalls = (spy: typeof added) =>
 			spy.mock.calls.filter(([type]) => type === keydown);

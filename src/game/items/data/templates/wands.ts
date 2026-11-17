@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Wands (1H, int, spell weapon) — AtkSpd: 1.40, Crit: 7.0, Implicit: +{value}% Spell Damage
 export const WAND_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "wand_t1",

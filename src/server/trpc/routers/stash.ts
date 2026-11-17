@@ -15,15 +15,9 @@ import { inInventoryOf, inStash, loadInventorySlots } from "../../item-reads";
 import { fail, notFound } from "../errors";
 import { characterSessionProcedure, router } from "../init";
 
-// The stash belongs to the account, one per mode
-// (softcore / hardcore), and is only reachable from the city. Items keep
-// their id across inventory ⇄ stash.
-
 const itemIds = z.array(z.number().int().positive());
 
 export const stashRouter = router({
-	// Ids that aren't this character's inventory items count as `failed`; when
-	// the stash fills up, the rest fail too.
 	depositToStash: characterSessionProcedure
 		.input(z.object({ itemIds }))
 		.mutation(async ({ ctx, input }) => {

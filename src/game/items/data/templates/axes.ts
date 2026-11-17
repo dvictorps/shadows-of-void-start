@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Axes (1H, str) — AtkSpd: 1.30, Crit: 5.0, No implicit
 export const AXE_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "axe_t1",

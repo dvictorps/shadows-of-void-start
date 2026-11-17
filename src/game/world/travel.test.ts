@@ -9,9 +9,7 @@ describe("computeTravelTime", () => {
 	});
 
 	it("applies the 2x movement-speed coefficient", () => {
-		// 25% MS → 1 / (1 + 0.5) = 0.667x → 5 * 0.667 ≈ 3.33
 		expect(computeTravelTime(5, 25)).toBeCloseTo(3.333, 2);
-		// 50% MS → 1 / 2 = 0.5x → 5 * 0.5 = 2.5
 		expect(computeTravelTime(5, 50)).toBeCloseTo(2.5, 2);
 	});
 

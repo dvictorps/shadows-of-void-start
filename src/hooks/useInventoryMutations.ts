@@ -1,10 +1,3 @@
-// Inventory and paper-doll mutations (ADR 0001: all optimistic). Shared by
-// InventoryModal and the stash modal's inventory side. Each optimistic body
-// runs the server's own decision (`resolveEquip` / `resolveUnequip`,
-// `moveToSlot`, the slot allocator), so the predicted state is the one the
-// server writes; when it can't predict (missing cache, a refused move) it
-// writes nothing and the UI waits for the server.
-
 import { useMutation } from "@tanstack/react-query";
 
 import { createInventorySlotAllocator } from "#/game/inventory/constants";
@@ -19,7 +12,6 @@ import { moveToSlot, rollbackOnError, useWorldCache } from "#/lib/world-cache";
 
 import { useSessionedMutation } from "./useSessionToken";
 
-// Equipped rows in the shape the shared equip decisions take.
 function toEntries(equipped: readonly ItemRow[]): EquippedEntry<number>[] {
 	return equipped.flatMap((it) =>
 		it.equippedSlot
@@ -58,8 +50,6 @@ export function useInventoryMutations(characterId: number) {
 		).mutateAsync,
 	);
 
-	// Both run the server's own decision (src/game/items/equip-resolution.ts):
-	// requirements, displacement, the orphaned quiver and the inventory limit.
 	const equipItem = useSessionedMutation(
 		useMutation(
 			trpc.items.equipItem.mutationOptions({
@@ -84,8 +74,6 @@ export function useInventoryMutations(characterId: number) {
 					});
 					if (!result.ok) return { rollback };
 
-					// The equipped item's old slot frees up first and may receive a
-					// displaced one, as on the server.
 					const rest = inventory.filter((it) => it.id !== itemId);
 					const nextSlot = createInventorySlotAllocator(rest);
 					const displacedIds = new Set(result.displaced.map((d) => d.id));

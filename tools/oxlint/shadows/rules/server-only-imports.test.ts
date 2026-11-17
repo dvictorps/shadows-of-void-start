@@ -44,7 +44,6 @@ tester.run("shadows/server-only-imports", serverOnlyImportsRule, {
 	],
 	invalid: [
 		{
-			// verbatimModuleSyntax keeps `import {} from "…"`: the module loads.
 			code: 'import { type AppRouter } from "#/server/trpc/router";',
 			options,
 			filename,

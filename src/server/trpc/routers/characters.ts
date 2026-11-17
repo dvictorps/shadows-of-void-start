@@ -8,15 +8,9 @@ import { assertOwnsCharacter } from "../character-session";
 import { fail } from "../errors";
 import { authedProcedure, CHARACTER_COLUMNS, router } from "../init";
 
-// Character CRUD and the session claim. The combat state and progression are
-// columns of this row, so create / remove touch one table plus the
-// starter items.
-
 const characterIdInput = z.object({ id: z.number().int().positive() });
 
 export const charactersRouter = router({
-	// The account's living characters, newest first. Dead hardcore characters
-	// stay in the table for the leaderboard's "Fallen Heroes".
 	list: authedProcedure.query(async ({ ctx }) =>
 		ctx.db.query.characters.findMany({
 			columns: CHARACTER_COLUMNS,
@@ -63,9 +57,6 @@ export const charactersRouter = router({
 			const { plan } = result;
 			const now = Date.now();
 
-			// One batch: the character row, then its starter gear. The items find
-			// the new id by (account, name), which `planNewCharacter` just proved
-			// unique; `last_insert_rowid()` would point at the previous item.
 			const newCharacterId = sql`(select ${characters.id} from ${characters} where ${characters.authUserId} = ${authUserId} and ${characters.name} = ${plan.name})`;
 			const [inserted] = await ctx.db.batch([
 				ctx.db
@@ -98,8 +89,6 @@ export const charactersRouter = router({
 			return inserted[0].id;
 		}),
 
-	// Items cascade with the character (`items.character_id` foreign key);
-	// stash items belong to the account and stay.
 	remove: authedProcedure
 		.input(characterIdInput)
 		.mutation(async ({ ctx, input }) => {
@@ -111,10 +100,6 @@ export const charactersRouter = router({
 			await ctx.db.delete(characters).where(eq(characters.id, input.id));
 		}),
 
-	// Stamps this tab's token as the character's single active session
-	// (threat #5). Stealing is unconditional: the previous tab's next write
-	// fails with "Session lost". Re-claiming with the same token is a no-op,
-	// so it costs no row written.
 	claimCharacterSession: authedProcedure
 		.input(
 			z.object({

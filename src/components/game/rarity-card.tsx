@@ -2,15 +2,6 @@ import type { ReactNode } from "react";
 
 import type { ItemRarity } from "#/game/items/types";
 
-// Keyed by ItemRarity (the superset). MonsterRarity overlaps on
-// normal/magic/rare/unique. The `unique` entry is a fallback (used for
-// future unique items + as the seed color for bosses that don't override
-// via BossConfig.nameplateColor).
-//
-// showGlow toggles the "premium chrome" treatment (top accent stripe +
-// colored border + colored box-shadow). ItemTooltip passes true only for
-// legendary/epic/unique; MonsterTooltip passes true always.
-
 export const RARITY_COLORS = {
 	normal: "#c8c8c8",
 	magic: "#8888ff",

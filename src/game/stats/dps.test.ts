@@ -3,10 +3,6 @@ import { describe, expect, it } from "vitest";
 import { estimateDps } from "./dps";
 import type { ComputedCharacterStats, SwingProfile } from "./types";
 
-// Authoritative DPS estimator — drives StatusCard and ShowStatsModal. These
-// tests pin the formula's main paths so a future refactor can't silently
-// drift the two readouts again.
-
 function makeSwing(overrides: Partial<SwingProfile> = {}): SwingProfile {
 	return {
 		source: "mainHand",
@@ -77,7 +73,6 @@ describe("estimateDps", () => {
 			swings: [makeSwing({ physicalDamage: { min: 10, max: 20 } })],
 			tickRate: 2,
 		});
-		// Avg per swing = 15; × tickRate 2 = 30.
 		expect(estimateDps(stats)).toBe(30);
 	});
 
@@ -91,7 +86,6 @@ describe("estimateDps", () => {
 				melee: 30,
 			},
 		});
-		// 15 × (1 + (50 + 30)/100) = 15 × 1.8 = 27.
 		expect(estimateDps(stats)).toBe(27);
 	});
 
@@ -100,7 +94,6 @@ describe("estimateDps", () => {
 			swings: [makeSwing({ baseCritChance: 20 })],
 			tickRate: 1,
 		});
-		// Avg 15 × tickRate 1 × (1 + 0.2 × 0.5) = 15 × 1.1 = 16.5 → round 17.
 		expect(estimateDps(stats)).toBe(17);
 	});
 
@@ -108,9 +101,8 @@ describe("estimateDps", () => {
 		const stats = makeStats({
 			swings: [makeSwing({ baseCritChance: 50 })],
 			tickRate: 1,
-			bonusCritMultiplier: 50, // base 50 + bonus 50 = 100% extra on crits.
+			bonusCritMultiplier: 50,
 		});
-		// 15 × (1 + 0.5 × 1.0) = 15 × 1.5 = 22.5 → 23.
 		expect(estimateDps(stats)).toBe(23);
 	});
 
@@ -131,7 +123,6 @@ describe("estimateDps", () => {
 				melee: 0,
 			},
 		});
-		// Avg 20 × (1 + (50 + 25 + 25 + 0) / 100) = 20 × 2.0 = 40.
 		expect(estimateDps(stats)).toBe(40);
 	});
 
@@ -148,7 +139,6 @@ describe("estimateDps", () => {
 			tickRate: 1,
 			gainAsExtraSpell: { cold: 0, fire: 100, lightning: 0, void: 0 },
 		});
-		// On spell path: phys 20 + 20 × 1.0 (fire extra) = 40.
 		expect(estimateDps(physOnly)).toBe(40);
 	});
 
@@ -166,7 +156,6 @@ describe("estimateDps", () => {
 			],
 			tickRate: 1,
 		});
-		// (15 + 35) / 2 = 25 per swing × tickRate 1 = 25.
 		expect(estimateDps(stats)).toBe(25);
 	});
 
@@ -176,7 +165,6 @@ describe("estimateDps", () => {
 			tickRate: 1,
 			increased: { ...makeStats().increased, criticalChance: 9000 },
 		});
-		// avgCrit clamps to 100%, factor = 1 + 1.0 × 0.5 = 1.5; 15 × 1.5 = 22.5 → 23.
 		expect(estimateDps(stats)).toBe(23);
 	});
 });

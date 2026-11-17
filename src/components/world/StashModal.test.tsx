@@ -1,19 +1,5 @@
 // @vitest-environment jsdom
 
-// What the stash modal renders and which callback each interaction makes:
-// opening and closing, the two grids, selection and the bulk Deposit /
-// Withdraw, shift-click transfer, and drag (reorder inside a panel, transfer
-// across).
-//
-// - The modal takes its calls as props (`onDeposit`, `onWithdraw`,
-//   `onReorderInventory`, `onReorderStash`), so they are `vi.fn()` fakes; the
-//   route's mutations and their optimistic writes are not under test here.
-//   Sonner's toaster runs for real.
-// - Drag runs through dnd-kit's real PointerSensor on the shared harness
-//   (`dnd-test-harness.ts`).
-// - jsdom has no `matchMedia` (useCompactViewport); a stub answers "wide"
-//   unless a test sets `compact`.
-
 import {
 	act,
 	cleanup,
@@ -104,7 +90,6 @@ function setup({ isOpen = true, inventory = [], stash = [] }: Setup = {}) {
 	};
 }
 
-/** A promise the test settles by hand. */
 function deferred<T>() {
 	let resolve: (value: T) => void = () => {};
 	const promise = new Promise<T>((r) => {
@@ -112,8 +97,6 @@ function deferred<T>() {
 	});
 	return { promise, resolve };
 }
-
-// ── DOM lookups ───────────────────────────────────────────────────────────
 
 function dialog() {
 	return screen.getAllByRole("dialog")[0];
@@ -133,7 +116,6 @@ const invCell = (slot: number) =>
 	narrow(cells(inventorySection())[slot], HTMLElement);
 const stashCell = (slot: number) =>
 	narrow(cells(stashSection())[slot], HTMLElement);
-/** The draggable wrapper around the card in `cell`; it carries the opacity. */
 function dragSlotIn(cell: Element) {
 	return narrow(cell.querySelector("button")?.parentElement, HTMLElement);
 }
@@ -163,8 +145,6 @@ async function press(el: HTMLElement) {
 const SELECTED = "ring-sky-400/80";
 const OVER = "ring-yellow-300/80";
 
-// ── Harness ───────────────────────────────────────────────────────────────
-
 installDragHarness();
 
 let compact = false;
@@ -189,8 +169,6 @@ beforeEach(() => {
 	compact = false;
 });
 
-// ── Tests ─────────────────────────────────────────────────────────────────
-
 describe("StashModal — open and close", () => {
 	it("renders nothing while closed", () => {
 		setup({ isOpen: false });
@@ -209,7 +187,6 @@ describe("StashModal — open and close", () => {
 		const closers = screen.getAllByRole("button", {
 			name: m.modal_close_label(),
 		});
-		// No header ×: the backdrop and the footer are the only Close buttons.
 		expect(closers).toHaveLength(2);
 		for (const closer of closers) fireEvent.click(closer);
 		expect(t.onClose).toHaveBeenCalledTimes(2);
@@ -303,7 +280,6 @@ describe("StashModal — selection", () => {
 			inventory: [inventoryRow(1, sword(), 0), inventoryRow(2, ring(), 1)],
 			stash: [stashRow(3, wand(), 0)],
 		});
-		// One toggle per side.
 		const [invAll, stashAll] = screen.getAllByRole("button", {
 			name: m.stash_select_all(),
 		});
@@ -383,7 +359,6 @@ describe("StashModal — bulk deposit and withdraw", () => {
 		t.onDeposit.mockReturnValue(pending.promise);
 		await click(a);
 		await press(depositButton());
-		// The selection clears at once, so reselect to bring the button back.
 		await click(a);
 		const again = narrow(depositButton(), HTMLButtonElement);
 		expect(again.disabled).toBe(true);
@@ -447,7 +422,6 @@ describe("StashModal — shift-click transfer", () => {
 		expect(t.onDeposit).toHaveBeenCalledWith([1]);
 		await click(b, true);
 		expect(t.onWithdraw).toHaveBeenCalledWith([2]);
-		// Shift-click transfers; it doesn't select.
 		expect(invCell(0).className).not.toContain(SELECTED);
 	});
 
@@ -603,7 +577,6 @@ describe("StashModal — drag feedback", () => {
 		const t = setup({ inventory: [inventoryRow(1, a, 0)] });
 		await startDrag(a, invCell(9));
 		await act(async () => {
-			// dnd-kit's sensor reads `code`; the Escape layers read `key`.
 			fireEvent.keyDown(document, { key: "Escape", code: "Escape" });
 		});
 		expect(t.onReorderInventory).not.toHaveBeenCalled();

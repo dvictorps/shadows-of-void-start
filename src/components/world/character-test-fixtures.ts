@@ -1,9 +1,5 @@
-// Shared character-row fixture for the world component tests (StatusCard;
-// ShowStatsModal and the sidebar can reuse it).
-
 import type { CharacterRow } from "#/lib/api-types";
 
-/** A level-1 warrior in the city with full life and nothing in the pockets. */
 export function characterRow(
 	overrides: Partial<CharacterRow> = {},
 ): CharacterRow {

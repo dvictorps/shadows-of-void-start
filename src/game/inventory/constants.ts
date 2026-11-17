@@ -1,12 +1,6 @@
 export const INVENTORY_MAX_SLOTS = 60;
 export const STASH_MAX_SLOTS = 60;
 
-/**
- * Comparator for arrays of inventory items / docs, ordering by ascending
- * `inventorySlot`. Items without a slot sort to the end. Used in
- * every optimistic update that re-sorts the inventory query after a
- * placement.
- */
 export function bySlotAsc<T extends { inventorySlot?: number | null }>(
 	a: T,
 	b: T,
@@ -16,12 +10,6 @@ export function bySlotAsc<T extends { inventorySlot?: number | null }>(
 	return sa - sb;
 }
 
-/**
- * Returns an allocator that hands out unoccupied inventory slots in ascending
- * order. Used by the server procedures and by the optimistic updates that
- * place freshly-picked or displaced items, so both pick the same slots.
- * Returns -1 when the inventory is full (caller's responsibility to handle).
- */
 export function createInventorySlotAllocator(
 	existing: ReadonlyArray<{ inventorySlot?: number | null }>,
 ): () => number {

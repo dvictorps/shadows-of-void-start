@@ -16,7 +16,6 @@ function isJsonParse(sourceCode: SourceCode, callee: ESTree.Node): boolean {
 	return globalMethod(sourceCode, callee, "JSON", PARSE_METHODS) !== null;
 }
 
-/** `Schema.parse(JSON.parse(raw))`: the parse result goes straight into a schema. */
 function feedsSchema(
 	sourceCode: SourceCode,
 	call: ESTree.CallExpression,
@@ -26,8 +25,6 @@ function feedsSchema(
 		return false;
 	}
 	const callee = parent.callee;
-	// `JSON.parse(JSON.parse(raw))` and `Date.parse(JSON.parse(raw))` share
-	// the method name but validate nothing.
 	if (
 		callee.type === "MemberExpression" &&
 		BUILTIN_PARSERS.some((name) =>
@@ -40,7 +37,6 @@ function feedsSchema(
 	return method !== null && SCHEMA_METHODS.has(method);
 }
 
-/** `JSON.parse(raw) as unknown`, or `const parsed: unknown = JSON.parse(raw)`. */
 function typedAsUnknown(call: ESTree.CallExpression): boolean {
 	const parent = call.parent;
 	if (parent?.type === "TSAsExpression") {
@@ -52,11 +48,6 @@ function typedAsUnknown(call: ESTree.CallExpression): boolean {
 	return parent.id.typeAnnotation?.typeAnnotation.type === "TSUnknownKeyword";
 }
 
-/**
- * `JSON.parse` returns `any`, which silently takes whatever type the next line
- * assumes. Stored JSON (D1 text columns, localStorage, sessionStorage) can be
- * from an older schema or tampered with, so its shape is checked before use.
- */
 export const noUnvalidatedJsonParseRule = defineRule({
 	meta: {
 		type: "problem",

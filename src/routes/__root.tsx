@@ -38,8 +38,6 @@ const CHROMELESS_ROUTES = new Set([
 ]);
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-	// The session is checked by the routes that need it (`requireSession` in
-	// world / admin), from the query cache, not on every navigation here.
 	beforeLoad: () => {
 		if (globalThis.document !== undefined) {
 			document.documentElement.setAttribute("lang", getLocale());
@@ -96,7 +94,6 @@ function RootComponent() {
 function RootDocument({ children }: { children: React.ReactNode }) {
 	const { pathname } = useLocation();
 	const chromeless = CHROMELESS_ROUTES.has(pathname);
-	// Admin is a control dashboard — header for nav consistency, no footer.
 	const showFooter = !chromeless && !pathname.startsWith("/admin");
 
 	useEffect(() => {

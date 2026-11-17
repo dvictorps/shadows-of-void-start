@@ -1,7 +1,5 @@
 import type { ArmorType, ModifierApplicableTo } from "./base";
 
-// ── Modifier value types (how the value is applied) ──
-
 export const MODIFIER_TYPES = {
 	flat: { id: "flat", name: "Flat", description: "Adds a flat value" },
 	increased: {
@@ -24,8 +22,6 @@ export type ModifierCategory =
 	| "utility";
 export type AffixType = "prefix" | "suffix";
 
-// ── Tier definition ──
-
 export interface ModifierTier {
 	tier: number;
 	minItemLevel: number;
@@ -33,23 +29,19 @@ export interface ModifierTier {
 	valueRange: readonly [number, number];
 }
 
-// ── Declarative stat effect (how local mods affect the item header) ──
-
 export type LocalStatTarget =
-	| "physicalDamage" // maps to minDamage + maxDamage
+	| "physicalDamage"
 	| "attackSpeed"
 	| "criticalChance"
-	| "elementalDamage" // requires element field
-	| "defense" // resolved to armor/evasion/barrier based on armorType
-	| "blockChance"; // shields only — adds points to the base block chance
+	| "elementalDamage"
+	| "defense"
+	| "blockChance";
 
 export interface StatEffect {
 	target: LocalStatTarget;
 	operation: "flat" | "increased";
-	element?: string; // only for elementalDamage target (e.g. "Cold", "Fire")
+	element?: string;
 }
-
-// ── Modifier definition ──
 
 export interface Modifier {
 	id: string;
@@ -60,24 +52,14 @@ export interface Modifier {
 	displayFormat: string;
 	isGlobalStat?: boolean;
 	statEffect?: StatEffect;
-	weight?: number; // default DEFAULT_MODIFIER_WEIGHT. Higher = more common.
-	tags?: string[]; // synergy tags (e.g. ["cold", "spell"]) — used for intelligent generation
-	// No-op on non-armor templates (weapons, jewelry, tomes) where armorType
-	// is undefined — so a mod targeting tome+amulet+gloves can still carry a
-	// silk restriction without losing the tome/amulet paths (ADR 0007).
+	weight?: number;
+	tags?: string[];
 	restrictedToArmorType?: ArmorType;
-	// Narrows the AMULET slot to a specific attribute-typed implicit (e.g.
-	// "intelligenceFlat" → lapis_amulet). Mods like tomeGainAsExtra* want
-	// "mage-flavor" amulets without losing tome/glove/staff eligibility, so
-	// the gate is intentionally slot-conditional: applies ONLY when the
-	// template's equipmentType is "amulet"; other slots pass through.
 	restrictedToImplicitMod?: string;
 	tiers: ModifierTier[];
 }
 
 export const DEFAULT_MODIFIER_WEIGHT = 1000;
-
-// ── Tier factory helpers ──
 
 export function createStandardTiers(
 	tier10Min: number,

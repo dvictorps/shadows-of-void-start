@@ -1,12 +1,9 @@
 import type { Context, ESTree, Options, Visitor } from "@oxlint/plugins";
 
-// Plain string path handling: tools/oxlint sits outside tsconfig.json, so
-// `node:path` would have no types under the type-aware rules.
 function pathSegments(filename: string): string[] {
 	return filename.replaceAll("\\", "/").split("/");
 }
 
-/** `src/server/trpc/routers/characters.ts` → `characters.ts`. */
 export function baseName(filename: string): string {
 	return pathSegments(filename).at(-1) ?? filename;
 }
@@ -20,12 +17,6 @@ function resolveRelative(filename: string, source: string): string {
 	return segments.join("/");
 }
 
-/**
- * The module an import source names, in the repo's own vocabulary: `#/` aliases
- * stay as written, relative paths that land in `src/` are rewritten to `#/…`
- * (so `../../lib/rng` and `#/lib/rng` compare equal), and bare package names
- * come back unchanged.
- */
 export function normalizeModuleSource(
 	filename: string,
 	source: string,
@@ -38,12 +29,10 @@ export function normalizeModuleSource(
 		: `#/${resolved.slice(srcIndex + "/src/".length)}`;
 }
 
-/** `entry` names `source` exactly, or one of its parent paths (`#/game` covers `#/game/items`). */
 export function moduleMatches(source: string, entry: string): boolean {
 	return source === entry || source.startsWith(`${entry}/`);
 }
 
-/** A string-list option of the rule's first options object (validated by the rule's schema). */
 export function stringListOption(
 	options: Readonly<Options>,
 	key: string,
@@ -62,7 +51,6 @@ type ModuleSourceNode =
 	| ESTree.ExportAllDeclaration
 	| ESTree.ImportExpression;
 
-/** The literal module source of an import / re-export / dynamic import, or null. */
 function literalSource(node: ModuleSourceNode): ESTree.StringLiteral | null {
 	const source = node.source;
 	if (
@@ -75,12 +63,6 @@ function literalSource(node: ModuleSourceNode): ESTree.StringLiteral | null {
 	return source;
 }
 
-/**
- * The statement is erased at compile time. Only a top-level `import type` /
- * `export type` counts: under `verbatimModuleSyntax` (tsconfig.json),
- * `import { type A } from "m"` still compiles to `import {} from "m"`, which
- * loads the module.
- */
 function isErasedTypeImport(node: ModuleSourceNode): boolean {
 	if (node.type === "ImportExpression") return false;
 	if (node.type === "ImportDeclaration") return node.importKind === "type";
@@ -88,19 +70,11 @@ function isErasedTypeImport(node: ModuleSourceNode): boolean {
 }
 
 export interface ModuleImport {
-	/** The source as `normalizeModuleSource` resolves it. */
 	module: string;
-	/** The source as written. */
 	written: string;
-	/** Erased at compile time (`import type` / `export type`). */
 	typeOnly: boolean;
 }
 
-/**
- * Visitors for every statement that names a module (import, re-export,
- * dynamic import with a literal). Reports `messageId` with `{{source}}` when
- * `isViolation` says so.
- */
 export function moduleSourceVisitors(
 	context: Context,
 	messageId: string,

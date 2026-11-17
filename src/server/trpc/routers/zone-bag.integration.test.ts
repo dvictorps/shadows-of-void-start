@@ -26,7 +26,6 @@ describe("zone bag", () => {
 			monsterLevel: 1,
 			monsterRarity: "rare",
 		});
-		// A miniboss always drops at least its guaranteed rare and grants camp.
 		expect(result.drops.length).toBeGreaterThanOrEqual(1);
 		const row = await readCharacter(hero.characterId);
 		expect(row.currentZoneSession).toBe(zoneSession);
@@ -74,7 +73,6 @@ describe("zone bag", () => {
 		const exit = await account.caller.items.exitZone({ ...hero, keepIds });
 		expect(exit).toMatchObject({ kept: 3, discarded: 7 });
 		const inventory = await inventoryOf(hero.characterId);
-		// The response carries the new rows, so the client needs no refetch.
 		expect(exit.items.map((i) => i.id).toSorted((x, y) => x - y)).toEqual(
 			inventory.map((i) => i.id).toSorted((x, y) => x - y),
 		);
@@ -117,7 +115,6 @@ describe("zone bag", () => {
 		);
 		await patchCharacter(hero.characterId, { inCamp: true });
 
-		// Two concurrent picks of the same entry insert one item.
 		const picks = await Promise.all([
 			account.caller.items.pickFromBag({ ...hero, itemIds: [a ?? ""] }),
 			account.caller.items.pickFromBag({ ...hero, itemIds: [a ?? ""] }),
@@ -136,7 +133,6 @@ describe("zone bag", () => {
 		);
 		expect(left).toEqual([c, bag[3]?.bagId]);
 
-		// In camp the whole remaining bag can be kept.
 		expect(
 			await account.caller.items.exitZone({ ...hero, keepIds: left }),
 		).toMatchObject({ kept: 2, discarded: 0 });

@@ -33,8 +33,6 @@ describe("useSessionToken", () => {
 	});
 
 	it("throws when used outside a SessionTokenProvider", () => {
-		// renderHook surfaces render-phase throws by calling the hook directly;
-		// suppress the React error log so the test output stays clean.
 		const consoleError = console.error;
 		console.error = () => {};
 		try {
@@ -82,9 +80,6 @@ describe("useSessionedMutation", () => {
 		expect(passed.sessionToken).toMatch(
 			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
 		);
-		// Caller's args object must not be mutated — the helper spreads to a fresh
-		// object so the public signature stays session-free even if the caller
-		// reuses the args reference.
 		expect(callerArgs).toEqual({ x: 42 });
 	});
 });

@@ -1,16 +1,6 @@
 import type { ArmorType, BaseStatKey, EquipmentType, WeaponType } from "./base";
 import type { AffixType } from "./mods";
 
-// The persisted item shape: `items.data` and the zone bag are JSON columns
-// typed with these interfaces (src/server/db/game-schema.ts), so this file is
-// the only definition. Item data is never accepted from the client.
-
-// ── Rarity ──
-
-// `unique` is the PoE-style tier for handcrafted single-identity entities:
-// act bosses today, planned unique items in Act 2+. Uniques bypass the affix
-// roll system entirely — their stats/mods are declared, not rolled — so the
-// MOD_LIMITS entry is all-zero. See CONTEXT.md → Boss.
 export type ItemRarity =
 	| "normal"
 	| "magic"
@@ -35,12 +25,7 @@ export const MOD_LIMITS = {
 	unique: { totalMin: 0, totalMax: 0, maxPrefix: 0, maxSuffix: 0 },
 } satisfies Record<ItemRarity, ModLimits>;
 
-// ── Rolled results ──
-
 export interface RolledImplicit {
-	// Optional for back-compat with items rolled before implicits were wired
-	// into the stat engine — those legacy implicits stay display-only. New
-	// rolls always carry the id.
 	modifierId?: string;
 	description: string;
 	value: number;
@@ -48,9 +33,6 @@ export interface RolledImplicit {
 
 export interface RolledMod {
 	modifierId: string;
-	// Legacy field — items rolled before the lexicon refactor carry the EN
-	// affix name here. New rolls omit it; the renderer reads modifierId and
-	// resolves the display string through lexicon/{en,pt}.ts.
 	modifierName?: string;
 	affixType: AffixType;
 	modifierType: string;
@@ -61,8 +43,6 @@ export interface RolledMod {
 	maxValue?: number;
 	description: string;
 }
-
-// ── Computed weapon stats (base + local mods applied) ──
 
 export interface ElementalDamageEntry {
 	element: string;
@@ -77,8 +57,6 @@ export interface ComputedWeaponStats {
 	criticalChance: number;
 }
 
-// ── Computed defense stats (base + local mods applied) ──
-
 export interface ComputedDefenseStats {
 	armor?: number;
 	evasion?: number;
@@ -86,24 +64,11 @@ export interface ComputedDefenseStats {
 	blockChance?: number;
 }
 
-// ── Generated item ──
-
 export interface GeneratedItem {
 	id: string;
 	templateId: string;
-	// Naming decomposition copied from the template so the renderer can
-	// compose the display name without re-loading the template. Typed as
-	// `string` here (not the narrow union): rows persisted under an older
-	// template set may carry ids the unions no longer list, and the renderer
-	// falls back for those. The literal-union enforcement lives in the
-	// lexicon/template files themselves. Optional because items rolled
-	// before the decomposition refactor don't carry these fields; the
-	// renderer falls back to the templateId string for those legacy rows.
 	nameBase?: string;
 	nameModifier?: string | null;
-	// Legacy fields — items rolled before the lexicon refactor cached the EN
-	// display name here. New rolls omit them; consumers must use
-	// translateItemName / translateTemplateName (display-time, locale-aware).
 	templateName?: string;
 	name?: string;
 	equipmentType: EquipmentType;
@@ -122,7 +87,5 @@ export interface GeneratedItem {
 		dex?: number;
 		int?: number;
 	};
-	// Item-local sprite path. Takes precedence over the template's icon when
-	// rendering — for hand-authored items (starter gear) without a template.
 	icon?: string;
 }

@@ -1,6 +1,6 @@
 # Adding a skill (stub — system not yet implemented)
 
-> **Status**: orientation doc only. The active-skill system doesn't exist yet. See `docs/plans/in-progress.md` → "Future: passive tree + active skills" for the queue position.
+> **Status**: orientation doc only. The active-skill system doesn't exist yet. See `docs/plans/passive-tree-and-skills.md` for the queue position.
 >
 > **When you pick this up**: fill in the steps as you build the system, treat the questions below as the design surface to resolve before writing code, and turn the ADR-worthy decisions into actual ADRs as they crystallize.
 
@@ -19,7 +19,7 @@ Before coding, resolve these:
    - Open question: how do `more` multipliers (currently unused — see CLAUDE.md "Design Decisions") enter the pipeline? Skills are the natural carrier. Document the formula change in an ADR.
 
 3. **How does the combat hook fire a skill?**
-   - The combat loop (`src/hooks/useCombatLoop.ts`) currently advances `playerProgress` per tick and fires the auto-attack at `>= 1`. Skills need either (a) a separate progress/cooldown channel, or (b) a queued cast that interrupts the auto-attack rotation. See [`touching-combat.md`](./touching-combat.md) for the trap list before touching the hook.
+   - The combat tick (`src/hooks/useCombatTick.ts`) currently advances `playerProgressRef` per tick and fires the auto-attack at `>= 1`. Skills need either (a) a separate progress/cooldown channel, or (b) a queued cast that interrupts the auto-attack rotation. See [`touching-combat.md`](./touching-combat.md) for the trap list before touching the hook.
 
 4. **What's the player input model?**
    - The game is "automatic / stat-check combat" per CLAUDE.md. Skills could be (a) entirely auto-queued (UI shows which skill is up next), (b) hotkey-fired with cooldown gating, or (c) toggled passives. Decide before scoping UI.
@@ -48,7 +48,7 @@ npx tsc --noEmit
 npx vitest run src/game/skills/
 npx vitest run src/game/stats/    # stat engine must still pass with skill inputs
 npx vitest run src/hooks/         # if you added combat hook tests
-npx oxlint src/
+pnpm lint:errors
 ```
 
-Then `npm run dev`: cast the skill in combat, verify damage matches the formula, kill a mob, take damage, die, respawn — touch every state machine transition skills participate in.
+Then `pnpm dev`: cast the skill in combat, verify damage matches the formula, kill a mob, take damage, die, respawn — touch every state machine transition skills participate in.

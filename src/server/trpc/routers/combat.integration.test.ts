@@ -61,7 +61,6 @@ describe("combat", () => {
 			cachedMaxLife,
 		);
 
-		// Without client vitals the stored HP is left alone.
 		await patchCharacter(hero.characterId, { hpCurrent: 5 });
 		const silent = await account.caller.combat.recordKill(kill);
 		expect(silent.character).not.toHaveProperty("hpCurrent");
@@ -139,7 +138,6 @@ describe("combat", () => {
 		expect(await account.caller.combat.arriveAtTravel(hero)).toEqual({
 			arrivedAt: "forest_starter",
 		});
-		// Retried arrival is a no-op.
 		expect(await account.caller.combat.arriveAtTravel(hero)).toEqual({
 			arrivedAt: "forest_starter",
 		});
@@ -273,7 +271,6 @@ describe("leaderboard", () => {
 		});
 		expect(byBoss?.entries[0]?.totalBossKills).toBe(1_000);
 
-		// A second run upserts the same four rows.
 		await computeLeaderboardSnapshot(db, 5678);
 		const again = await publicCaller.leaderboard.getSnapshot({
 			category: "level",

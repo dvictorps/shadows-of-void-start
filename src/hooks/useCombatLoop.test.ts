@@ -1,18 +1,5 @@
 // @vitest-environment jsdom
 
-// The combat state machine end to end: spawn → engaged → victory → next
-// spawn, the rare and boss intro cascades, camps, incense, the boss-node
-// gauntlet, and the activation reset. Runs the real hook (and through it the
-// real tick and encounter schedule) on fake timers.
-//
-// - The server is a parameter (`server`), so the calls are fakes, not module
-//   mocks.
-// - `Math.random` is pinned to 0.5: spawns roll "normal", gaps sit at the
-//   middle of their range, and every swing lands.
-// - The character one-shots anything and can't die, so a fight is exactly one
-//   tick. These tests are about the transitions, not the damage math (that's
-//   `src/game/combat` and useCombatTick.test.ts).
-
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -50,8 +37,6 @@ const PLAN: ZoneEncounterPlan = {
 	campFractions: [],
 };
 
-// The miniboss arrives on the first spawn: the bar (0.5 s) fills before the
-// first gap (1 s) ends.
 const SHORT_BUDGET_PLAN: ZoneEncounterPlan = {
 	...PLAN,
 	calmariaBudgetSeconds: 0.5,
@@ -118,8 +103,6 @@ function setup(overrides: Partial<Props> = {}) {
 		onPlayerDeath,
 		...overrides,
 	};
-	// As in the app: `/world` opens on the map (inactive), and entering a zone
-	// starts the visit and flips `active`.
 	const hook = renderHook((p: Props) => useHarness(p), {
 		initialProps: { ...props, active: false },
 	});
@@ -136,9 +119,6 @@ function setup(overrides: Partial<Props> = {}) {
 	return { ...hook, props, server, onPlayerDeath, enterZone, leaveZone };
 }
 
-// One `act` per step: React flushes effects (and arms the next timers) at the
-// end of each act, so a single long advance would skip the timers a state
-// change schedules.
 function advance(ms: number) {
 	for (let elapsed = 0; elapsed < ms; elapsed += STEP_MS) {
 		act(() => {
@@ -147,7 +127,6 @@ function advance(ms: number) {
 	}
 }
 
-// Settles the fire-and-forget `recordKill` promise.
 async function flushServer() {
 	await act(async () => {});
 }
@@ -188,7 +167,6 @@ describe("useCombatLoop — regular fight cycle", () => {
 			xp: killed?.scaled.xpReward,
 			potion: false,
 		});
-		// The kill carries the vitals, so it doubles as the HP sync.
 		expect(server.recordKill).toHaveBeenCalledExactlyOnceWith({
 			characterId: 7,
 			monsterId: "goblin",
@@ -252,7 +230,6 @@ describe("useCombatLoop — zone miniboss", () => {
 		expect(server.recordKill).toHaveBeenCalledWith(
 			expect.objectContaining({ monsterRarity: "rare" }),
 		);
-		// The kill reset the time bar for the next stretch.
 		expect(result.current.calmariaElapsedMs).toBe(0);
 
 		await flushServer();
@@ -276,7 +253,6 @@ describe("useCombatLoop — camps", () => {
 			thresholdIndex: 0,
 		});
 
-		// No spawn while camped.
 		advance(SPAWN_GAP_MS * 2);
 		expect(result.current.enemy).toBeNull();
 
@@ -344,7 +320,6 @@ describe("useCombatLoop — Incenso Etéreo", () => {
 	it("is blocked during the rare fight itself", () => {
 		const { result, server } = setup({
 			encounterPlan: SHORT_BUDGET_PLAN,
-			// Nothing dies, so the fight stays on.
 			stats: makeStats({ maxLife: MAX_LIFE }),
 		});
 		advance(SPAWN_GAP_MS + RARE_INTRO_MS);
@@ -364,7 +339,6 @@ describe("useCombatLoop — boss node", () => {
 		advance(RARE_INTRO_MS + STEP_MS);
 		expect(result.current.state).toBe("victory");
 		await flushServer();
-		// A gauntlet rare advances the gauntlet: no miniboss panel.
 		advance(VICTORY_DELAY_MS);
 		expect(result.current.state).toBe("searching");
 
@@ -460,7 +434,6 @@ describe("useCombatLoop — a new zone visit (startVisit)", () => {
 		expect(result.current.state).toBe("victory");
 		await flushServer();
 
-		// Leave before the 800 ms pause ends.
 		leaveZone();
 		enterZone({ ...props, encounterPlan: PLAN });
 		advance(500);
@@ -474,14 +447,12 @@ describe("useCombatLoop — a new zone visit (startVisit)", () => {
 				gauntlet: { ...BOSS_NODE.gauntlet, fights: 2 },
 			},
 		});
-		// Clear gauntlet fight 1 of 2.
 		advance(GAUNTLET_SPAWN_MS + RARE_INTRO_MS + STEP_MS);
 		await flushServer();
 		advance(VICTORY_DELAY_MS);
 
 		leaveZone();
 		enterZone();
-		// Two rares again before the boss, not one.
 		for (let fight = 0; fight < 2; fight++) {
 			advance(GAUNTLET_SPAWN_MS);
 			expect(result.current.enemy?.rarity).toBe("rare");
@@ -494,9 +465,6 @@ describe("useCombatLoop — a new zone visit (startVisit)", () => {
 	});
 });
 
-// The exit modal drops `active` while it's open; its Cancel brings it back
-// without a new visit. CONTEXT.md → exit modal: "Cancel closes the modal and
-// returns the player to the engaged combat view".
 describe("useCombatLoop — pausing and resuming the same visit", () => {
 	it("resumes the fight with the same enemy", () => {
 		const { result, rerender, props } = setup({
@@ -514,7 +482,6 @@ describe("useCombatLoop — pausing and resuming the same visit", () => {
 	});
 
 	it("keeps the fight's HP instead of snapping back to the cached value", () => {
-		// A character that deals no damage, so the goblin lives to land hits.
 		const base = makeStats({ maxLife: MAX_LIFE });
 		const { result, rerender, props } = setup({
 			stats: {
@@ -529,7 +496,6 @@ describe("useCombatLoop — pausing and resuming the same visit", () => {
 		const hurt = result.current.playerHp;
 		expect(hurt).toBeLessThan(MAX_LIFE);
 
-		// The deactivation sync hasn't landed: the cached HP is still full.
 		rerender({ ...props, active: false });
 		rerender({ ...props, active: true, initialHp: MAX_LIFE });
 		expect(result.current.playerHp).toBe(hurt);
@@ -542,14 +508,12 @@ describe("useCombatLoop — pausing and resuming the same visit", () => {
 				gauntlet: { ...BOSS_NODE.gauntlet, fights: 2 },
 			},
 		});
-		// Clear gauntlet fight 1 of 2.
 		advance(GAUNTLET_SPAWN_MS + RARE_INTRO_MS + STEP_MS);
 		await flushServer();
 		advance(VICTORY_DELAY_MS);
 
 		rerender({ ...props, active: false });
 		rerender({ ...props, active: true });
-		// Fight 2 of 2, then the boss.
 		advance(GAUNTLET_SPAWN_MS);
 		expect(result.current.enemy?.rarity).toBe("rare");
 		advance(RARE_INTRO_MS + STEP_MS);

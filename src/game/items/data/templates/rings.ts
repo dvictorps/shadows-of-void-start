@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Rings — one base per implicit type, no tier progression
 export const RING_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "cobalt_ring",

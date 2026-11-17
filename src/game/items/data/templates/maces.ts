@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Maces (1H, str) — AtkSpd: 1.15, Crit: 5.0, No implicit
 export const MACE_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "mace_t1",

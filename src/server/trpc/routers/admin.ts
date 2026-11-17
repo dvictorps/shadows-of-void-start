@@ -4,18 +4,10 @@ import { z } from "zod";
 import { characters, user } from "../../db/schema";
 import { adminProcedure, router } from "../init";
 
-// The queries behind /admin. Every procedure goes
-// through `adminProcedure`.
-
-// Better Auth's `timestamp_ms` columns decode to `Date`, which JSON turns into
-// a string over HTTP but leaves a `Date` through the SSR `localLink`. Reading
-// the raw column keeps it a number on both paths.
 function epochMs(column: Column) {
 	return sql<number>`${column}`;
 }
 
-// One page of users. Paginate the list before
-// raising it.
 const USER_LIST_LIMIT = 200;
 
 export const adminRouter = router({
@@ -63,8 +55,6 @@ export const adminRouter = router({
 			.limit(USER_LIST_LIMIT),
 	),
 
-	// There is no promotion timestamp (`user.role` is a plain column), so `grantedAt` is the account's last update, which is the
-	// promotion for anyone promoted after sign-up and never edited since.
 	listAdmins: adminProcedure.query(async ({ ctx }) =>
 		ctx.db
 			.select({

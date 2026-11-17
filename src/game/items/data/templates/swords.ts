@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Swords (1H, str+dex hybrid) — AtkSpd: 1.50, Crit: 5.0, Implicit: +{value} Accuracy Rating
 export const SWORD_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "sword_t1",

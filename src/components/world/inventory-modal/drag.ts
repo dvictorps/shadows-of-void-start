@@ -1,8 +1,3 @@
-// The inventory modal's drag decisions: what a drop does, and how a
-// paper-doll slot lights up while something is dragged. Pure, so the rules are
-// tested without the DOM (drag.test.ts); the equip rules themselves stay in
-// #/game/items/equipment and on the server.
-
 import { validSlotsForItem } from "#/game/items/equipment";
 import { type EquippedSlot, narrowEquippedSlot } from "#/game/stats/types";
 import type { ItemRow } from "#/lib/api-types";
@@ -15,7 +10,6 @@ export type DragSourceData =
 	| { kind: "inventory"; itemId: number }
 	| { kind: "equipped"; slot: EquippedSlot; itemId: number };
 
-/** The server call a drop makes. */
 export type DropAction =
 	| {
 			kind: "reorder";
@@ -24,8 +18,6 @@ export type DropAction =
 			swapWithItemId: number | undefined;
 	  }
 	| { kind: "equip"; itemId: number; targetSlot: EquippedSlot }
-	// The bag slot is only a hint: the server places the item in the first
-	// free slot.
 	| { kind: "unequip"; slot: EquippedSlot }
 	| { kind: "swapHands" };
 
@@ -35,7 +27,6 @@ function isHandPair(a: EquippedSlot, b: EquippedSlot): boolean {
 	);
 }
 
-/** What dropping `source` on `target` does, or `null` for a drop that does nothing. */
 export function resolveDrop(
 	source: DragSourceData,
 	target: DropTargetData,
@@ -84,11 +75,6 @@ function tier(isOver: boolean, accepts: boolean): SlotHighlight | null {
 	return accepts ? "soft" : null;
 }
 
-/**
- * How paper-doll `slot` lights up while `dragging` is in flight: an inventory
- * item lights every slot it can go to (red when it hovers one it can't); an
- * equipped hand weapon lights the other hand when the hands can swap.
- */
 export function slotHighlight({
 	dragging,
 	slot,
@@ -108,12 +94,6 @@ export function slotHighlight({
 	}
 	return null;
 }
-
-// ── DnD payload narrowers ─────────────────────────────────────────────────
-// @dnd-kit types `data.current` as Record<string, unknown> | undefined. Type
-// guards (not parsers) keep the `unknown` boundary explicit, so a misregistered
-// draggable can't coerce into a DragSourceData and crash a handler. `itemId` is
-// only checked to be a number: every draggable here registers a real item id.
 
 export function isDragSource(d: unknown): d is DragSourceData {
 	if (typeof d !== "object" || d === null) return false;

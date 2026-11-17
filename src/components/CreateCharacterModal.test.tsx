@@ -1,13 +1,5 @@
 // @vitest-environment jsdom
 
-// What the character-creation modal renders and which call each interaction
-// makes: the name field and its counter, the class cards and description,
-// the hardcore toggle, the empty-name guard, the create call with the
-// trimmed input, the in-flight lock, the success and failure toasts, and
-// cancel. The modal takes its server call as `server.create`.
-//
-// - `server.create` is a `vi.fn()` fake. Sonner's toaster runs for real.
-
 import {
 	act,
 	cleanup,
@@ -55,7 +47,6 @@ function setup(overrides: Partial<Props> = {}) {
 	return { create, onClose, onCreated };
 }
 
-/** A promise the test resolves by hand. */
 function deferred<T>() {
 	let resolve!: (value: T) => void;
 	const promise = new Promise<T>((res) => {

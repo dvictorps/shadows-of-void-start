@@ -16,9 +16,6 @@ export default function EnemyHpBar({
 	const showBarrier = maxBarrier > 0;
 	return (
 		<div className="mb-4 flex w-full max-w-sm flex-col items-center gap-1">
-			{/* Mirrors HealthGlobe: blue barrier overlay drawn on top of the red
-			 * HP fill in the same container so damage-hits-barrier-first reads
-			 * visually as "blue width shrinks before red moves". */}
 			<div className="relative h-3 w-full overflow-hidden rounded-full border border-white/40 bg-black">
 				<div
 					className="absolute inset-y-0 left-0 bg-gradient-to-r from-red-700 to-red-500 transition-[width] duration-150"

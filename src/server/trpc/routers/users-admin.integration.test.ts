@@ -66,7 +66,6 @@ describe("users", () => {
 			authUserId: demoted.session.user.id,
 			role: "user",
 		});
-		// `demoted.session` still says admin, like a 5-minute cookie cache would.
 		await expectServerError(
 			demoted.caller.admin.pulse(),
 			SERVER_ERRORS.adminRequired,

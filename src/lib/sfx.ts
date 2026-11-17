@@ -1,9 +1,3 @@
-// Lightweight SFX helper. Pools HTMLAudioElement instances per file so the
-// same sound can overlap (combat hit fires faster than the clip's length).
-// Browsers reject autoplay when the user hasn't interacted yet — the
-// promise rejection is silently swallowed so first-touch quirks don't crash
-// the combat loop.
-
 import { getBossConfig } from "#/game/bosses";
 import { WEAPON_FX } from "#/game/combat/weapon-fx";
 import type { WeaponType } from "#/game/items/types/base";
@@ -13,14 +7,7 @@ import { randSymmetric } from "./rng";
 
 type SfxOptions = {
 	volume?: number;
-	/** Random pitch jitter in [-x, +x] applied via playbackRate. 0.1 = ±10%. */
 	pitchVariance?: number;
-	/**
-	 * Force a single instance per path — incoming plays restart the existing
-	 * clip instead of layering a new one on top. Use for high-frequency events
-	 * (player swing landing) where overlapping copies stack into a muddy
-	 * "three at once" sound at high attack speed.
-	 */
 	exclusive?: boolean;
 };
 
@@ -28,12 +15,6 @@ const POOL_SIZE = 4;
 const SFX_BASE = "/assets/sounds/sfx";
 
 const audioPools = new Map<string, HTMLAudioElement[]>();
-
-// ── Global SFX volume ───────────────────────────────────────────────────────
-// Persisted multiplier applied on top of each playSfx call's `volume` opt.
-// Stored as a string in localStorage so the settings modal survives reloads;
-// the React side subscribes via the `sfx:volume` event so updates propagate
-// without prop-drilling. Range [0, 1]; default 1.
 
 const VOLUME_STORAGE_KEY = "sfx.globalVolume";
 const VOLUME_EVENT = "sfx:volume";
@@ -76,11 +57,6 @@ function getFromPool(path: string, exclusive: boolean): HTMLAudioElement {
 		audioPools.set(path, pool);
 	}
 	if (exclusive) {
-		// Single-slot mode: always restart the same instance, never layer.
-		// Short clips (hit.wav is ~80ms) need an explicit pause() before the
-		// seek — Chrome's audio engine sometimes flushes a tail of the old
-		// buffer when `currentTime = 0` is set mid-playback, perceived as a
-		// doubled/tripled hit at high attack speed.
 		if (pool.length === 0) {
 			const audio = new Audio(path);
 			audio.preload = "auto";
@@ -108,13 +84,6 @@ function getFromPool(path: string, exclusive: boolean): HTMLAudioElement {
 	return audio;
 }
 
-/**
- * Play a SFX clip from `public/assets/sounds/sfx/<path>`. Missing files
- * silently no-op (the underlying play() promise rejects, we swallow it).
- * `pitchVariance` is convenient for breaking the monotony of high-AS combat
- * — `playSfx("hit.wav", { volume: 0.3, pitchVariance: 0.1 })` plays at
- * 0.9×–1.1× speed each call.
- */
 export function playSfx(path: string, opts: SfxOptions = {}): void {
 	if (globalThis.window === undefined) return;
 	if (globalVolume <= 0) return;
@@ -126,8 +95,6 @@ export function playSfx(path: string, opts: SfxOptions = {}): void {
 	audio.play().catch(() => {});
 }
 
-// Several skeleton variants share one clip. Slime and lich currently have no
-// asset; the missing-key fallback in playMonsterDeathSfx leaves them silent.
 const MONSTER_DEATH_SOUNDS = new Map([
 	["morcego", "bat.wav"],
 	["olho_do_vazio", "eyeball.wav"],
@@ -148,12 +115,6 @@ export function playMonsterDeathSfx(monsterId: string): void {
 	playSfx(`creatures/${file}`, { volume: 0.5 });
 }
 
-/**
- * Routes a kill's death sfx by rarity. Bosses (`rarity: "unique"`) pull
- * `cinematic.deathSfx` from their BossConfig (e.g. `bosses/gralfordead.wav`);
- * all other rarities go through the regular creature-death lookup.
- * Silent on lookup miss — see playMonsterDeathSfx.
- */
 export function playKillSfx(enemy: {
 	def: { id: string };
 	rarity: MonsterRarity;
@@ -166,9 +127,6 @@ export function playKillSfx(enemy: {
 	playMonsterDeathSfx(enemy.def.id);
 }
 
-// Player swing hit-sound, derived from the weapon's WEAPON_FX entry. Volume
-// + pitch jitter mirror the previous generic hit.wav call so per-weapon
-// swap drops in without rebalancing the audio mix.
 export function playPlayerSwingSfx(weaponType: WeaponType): void {
 	playSfx(WEAPON_FX[weaponType].sound, {
 		volume: 0.3,

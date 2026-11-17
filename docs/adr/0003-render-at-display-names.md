@@ -65,7 +65,7 @@ If Convex ever ships a `v.unionLiteral([...]: readonly string[])` helper, swap i
 - The "render once, store" optimization is **forbidden** without amending this ADR. An agent who "improves performance" by pre-rendering names silently breaks locale switching.
 - Adding a locale is one new lexicon file + the matching paraglide JSON. No data migration. No backfill.
 - A new template id (or monster id) requires lexicon coverage in _both_ locales — the typed Records make missing entries a compile error.
-- The bestiary feature parked in `docs/plans/in-progress.md` (Future: rare-name bestiary) gets the locale-switch property for free: the bestiary row stores the spawn seed, not the rendered name, so re-opening the bestiary in a different locale shows the names in the active language.
+- The bestiary feature parked in `docs/plans/rare-name-bestiary.md` gets the locale-switch property for free: the bestiary row stores the spawn seed, not the rendered name, so re-opening the bestiary in a different locale shows the names in the active language.
 
 ## Update (2026-11): hash consolidated
 

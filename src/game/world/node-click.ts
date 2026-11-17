@@ -3,20 +3,11 @@ import { translateNodeName } from "./i18n";
 import type { Act } from "./types";
 
 export type NodeClick =
-	// The player is already there: enter without travelling.
 	| { kind: "reenter" }
-	// A direct connection: walk (timed travel).
 	| { kind: "walk" }
-	// Not connected, but unlocked and a stone is in the bag: offer the jump.
 	| { kind: "stone"; destinationName: string; stones: number }
-	// Not connected and no jump available.
 	| { kind: "no-route"; destinationName: string };
 
-/**
- * What a click on a map node does. The server still validates the route and
- * the progression gate; this only picks the client flow. See CONTEXT.md →
- * Travel system and → Teleport Stone.
- */
 export function resolveNodeClick({
 	act,
 	nodeId,

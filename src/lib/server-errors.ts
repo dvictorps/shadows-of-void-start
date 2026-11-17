@@ -1,10 +1,3 @@
-// Error messages the server throws and the client translates
-// (`translateServerError` in server-error-message.ts). One source so a rename can't
-// silently break the translation. Kept dependency-free: both bundles import it.
-//
-// Only messages the client matches exactly live here. Parametric ones
-// ("Level 12 required", "Phase cap exceeded: …") keep their wording inline at
-// the throw site; the client matches them with a regex.
 export const SERVER_ERRORS = {
 	notAuthenticated: "Not authenticated",
 	adminRequired: "Admin access required",

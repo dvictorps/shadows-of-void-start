@@ -9,18 +9,8 @@ import { ACT_1, findNode, isNodeAccessible } from "./index";
 import { computeTravelTime } from "./travel";
 import type { WorldNode } from "./types";
 
-// Server-authoritative decisions for zone entry, camps and travel
-// (CONTEXT.md → Zone states, Travel system). The `combat` procedures load the
-// character, call these, and write what they return. `now` is passed in so
-// the rules are testable without a clock.
-
 type Decision<Value> = { ok: false; error: string } | ({ ok: true } & Value);
 
-/**
- * The zone-visit columns that exit, death, re-entry and teleport clear. The
- * server adds the bag to it (`CLEARED_ZONE`); the client patches its cached
- * character with it, so a new visit column can't be missed on one side.
- */
 export const CLEARED_VISIT = {
 	currentZoneSession: null,
 	zoneStartedAt: null,
@@ -34,8 +24,6 @@ export interface Whereabouts {
 	travelDestination: string | null;
 }
 
-// Clock-skew grace windows between the client's timers and the server clock.
-// Small on purpose: travel and camps are UX pacing, not hard gates.
 export const ENTER_CAMP_GRACE_MS = 500;
 export const TRAVEL_ARRIVAL_GRACE_MS = 1000;
 
@@ -71,11 +59,6 @@ export interface CampState {
 	lastCampIndex: number | null;
 }
 
-/**
- * Time-gated camp entry (threat #3, closed): the camp opens only once the
- * threshold rolled at zone entry has elapsed. `alreadyInCamp` is the
- * idempotent no-op case.
- */
 export function resolveCampEntry(
 	state: CampState,
 	thresholdIndex: number,
@@ -145,11 +128,6 @@ export function resolveTravelStart(
 	};
 }
 
-/**
- * Teleport stone: jump to any already-visited node; the city is the default
- * and also heals. Validation only applies off-city: the city is always a
- * legal destination, even mid-travel.
- */
 export function resolveTeleport(
 	where: TravelCharacter,
 	destinationId: string,

@@ -46,12 +46,11 @@ The only exceptions:
 
 ## Server-side errors
 
-Server errors thrown from tRPC procedures as `fail("Inventory overflow")` (`src/server/trpc/errors.ts`) are in English by design (the server doesn't know the locale). The translation happens client-side via `src/lib/server-error-message.ts:translateServerError`, which pattern-matches known server strings and returns the right PT key.
+Server errors thrown from tRPC procedures with `fail(message)` (`src/server/trpc/errors.ts`) are in English by design (the server doesn't know the locale). The translation happens client-side in `src/lib/server-error-message.ts:translateServerError`, which tries, in order, the `EXACT` table, the `SUBSTRING` needles and the `PATTERNS` functions, and passes an unknown message through untouched.
 
 When you add a new server error:
 
-1. Throw with a stable, distinctive English string in the procedure.
-2. Add matching `error_*` paraglide keys in both locales.
-3. Add a pattern (exact match or regex) in `translateServerError` that returns the localized key.
-
-See the existing patterns in `src/lib/server-error-message.ts` for the structure.
+1. **Exact message**: add a constant to `SERVER_ERRORS` in `src/lib/server-errors.ts`, throw `fail(SERVER_ERRORS.yourKey)` in the procedure (or the pure `src/game` decision it calls), and map it in the `EXACT` table: `[SERVER_ERRORS.yourKey]: m.error_your_key`.
+   **Parametric message** (it carries a number or an id): throw a stable English template and add a `PATTERNS` entry that matches it and passes the captured value to the message (see the `Name must be at most (\d+) characters` entry).
+2. Add the `error_*` paraglide key to both `messages/en.json` and `messages/pt.json`.
+3. Add a case to `src/lib/server-error-message.test.ts`: the `it.each` table of exact matches, or the "substring and parametric matches" block.

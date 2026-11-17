@@ -2,7 +2,6 @@ import { m } from "#/paraglide/messages";
 
 import { fillPercent } from "./fill-percent";
 
-/** `hud` is the combat HUD's bar; `md` / `sm` the status card's (wide / compact). */
 export type XpBarSize = "hud" | "md" | "sm";
 
 const SIZE = {
@@ -11,10 +10,6 @@ const SIZE = {
 	sm: { label: "text-xs", track: "h-2" },
 } as const satisfies Record<XpBarSize, { label: string; track: string }>;
 
-/**
- * The XP readout: the "XP current / needed" label over a yellow progress
- * track. Shared by the combat HUD and the sidebar status card.
- */
 export function XpBar({
 	xp,
 	xpNeeded,

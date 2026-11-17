@@ -6,10 +6,6 @@ import { m } from "#/paraglide/messages";
 
 export type RubyDelta = { id: string; amount: number; sign: "+" | "-" };
 
-/**
- * The vendor's ruby balance, with the optimistic deltas floating up from it
- * (stacked when several fire close together).
- */
 export default function RubyBalance({
 	rubys,
 	deltas,

@@ -36,9 +36,6 @@ describe("monsterScaleFactor", () => {
 	});
 
 	it("matches PoE-style growth at landmark levels", () => {
-		// 1.06^49 ≈ 17.378 at level 50, 1.06^99 ≈ 320.0 at level 100. Sanity
-		// check the curve we picked so a future change to MONSTER_SCALING_BASE
-		// has to acknowledge the shift.
 		expect(monsterScaleFactor(50)).toBeCloseTo(17.378, 2);
 		expect(monsterScaleFactor(100)).toBeCloseTo(320.0, 0);
 	});
@@ -61,8 +58,6 @@ describe("scaleMonsterStats", () => {
 
 	it("scales hp, damage and xp geometrically", () => {
 		const stats = scaleMonsterStats(baseDef, 100);
-		// factor = 1.06^99 ≈ 320.0. Rounded products:
-		//   10 × 320 ≈ 3201, 8 × 320 ≈ 2561, 12 × 320 ≈ 3841, 5 × 320 ≈ 1601
 		expect(stats.hp).toBe(3201);
 		expect(stats.physicalDamage.min).toBe(2561);
 		expect(stats.physicalDamage.max).toBe(3841);
@@ -70,8 +65,6 @@ describe("scaleMonsterStats", () => {
 	});
 
 	it("floors hp and xp to at least 1", () => {
-		// A baseStats.hp of 0 / xpReward of 0 would otherwise scale to 0 at every
-		// level; the floor keeps mobs killable and rewarding.
 		const tinyDef: MonsterDefinition = {
 			...baseDef,
 			baseStats: { ...baseDef.baseStats, hp: 0 },
@@ -92,7 +85,6 @@ describe("scaleMonsterStats", () => {
 			},
 		};
 		const stats = scaleMonsterStats(lichDef, 50);
-		// factor ≈ 17.378 → cold min 12 × 17.378 ≈ 209, max 16 × 17.378 ≈ 278
 		expect(stats.elementalDamage).toEqual([
 			{ element: "Cold", min: 209, max: 278 },
 		]);

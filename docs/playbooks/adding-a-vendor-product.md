@@ -1,6 +1,6 @@
 # Adding a vendor product
 
-The vendor sells consumables (and only consumables — gear is sold _to_ the vendor, not bought _from_ it). Each product is one entry in `src/game/vendor/products.ts`, plus a counter field on the character document, plus optional sprite/i18n.
+The vendor sells consumables (and only consumables — gear is sold _to_ the vendor, not bought _from_ it). Each product is one entry in `src/game/vendor/products.ts`, plus a counter field on the character row, plus optional sprite/i18n.
 
 The catalog today: **Life Potion** (capped at 10) and **Teleport Stone** (uncapped). Adding a third product follows the pattern below.
 
@@ -19,11 +19,11 @@ Open `src/game/vendor/products.ts` and extend `VendorProductId` with the new id:
 export type VendorProductId = "potion" | "teleport_stone" | "wind_crystal";
 ```
 
-`VendorProduct[]` is a `Record<VendorProductId, ...>`, so the next step fails to compile until you add an entry — that's the safety net.
+`VENDOR_PRODUCTS` is declared `satisfies Record<VendorProductId, VendorProduct>`, so the next step fails to compile until you add an entry — that's the safety net.
 
 ## Step 2 — Add the counter field (if new)
 
-Counters live on the character document. Existing fields: `potions`, `teleportStones`. If your product can share an existing counter (e.g. it's a variant of an existing consumable), reuse it; otherwise add a new field.
+Counters live on the character row. Existing fields: `potions`, `teleportStones`. If your product can share an existing counter (e.g. it's a variant of an existing consumable), reuse it; otherwise add a new field.
 
 **A new counter requires three updates:**
 
@@ -78,11 +78,11 @@ Plus the EN equivalents. Reference them in `VendorModal.tsx` (per-product label)
 ```bash
 npx tsc --noEmit
 npx vitest run
-npx oxlint src/
+pnpm lint:errors
 pnpm db:migrate:local   # if you added a column
 ```
 
-Then `npm run dev`, enter the city, open the vendor:
+Then `pnpm dev`, enter the city, open the vendor:
 
 - Buy one — counter increments on the character doc, Rubys decrement.
 - Hit the cap (if capped) — button disables, no further purchases.

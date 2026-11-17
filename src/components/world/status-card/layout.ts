@@ -1,7 +1,6 @@
 import type { SlotSize } from "../ConsumableSlot";
 import type { XpBarSize } from "../XpBar";
 
-/** The status card's sizes, roomy on a wide viewport and tight on a compact one. */
 export type StatusCardLayout = {
 	padding: string;
 	stackGap: string;

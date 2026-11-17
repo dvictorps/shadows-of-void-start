@@ -212,7 +212,6 @@ describe("stash", () => {
 			[],
 		);
 
-		// The softcore stash is invisible to the hardcore character.
 		expect(
 			await account.caller.stash.withdrawFromStash({
 				...hardcore,

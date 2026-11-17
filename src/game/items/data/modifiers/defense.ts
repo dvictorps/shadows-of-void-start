@@ -2,7 +2,6 @@ import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
 export const DEFENSE_MODIFIERS = {
-	// ── Local defense (adapts to armor base type at roll time) ──
 	localDefenseFlat: {
 		id: "localDefenseFlat",
 		affixType: "prefix",
@@ -26,7 +25,6 @@ export const DEFENSE_MODIFIERS = {
 		tiers: createStandardTiers(15, 25, 130, 180),
 	},
 
-	// ── Global defense flat (jewelry only) ──
 	armorFlat: {
 		id: "armorFlat",
 		affixType: "prefix",
@@ -61,7 +59,6 @@ export const DEFENSE_MODIFIERS = {
 		tiers: createStandardTiers(4, 8, 45, 63),
 	},
 
-	// ── Global defense % ──
 	globalArmorIncrease: {
 		id: "globalArmorIncrease",
 		affixType: "suffix",
@@ -96,7 +93,6 @@ export const DEFENSE_MODIFIERS = {
 		tiers: createStandardTiers(12, 18, 80, 100),
 	},
 
-	// ── Life / Mana flat ──
 	healthFlat: {
 		id: "healthFlat",
 		affixType: "prefix",
@@ -128,7 +124,6 @@ export const DEFENSE_MODIFIERS = {
 		tiers: createStandardTiers(12, 22, 100, 130),
 	},
 
-	// ── Regen ──
 	healthRegenFlat: {
 		id: "healthRegenFlat",
 		affixType: "suffix",
@@ -152,9 +147,6 @@ export const DEFENSE_MODIFIERS = {
 		tiers: createStandardTiers(1, 2, 6, 10),
 	},
 
-	// ── On hit / On kill ──
-	// On-hit = combat slots (gloves yes, belt no). On-kill = sustain slots (belt yes, gloves no).
-	// Weight controls fillerness — these are mid-tier filler, not premium.
 	lifeGainOnHitFlat: {
 		id: "lifeGainOnHitFlat",
 		affixType: "prefix",
@@ -204,7 +196,6 @@ export const DEFENSE_MODIFIERS = {
 		tiers: createStandardTiers(2, 3, 12, 20),
 	},
 
-	// ── Thorns (bad mod — no tags, no synergy pull) ──
 	thornsDamageFlat: {
 		id: "thornsDamageFlat",
 		affixType: "suffix",
@@ -217,7 +208,6 @@ export const DEFENSE_MODIFIERS = {
 		tiers: createStandardTiers(2, 5, 20, 35),
 	},
 
-	// ── Block (shields only — multiplies base block chance) ──
 	blockChanceIncrease: {
 		id: "blockChanceIncrease",
 		affixType: "suffix",

@@ -6,10 +6,6 @@ import { MODIFIED_COLOR } from "./colors";
 
 const LOCAL_TAG_COLOR = "rgba(136, 136, 255, 0.5)";
 
-/**
- * The implicits (closed by a dashed separator) and the explicits, in blue. An
- * increased local mod carries the (Local) tag; nothing is tagged global.
- */
 export default function ModLines({ item }: { item: GeneratedItem }) {
 	return (
 		<>

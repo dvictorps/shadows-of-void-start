@@ -2,9 +2,6 @@ import { SERVER_ERRORS } from "#/lib/server-errors";
 
 import type { VendorProduct } from "./products";
 
-// Vendor purchase rules (CONTEXT.md → Vendor) for the `vendor.vendorBuy`
-// procedure. Prices and caps come from the catalog, never from the client.
-
 export type PurchaseDecision =
 	| { ok: false; error: string }
 	| { ok: true; cost: number };

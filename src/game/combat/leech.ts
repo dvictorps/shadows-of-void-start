@@ -4,11 +4,8 @@ import {
 } from "./constants";
 
 export interface LeechInstance {
-	/** Total HP this instance will restore over its lifetime. */
 	magnitude: number;
-	/** HP/second this instance ticks at. */
 	rate: number;
-	/** HP still left to deliver. */
 	remaining: number;
 }
 
@@ -28,12 +25,6 @@ export interface LeechTickResult {
 	instances: LeechInstance[];
 }
 
-/**
- * Advances every active leech instance by `dt` seconds. Total heal across all
- * instances is capped at `LEECH_CAP_PCT_MAX_LIFE_PER_SECOND × maxLife` per
- * second — excess healing this tick is dropped, but each instance still
- * burns down its remaining magnitude (no carryover).
- */
 export function tickLeechInstances(
 	instances: LeechInstance[],
 	dt: number,

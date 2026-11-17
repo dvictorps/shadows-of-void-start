@@ -20,11 +20,6 @@ import {
 const COLUMNS = 8;
 const SELECTED_RING = "ring-2 ring-sky-400/80";
 
-/**
- * One side of the stash modal (the bag or the stash): the header with the
- * select-all toggle and the free count, then the grid of drop slots, or
- * `emptyLabel` while the side is empty and nothing is being dragged.
- */
 export default function StashPanel({
 	side,
 	header,

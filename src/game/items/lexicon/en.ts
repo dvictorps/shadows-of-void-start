@@ -1,9 +1,5 @@
 import type { ItemNameLexicon } from "./types";
 
-// English item-naming lexicon. The decomposed shape lets templates declare a
-// (base, modifier) tuple; the renderer composes them as "<modifier> <base>"
-// (EN word order). Modifiers don't inflect — every entry is a flat string.
-
 export const lexiconEn: ItemNameLexicon = {
 	bases: {
 		sword: { name: "Sword" },

@@ -56,9 +56,7 @@ describe("attackWeaponRows", () => {
 		expect(rows.map((r) => [r.value, r.modified])).toEqual([
 			["5-9", false],
 			["1-3", true],
-			// No base crit: compared against the default 5.
 			["7.5%", true],
-			// No base speed: compared against the default 1.
 			["1.00", false],
 		]);
 		expect(rows[1].label).toBe(

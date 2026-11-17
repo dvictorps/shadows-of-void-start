@@ -1,6 +1,6 @@
 # Adding a passive (stub — system not yet implemented)
 
-> **Status**: orientation doc only. The passive-tree system doesn't exist yet. See `docs/plans/in-progress.md` → "Future: passive tree + active skills" for the queue position.
+> **Status**: orientation doc only. The passive-tree system doesn't exist yet. See `docs/plans/passive-tree-and-skills.md` for the queue position.
 >
 > **When you pick this up**: the passive tree is the prerequisite for active skills ([`adding-a-skill.md`](./adding-a-skill.md)). Build it first.
 
@@ -52,8 +52,8 @@ npx tsc --noEmit
 npx vitest run src/game/passives/
 npx vitest run src/game/stats/    # passive allocation must compose with items
 npx vitest run src/game/items/    # don't regress item-driven stats
-npx oxlint src/
+pnpm lint:errors
 pnpm db:generate && pnpm db:migrate:local   # schema additions
 ```
 
-Then `npm run dev`: open the tree, allocate a node, verify the stat panel reflects it, equip an item with the same stat, verify they sum correctly.
+Then `pnpm dev`: open the tree, allocate a node, verify the stat panel reflects it, equip an item with the same stat, verify they sum correctly.

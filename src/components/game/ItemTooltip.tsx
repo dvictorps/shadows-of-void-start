@@ -1,7 +1,3 @@
-// The item tooltip: header, stat blocks, mods, requirements and item level,
-// in a rarity-framed card. This file composes `item-tooltip/*`; the stat
-// lines are data built in `item-tooltip/stat-rows.ts`. Pinned by
-// ItemTooltip.test.tsx.
 import { RarityCard, TooltipSeparator } from "#/components/game/rarity-card";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
 import { m } from "#/paraglide/messages";
@@ -32,7 +28,6 @@ export default function ItemTooltip({
 			showGlow={HAS_GLOW.has(item.rarity)}
 			className="min-w-[260px] max-w-[380px]"
 		>
-			{/* Broken-state warning band — overrides the rarity accent above it. */}
 			{brokenReasons && brokenReasons.length > 0 && (
 				<div className="bg-red-900/40 px-4 py-1 font-bold text-red-300 text-xs uppercase tracking-wider">
 					{brokenReasons.map((r) => (

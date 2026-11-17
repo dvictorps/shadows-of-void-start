@@ -1,14 +1,5 @@
 // @vitest-environment jsdom
 
-// Threat #5: the auto-claim on arriving at /world, the "seen winning" latch,
-// no re-claim after a takeover (two tabs would ping-pong forever), and the
-// failure latch: a rejected claim waits for a manual retry instead of
-// re-firing in a loop.
-//
-// The fake claim stays pending until the test settles it: `settle` resolves
-// it, the way the real one is followed by the character row carrying our
-// token, and `fail` rejects it, the way a network or server error does.
-
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -54,7 +45,6 @@ describe("useSessionClaim", () => {
 		await act(async () => {});
 		expect(claim).toHaveBeenCalledTimes(1);
 		expect(claim).toHaveBeenCalledWith({ characterId: 3, sessionToken: TOKEN });
-		// The claim landed: the patched row carries our token.
 		hook.rerender({ matches: true, id: 3 });
 		await act(async () => settle());
 		expect(claim).toHaveBeenCalledTimes(1);
@@ -85,7 +75,6 @@ describe("useSessionClaim", () => {
 	it("does not fire a second claim while one is in flight", async () => {
 		const { claim, hook, settle } = setup(false);
 		await act(async () => {});
-		// A dep change re-runs the effect while the first claim is pending.
 		hook.rerender({ matches: false, id: 4 });
 		await act(async () => {});
 		expect(claim).toHaveBeenCalledTimes(1);
@@ -98,7 +87,6 @@ describe("useSessionClaim", () => {
 		await act(async () => {});
 		const error = new Error("network down");
 		await act(async () => fail(error));
-		// Re-renders (the 50ms combat tick) must not start another claim.
 		for (let i = 0; i < 5; i++) {
 			hook.rerender({ matches: false, id: 3 });
 			await act(async () => {});

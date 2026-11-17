@@ -1,9 +1,3 @@
-// The stash modal: the character's bag and the account stash side by side.
-// Items move by drag (reorder inside a side, transfer across), by shift-click
-// (transfer one), or by selecting and using the bulk Deposit / Withdraw. This
-// file composes `stash-modal/*` and owns what spans the two sides: the drag
-// and selection state and the transfer calls. The drop decision lives in
-// `stash-modal/drag.ts`. Pinned by StashModal.test.tsx.
 import {
 	closestCenter,
 	DndContext,
@@ -62,16 +56,13 @@ type Props = {
 	onReorderStash: (move: StashMove) => void;
 };
 
-/** A transfer is named after the side it leaves: the bag deposits. */
 type Transfer = "deposit" | "withdraw";
 
-/** The toast when the receiving side has no room. */
 const FULL_MESSAGE = {
 	deposit: () => m.stash_full_error(),
 	withdraw: () => m.inventory_full_error(),
 } satisfies Record<Transfer, () => string>;
 
-/** The toast for a crash or a network failure (a rule error is translated). */
 const FAILED_MESSAGE = {
 	deposit: () => m.error_deposit_failed(),
 	withdraw: () => m.error_withdraw_failed(),
@@ -93,8 +84,6 @@ export default function StashModal({
 	const slotSize = compact ? SLOT_SIZE_COMPACT : SLOT_SIZE_DEFAULT;
 
 	const [active, setActive] = useState<DragSourceData | null>(null);
-	// A drag sits above the modal: dnd-kit's sensor cancels it on Escape by
-	// itself, and this layer keeps that Escape from closing the stash.
 	useEscapeLayer(active !== null);
 	const [invSelected, setInvSelected] = useState(emptySelection);
 	const [stashSelected, setStashSelected] = useState(emptySelection);
@@ -105,15 +94,12 @@ export default function StashModal({
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
 	);
 
-	// Clear both selections on the closed → open edge, during render ("adjust
-	// state when a prop changes") so the first open frame is already clean.
 	const justOpened = useOpenedEdge(isOpen);
 	if (justOpened) {
 		setInvSelected(emptySelection());
 		setStashSelected(emptySelection());
 	}
 
-	// Per side: its items, its selection, and the transfer that leaves it.
 	const sides = {
 		inventory: {
 			direction: "deposit",
@@ -137,7 +123,6 @@ export default function StashModal({
 		return items.find((it) => it.id === active.itemId)?.data ?? null;
 	}, [active, inventoryItems, stashItems]);
 
-	/** Moves one item across (shift-click, drag); toasts a refusal. */
 	const transferOne = async (direction: Transfer, itemId: number) => {
 		try {
 			const { failed } = await (direction === "deposit"
@@ -149,7 +134,6 @@ export default function StashModal({
 		}
 	};
 
-	/** Moves `ids` across; the partial-result line, or null when all fit. */
 	const transferMany = async (
 		direction: Transfer,
 		ids: number[],
@@ -162,7 +146,6 @@ export default function StashModal({
 		return failed > 0 ? m.stash_withdraw_result({ withdrawn, failed }) : null;
 	};
 
-	/** The bulk button: moves the selection, restoring it on a failure. */
 	const transferSelected = async (side: StashSide) => {
 		const { direction, items, selected, setSelected, run } = sides[side];
 		const ids = items.filter((it) => selected.has(it.id)).map((it) => it.id);

@@ -7,7 +7,6 @@ import { cn } from "#/lib/utils";
 
 const LABEL_VARIANT = {
 	default: "",
-	// The small uppercase field caption of the stark forms.
 	caps: "text-xs uppercase tracking-wider text-white/60",
 } as const;
 

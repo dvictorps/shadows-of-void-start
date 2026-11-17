@@ -7,11 +7,6 @@ import {
 } from "#/game/stats/compute";
 import { m } from "#/paraglide/messages";
 
-/**
- * What one point of each attribute gives, as tooltip text. Shared by the
- * status card and the stats sheet so the engine's per-point constants reach
- * the messages in one place.
- */
 export function attributeTooltips() {
 	return {
 		strength: m.attribute_tooltip_strength({

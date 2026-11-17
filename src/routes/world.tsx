@@ -54,7 +54,6 @@ import { serverErrorMessage } from "#/lib/server-error-message";
 import { useWorldCache } from "#/lib/world-cache";
 import { m } from "#/paraglide/messages";
 
-// Coerced: a pasted or bookmarked URL carries the id as text.
 const searchSchema = z.object({
 	characterId: z.coerce.number().int().positive(),
 });
@@ -65,12 +64,8 @@ export const Route = createFileRoute("/world")({
 		await requireSession(context);
 	},
 	loaderDeps: ({ search }) => ({ characterId: search.characterId }),
-	// The three reads the layout needs go out together: one batched request
-	// in the browser, in-process (and dehydrated into the page) during SSR.
 	loader: async ({ context, deps: { characterId } }) => {
 		const { queryClient, trpc } = context;
-		// A failed prefetch is not a route error: the component's own query
-		// retries and shows its error state.
 		await Promise.all([
 			queryClient
 				.query(trpc.characters.byId.queryOptions({ id: characterId }))
@@ -90,9 +85,6 @@ function WorldView() {
 	const { characterId } = Route.useSearch();
 	const navigate = useNavigate();
 	const trpc = useTRPC();
-	// An unknown id (or another account's) resolves to `null` → redirect below.
-	// The only query refetched on window focus: it is how a session taken over
-	// by another tab shows up without a failed write first.
 	const { data: character } = useQuery({
 		...trpc.characters.byId.queryOptions({ id: characterId }),
 		refetchOnWindowFocus: true,
@@ -117,13 +109,8 @@ function WorldView() {
 	return <WorldLayout character={character} />;
 }
 
-// Stable identity for the "no thresholds yet" case (no zone visit yet). A
-// fresh `?? []` would allocate a new reference per render, retriggering the
-// downstream ref-sync useEffect in useEncounterSchedule for no reason.
 const EMPTY_THRESHOLDS: readonly number[] = [];
 
-// The /world grid at each viewport size: the scene column next to the fixed
-// sidebar, and inside it the scene above the text log.
 const LAYOUT = {
 	compact: {
 		main: "grid-cols-world-compact gap-2 p-2",
@@ -135,9 +122,6 @@ const LAYOUT = {
 	},
 };
 
-// Sections, in order: composition (every hook) → handlers → derivations →
-// JSX. Logic with a decision in it lives in `src/game` or a tested hook; this
-// component wires them. See docs/plans/in-progress.md → world.tsx size.
 function WorldLayout({ character }: { character: CharacterRow }) {
 	const navigate = useNavigate();
 	const confirm = useConfirmationModal();
@@ -146,11 +130,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	const cache = useWorldCache(character.id);
 	const classDef = findClassDefinition(character.classId);
 	const { sessionToken } = useSessionToken();
-	// Gate the combat loop on the active-session check — a stale tab whose
-	// claim was stolen by another tab/device shouldn't keep firing recordKill
-	// / syncHp into rejection. The combat HUD freezes silently here; the
-	// next user-initiated mutation surfaces the "Session lost" modal via the
-	// global error handler. See docs/security/threat-model.md → Threat #5.
 	const tokenMatches = character.activeSessionToken === sessionToken;
 	const { mutateAsync: claimSession } = useMutation(
 		trpc.characters.claimCharacterSession.mutationOptions({
@@ -180,9 +159,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	const leaderboardModal = useModal();
 	const leaderboard = useLeaderboardSnapshot(leaderboardModal.isOpen);
 	const currentLocation = character.currentLocation ?? "city";
-	// Memoized on the location so the schedule's plan-bound callbacks
-	// (recordSpawn, cancelAmbush) stay stable: a boss node's plan is built
-	// fresh on each call.
 	const zone = useMemo(
 		() => zoneContextFor(ACT_1, currentLocation),
 		[currentLocation],
@@ -190,8 +166,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	const currentNode = zone.node;
 	const zoneLevel = zone.level ?? character.level;
 
-	// Equipped is always-on because stats (maxLife, damage, etc.) depend on it
-	// for the combat loop.
 	const { data: liveEquipped } = useQuery(
 		trpc.items.equipped.queryOptions({ characterId: character.id }),
 	);
@@ -200,9 +174,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		liveEquipped,
 	);
 
-	// Prefer the live query over the localStorage copy so the snapshot
-	// recomputes the instant the cache holds a new equipped list — the
-	// localStorage layer is only the cold-start fallback.
 	const equippedSnapshot: EquippedItem[] = useMemo(() => {
 		const source = liveEquipped ?? equippedItems ?? [];
 		const out: EquippedItem[] = [];
@@ -265,15 +236,11 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 			arriveAtTravel,
 			onEnterNewArea: (nodeId) => {
 				setDeathLog(null);
-				// A new zone visit starts clean. `combat` is declared below (it
-				// needs `view`); this runs on the entry event, after render.
 				const entered = zoneContextFor(ACT_1, nodeId);
 				combat.startVisit(entered.encounterPlan, entered.bossNode);
 			},
 		});
 
-	// Always loaded: the optimistic equip / unequip / discard updates need a
-	// cached baseline, and the mutations keep it current (no refetch).
 	const { data: liveInventory } = useQuery(
 		trpc.items.inventory.queryOptions({ characterId: character.id }),
 	);
@@ -282,16 +249,12 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		liveInventory,
 	);
 
-	// Stash: fetched the first time the modal opens (~60 items × 1KB), then
-	// kept current by the stash mutations; useCachedQuery covers the cold-open.
 	const { data: liveStash } = useQuery({
 		...trpc.items.stash.queryOptions({ stashMode: stashModeOf(character) }),
 		enabled: stashModal.isOpen,
 	});
 	const stashItems = useCachedQuery(`stash:${character.id}`, liveStash);
 
-	// The bag only matters inside a zone visit; enterZone / exitZone and the
-	// kills keep the cached copy current.
 	const { data: zoneBag } = useQuery({
 		...trpc.items.zoneBag.queryOptions({ characterId: character.id }),
 		enabled:
@@ -337,17 +300,9 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		bossNode: zone.bossNode,
 		serverCampThresholdsMs: character.campThresholdsMs ?? EMPTY_THRESHOLDS,
 		active: view === "combat" && !exitModal.isOpen && tokenMatches,
-		// The tick fires this and moves on; `handlePlayerDeath` catches its own
-		// errors (toast), so nothing is left to await. It is declared with the
-		// handlers below and only called after render.
 		onPlayerDeath: () => void handlePlayerDeath(),
 	});
 
-	// Spam-click guards. `useInFlight(view)` resets each flag on view change
-	// so a slow request finishing after navigating away doesn't leave the
-	// next visit's button stuck disabled. The enter-node flag is discarded
-	// (no JSX disabled wiring — the in-handler early-return inside `run…` is
-	// the full guard). The stone and retreat flags live in `useExitFlow`.
 	const [isUsingPotion, runUsePotion] = useInFlight(view);
 	const runEnterNode = useInFlight(view)[1];
 	const { isUsingIncense, lightIncense } = useIncenseGuard(
@@ -366,9 +321,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		setPendingArrival,
 	});
 
-	// City entry restores barrier to full (ADR 0005). Destructure
-	// restoreToFull so the dep is the memoized callback, not the freshly-
-	// constructed barrierApi object (which would re-fire every render).
 	const { restoreToFull: restoreBarrierToFull } = barrierApi;
 	useEffect(() => {
 		if (view === "city") restoreBarrierToFull();
@@ -380,8 +332,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 			if (result.mode === "softcore") {
 				const message = m.you_died_softcore({ xp: result.xpLost });
 				setDeathLog(message);
-				// Respawn in the city — server resets currentLocation to "city" and
-				// clears travel state. View follows.
 				setView("city");
 				setPendingArrival(null);
 				toast.error(message);
@@ -395,12 +345,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	};
 
 	const handleEnterNode = (nodeId: string) =>
-		// `pendingArrival` catches subsequent clicks once set, but the click →
-		// confirm → setPendingArrival flow leaves a small window where two
-		// clicks could both fire startTravel. `runEnterNode` bails synchronously
-		// on re-entry; the stone branch additionally hops onto the exit flow's
-		// `runUseTeleportStone` so a map-click stone jump shares its flag with
-		// the HUD's panic stone.
 		runEnterNode(async () => {
 			if (isTraveling) return;
 			const click = resolveNodeClick({
@@ -461,16 +405,9 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	const handleSwitchElement = async (element: SelectableElement) => {
 		try {
 			await switchElement({ characterId: character.id, element });
-		} catch {
-			// Cooldown or non-mage — silently swallowed
-		}
+		} catch {}
 	};
 
-	// Spam-click guard around `combat.drinkPotion`. The local `potions` count
-	// already optimistically decrements, but a fast double-tap before the
-	// optimistic update reaches React can fire `consumePotion` twice and the
-	// second call gets rejected. `useInFlight` handles the early-return +
-	// try/finally; the buttons' disabled state ANDs in `!isUsingPotion`.
 	const handleUsePotion = () => runUsePotion(() => combat.drinkPotion());
 
 	const handleLeaveWorld = async () => {
@@ -620,7 +557,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 						itemIds,
 					});
 				}}
-				// Safe to `void`: reorderOrToast never rejects.
 				onReorderStash={(move) =>
 					void reorderOrToast(reorderStash, character.id, move)
 				}
@@ -634,9 +570,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 				query={leaderboard.query}
 				onQueryChange={leaderboard.setQuery}
 			/>
-			{/* Gated mount (unique among the modals): currentBarrier/currentLife
-				change every 50ms combat tick, so unmounting when closed avoids
-				re-evaluating the stats subtree on every tick. */}
 			{statsModal.isOpen && (
 				<ShowStatsModal
 					isOpen

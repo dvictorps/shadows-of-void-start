@@ -13,7 +13,6 @@ import type { DragSourceData, DropTargetData } from "./drag";
 export const INVENTORY_SLOT_SIZE = 112;
 const INVENTORY_COLUMNS = 8;
 
-/** The bag: the free-slot count and the bag grid, each slot a drop target. */
 export default function BagGrid({
 	inventory,
 	dragging,

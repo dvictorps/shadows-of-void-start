@@ -26,11 +26,6 @@ import { serverErrorMessage } from "#/lib/server-error-message";
 import { m } from "#/paraglide/messages";
 
 export const Route = createFileRoute("/character-select")({
-	// The role is read here so the page renders the admin button on the very
-	// first frame (no flash where it appears late). Admin-only queries are
-	// fired non-blocking from the same loader: by the time the user reaches
-	// for the "Admin Dashboard" button, the tab queries are cached. Non-admins
-	// never trigger them.
 	loader: async ({ context }) => {
 		const me = await requireSession(context);
 		if (me.role === "admin") {
@@ -55,8 +50,6 @@ function CharacterSelectPage() {
 				),
 		}),
 	);
-	// The new row (with its starter stats) comes from the server, so the list
-	// is refetched rather than predicted.
 	const { mutateAsync: createCharacter } = useMutation(
 		trpc.characters.create.mutationOptions({
 			onSuccess: () => queryClient.invalidateQueries({ queryKey: listKey }),
@@ -99,16 +92,11 @@ function CharacterSelectPage() {
 		}
 	};
 
-	// Claim-then-navigate: the active-session token must be stamped on the
-	// character before /world mounts, so the world's token-equality gate sees
-	// it on its first fetch and any prior tab gets bumped to the "Session
-	// lost" modal on its next write (threat #5).
 	const handlePlay = () =>
 		runClaim(async () => {
 			if (!selected) return;
 			try {
 				await claimSession({ characterId: selected.id, sessionToken });
-				// A character cached from an earlier visit carries the old token.
 				queryClient.setQueryData(
 					trpc.characters.byId.queryKey({ id: selected.id }),
 					(row) => (row ? { ...row, activeSessionToken: sessionToken } : row),
@@ -148,7 +136,6 @@ function CharacterSelectPage() {
 
 			<div className="flex h-full items-center justify-center p-6">
 				<div className="flex h-full max-h-full w-full max-w-md flex-col rounded-md border border-white/40 p-4">
-					{/* List area */}
 					<div className="mb-4 flex-1 overflow-hidden rounded-md border border-white/40">
 						{characters === undefined ? (
 							<div className="flex h-full items-center justify-center text-xs uppercase tracking-label text-muted-foreground">
@@ -178,7 +165,6 @@ function CharacterSelectPage() {
 						)}
 					</div>
 
-					{/* Action buttons */}
 					<div className="grid grid-cols-3 gap-3">
 						<Button
 							type="button"

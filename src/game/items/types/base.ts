@@ -1,5 +1,3 @@
-// ── Equipment slots ──
-
 export const EQUIPMENT_TYPES = {
 	weapon: { id: "weapon", name: "Weapon", slot: "mainHand" },
 	offhand: { id: "offhand", name: "Off-hand", slot: "offHand" },
@@ -15,8 +13,6 @@ export const EQUIPMENT_TYPES = {
 } as const;
 
 export type EquipmentType = keyof typeof EQUIPMENT_TYPES;
-
-// ── Weapon subtypes ──
 
 export const WEAPON_TYPES = {
 	sword: {
@@ -86,8 +82,6 @@ export const WEAPON_TYPES = {
 
 export type WeaponType = keyof typeof WEAPON_TYPES;
 
-// ── Attack weapon subtypes (excludes spell weapons: staff/wand) ──
-
 export const ATTACK_WEAPON_TYPES = [
 	"sword",
 	"greatsword",
@@ -97,8 +91,6 @@ export const ATTACK_WEAPON_TYPES = [
 	"mace",
 	"twoHandedAxe",
 ] as const satisfies readonly WeaponType[];
-
-// ── Armor subtypes ──
 
 export const ARMOR_TYPES = {
 	silk: {
@@ -123,8 +115,6 @@ export const ARMOR_TYPES = {
 
 export type ArmorType = keyof typeof ARMOR_TYPES;
 
-// ── Damage elements ──
-
 export const DAMAGE_ELEMENTS = {
 	physical: "physical",
 	cold: "cold",
@@ -136,8 +126,6 @@ export const DAMAGE_ELEMENTS = {
 export type DamageElement =
 	(typeof DAMAGE_ELEMENTS)[keyof typeof DAMAGE_ELEMENTS];
 
-// ── Valid base stat keys ──
-
 export type BaseStatKey =
 	| "minDamage"
 	| "maxDamage"
@@ -148,13 +136,8 @@ export type BaseStatKey =
 	| "barrier"
 	| "blockChance";
 
-// The crit chance (%) and attack speed (swings/s) an attack weapon has when
-// its template leaves them out. Not CRIT_CHANCE_FLOOR: same value today, but
-// that one is the combat floor, this one a template default.
 export const DEFAULT_WEAPON_CRIT_CHANCE = 5;
 export const DEFAULT_WEAPON_ATTACK_SPEED = 1;
-
-// ── Equipment groups (single source of truth for applicableTo) ──
 
 export const EQUIPMENT_GROUPS = {
 	allArmor: ["helmet", "chestplate", "boots", "gloves"] as const,
@@ -163,7 +146,5 @@ export const EQUIPMENT_GROUPS = {
 } as const;
 
 export type EquipmentGroup = keyof typeof EQUIPMENT_GROUPS;
-
-// ── Modifier target (union of equipment type + weapon subtype + group) ──
 
 export type ModifierApplicableTo = EquipmentType | WeaponType | EquipmentGroup;

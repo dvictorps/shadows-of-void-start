@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import { useTicker } from "#/hooks/useTicker";
 import { m } from "#/paraglide/messages";
 
 type Props = {
@@ -9,33 +10,28 @@ type Props = {
 	arrivesAtMs: number;
 };
 
-/**
- * Bottom-pinned banner with a CSS `scaleX(0 → 1)` fill over the trip's
- * remaining time. Animation params lock on first render so the
- * optimistic→server `arrivesAtMs` swap (~100-200ms diff) doesn't
- * re-anchor the keyframe mid-trip. Caller keys the component on
- * `travelDestination` to guarantee a fresh mount per trip.
- */
 export default function TravelProgressBar({
 	fromName,
 	toName,
 	arrivesAtMs,
 }: Props) {
-	const [now, setNow] = useState(() => Date.now());
+	const [{ endsAtMs, durationMs }] = useState(() => {
+		const start = Date.now();
+		const end = Math.max(start + 100, arrivesAtMs);
+		return { endsAtMs: end, durationMs: end - start };
+	});
+	const secondsLeft = () =>
+		Math.max(0, Math.ceil((endsAtMs - Date.now()) / 1000));
+	const [remainingSeconds, setRemainingSeconds] = useState(secondsLeft);
 
-	useEffect(() => {
-		const id = window.setInterval(() => setNow(Date.now()), 1000);
-		return () => window.clearInterval(id);
-	}, []);
+	useTicker(remainingSeconds > 0, 250, () =>
+		setRemainingSeconds(secondsLeft()),
+	);
 
-	// Lock on first render (lazy initial state); ignore later arrivesAtMs
-	// updates so the CSS animation doesn't restart mid-trip.
 	const [animationStyle] = useState<CSSProperties>(() => ({
-		animation: `travel-fill ${Math.max(100, arrivesAtMs - Date.now())}ms linear both`,
+		animation: `travel-fill ${durationMs}ms linear both`,
 		transformOrigin: "left center",
 	}));
-
-	const remainingSeconds = Math.max(0, Math.ceil((arrivesAtMs - now) / 1000));
 
 	return (
 		<div className="pointer-events-none absolute right-0 bottom-0 left-0 px-4 pb-4">

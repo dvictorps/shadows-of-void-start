@@ -46,11 +46,6 @@ export function getClassDefinition(
 	return CLASS_DEFINITIONS[id];
 }
 
-/**
- * Safe lookup for a class id that may have come from persisted data.
- * Returns null if the id is unknown (e.g., a class was removed from game data
- * but a character with that classId still exists in the database).
- */
 export function findClassDefinition(
 	id: string,
 ): CharacterClassDefinition | null {

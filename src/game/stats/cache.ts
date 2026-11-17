@@ -2,10 +2,6 @@ import { findClassDefinition } from "../classes/data";
 import { computeCharacterStats } from "./compute";
 import type { EquippedItem, SelectableElement } from "./types";
 
-// The four stats the server caches on the character row so the hot
-// procedures (recordKill, syncHp, potions, travel) skip the stat engine.
-// Refreshed on create, equip / unequip and level-up. Field names match the
-// `characters` columns, so the result spreads straight into an update.
 export interface StatCache {
 	cachedMaxLife: number;
 	cachedMaxBarrier: number;

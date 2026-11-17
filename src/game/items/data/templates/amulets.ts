@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Amulets — one base per attribute type, no tier progression
 export const AMULET_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "gold_amulet",

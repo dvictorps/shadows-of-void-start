@@ -1,13 +1,3 @@
-// What each server error string translates to: the exact matches from
-// SERVER_ERRORS, the substring and parametric ones (wording kept inline at
-// the throw site), and the raw passthrough for anything unknown.
-//
-// Left untranslated on purpose: the refusals the UI can't reach, because the
-// client only ever sends ids it got from the server or the static data
-// (`Unknown combat zone / monster / destination`, `Unknown current location`,
-// `No route from … to …`, `Invalid camp threshold`, `Invalid slot`,
-// `Invalid stash slot`). They pass through raw, like any unknown message.
-
 import { describe, expect, it } from "vitest";
 
 import { m } from "#/paraglide/messages";

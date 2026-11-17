@@ -1,11 +1,5 @@
 // @vitest-environment jsdom
 
-// What the leaderboard renders for a snapshot and which tab change it asks
-// for: the category and mode tabs, the class filter (level only), the
-// hardcore fallen toggle, the table per category, the empty state and the
-// snapshot time. The route fetches the snapshot (`useLeaderboardSnapshot`)
-// and passes it in, with the tabs as `query` / `onQueryChange`.
-
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -66,7 +60,6 @@ function setup(overrides: Partial<Props> = {}) {
 
 const tab = (name: string) => screen.getByRole("button", { name });
 
-/** Each body row's cells, as text. */
 function rows() {
 	return screen
 		.getAllByRole("row")

@@ -4,11 +4,6 @@ import { translateNodeName } from "#/game/world/i18n";
 import MapScene from "./MapScene";
 import TravelProgressBar from "./TravelProgressBar";
 
-/**
- * The map view of /world: the act map plus the travel overlay. The overlay
- * renders only when both ends of the trip resolve (defensive: the server
- * validated the route on `startTravel`).
- */
 export function WorldMapPane({
 	currentNode,
 	currentLocation,

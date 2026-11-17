@@ -1,32 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-//  Item generator — rolls a GeneratedItem from a template + rarity + ilvl.
-//  Pure (deterministic given a seeded RNG). Used by the loot pipeline and by
-//  starter-gear. The public entry point is `generateItem`.
-//
-//  Sections (grep the headers to jump):
-//    ── RNG helpers ──                              pickRandom, pickWeighted (non-empty)
-//    ── Name generation ──                          rare/legendary/epic naming
-//    ── Value formatting ──                         describes mod values for display
-//    ── Defense label resolution ──                 local defense → armor/evasion/barrier
-//    ── Modifier eligibility ──                     resolves applicableTo against template
-//    ── Synergy system ──                           intelligent rolls for epic/legendary
-//    ── Deterministic epic mod patterns ──          fixed archetypes for epic rolls
-//    ── Rolling logic ──                            rollImplicits, rollExplicits  ← core
-//    ── Compute weapon stats ──                     bakes statEffect mods into computedStats
-//    ── Compute armor stats ──                      same for defense pieces (incl. tomes)
-//    ── Item naming ──                              composes affix names onto template
-//    ── Public API ──                               GenerateItemOptions, generateItem  ← entry
-//
-//  Common tasks:
-//    • Add a new modifier id      →  see `data/modifiers/`; if it has statEffect, also
-//                                    extend computeWeaponStats / computeArmorStats here
-//    • Add a new equipment type   →  Modifier eligibility (groups), Compute armor stats,
-//                                    and `data/templates/`
-//    • Change rarity / mod counts →  see MOD_LIMITS in `types/mods.ts`; consumed by
-//                                    rollExplicits below
-//    • Add a new local statEffect →  case in computeWeaponStats or computeArmorStats
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { chance, defaultRng, randInt, type Rng } from "#/lib/rng";
 
 import {
@@ -57,10 +28,6 @@ import {
 	MOD_LIMITS,
 } from "./types";
 
-// ── RNG helpers ──
-// Non-empty variants of `#/lib/rng`'s pickers (every call site here has
-// already guarded the length), drawing from the item's `rng`.
-
 function pickRandom<T>(arr: T[], rng: Rng): T {
 	return arr[Math.floor(rng.unit() * arr.length)];
 }
@@ -72,8 +39,6 @@ function pickWeighted<T>(
 ): T {
 	const totalWeight = items.reduce((sum, item) => sum + getWeight(item), 0);
 	let roll = rng.unit() * totalWeight;
-	// Float drift can leave `roll` a hair above 0 after the loop; fall back to
-	// the last item.
 	let last = items[0];
 	for (const item of items) {
 		roll -= getWeight(item);
@@ -82,8 +47,6 @@ function pickWeighted<T>(
 	}
 	return last;
 }
-
-// ── Value formatting ──
 
 function formatValue(value: number): string {
 	return String(Math.round(value));
@@ -103,8 +66,6 @@ function formatRangeDescription(
 		`${formatValue(min)}-${formatValue(max)}`,
 	);
 }
-
-// ── Defense label resolution (local defense mods adapt to armor base type) ──
 
 type DefenseStatKey = "armor" | "evasion" | "barrier";
 
@@ -132,8 +93,6 @@ export function resolveDefenseFormat(
 	return displayFormat;
 }
 
-// ── Modifier eligibility (derived from applicableTo, resolves groups) ──
-
 function isGroupKey(target: string): target is EquipmentGroup {
 	return target in EQUIPMENT_GROUPS;
 }
@@ -145,10 +104,6 @@ const MOD_REQUIRED_ARMOR_TYPE: ReadonlyMap<ModifierId, ArmorType> = new Map([
 	["globalSpellDamageIncrease", "silk"],
 ]);
 
-// Maps the four spell-flat mod ids (isGlobalStat-tagged, no statEffect) to the
-// elemental damage entry they fold into the spell weapon's swing. The mods
-// don't accumulate as character globals — see compute.ts no-op for the same
-// ids. Exported so tests can assert against the same source-of-truth.
 export const SPELL_FLAT_TO_ELEMENT: ReadonlyMap<string, string> = new Map([
 	["coldDamageFlat", "Cold"],
 	["fireDamageFlat", "Fire"],
@@ -160,9 +115,6 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 	return MODIFIER_IDS.filter((modId) => {
 		const mod = getModifier(modId);
 
-		// Gate mods to a specific armor base, from either the per-mod inline
-		// field (ADR 0007) or the legacy MOD_REQUIRED_ARMOR_TYPE registry.
-		// Non-armor templates (weapons, jewelry, tomes) pass through.
 		const requiredArmorType =
 			mod.restrictedToArmorType ?? MOD_REQUIRED_ARMOR_TYPE.get(modId);
 		if (
@@ -173,8 +125,6 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 			return false;
 		}
 
-		// Slot-conditional implicit gate (ADR 0007). Only narrows amulets —
-		// the slot where attribute-typed implicits live. Other slots pass.
 		if (mod.restrictedToImplicitMod && template.equipmentType === "amulet") {
 			const hasImplicit = template.implicits.some(
 				(imp) => imp.modifierId === mod.restrictedToImplicitMod,
@@ -197,8 +147,6 @@ function getModifiersForTemplate(template: EquipmentTemplate): ModifierId[] {
 		});
 	});
 }
-
-// ── Synergy system (intelligent generation for epic/legendary) ──
 
 const SYNERGY_MULTIPLIERS = {
 	epic: 3,
@@ -226,8 +174,6 @@ export function getSynergyWeight(
 
 const SPELL_WEAPON_SET = new Set(["staff", "wand"]);
 const ARMOR_SLOTS = new Set(["helmet", "chestplate", "boots", "gloves"]);
-
-// ── Deterministic epic mod patterns ──
 
 type EpicArchetype =
 	| "attackWeapon"
@@ -273,8 +219,6 @@ const EPIC_MOD_PATTERNS = {
 			"globalLightningDamageIncrease",
 			"globalVoidDamageIncrease",
 			"globalElementalDamageIncrease",
-			// Mage-flavor: applicableTo includes "staff" only — wands are
-			// eligibility-filtered out, so epic wands never get these.
 			"tomeGainAsExtraCold",
 			"tomeGainAsExtraFire",
 			"tomeGainAsExtraLightning",
@@ -292,9 +236,6 @@ const EPIC_MOD_PATTERNS = {
 			"localDefenseFlat",
 			"healthFlat",
 			"manaFlat",
-			// Mage-flavor: applicableTo includes "gloves" only AND
-			// restrictedToArmorType "silk" — epic plate/leather gloves never
-			// roll these; epic helmet/chestplate never roll these.
 			"tomeGainAsExtraCold",
 			"tomeGainAsExtraFire",
 			"tomeGainAsExtraLightning",
@@ -376,9 +317,6 @@ const EPIC_MOD_PATTERNS = {
 			"globalPhysicalDamageIncrease",
 			"globalSpellDamageIncrease",
 			"lifeGainOnHitFlat",
-			// Mage-flavor: restrictedToImplicitMod "intelligenceFlat" narrows
-			// these to lapis_amulet only — epic gold/jade/amber amulets are
-			// eligibility-filtered out.
 			"tomeGainAsExtraCold",
 			"tomeGainAsExtraFire",
 			"tomeGainAsExtraLightning",
@@ -413,8 +351,6 @@ function getEpicArchetype(template: EquipmentTemplate): EpicArchetype | null {
 
 const EPIC_MIN_TIER = 4;
 
-// ── Rolling logic ──
-
 function rollImplicits(
 	template: EquipmentTemplate,
 	rng: Rng,
@@ -441,7 +377,6 @@ function rollExplicits(
 	const totalTarget = randInt(limits.totalMin, limits.totalMax, rng);
 	const availableModifiers = getModifiersForTemplate(template);
 
-	// Epic: use deterministic mod patterns
 	const isEpic = rarity === "epic";
 	const epicArchetype = isEpic ? getEpicArchetype(template) : null;
 	const epicPattern = epicArchetype ? EPIC_MOD_PATTERNS[epicArchetype] : null;
@@ -470,12 +405,10 @@ function rollExplicits(
 	const mods: RolledMod[] = [];
 	const usedModIds = new Set<string>();
 
-	// Synergy: seed tags for legendary only now (epic uses deterministic patterns)
 	const synergyMultiplier =
 		rarity === "legendary" ? (SYNERGY_MULTIPLIERS[rarity] ?? 0) : 0;
 	const rolledTags = new Set<string>();
 
-	// Pre-resolve tiers for all available modifiers at this item level
 	const tierCache = new Map<
 		ModifierId,
 		ReturnType<typeof getModifierTierForItemLevel>
@@ -488,9 +421,6 @@ function rollExplicits(
 	const availableSet: Set<string> = new Set(availableModifiers);
 
 	const getEligible = (affixType: "prefix" | "suffix"): ModifierId[] => {
-		// Epic: draw from the archetype pool, but intersect with the template's
-		// real eligibility so applicableTo / restrictedToArmorType /
-		// restrictedToImplicitMod are honored at epic rarity too.
 		if (epicPattern) {
 			const pool =
 				affixType === "prefix" ? epicPattern.prefixes : epicPattern.suffixes;
@@ -528,9 +458,7 @@ function rollExplicits(
 		const mod = getModifier(modId);
 		let tier = tierCache.get(modId)!;
 
-		// Epic: clamp to minimum tier 4 (lower number = better, so use Math.min)
 		if (isEpic && tier.tier > EPIC_MIN_TIER) {
-			// Find tier 4 for this modifier
 			const modDef = getModifier(modId);
 			const tier4 = modDef.tiers.find((t) => t.tier === EPIC_MIN_TIER);
 			if (tier4) tier = tier4;
@@ -542,7 +470,6 @@ function rollExplicits(
 			template.armorType,
 		);
 
-		// All flat damage mods roll as min-max range (min = half of max)
 		const isFlatDamage =
 			mod.modifierType === "flat" &&
 			mod.category === "offensive" &&
@@ -585,7 +512,6 @@ function rollExplicits(
 		if (!rollMod("suffix")) break;
 	}
 
-	// Sort: prefixes first (increased → flat), then suffixes (increased → flat)
 	mods.sort((a, b) => {
 		const affixOrder = (m: RolledMod) => (m.affixType === "prefix" ? 0 : 1);
 		const typeOrder = (m: RolledMod) =>
@@ -598,12 +524,8 @@ function rollExplicits(
 	return mods;
 }
 
-// ── Compute weapon stats (base + local mods via statEffect) ──
-
 type WeaponElementalDamage = ComputedWeaponStats["elementalDamage"][number];
 
-/** The base physical plus the local weapon mods: flat physical, the
- * `% increased` pools and the flat elemental (spell flats included) lines. */
 function sumLocalWeaponMods(
 	baseStats: Partial<Record<BaseStatKey, number>>,
 	explicits: RolledMod[],
@@ -656,7 +578,6 @@ function sumLocalWeaponMods(
 				break;
 			case "defense":
 			case "blockChance":
-				// Armor targets: computeArmorStats applies them.
 				break;
 		}
 	}
@@ -672,19 +593,16 @@ export function computeWeaponStats(
 	let atkSpeed = baseStats.attackSpeed ?? DEFAULT_WEAPON_ATTACK_SPEED;
 	let critChance = baseStats.criticalChance ?? DEFAULT_WEAPON_CRIT_CHANCE;
 
-	// Apply %increased physical damage: base+flat → ×(1 + %inc)
 	if (sum.physIncrease > 0) {
 		minPhys = Math.round(minPhys * (1 + sum.physIncrease / 100));
 		maxPhys = Math.round(maxPhys * (1 + sum.physIncrease / 100));
 	}
 
-	// Apply %increased attack speed
 	if (sum.atkSpeedIncrease > 0) {
 		atkSpeed =
 			Math.round(atkSpeed * (1 + sum.atkSpeedIncrease / 100) * 100) / 100;
 	}
 
-	// Apply %increased critical strike chance (multiplicative, not flat)
 	if (sum.critIncrease > 0) {
 		critChance = critChance * (1 + sum.critIncrease / 100);
 	}
@@ -696,8 +614,6 @@ export function computeWeaponStats(
 		criticalChance: Math.round(critChance * 10) / 10,
 	};
 }
-
-// ── Compute armor stats (base + local defense mods via statEffect) ──
 
 function computeArmorStats(
 	baseStats: Partial<Record<BaseStatKey, number>>,
@@ -720,7 +636,6 @@ function computeArmorStats(
 			if (modifier.statEffect.operation === "flat") flatBonus += mod.value;
 			else defenseIncrease += mod.value;
 		} else if (modifier.statEffect.target === "blockChance") {
-			// Additive across base + impl + expl (see docs/plans/2026-05-28).
 			blockAdditive += mod.value;
 		}
 	};
@@ -731,10 +646,6 @@ function computeArmorStats(
 	const baseDefense = defenseInfo ? (baseStats[defenseInfo.stat] ?? 0) : 0;
 	const baseBlock = baseStats.blockChance ?? 0;
 
-	// Emit computedDefenseStats whenever the item has a defensive baseline OR
-	// a defense/block mod rolled. The previous implementation only emitted on
-	// rolled mods, which silently dropped the item's base armor/evasion/barrier
-	// and shield blockChance for Normal pieces or rolls without defense mods.
 	const hasDefense = defenseInfo && (baseDefense > 0 || flatBonus !== 0);
 	const hasBlock = baseBlock > 0 || blockAdditive > 0;
 
@@ -758,16 +669,12 @@ function computeArmorStats(
 	return result;
 }
 
-// ── Public API ──
-
 export interface GenerateItemOptions {
 	itemLevel?: number;
 	rarity: ItemRarity;
 	templateId?: string;
 }
 
-/** Rolls a new item. `rng` defaults to the ambient source; tests pass
- * `seededRng(seed)` for a reproducible item. */
 export function generateItem(
 	options: GenerateItemOptions,
 	rng: Rng = defaultRng,

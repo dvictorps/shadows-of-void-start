@@ -22,8 +22,6 @@ describe("xpToNextLevel", () => {
 	});
 
 	it("hits documented landmarks", () => {
-		// Sanity-check the user-facing pacing claims in CONTEXT.md. If these
-		// shift, the doc needs to shift too.
 		expect(xpToNextLevel(50)).toBe(4342);
 		expect(xpToNextLevel(100)).toBe(203681);
 	});
@@ -82,7 +80,6 @@ describe("applyDeathXpPenalty", () => {
 
 	it("never goes negative", () => {
 		const r = applyDeathXpPenalty(3);
-		// floor(3 × 0.05) = 0, so no loss on tiny XP balances
 		expect(r.xp).toBe(3);
 		expect(r.xpLost).toBe(0);
 	});
@@ -90,24 +87,19 @@ describe("applyDeathXpPenalty", () => {
 
 describe("applyOverlevelPenalty", () => {
 	it("is a no-op within the 2-level grace window", () => {
-		expect(applyOverlevelPenalty(100, 5, 5)).toBe(100); // same level
-		expect(applyOverlevelPenalty(100, 6, 5)).toBe(100); // +1
-		expect(applyOverlevelPenalty(100, 7, 5)).toBe(100); // +2
+		expect(applyOverlevelPenalty(100, 5, 5)).toBe(100);
+		expect(applyOverlevelPenalty(100, 6, 5)).toBe(100);
+		expect(applyOverlevelPenalty(100, 7, 5)).toBe(100);
 	});
 
 	it("kicks in quadratically from +3 levels over", () => {
-		// delta = 1 → (1 - 0.1)^2 = 0.81
 		expect(applyOverlevelPenalty(100, 8, 5)).toBe(81);
-		// delta = 3 → (1 - 0.3)^2 = 0.49
 		expect(applyOverlevelPenalty(100, 10, 5)).toBe(49);
-		// delta = 5 → (1 - 0.5)^2 = 0.25
 		expect(applyOverlevelPenalty(100, 12, 5)).toBe(25);
 	});
 
 	it("floors at 5% so kills always grant some XP", () => {
-		// delta = 12 → (1 - 1.2)^2 = 0.04 → clamped to 0.05
 		expect(applyOverlevelPenalty(100, 19, 5)).toBe(5);
-		// Extreme over-leveling still floors
 		expect(applyOverlevelPenalty(100, 99, 5)).toBe(5);
 	});
 

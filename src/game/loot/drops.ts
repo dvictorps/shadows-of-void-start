@@ -13,11 +13,6 @@ import type { GeneratedItem, ItemRarity } from "../items/types";
 import type { EquipmentType } from "../items/types/base";
 import type { MonsterRarity } from "../monsters/types";
 
-// Equipment-type roll weights. weapon is the most build-defining drop and
-// players consistently called out that a 1-of-11 uniform pick made weapons
-// feel rare — a 3× bump puts weapons at ~23% of all drops (was ~9%), making
-// it the single most common category without flooding (still less than the
-// 4-armor / 3-jewelry / 3-offhand-class clusters combined).
 const DROP_TYPE_WEIGHTS: Array<{ type: EquipmentType; weight: number }> = [
 	{ type: "weapon", weight: 3 },
 	{ type: "helmet", weight: 1 },
@@ -32,8 +27,6 @@ const DROP_TYPE_WEIGHTS: Array<{ type: EquipmentType; weight: number }> = [
 	{ type: "belt", weight: 1 },
 ];
 
-// Drop probabilities & rarity distributions per mob rarity, mirroring the
-// CONTEXT.md Act 1 baseline table.
 const DROP_TABLE = {
 	normal: {
 		dropChance: 0.3,
@@ -52,7 +45,6 @@ const DROP_TABLE = {
 		],
 	},
 	rare: {
-		// Minibosses always drop; the guarantee handling lives on the caller.
 		dropChance: 1,
 		rarity: [
 			{ rarity: "normal", weight: 30 },
@@ -61,9 +53,6 @@ const DROP_TABLE = {
 		],
 	},
 	unique: {
-		// Act-boss distribution per CONTEXT.md → Drop rates. The guarantee
-		// handling + multi-item rolling live on the caller (`rollBossDrops`).
-		// No Normal entries — boss loot floor is Magic.
 		dropChance: 1,
 		rarity: [
 			{ rarity: "magic", weight: 25 },
@@ -75,8 +64,6 @@ const DROP_TABLE = {
 	{ dropChance: number; rarity: Array<{ rarity: ItemRarity; weight: number }> }
 >;
 
-// chance = basePct% × (1 + magicFind / 100), chained per tier
-// Rarities absent from the map (epic, unique) are terminal.
 const PROMOTION_CHAIN: ReadonlyMap<
 	ItemRarity,
 	{ next: ItemRarity; basePct: number }
@@ -107,8 +94,6 @@ function pickRarity(
 	distribution: { rarity: ItemRarity; weight: number }[],
 	rng: Rng,
 ): ItemRarity {
-	// "normal" only satisfies the type: every DROP_TABLE distribution is
-	// non-empty, so `.at(-1)` always resolves.
 	return (
 		pickWeighted(distribution, (e) => e.weight, rng)?.rarity ??
 		distribution.at(-1)?.rarity ??
@@ -131,10 +116,6 @@ export interface RollDropParams {
 	magicFind?: number;
 }
 
-/**
- * Rolls a single item at a forced rarity. Used for guaranteed-rarity slots
- * (e.g., the miniboss's guaranteed Rare). Skips the drop-chance gate.
- */
 function rollItemAtRarity(
 	rarity: ItemRarity,
 	monsterLevel: number,
@@ -144,14 +125,8 @@ function rollItemAtRarity(
 	if (!picked) return null;
 	const equipmentType = picked.type;
 
-	// Hand control of weapon-subtype and armor-base to the template list: pick
-	// any template of the right equipment type whose dropLevel allows it at
-	// this ilvl. Weapon subtype variety and armor-base diversity emerge for
-	// free from the existing template pool.
 	let candidates = templatesForType(equipmentType, monsterLevel);
 	if (candidates.length === 0) {
-		// Fallback — no template eligible at this level for this type. Try any
-		// template of the same type ignoring dropLevel; if still none, bail.
 		candidates = EQUIPMENT_TEMPLATES.filter(
 			(t) => t.equipmentType === equipmentType,
 		);
@@ -165,11 +140,6 @@ function rollItemAtRarity(
 	);
 }
 
-/**
- * Rolls a single drop for a monster kill. Returns null when nothing drops.
- * For mobs that drop multiple items (minibosses, act bosses), use the
- * dedicated `rollMinibossDrops` instead.
- */
 export function rollDrop(
 	params: RollDropParams,
 	rng: Rng = defaultRng,
@@ -181,11 +151,6 @@ export function rollDrop(
 	return rollItemAtRarity(rarity, params.monsterLevel, rng);
 }
 
-/**
- * Rolls the miniboss drop set per CONTEXT.md → Loot Pipeline → Drop rates:
- * two items, one guaranteed Rare and one rolled via the rare-tier table
- * (30 Normal / 55 Magic / 15 Rare). MF can promote the guaranteed Rare.
- */
 export function rollMinibossDrops(
 	params: { monsterLevel: number; magicFind?: number },
 	rng: Rng = defaultRng,
@@ -207,11 +172,6 @@ export function rollMinibossDrops(
 	return drops;
 }
 
-/**
- * Act-boss drop set per CONTEXT.md → Drop rates: 2-3 items with one
- * guaranteed Rare; remaining slots use the unique table (75% Rare / 25%
- * Magic, no Normals). MF-based rarity promotion is applied per-slot.
- */
 export function rollBossDrops(
 	params: { monsterLevel: number; magicFind?: number },
 	rng: Rng = defaultRng,
@@ -225,7 +185,6 @@ export function rollBossDrops(
 		rng,
 	);
 	if (guaranteed) drops.push(guaranteed);
-	// 2-3 items: always emit a second from the table, 50/50 on a third.
 	const extras = chance(0.5, rng) ? 1 : 2;
 	for (let i = 0; i < extras; i++) {
 		const rolled = rollDrop(
@@ -241,10 +200,6 @@ export function rollBossDrops(
 	return drops;
 }
 
-/**
- * Resolves a monster's instance level from the zone level — uniformly rolls
- * one of zoneLevel-1, zoneLevel, zoneLevel+1, floored at 1.
- */
 export function rollMonsterLevel(
 	zoneLevel: number,
 	rng: Rng = defaultRng,
@@ -252,5 +207,4 @@ export function rollMonsterLevel(
 	return Math.max(1, zoneLevel + randInt(-1, 1, rng));
 }
 
-// Suppress unused-export linter for the EquipmentType import when only used in types.
 export type { EquipmentType };

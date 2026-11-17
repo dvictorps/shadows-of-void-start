@@ -1,6 +1,3 @@
-// Shared fixtures for the combat tests (useCombatTick, useCombatLoop,
-// CombatScene).
-
 import { EMPTY_ELEMENTAL_GAIN } from "#/game/combat/damage";
 import type { Enemy } from "#/game/combat/types";
 import type { MonsterDefinition } from "#/game/monsters/types";
@@ -10,11 +7,6 @@ export type EnemyOverrides = Partial<Omit<Enemy, "scaled">> & {
 	scaled?: Partial<Enemy["scaled"]>;
 };
 
-/**
- * A level-1 normal mob with `currentHp` HP (also its max), 5 physical damage
- * and an attack speed of 20 (matches `makeStats`' tick rate, so the enemy
- * swing fires on tick 1). Builds a fresh `scaled` object per call.
- */
 export function makeEnemy(
 	currentHp: number,
 	overrides: EnemyOverrides = {},
@@ -62,7 +54,6 @@ export function makeEnemy(
 	};
 }
 
-/** A level-1 attacker: one 10-damage sword swing per 50ms tick, no defenses. */
 export function makeStats(
 	overrides: Partial<ComputedCharacterStats> = {},
 ): ComputedCharacterStats {
@@ -89,8 +80,6 @@ export function makeStats(
 		thorns: 0,
 		resistances: { cold: 0, fire: 0, lightning: 0, void: 0 },
 		path: "attack",
-		// 20 swings/sec × 50ms tick = exactly 1.0 progress per tick, so both
-		// player + enemy swings fire on the first tick after activation.
 		tickRate: 20,
 		swings: [swing],
 		increased: {

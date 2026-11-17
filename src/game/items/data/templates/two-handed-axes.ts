@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Two-Handed Axes (2H, str) — AtkSpd: 1.05, Crit: 5.0, No implicit. Base damage ~2.3× axe (CONTEXT.md → Weapons).
 export const TWO_HANDED_AXE_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "twoHandedAxe_t1",

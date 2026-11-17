@@ -11,11 +11,6 @@ const ELEMENT_NAME = {
 	void: m.element_void,
 } satisfies Record<DamageElement, () => string>;
 
-/**
- * The localized name of a damage element. Takes the lowercase key ("cold",
- * as resistances and the element selector carry it) or the capitalized label
- * the computed damage lines carry ("Cold"); anything else comes back as given.
- */
 export function elementName(element: string): string {
 	const key = element.toLowerCase();
 	return hasOwnKey(ELEMENT_NAME, key) ? ELEMENT_NAME[key]() : element;

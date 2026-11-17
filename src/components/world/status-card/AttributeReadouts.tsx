@@ -28,7 +28,6 @@ function readouts({ attributes }: Pick<ComputedCharacterStats, "attributes">) {
 	];
 }
 
-/** Strength / Dexterity / Intelligence, each with what a point of it does. */
 export function AttributeReadouts({
 	stats,
 	textSize,

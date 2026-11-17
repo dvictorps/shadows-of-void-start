@@ -34,10 +34,6 @@ const EQUIPMENT_SLOT_LAYOUT: Array<{
 
 const EQUIPMENT_SLOT_SIZE = 96;
 
-/**
- * The equipped gear: ten slots, each a drop target holding a draggable card
- * (broken items badged), and the Swap hands button below.
- */
 export default function PaperDoll({
 	equippedBySlot,
 	stats,
@@ -52,7 +48,6 @@ export default function PaperDoll({
 	equippedBySlot: ReadonlyMap<EquippedSlot, ItemRow>;
 	stats: ComputedCharacterStats;
 	characterLevel: number;
-	/** Slots the dragged inventory item fits; empty when nothing is dragged. */
 	eligibleSlots: ReadonlySet<EquippedSlot>;
 	dragging: DragSourceData | null;
 	handsSwappable: boolean;

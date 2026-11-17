@@ -4,7 +4,6 @@ import { cn } from "#/lib/utils";
 
 const INPUT_VARIANT = {
 	default: "",
-	// White-on-black field of the stark forms.
 	stark:
 		"border-white/40 bg-black text-white placeholder:text-white/30 focus:border-white",
 } as const;

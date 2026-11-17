@@ -7,11 +7,6 @@ type Props = {
 	side?: "top" | "bottom" | "left" | "right";
 };
 
-// Game-styled tooltip: black bg, white border, pixel font, uppercase tracking.
-// Use sparingly — every visible icon/counter that needs a short text hint.
-// For rich item descriptions, use ItemTooltip instead.
-// Requires a `TooltipPrimitive.Provider` mounted near the app root (see
-// `src/routes/__root.tsx`) so all tooltips share one provider context.
 export default function Tooltip({ content, children, side = "top" }: Props) {
 	return (
 		<TooltipPrimitive.Root>

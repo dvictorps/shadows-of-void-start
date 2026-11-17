@@ -9,11 +9,8 @@ They're part of the regular `tsc --noEmit` pass (`tsconfig.json` includes
 incompatible way, the corresponding example breaks and the playbook is
 forced to update in the same PR.
 
-**Caveat — local-only enforcement.** No `.github/workflows/` exists in the
-repo, so nothing runs `tsc --noEmit` automatically on push. The gate only
-fires when you (or a reviewing agent) run the validation sequence locally
-before merging. Until a CI workflow is wired up, the discipline of running
-the validation suite is the only thing keeping the sentinels honest.
+CI (`.github/workflows/ci.yml`) runs `tsc --noEmit` on every push and PR
+to `dev` / `master`, so a broken sentinel fails the build automatically.
 
 Each example is a plain `.ts` file with one exported constant and no
 side effects. They are NOT registered anywhere in the runtime — nothing
@@ -27,6 +24,7 @@ goes stale.
 | `modifier-example.ts` | `adding-a-modifier.md` step 1 (modifier definition shape)            |
 | `template-example.ts` | `adding-an-equipment-template.md` step 1 (template definition shape) |
 | `monster-example.ts`  | `adding-a-monster.md` step 1 (monster definition shape)              |
+| `boss-example.ts`     | `adding-a-boss.md` step 1 (boss config shape)                        |
 | `zone-example.ts`     | `adding-a-zone.md` step 1 (world node shape)                         |
 | `class-example.ts`    | `adding-a-class.md` step 1 (class definition shape)                  |
 

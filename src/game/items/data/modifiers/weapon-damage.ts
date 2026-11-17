@@ -2,7 +2,6 @@ import type { Modifier } from "../../types";
 import { createStandardTiers } from "../../types";
 
 export const WEAPON_DAMAGE_MODIFIERS = {
-	// ── Local attack mods (affect weapon header, attack weapons only) ──
 	physicalDamageFlat: {
 		id: "physicalDamageFlat",
 		affixType: "prefix",
@@ -126,8 +125,6 @@ export const WEAPON_DAMAGE_MODIFIERS = {
 		tiers: createStandardTiers(3, 8, 48, 100),
 	},
 
-	// ── Global flat-to-attacks elementals (jewelry + quiver) ──
-	// Tiers scaled ~50% vs the local *-to-attacks equivalents (cf. physicalDamageFlatGlobal).
 	coldDamageToAttacksFlatGlobal: {
 		id: "coldDamageToAttacksFlatGlobal",
 		affixType: "prefix",
@@ -177,7 +174,6 @@ export const WEAPON_DAMAGE_MODIFIERS = {
 		tiers: createStandardTiers(2, 4, 24, 50),
 	},
 
-	// ── Global offensive mods (can roll on weapons + armor + jewelry) ──
 	accuracyFlat: {
 		id: "accuracyFlat",
 		affixType: "suffix",

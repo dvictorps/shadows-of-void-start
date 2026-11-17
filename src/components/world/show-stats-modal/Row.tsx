@@ -10,7 +10,6 @@ export function SectionHeading({ children }: { children: ReactNode }) {
 	);
 }
 
-/** A label / value line, with an optional tooltip on the whole line. */
 export function Row({
 	label,
 	value,
@@ -29,8 +28,6 @@ export function Row({
 		</div>
 	);
 	if (!tooltip) return row;
-	// whitespace-pre-line so multi-line tooltip messages (e.g. attribute
-	// breakdowns with one effect per line) render their newlines.
 	return (
 		<Tooltip content={<span className="whitespace-pre-line">{tooltip}</span>}>
 			{row}

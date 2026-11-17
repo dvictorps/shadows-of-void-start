@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Daggers (1H, dex) — AtkSpd: 1.70, Crit: 6.5, Implicit: +{value}% Critical Strike Multiplier
 export const DAGGER_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "dagger_t1",

@@ -1,9 +1,5 @@
 // @vitest-environment jsdom
 
-// The zone-exit flow: Retreat, the HUD Teleport Stone and the exit modal
-// between them. The server is a parameter (`server`), so the calls are fakes,
-// not module mocks; the modal is the real `useModal`.
-
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -107,7 +103,6 @@ describe("useExitFlow — Teleport Stone (HUD)", () => {
 		await act(() => t.flow().dismissExit());
 		expect(t.modalOpen()).toBe(false);
 		expect(t.server.teleportStone).not.toHaveBeenCalled();
-		// The flag is gone: a later commit through a fresh modal doesn't fire it.
 		await act(() => t.flow().retreat());
 		await act(() => t.flow().discardAll());
 		expect(t.server.teleportStone).not.toHaveBeenCalled();
@@ -175,8 +170,6 @@ describe("useExitFlow — Retreat", () => {
 		expect(t.modalOpen()).toBe(false);
 	});
 
-	// The view goes to the map before the modal opens, so Retreat's Cancel
-	// lands on the map (CONTEXT.md → Inventory overflow and exit-modal flow).
 	it("goes to the map, then opens the modal for a staged bag", async () => {
 		const t = setup({ bagSize: 5, phase: "camp" });
 		await act(() => t.flow().retreat());

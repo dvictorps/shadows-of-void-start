@@ -8,7 +8,6 @@ import { useStageCascade } from "./useStageCascade";
 
 type Stage = "a" | "b" | "c";
 
-// b and c share a length on purpose: each stage still gets its own timer.
 const DURATIONS = { a: 300, b: 100, c: 100 } satisfies Record<Stage, number>;
 
 beforeEach(() => {

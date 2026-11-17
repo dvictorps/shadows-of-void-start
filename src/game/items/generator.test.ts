@@ -16,8 +16,6 @@ import {
 	type RolledMod,
 } from "./types";
 
-// ── Helpers ──
-
 function generateMany(
 	count: number,
 	opts: { rarity: ItemRarity; templateId?: string; itemLevel?: number },
@@ -33,8 +31,6 @@ function allExplicitModIds(items: GeneratedItem[]): Set<string> {
 	return ids;
 }
 
-// Every rolled explicit matching one of `ids`, across items. Lets tests assert
-// on the matches unconditionally instead of branching inside a loop.
 function explicitsWithId(
 	items: GeneratedItem[],
 	...ids: string[]
@@ -79,8 +75,6 @@ const JEWELRY_IDS = [
 	"silk_belt",
 ];
 
-// ── Basic generation ──
-
 describe("generateItem basics", () => {
 	it("returns a valid item with all required fields", () => {
 		const item = generateItem({ rarity: "rare", itemLevel: 50 });
@@ -109,8 +103,6 @@ describe("generateItem basics", () => {
 		expect(item.templateId).toBeTruthy();
 	});
 });
-
-// ── Mod counts per rarity ──
 
 describe("mod counts per rarity", () => {
 	it("magic items have 1-2 explicits", () => {
@@ -152,8 +144,6 @@ describe("mod counts per rarity", () => {
 	});
 });
 
-// ── Prefix / suffix limits ──
-
 describe("prefix and suffix limits", () => {
 	it("never exceeds 3 prefixes or 3 suffixes", () => {
 		const items = generateMany(200, { rarity: "epic", itemLevel: 80 });
@@ -184,8 +174,6 @@ describe("prefix and suffix limits", () => {
 	});
 });
 
-// ── No duplicate mods ──
-
 describe("no duplicate modifiers", () => {
 	it("never rolls the same modifier twice on one item", () => {
 		const items = generateMany(200, { rarity: "epic", itemLevel: 80 });
@@ -195,8 +183,6 @@ describe("no duplicate modifiers", () => {
 		}
 	});
 });
-
-// ── No decimals ──
 
 describe("no decimal values", () => {
 	it("all explicit mod values are integers", () => {
@@ -227,8 +213,6 @@ describe("no decimal values", () => {
 	});
 });
 
-// ── RolledMod fields ──
-
 describe("RolledMod carries modifierType and isGlobalStat", () => {
 	it("every explicit has modifierType and isGlobalStat", () => {
 		const items = generateMany(50, { rarity: "epic", itemLevel: 80 });
@@ -252,8 +236,6 @@ describe("RolledMod carries modifierType and isGlobalStat", () => {
 	});
 });
 
-// ── Explicit ordering ──
-
 describe("explicit ordering", () => {
 	it("prefixes come before suffixes", () => {
 		const items = generateMany(200, { rarity: "epic", itemLevel: 80 });
@@ -272,7 +254,6 @@ describe("explicit ordering", () => {
 			const suffixes = item.explicits.filter((m) => m.affixType === "suffix");
 
 			for (const group of [prefixes, suffixes]) {
-				// Same key as the generator's sort: increased first, then the rest.
 				const ranks = group.map((m) =>
 					m.modifierType === "increased" ? 0 : 1,
 				);
@@ -281,15 +262,6 @@ describe("explicit ordering", () => {
 		}
 	});
 });
-
-// ── Naming ──
-//
-// Item names are rendered at display time by translateItemName(item) from
-// templateId + explicits + item.id. generateItem no longer populates
-// item.name; the test for naming behavior lives next to the renderer
-// (item-name.test.ts when it's written).
-
-// ── Spell weapons: no attack mods ──
 
 describe("spell weapons (staff/wand)", () => {
 	const LOCAL_ATTACK_MODS = [
@@ -358,8 +330,6 @@ describe("spell weapons (staff/wand)", () => {
 	}
 });
 
-// ── Attack weapons: compute weapon stats ──
-
 describe("attack weapon computed stats", () => {
 	it("computes physicalDamage with flat min/max added", () => {
 		const items = generateMany(300, {
@@ -423,8 +393,6 @@ describe("attack weapon computed stats", () => {
 	});
 });
 
-// ── Armor: local defense mods ──
-
 describe("armor local defense", () => {
 	it("plate armor localDefenseFlat description says Armor, not Defense", () => {
 		const items = generateMany(200, {
@@ -471,8 +439,6 @@ describe("armor local defense", () => {
 		);
 	});
 });
-
-// ── Global defense % armorType filtering ──
 
 describe("global defense % mods respect armorType", () => {
 	it("plate armor never rolls globalEvasionIncrease or globalBarrierIncrease", () => {
@@ -542,8 +508,6 @@ describe("global defense % mods respect armorType", () => {
 	});
 });
 
-// ── restrictedToArmorType filter (ADR 0007) ──
-
 describe("restrictedToArmorType modifier filter", () => {
 	it("filters armor templates by armorType; passes through non-armor", () => {
 		const target = getModifier("physicalDamageFlatGlobal");
@@ -580,7 +544,6 @@ describe("restrictedToArmorType modifier filter", () => {
 			expect(
 				allExplicitModIds(plateGloves).has("physicalDamageFlatGlobal"),
 			).toBe(false);
-			// Rings have no armorType → restriction is a no-op.
 			expect(allExplicitModIds(rings).has("physicalDamageFlatGlobal")).toBe(
 				true,
 			);
@@ -590,10 +553,7 @@ describe("restrictedToArmorType modifier filter", () => {
 	});
 });
 
-// ── Tome ──
-
 describe("tome eligibility", () => {
-	// CONTEXT.md: "tome ... only off-hand without block chance, by design".
 	it("never rolls blockChanceIncrease", () => {
 		const items = generateMany(1000, {
 			rarity: "epic",
@@ -688,8 +648,6 @@ describe("tomeGainAsExtra scope", () => {
 		expect(TOME_GAIN_MODS.some((id) => rolled.has(id))).toBe(true);
 	});
 });
-
-// ── Shield ──
 
 describe("shield", () => {
 	it("plate shield has armorType plate", () => {
@@ -823,8 +781,6 @@ describe("shield", () => {
 	});
 
 	it("block sums additively across base + implicit + explicit (no multiplicative double-count)", () => {
-		// silk_shield_t2 (cotton ward): baseBlock 22, implicit blockChanceIncrease,
-		// magic+ may also roll an explicit blockChanceIncrease.
 		const blockSum = (item: GeneratedItem) =>
 			[...item.implicits, ...item.explicits]
 				.filter((m) => m.modifierId === "blockChanceIncrease")
@@ -842,8 +798,6 @@ describe("shield", () => {
 		}
 	});
 });
-
-// ── Jewelry: only global offensive mods ──
 
 describe("jewelry mod eligibility", () => {
 	const LOCAL_OFFENSIVE_MODS = [
@@ -892,8 +846,6 @@ describe("jewelry mod eligibility", () => {
 	});
 });
 
-// ── Implicits ──
-
 describe("implicits", () => {
 	it("cobalt ring has cold resistance implicit", () => {
 		const item = generateItem({ rarity: "normal", templateId: "cobalt_ring" });
@@ -930,8 +882,6 @@ describe("implicits", () => {
 	});
 });
 
-// ── Global attack speed not on weapons ──
-
 describe("globalAttackSpeedIncrease not on weapons", () => {
 	for (const templateId of [...ATTACK_WEAPON_IDS, ...SPELL_WEAPON_IDS]) {
 		it(`${templateId}: never rolls globalAttackSpeedIncrease`, () => {
@@ -956,8 +906,6 @@ describe("globalAttackSpeedIncrease not on weapons", () => {
 	});
 });
 
-// ── globalMeleeDamageIncrease not on weapons ──
-
 describe("globalMeleeDamageIncrease not on weapons", () => {
 	for (const templateId of ATTACK_WEAPON_IDS) {
 		it(`${templateId}: never rolls globalMeleeDamageIncrease`, () => {
@@ -971,8 +919,6 @@ describe("globalMeleeDamageIncrease not on weapons", () => {
 		});
 	}
 });
-
-// ── item rarity mods roll on every equipment slot ──
 
 describe("item rarity mods roll on every non-weapon slot", () => {
 	for (const templateId of [
@@ -1007,8 +953,6 @@ describe("item rarity mods roll on every non-weapon slot", () => {
 	});
 });
 
-// ── Bad/filler mods can actually roll ──
-
 describe("filler mods exist in the pool", () => {
 	it("thornsDamageFlat can roll on helmets", () => {
 		const items = generateMany(300, {
@@ -1040,8 +984,6 @@ describe("filler mods exist in the pool", () => {
 		expect(rolledIds.has("lifeOnKillFlat")).toBe(true);
 	});
 });
-
-// ── Flat damage min/max ranges ──
 
 describe("flat damage mods roll as min-max range", () => {
 	const FLAT_DAMAGE_MODS = [
@@ -1144,8 +1086,6 @@ describe("flat damage mods roll as min-max range", () => {
 	});
 });
 
-// ── Synergy tag system (legendary intelligent generation) ──
-
 describe("synergy tags", () => {
 	it("legendary items show some synergy (more overlap than rare)", () => {
 		const measureOverlap = (items: GeneratedItem[]) => {
@@ -1178,19 +1118,15 @@ describe("synergy tags", () => {
 	});
 
 	it("rare items have no synergy bias (same as before)", () => {
-		// Rare items should not use synergy — verify by checking that filler mods still appear frequently
 		const items = generateMany(300, {
 			rarity: "rare",
 			templateId: "plate_helmet_t1",
 			itemLevel: 80,
 		});
 		const rolledIds = allExplicitModIds(items);
-		// thornsDamageFlat (weight 1800, no tags) should still appear often on rare
 		expect(rolledIds.has("thornsDamageFlat")).toBe(true);
 	});
 });
-
-// ── Deterministic epic mod patterns ──
 
 describe("deterministic epic patterns", () => {
 	const ATTACK_WEAPON_PATTERN_PREFIXES = new Set([
@@ -1329,7 +1265,6 @@ describe("deterministic epic patterns", () => {
 	});
 
 	it("epic items always roll tier 4 or better", () => {
-		// Even at low ilvl, epic should clamp to tier 4 minimum
 		const items = generateMany(200, {
 			rarity: "epic",
 			templateId: "sword_t1",
@@ -1353,7 +1288,6 @@ describe("deterministic epic patterns", () => {
 	});
 
 	it("legendary items unchanged (still use synergy weight system, not patterns)", () => {
-		// Legendary can still roll mods outside any pattern pool (e.g., lifeOnKillFlat on sword)
 		const items = generateMany(300, {
 			rarity: "legendary",
 			templateId: "sword_t1",
@@ -1370,15 +1304,11 @@ describe("deterministic epic patterns", () => {
 			itemLevel: 80,
 		});
 		const rolledIds = allExplicitModIds(items);
-		// Filler mods should still appear on non-epic items
 		expect(rolledIds.has("lifeOnKillFlat")).toBe(true);
 	});
 });
 
-// ── getSynergyWeight unit tests ──
-
 describe("getSynergyWeight", () => {
-	// Import the exported function
 	it("returns baseWeight when no rolled tags", () => {
 		expect(getSynergyWeight(1000, ["attack", "physical"], new Set(), 3)).toBe(
 			1000,
@@ -1396,11 +1326,9 @@ describe("getSynergyWeight", () => {
 	});
 
 	it("boosts weight by multiplier per matching tag", () => {
-		// 1 match: 1000 * (1 + 3*1) = 4000
 		expect(
 			getSynergyWeight(1000, ["attack", "cold"], new Set(["attack"]), 3),
 		).toBe(4000);
-		// 2 matches: 1000 * (1 + 3*2) = 7000
 		expect(
 			getSynergyWeight(
 				1000,
@@ -1412,7 +1340,6 @@ describe("getSynergyWeight", () => {
 	});
 
 	it("legendary multiplier is weaker", () => {
-		// 2 matches: 1000 * (1 + 1.5*2) = 4000
 		expect(
 			getSynergyWeight(
 				1000,
@@ -1423,8 +1350,6 @@ describe("getSynergyWeight", () => {
 		).toBe(4000);
 	});
 });
-
-// ── Tier system ──
 
 describe("tier system", () => {
 	it("low level items get lower tier values", () => {
@@ -1449,8 +1374,6 @@ describe("tier system", () => {
 		expect(avgValue(highItems)).toBeGreaterThan(avgValue(lowItems));
 	});
 });
-
-// ── Leather and silk armor defense ──
 
 describe("leather armor defense", () => {
 	it("leather armor localDefenseFlat description says Evasion Rating", () => {
@@ -1484,8 +1407,6 @@ describe("silk armor defense", () => {
 	});
 });
 
-// ── Staff base damage invariant: 2.0 × wand at every tier ──
-
 describe("staff vs wand base damage parity", () => {
 	it("staff_tN base damage is exactly 2.0× wand_tN at every tier", () => {
 		for (let tier = 1; tier <= 21; tier++) {
@@ -1502,8 +1423,6 @@ describe("staff vs wand base damage parity", () => {
 		}
 	});
 });
-
-// ── Base tier selection by item level ──
 
 describe("base tier selection by item level", () => {
 	it("low item level only picks low-tier bases", () => {
@@ -1538,16 +1457,12 @@ describe("base tier selection by item level", () => {
 	});
 });
 
-// ── Attribute requirements ──
-
 describe("attribute requirements", () => {
 	it("generated items carry requirements from template", () => {
 		const item = generateItem({ rarity: "normal", templateId: "sword_t1" });
 		expect(item.requirements).toBeDefined();
 		expect(item.requirements!.level).toBe(1);
 		expect(item.requirements!.str).toBe(10);
-		// T1 sword dropped the dex requirement during the level-1 rebalance —
-		// 1H weapons are equippable from the matching class's base attribute.
 		expect(item.requirements!.dex).toBeUndefined();
 	});
 

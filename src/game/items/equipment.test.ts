@@ -216,8 +216,6 @@ describe("planEquip", () => {
 		expect(r1.displaced).toHaveLength(0);
 	});
 
-	// ── Tome ──
-
 	it("tome fits offhand, no main-hand requirement", () => {
 		expect(validSlotsForItem(makeTome("t"))).toEqual(["offhand"]);
 		const plan = planEquip({
@@ -236,8 +234,6 @@ describe("planEquip", () => {
 		});
 		expect(plan.displaced.map((d) => d.slot)).toEqual(["weapon"]);
 	});
-
-	// ── Quiver ──
 
 	it("quiver fits offhand", () => {
 		expect(validSlotsForItem(makeQuiver("q"))).toEqual(["offhand"]);
@@ -278,7 +274,6 @@ describe("planEquip", () => {
 				{ slot: "offhand", item: makeQuiver("q") },
 			],
 		});
-		// Only the old bow is displaced — quiver stays.
 		expect(plan.displaced.map((d) => d.slot)).toEqual(["weapon"]);
 	});
 
@@ -291,7 +286,6 @@ describe("planEquip", () => {
 				{ slot: "offhand", item: makeQuiver("q") },
 			],
 		});
-		// Standard 2H rule displaces off-hand (the quiver), plus old bow displaces.
 		const slots = plan.displaced.map((d) => d.slot).toSorted();
 		expect(slots).toEqual(["offhand", "weapon"]);
 	});
@@ -338,7 +332,6 @@ describe("canSwapHands", () => {
 	it("rejects when main is 2H (greatsword)", () => {
 		const main = makeWeapon("gs", "greatsword");
 		const off = makeWeapon("sword", "sword");
-		// (this state can't legally exist, but the predicate must still say no)
 		expect(canSwapHands(main, off)).toBe(false);
 	});
 

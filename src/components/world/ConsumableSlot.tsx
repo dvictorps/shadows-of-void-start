@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
 
-/** `lg` is the combat HUD's slot; `md` / `sm` the status card's (wide / compact). */
 export type SlotSize = "lg" | "md" | "sm";
 
 const SLOT = {
@@ -15,12 +14,6 @@ const SLOT = {
 	{ button: string; art: string; badge: string }
 >;
 
-/**
- * A consumable's button: its art (a sprite `art` sized to the slot, or any
- * `children`, like the incense icon), the count badge in the corner, an optional
- * tooltip, and hover / focus reported up (the combat HUD feeds the TextLog).
- * Shared by the combat HUD and the sidebar status card.
- */
 export function ConsumableSlot({
 	label,
 	count,
@@ -37,12 +30,10 @@ export function ConsumableSlot({
 	count: number;
 	disabled: boolean;
 	onUse?: () => void;
-	/** True on mouse enter / focus, false on leave / blur. */
 	onHover?: (hovered: boolean) => void;
 	tooltip?: ReactNode;
 	size?: SlotSize;
 	className?: string;
-	/** Sprite URL, drawn at the slot's size. */
 	art?: string;
 	children?: ReactNode;
 }) {

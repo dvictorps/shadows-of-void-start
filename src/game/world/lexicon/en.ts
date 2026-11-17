@@ -1,6 +1,3 @@
-// English naming lexicon. No grammatical gender, no articles on suffix nouns
-// — the renderer just stacks "<Adj> <Adj> <Base> of <Noun> and <Noun>".
-
 import type {
 	MonsterNameLexicon,
 	PrefixMonsterModId,
@@ -30,10 +27,6 @@ const suffixNoun = {
 	monsterCriticalMultiplier: "Slaughter",
 } satisfies Record<SuffixMonsterModId, string>;
 
-// Rare proper-name pools. First word stays capitalized, second word stays
-// lowercase, then concatenated without a space ("Stonemaw", "Frostfang").
-// Pool size is intentionally not huge — we want recognizable names, not a
-// combinatorial explosion of forgettable strings.
 const rareFirstWords: readonly string[] = [
 	"Iron",
 	"Stone",

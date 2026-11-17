@@ -29,11 +29,6 @@ type Props = {
 	onShowStats?: () => void;
 };
 
-/**
- * The sidebar's character readout: name, class, level, DPS and attributes,
- * the XP bar and the potion, the Show stats button, the teleport stone and
- * the health globe. A handler left out disables its control.
- */
 export default function StatusCard({
 	character,
 	stats,

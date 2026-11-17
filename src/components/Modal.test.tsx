@@ -1,9 +1,5 @@
 // @vitest-environment jsdom
 
-// Escape on the generic modal: it closes the top layer only, and a
-// non-dismissible modal holds the key. The layer stack itself is pinned in
-// src/hooks/useEscapeLayer.test.ts.
-
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -19,7 +15,6 @@ function twoModals(top: { dismissible?: boolean } = {}) {
 			below
 		</Modal>,
 	);
-	// Opened after the first one, as a confirmation over a modal is.
 	view.rerender(
 		<>
 			<Modal isOpen onClose={onCloseBelow} title="below">

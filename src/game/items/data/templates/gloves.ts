@@ -1,9 +1,6 @@
 import type { EquipmentTemplate } from "./types";
 
-// Gloves — 3 armor types × 21 tiers
-// Plate: armor + str | Leather: evasion + dex | Silk: barrier + int
 export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
-	// ── Plate Gloves ──
 	{
 		id: "plate_gloves_t1",
 		nameBase: "plate_gauntlets",
@@ -257,7 +254,6 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/armaduras/armadura/luvaPesada2.png",
 	},
 
-	// ── Leather Gloves ──
 	{
 		id: "leather_gloves_t1",
 		nameBase: "gloves",
@@ -511,7 +507,6 @@ export const GLOVE_TEMPLATES: EquipmentTemplate[] = [
 		icon: "/assets/sprites/armaduras/evasao/luvaEvasao2.png",
 	},
 
-	// ── Silk Gloves ──
 	{
 		id: "silk_gloves_t1",
 		nameBase: "wraps",

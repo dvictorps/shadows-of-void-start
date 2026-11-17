@@ -11,15 +11,11 @@ type Props = {
 	isOpen: boolean;
 	onClose: () => void;
 	stats: ComputedCharacterStats;
-	/** Reference enemy level for derived mitigation/hit-chance previews. */
 	referenceEnemyLevel: number;
-	/** Current barrier value (live). */
 	currentBarrier: number;
-	/** Current life. */
 	currentLife: number;
 };
 
-/** The full character sheet: attributes, defenses, offense, utility. */
 export default function ShowStatsModal({
 	isOpen,
 	onClose,

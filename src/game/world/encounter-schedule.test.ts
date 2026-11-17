@@ -54,8 +54,6 @@ describe("rollSpawnGapMs", () => {
 		};
 		const samples = new Set<number>();
 		for (let i = 0; i < 50; i++) samples.add(rollSpawnGapMs(wide));
-		// With a 9-second range rolled at integer ms, hitting fewer than 20
-		// distinct values across 50 samples would be extraordinary.
 		expect(samples.size).toBeGreaterThan(20);
 	});
 });
@@ -68,10 +66,9 @@ describe("rollCampThresholdsMs", () => {
 	};
 
 	it("anchors the threshold near its fraction (±10% jitter)", () => {
-		const budgetMs = plan.calmariaBudgetSeconds * 1000; // 35000
+		const budgetMs = plan.calmariaBudgetSeconds * 1000;
 		for (let i = 0; i < 100; i++) {
 			const [threshold] = rollCampThresholdsMs(plan);
-			// 0.5 ± 0.10 → 0.40–0.60 → 14000–21000
 			expect(threshold).toBeGreaterThanOrEqual(0.4 * budgetMs);
 			expect(threshold).toBeLessThanOrEqual(0.6 * budgetMs);
 		}
@@ -126,7 +123,6 @@ describe("rollAmbushSchedule", () => {
 		const budgetMs = plan.calmariaBudgetSeconds * 1000;
 		for (let i = 0; i < 100; i++) {
 			const [a, b] = rollAmbushSchedule(plan);
-			// 0.3 ± 0.15 → 0.15–0.45, and 0.75 ± 0.15 → 0.60–0.90
 			expect(a.thresholdMs).toBeGreaterThanOrEqual(0.15 * budgetMs);
 			expect(a.thresholdMs).toBeLessThanOrEqual(0.45 * budgetMs);
 			expect(b.thresholdMs).toBeGreaterThanOrEqual(0.6 * budgetMs);

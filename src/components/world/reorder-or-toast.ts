@@ -9,12 +9,6 @@ export type SlotMove = {
 	swapWithItemId?: number;
 };
 
-/**
- * Moves an item to another slot of its grid (the bag or the stash) and toasts
- * a refusal; never rejects. The optimistic move and its rollback live in the
- * mutation hooks. Every reorder goes through here: the inventory modal's, and
- * the stash modal's on both sides.
- */
 export async function reorderOrToast(
 	reorder: (args: { characterId: number } & SlotMove) => Promise<object>,
 	characterId: number,

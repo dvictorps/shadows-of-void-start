@@ -27,13 +27,8 @@ export default function EnemySprite({
 	bossConfig: BossConfig | null;
 	enemyControls: Controls;
 	redFlashControls: Controls;
-	// Latest weapon hit that landed (block included): mounts the HitFx.
 	lastSwingHit: DamageEvent | null;
 }) {
-	// Hovered sprite element, kept in state (not a ref) so the tooltip can
-	// measure it on every render. The scene re-renders on each combat tick,
-	// so the tooltip follows the boss-intro shake and sprite size changes.
-	// Non-null doubles as the "hovering" flag.
 	const [hoveredSprite, setHoveredSprite] = useState<HTMLDivElement | null>(
 		null,
 	);
@@ -53,9 +48,6 @@ export default function EnemySprite({
 					draggable={false}
 					className="pointer-events-none h-full w-full select-none object-contain"
 				/>
-				{/* Solid-red hit-flash silhouette: the sprite acts as the
-				 * mask so only the opaque pixels get repainted, and the
-				 * underlying image stays put. */}
 				<motion.div
 					aria-hidden
 					initial={{ opacity: 0 }}
@@ -103,8 +95,6 @@ function SpriteTooltipPortal({
 	enemy: Enemy;
 	bossConfig: BossConfig | null;
 }) {
-	// A sprite that unmounted between fights never fires mouseleave; a
-	// detached element measures as an empty box at the origin, so hide.
 	if (!sprite.isConnected) return null;
 	const rect = sprite.getBoundingClientRect();
 	return createPortal(

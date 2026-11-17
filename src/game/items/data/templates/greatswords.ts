@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Greatswords (2H, str) — AtkSpd: 1.10, Crit: 5.0, No implicit. Base damage ~2.3× sword (CONTEXT.md → Weapons).
 export const GREATSWORD_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "greatsword_t1",

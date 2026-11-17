@@ -1,6 +1,5 @@
 import type { EquipmentTemplate } from "./types";
 
-// Bows (2H, dex) — AtkSpd: 1.30, Crit: 5.0, No implicit
 export const BOW_TEMPLATES: EquipmentTemplate[] = [
 	{
 		id: "bow_t1",

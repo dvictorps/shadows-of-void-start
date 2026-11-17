@@ -33,9 +33,7 @@ export type NewCharacter = {
 	hardcore: boolean;
 };
 
-/** The server call the modal makes; the route passes the real mutation. */
 export interface CreateCharacterServer {
-	/** Resolves with the new character's id. */
 	create: (input: NewCharacter) => Promise<number>;
 }
 

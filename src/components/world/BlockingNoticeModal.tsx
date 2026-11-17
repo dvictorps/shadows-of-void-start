@@ -1,6 +1,3 @@
-// Non-dismissible notice with a single way out (the session modals of
-// Threat #5): no backdrop or Escape close, one action button.
-
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
 

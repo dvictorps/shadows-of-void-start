@@ -1,14 +1,9 @@
-// The stash modal's drag decisions: what a drop does. Pure, so the rules are
-// tested without the DOM (drag.test.ts).
-
 import type { ItemRow } from "#/lib/api-types";
 
 import type { SlotMove } from "../reorder-or-toast";
 
-/** A grid of the stash modal: the character's bag or the account stash. */
 export type StashSide = "inventory" | "stash";
 
-/** The droppable id prefix per side (`inv-3`, `stash-3`). */
 export const DROP_ID_PREFIX = {
 	inventory: "inv",
 	stash: "stash",
@@ -19,16 +14,12 @@ export type DragSourceData = { kind: StashSide; itemId: number };
 
 export type StashMove = SlotMove;
 
-/** The call a drop makes. */
 export type StashDropAction =
 	| { kind: "reorderInventory"; move: StashMove }
 	| { kind: "reorderStash"; move: StashMove }
-	// The target slot is only a hint: the server places the item in the first
-	// free slot of the other side.
 	| { kind: "deposit"; itemId: number }
 	| { kind: "withdraw"; itemId: number };
 
-/** The item's slot on `side`'s grid. */
 export const slotOf = (item: ItemRow, side: StashSide) =>
 	side === "inventory" ? item.inventorySlot : item.stashSlot;
 
@@ -45,7 +36,6 @@ function reorder(
 	return { itemId: source.itemId, targetSlot, swapWithItemId: occupant?.id };
 }
 
-/** What dropping `source` on `target` does, or `null` for a drop that does nothing. */
 export function resolveStashDrop(
 	source: DragSourceData,
 	target: DropTargetData,
@@ -64,10 +54,6 @@ export function resolveStashDrop(
 	const move = reorder(source, target.slot, stash);
 	return move && { kind: "reorderStash", move };
 }
-
-// @dnd-kit types `data.current` as an open record; these guards are the
-// `unknown` boundary. `itemId` is only checked to be a number: every
-// draggable here registers a real item id.
 
 const isSide = (k: unknown): k is StashSide =>
 	k === "inventory" || k === "stash";

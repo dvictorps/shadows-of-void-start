@@ -1,14 +1,6 @@
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { defineProject } from "vitest/config";
 
-// Integration tests for the tRPC procedures (src/server/**/*.integration.test.ts).
-// They run inside workerd against a local D1 with the real Drizzle migrations
-// applied, so they exercise the same SQL as staging. Referenced from the
-// `projects` list in vite.config.ts, so `pnpm test` runs them too.
-//
-// The Worker is configured here instead of from wrangler.jsonc: the tests call
-// procedures through a tRPC caller and never need the `main` entry (TanStack
-// Start's server bundle).
 export default defineProject(async () => {
 	const migrations = await readD1Migrations("./drizzle");
 	return {

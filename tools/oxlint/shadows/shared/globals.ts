@@ -13,7 +13,6 @@ function resolveVariable(
 	return null;
 }
 
-/** The expression is the global `name` (`Math`, `JSON`, …), not a local binding that shadows it. */
 export function isGlobalObject(
 	sourceCode: SourceCode,
 	expression: ESTree.Node,
@@ -26,7 +25,6 @@ export function isGlobalObject(
 	return variable === null || variable.defs.length === 0;
 }
 
-/** Name of the property a member expression reads (`a.b` and `a["b"]`), or null when computed. */
 export function memberName(node: ESTree.Node): string | null {
 	if (node.type !== "MemberExpression") return null;
 	if (!node.computed)
@@ -37,7 +35,6 @@ export function memberName(node: ESTree.Node): string | null {
 		: null;
 }
 
-/** The node is `<global object>.<method>` for one of `methods`; returns the method name. */
 export function globalMethod(
 	sourceCode: SourceCode,
 	node: ESTree.Node,

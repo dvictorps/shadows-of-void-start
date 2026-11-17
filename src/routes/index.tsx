@@ -11,7 +11,6 @@ function Home() {
 
 	return (
 		<main className="relative h-screen overflow-hidden bg-black text-white">
-			{/* Atmospheric radial vignette behind the title — purely decorative */}
 			<div
 				aria-hidden
 				className="void-vignette pointer-events-none absolute inset-0"
