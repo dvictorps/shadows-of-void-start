@@ -719,7 +719,7 @@ time_seconds = max(0.5, distance / (1 + 2 × movementSpeed/100))
 
 The 2× coefficient on movement speed is intentional — boots can roll up to ~30% MS in early game and we want the player to _feel_ that gear choice on the world map, not see a barely-perceptible improvement. The 0.5s floor keeps travel always visible.
 
-The server owns the trip (`travelStartedAt` / `travelArrivesAt`, on its clock) and refuses an arrival more than 1s early. The client never compares those timestamps against its own clock: the bar, the counter and the arrival call all wait the trip's **length** from when the client first saw it, so a player whose system clock is off still waits exactly the travel time.
+The server owns the trip (`travelStartedAt` / `travelArrivesAt`, on its clock) and refuses an arrival more than 1s early. The client never compares those timestamps against its own clock: the bar, the counter and the arrival call all wait at most the trip's **length** from when the client first saw it, so a player whose system clock is off still waits exactly the travel time. After a reload mid-trip with a clock that runs ahead, the client may call early; the refusal retries every second until the server's end, so the wait never exceeds the trip either way.
 
 ### Unlocked nodes
 
