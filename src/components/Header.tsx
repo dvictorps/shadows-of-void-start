@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 import BetterAuthHeader from "../integrations/better-auth/header-user.tsx";
+import LanguagePicker from "./LanguagePicker";
 
 export default function Header() {
 	return (
@@ -14,6 +15,7 @@ export default function Header() {
 				</Link>
 
 				<div className="ml-auto flex items-center gap-2">
+					<LanguagePicker />
 					<BetterAuthHeader />
 				</div>
 			</nav>

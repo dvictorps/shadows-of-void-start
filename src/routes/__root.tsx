@@ -20,6 +20,7 @@ import { getLocale } from "#/paraglide/runtime";
 
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+import LanguagePicker from "../components/LanguagePicker";
 import Toaster from "../components/Toaster";
 import UpdateAvailableModal from "../components/UpdateAvailableModal";
 import PostHogProvider from "../integrations/posthog/provider";
@@ -103,6 +104,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	const { pathname } = useLocation();
 	const chromeless = CHROMELESS_ROUTES.has(pathname);
 	const showFooter = !chromeless && !pathname.startsWith("/admin");
+	const floatingLanguagePicker = chromeless && pathname !== "/world";
 
 	useEffect(() => {
 		consumeFlashToast();
@@ -119,6 +121,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 						<SessionTokenProvider>
 							<TooltipPrimitive.Provider delayDuration={150}>
 								{!chromeless && <Header />}
+								{floatingLanguagePicker && (
+									<div className="fixed top-4 left-4 z-50">
+										<LanguagePicker />
+									</div>
+								)}
 								{children}
 								{showFooter && <Footer />}
 							</TooltipPrimitive.Provider>

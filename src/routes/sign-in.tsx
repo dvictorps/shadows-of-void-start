@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import LanguagePicker from "#/components/LanguagePicker";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
@@ -57,10 +56,7 @@ function SignInPage() {
 	const title = isSignUp ? m.auth_sign_up_title() : m.auth_sign_in_title();
 
 	return (
-		<main className="relative min-h-screen bg-black text-white">
-			<div className="absolute top-4 right-4">
-				<LanguagePicker />
-			</div>
+		<main className="min-h-screen bg-black text-white">
 			<div className="mx-auto flex min-h-screen max-w-350 flex-col items-center justify-center gap-16 px-6 py-12 md:flex-row md:justify-between md:gap-32 md:px-20">
 				<div className="flex w-full items-center justify-center md:flex-1 md:justify-start">
 					<h1 className="display-title glow-purple text-center text-6xl uppercase leading-display md:text-left md:text-8xl">
