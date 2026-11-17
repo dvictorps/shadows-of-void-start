@@ -78,6 +78,7 @@ export default function ElementSelector({
 						variant="hud"
 						size="hud-icon"
 						aria-label={elementName(el)}
+						aria-pressed={isActive}
 						onClick={() => handleClick(el)}
 						onMouseEnter={() => onHover?.(`element_${el}`)}
 						onMouseLeave={() => onHover?.(null)}

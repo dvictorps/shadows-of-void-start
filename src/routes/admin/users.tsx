@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { AdminPageHeader, EmptyTableRow } from "#/components/admin/AdminShared";
 import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
 import { getClassDisplayName } from "#/game/classes/i18n";
 import { useConfirmationModal } from "#/hooks/useConfirmationModal";
 import { useTRPC } from "#/integrations/trpc/client";
@@ -71,12 +72,13 @@ function AdminUsersPage() {
 				title={m.admin_users_title()}
 				subtitle={`${filtered.length} / ${users.length}`}
 				right={
-					<input
+					<Input
 						type="search"
+						variant="stark"
 						placeholder={m.admin_users_search_placeholder()}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
-						className="w-72 border border-white/30 bg-black px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white focus:outline-none"
+						className="w-72"
 					/>
 				}
 			/>

@@ -157,6 +157,15 @@ describe("VendorModal — header", () => {
 		expect(screen.getByText(m.vendor_product_potion())).toBeTruthy();
 	});
 
+	it("marks the active tab with aria-pressed", async () => {
+		setup();
+		expect(tab(m.vendor_tab_buy()).getAttribute("aria-pressed")).toBe("true");
+		expect(tab(m.vendor_tab_sell()).getAttribute("aria-pressed")).toBe("false");
+		await openSell();
+		expect(tab(m.vendor_tab_buy()).getAttribute("aria-pressed")).toBe("false");
+		expect(tab(m.vendor_tab_sell()).getAttribute("aria-pressed")).toBe("true");
+	});
+
 	it("shows the ruby balance", () => {
 		setup({ rubys: 321 });
 		expect(balance().textContent).toContain("321");
