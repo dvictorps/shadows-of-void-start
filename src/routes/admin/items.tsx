@@ -6,6 +6,7 @@ import { Button } from "#/components/ui/button";
 import { Label } from "#/components/ui/label";
 import { generateItem } from "#/game/items/generator";
 import type { GeneratedItem, ItemRarity } from "#/game/items/types";
+import { m } from "#/paraglide/messages";
 
 export const Route = createFileRoute("/admin/items")({
 	component: ItemGeneratorPage,
@@ -13,12 +14,12 @@ export const Route = createFileRoute("/admin/items")({
 
 const MAX_DISPLAYED_ITEMS = 50;
 
-const RARITIES: { value: ItemRarity; label: string }[] = [
-	{ value: "normal", label: "Normal" },
-	{ value: "magic", label: "Magic" },
-	{ value: "rare", label: "Rare" },
-	{ value: "legendary", label: "Legendary" },
-	{ value: "epic", label: "Epic" },
+const RARITIES: { value: ItemRarity; label: () => string }[] = [
+	{ value: "normal", label: m.rarity_normal },
+	{ value: "magic", label: m.rarity_magic },
+	{ value: "rare", label: m.rarity_rare },
+	{ value: "legendary", label: m.rarity_legendary },
+	{ value: "epic", label: m.rarity_epic },
 ];
 
 function ItemGeneratorPage() {
@@ -36,13 +37,13 @@ function ItemGeneratorPage() {
 	return (
 		<div className="flex h-full flex-col gap-5">
 			<h1 className="display-title text-2xl uppercase tracking-title text-white">
-				Item Generator / Generator de Itens
+				{m.admin_items_title()}
 			</h1>
 
 			<div className="flex flex-wrap items-end gap-5 border-b border-white/15 pb-5">
 				<div>
 					<span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-white/60">
-						Rarity
+						{m.admin_items_rarity()}
 					</span>
 					<div className="flex flex-wrap gap-1.5">
 						{RARITIES.map((r) => (
@@ -55,7 +56,7 @@ function ItemGeneratorPage() {
 								aria-pressed={rarity === r.value}
 								onClick={() => setRarity(r.value)}
 							>
-								{r.label}
+								{r.label()}
 							</Button>
 						))}
 					</div>
@@ -63,7 +64,8 @@ function ItemGeneratorPage() {
 
 				<div>
 					<Label htmlFor="ilvl" variant="caps" className="mb-1.5 block">
-						Item Level: <span className="text-white">{itemLevel}</span>
+						{m.admin_items_item_level()}{" "}
+						<span className="text-white">{itemLevel}</span>
 					</Label>
 					<input
 						id="ilvl"
@@ -77,19 +79,19 @@ function ItemGeneratorPage() {
 				</div>
 
 				<Button type="button" variant="stark" caps onClick={handleGenerate}>
-					Generate
+					{m.admin_items_generate()}
 				</Button>
 
 				{items.length > 0 && (
 					<Button type="button" variant="starkMuted" caps onClick={handleClear}>
-						Clear
+						{m.admin_items_clear()}
 					</Button>
 				)}
 			</div>
 
 			{items.length === 0 ? (
 				<p className="text-sm uppercase tracking-wider text-white/40">
-					Click &quot;Generate&quot; to create an item.
+					{m.admin_items_empty()}
 				</p>
 			) : (
 				<div className="flex-1 overflow-y-auto pr-2">

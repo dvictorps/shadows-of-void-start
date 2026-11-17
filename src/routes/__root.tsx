@@ -15,6 +15,7 @@ import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
 import { SessionTokenProvider } from "#/hooks/useSessionToken";
 import { useUpdateAvailable } from "#/hooks/useUpdateAvailable";
 import { consumeFlashToast } from "#/lib/flash-toast";
+import { m } from "#/paraglide/messages";
 import { getLocale } from "#/paraglide/runtime";
 
 import Footer from "../components/Footer";
@@ -78,7 +79,7 @@ function NotFoundComponent() {
 					404
 				</h1>
 				<p className="mt-3 text-sm uppercase tracking-wider text-white/60">
-					Page not found
+					{m.not_found_message()}
 				</p>
 			</div>
 		</main>

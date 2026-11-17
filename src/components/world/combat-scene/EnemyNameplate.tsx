@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import type { BossConfig } from "#/game/bosses";
 import type { MonsterRarity } from "#/game/monsters";
 import type { Enemy } from "#/hooks/useCombatLoop";
+import { m } from "#/paraglide/messages";
 
 import { type IntroStages, isStagedEnemy, nameplateVisible } from "./reveal";
 
@@ -78,7 +79,7 @@ function Nameplate({
 				{displayName}
 			</div>
 			<div className="text-lg uppercase tracking-[0.2em] text-white/60">
-				Lv {enemy.level}
+				{m.level_short({ level: enemy.level })}
 			</div>
 		</motion.div>
 	);

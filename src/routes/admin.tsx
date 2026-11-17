@@ -29,15 +29,15 @@ export const Route = createFileRoute("/admin")({
 
 type NavItem = {
 	to: "/admin" | "/admin/users" | "/admin/admins" | "/admin/items";
-	label: string;
+	label: () => string;
 	exact?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
-	{ to: "/admin", label: "Overview", exact: true },
-	{ to: "/admin/users", label: "Users" },
-	{ to: "/admin/admins", label: "Admins" },
-	{ to: "/admin/items", label: "Item Generator" },
+	{ to: "/admin", label: m.admin_overview_title, exact: true },
+	{ to: "/admin/users", label: m.admin_users_title },
+	{ to: "/admin/admins", label: m.admin_admins_title },
+	{ to: "/admin/items", label: m.admin_items_title },
 ];
 
 function AdminShell({ children }: { children: ReactNode }) {
@@ -46,7 +46,7 @@ function AdminShell({ children }: { children: ReactNode }) {
 			<aside className="flex w-56 shrink-0 flex-col justify-between border-r border-white/15 p-4">
 				<div>
 					<h2 className="mb-4 text-xs font-bold uppercase tracking-label text-white/60">
-						Admin
+						{m.admin_nav_title()}
 					</h2>
 					<nav className="space-y-1">
 						{NAV_ITEMS.map((item) => (
@@ -61,14 +61,14 @@ function AdminShell({ children }: { children: ReactNode }) {
 										"block border border-white px-3 py-2 text-sm font-medium uppercase tracking-wider text-white no-underline bg-white/10",
 								}}
 							>
-								{item.label}
+								{item.label()}
 							</Link>
 						))}
 					</nav>
 				</div>
 				<Link to="/character-select" className="no-underline">
 					<Button type="button" variant="starkMuted" caps className="w-full">
-						← Characters
+						{m.admin_nav_back_to_characters()}
 					</Button>
 				</Link>
 			</aside>

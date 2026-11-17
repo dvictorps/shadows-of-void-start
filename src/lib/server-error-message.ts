@@ -94,6 +94,9 @@ const SUBSTRING = [
 	["zone-locked", m.error_zone_locked],
 ] as const;
 
+const INVALID_ACTION =
+	/^(Invalid (slot|stash slot|camp threshold|kill)|Unknown (monster|combat zone|current location|destination)|No route from)\b/;
+
 const PATTERNS: readonly ((msg: string) => string | null)[] = [
 	(msg) =>
 		msg.toLowerCase().includes("inventory") &&
@@ -132,6 +135,7 @@ const PATTERNS: readonly ((msg: string) => string | null)[] = [
 		/^Cannot enter \S+ from \S+$/.test(msg)
 			? m.error_cannot_enter_from_here()
 			: null,
+	(msg) => (INVALID_ACTION.test(msg) ? m.error_invalid_action() : null),
 ];
 
 function tryTranslate(raw: string): string | null {

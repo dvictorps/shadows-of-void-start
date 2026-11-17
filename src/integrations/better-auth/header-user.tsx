@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "#/components/ui/button";
 import { authClient } from "#/lib/auth-client";
 import { queueFlashToast } from "#/lib/flash-toast";
+import { m } from "#/paraglide/messages";
 
 export default function BetterAuthHeader() {
 	const { data: session, isPending } = authClient.useSession();
@@ -24,7 +25,7 @@ export default function BetterAuthHeader() {
 						void authClient.signOut({
 							fetchOptions: {
 								onSuccess: () => {
-									queueFlashToast("success", "Signed out");
+									queueFlashToast("success", m.sign_out_toast());
 									window.location.href = "/";
 								},
 							},
@@ -32,7 +33,7 @@ export default function BetterAuthHeader() {
 					}}
 					caps
 				>
-					Sign out
+					{m.sign_out_button()}
 				</Button>
 			</div>
 		);
@@ -41,7 +42,7 @@ export default function BetterAuthHeader() {
 	return (
 		<Link to="/sign-in" className="no-underline">
 			<Button variant="stark" caps>
-				Sign in
+				{m.sign_in_button()}
 			</Button>
 		</Link>
 	);

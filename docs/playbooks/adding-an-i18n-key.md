@@ -46,7 +46,7 @@ The only exceptions:
 
 ## Server-side errors
 
-Server errors thrown from tRPC procedures with `fail(message)` (`src/server/trpc/errors.ts`) are in English by design (the server doesn't know the locale). The translation happens client-side in `src/lib/server-error-message.ts:translateServerError`, which tries, in order, the `EXACT` table, the `SUBSTRING` needles and the `PATTERNS` functions, and passes an unknown message through untouched.
+Server errors thrown from tRPC procedures with `fail(message)` (`src/server/trpc/errors.ts`) are in English by design (the server doesn't know the locale). The translation happens client-side in `src/lib/server-error-message.ts:translateServerError`, which tries, in order, the `EXACT` table, the `SUBSTRING` needles and the `PATTERNS` functions, and passes an unknown message through untouched. Internal guard messages a normal client never triggers (`Invalid slot: …`, `Unknown destination: …`, `No route from …`) all map to the generic `error_invalid_action` through the `INVALID_ACTION` pattern; a new guard of that kind joins that regex rather than getting its own key.
 
 When you add a new server error:
 

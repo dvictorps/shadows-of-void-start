@@ -96,6 +96,16 @@ describe("translateServerError — substring and parametric matches", () => {
 		["teleport_stone cap reached", m.vendor_buy_at_cap()],
 		["Unknown product: sword", m.error_unknown_product()],
 		["Cannot enter act1_3 from act1_1", m.error_cannot_enter_from_here()],
+		["Invalid slot: hat", m.error_invalid_action()],
+		["Invalid stash slot: 99", m.error_invalid_action()],
+		["Invalid camp threshold", m.error_invalid_action()],
+		["Invalid kill: goblin as unique", m.error_invalid_action()],
+		["Unknown monster: dragon", m.error_invalid_action()],
+		["Unknown combat zone: city", m.error_invalid_action()],
+		["Unknown current location: nowhere", m.error_invalid_action()],
+		["Unknown destination node: nowhere", m.error_invalid_action()],
+		["Unknown destination: nowhere", m.error_invalid_action()],
+		["No route from city to cripta", m.error_invalid_action()],
 	])("%s", (raw, expected) => {
 		expect(translateServerError(raw)).toBe(expected);
 	});

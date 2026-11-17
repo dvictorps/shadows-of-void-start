@@ -1,4 +1,5 @@
 import { Button } from "#/components/ui/button";
+import { m } from "#/paraglide/messages";
 
 import Modal from "./Modal";
 
@@ -22,8 +23,8 @@ export default function ConfirmationModal({
 	isOpen,
 	title,
 	message,
-	confirmLabel = "Confirm",
-	cancelLabel = "Cancel",
+	confirmLabel = m.confirm(),
+	cancelLabel = m.cancel(),
 	variant = "default",
 	onConfirm,
 	onCancel,

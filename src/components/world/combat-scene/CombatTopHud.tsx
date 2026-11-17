@@ -46,7 +46,9 @@ export default function CombatTopHud({
 			</AnimatePresence>
 			<div className="absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60">
 				<span>{zoneName}</span>
-				<span className="text-base text-white/40">LV {zoneLevel}</span>
+				<span className="text-base text-white/40">
+					{m.level_short({ level: zoneLevel })}
+				</span>
 			</div>
 
 			<div className="absolute top-3 right-3 z-10 flex items-center gap-2">
@@ -55,7 +57,11 @@ export default function CombatTopHud({
 					size="hud-icon"
 					onClick={onOpenBag}
 					disabled={bagCount === 0}
-					aria-label={`Loot bag (${bagCount} items)`}
+					aria-label={
+						bagCount === 1
+							? m.loot_bag_aria_one({ count: bagCount })
+							: m.loot_bag_aria_other({ count: bagCount })
+					}
 					className="relative"
 				>
 					<Sparkles strokeWidth={2} />
