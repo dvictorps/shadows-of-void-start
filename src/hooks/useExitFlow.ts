@@ -48,6 +48,7 @@ export function useExitFlow({
 
 	const [exitKeepCap, setExitKeepCap] = useState(0);
 	const pendingStoneRef = useRef(false);
+	const committingRef = useRef(false);
 
 	const [isUsingTeleportStone, runUseTeleportStone] = useInFlight(view);
 	const runRetreat = useInFlight(view)[1];
@@ -93,25 +94,46 @@ export function useExitFlow({
 			await exitZone({ characterId, keepIds: [] });
 		});
 
-	const closeExit = async (bagEmptied: boolean) => {
-		const wasPendingStone = pendingStoneRef.current;
+	const takePendingStone = () => {
+		const wasPending = pendingStoneRef.current;
 		pendingStoneRef.current = false;
 		exitModal.close();
+		return wasPending;
+	};
+
+	const closeExit = async (bagEmptied: boolean) => {
+		const wasPendingStone = takePendingStone();
 		if (wasPendingStone && bagEmptied) await fireStoneToCity();
 	};
 
 	const selectionEmptiesBag = (ids: string[]) => ids.length === bagSize;
 
-	const pickSelected = async (ids: string[]) => {
+	const commitExit = async (keepIds: string[]) => {
+		if (committingRef.current) return;
+		committingRef.current = true;
+		const wasPendingStone = takePendingStone();
 		try {
-			if (phase === "camp") {
-				const pick = pickFromBag({ characterId, itemIds: ids });
-				if (selectionEmptiesBag(ids)) void closeExit(true);
-				await pick;
-			} else {
-				await exitZone({ characterId, keepIds: ids });
-				await closeExit(true);
-			}
+			await exitZone({ characterId, keepIds });
+		} catch (err) {
+			pendingStoneRef.current = wasPendingStone;
+			exitModal.open();
+			toast.error(serverErrorMessage(err, m.inventory_full_error()));
+			return;
+		} finally {
+			committingRef.current = false;
+		}
+		if (wasPendingStone) await fireStoneToCity();
+	};
+
+	const pickSelected = async (ids: string[]) => {
+		if (phase !== "camp") {
+			await commitExit(ids);
+			return;
+		}
+		try {
+			const pick = pickFromBag({ characterId, itemIds: ids });
+			if (selectionEmptiesBag(ids)) void closeExit(true);
+			await pick;
 		} catch (err) {
 			toast.error(serverErrorMessage(err, m.inventory_full_error()));
 		}
@@ -124,19 +146,9 @@ export function useExitFlow({
 		await discard;
 	};
 
-	const pickAll = async (ids: string[]) => {
-		try {
-			await exitZone({ characterId, keepIds: ids });
-			await closeExit(true);
-		} catch (err) {
-			toast.error(serverErrorMessage(err, m.inventory_full_error()));
-		}
-	};
+	const pickAll = (ids: string[]) => commitExit(ids);
 
-	const discardAll = async () => {
-		await exitZone({ characterId, keepIds: [] });
-		await closeExit(true);
-	};
+	const discardAll = () => commitExit([]);
 
 	const dismissExit = () => closeExit(bagSize === 0);
 

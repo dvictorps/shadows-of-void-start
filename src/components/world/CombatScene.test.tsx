@@ -521,11 +521,12 @@ describe("CombatScene — zone complete", () => {
 });
 
 describe("CombatScene — camp", () => {
-	it("cuts straight to the camp screen with the zone's line", () => {
+	it("fades into the camp screen with the zone's line", async () => {
 		const scene = renderScene({ state: "searching" });
 		scene.update({ state: "acampamento", campSource: "baked" });
-		expect(zonePath()).toBeNull();
 		expect(screen.getByText(m.camp_title())).toBeTruthy();
+		await advance(SETTLE_MS);
+		expect(zonePath()).toBeNull();
 		expect(screen.getByText(translateCampLine(ZONE_ID, "baked"))).toBeTruthy();
 	});
 

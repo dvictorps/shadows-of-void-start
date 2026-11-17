@@ -83,7 +83,7 @@ The schedule lives as data per zone (`src/game/world/act-1.ts`). The combat engi
 
 ### Acampamento
 
-A guaranteed rest point inside the zone. A camp is a campfire tile on the Zone Path. When the player reaches it, in place of the next spawn, the view cuts to the **camp screen**: a black background with the title "Acampamento", one zone-themed line (e.g., "O ar fica mais leve."; an incense camp uses its own line), and two options below:
+A guaranteed rest point inside the zone. A camp is a campfire tile on the Zone Path. When the player reaches it, in place of the next spawn, the view fades slowly into the **camp screen** (and fades out quickly when the player leaves it): a black background with the title "Acampamento", one zone-themed line (e.g., "O ar fica mais leve."; an incense camp uses its own line), and two options below:
 
 - **Retornar à cidade com 100% do loot** — exits the zone via the standard `ExitZoneModal` with the full bag selectable. Player picks freely; nothing is capped or random.
 - **Seguir em frente** — closes the camp screen; the player resumes walking from the campfire, the next scheduled encounter spawns. Zone progress is preserved.

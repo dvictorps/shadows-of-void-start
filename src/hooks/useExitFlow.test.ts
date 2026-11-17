@@ -216,12 +216,55 @@ describe("useExitFlow — exit modal actions", () => {
 		expect(field.server.discardFromBag).not.toHaveBeenCalled();
 	});
 
-	it("keeps the modal open when a commit fails", async () => {
+	it("closes the modal at once, before the server answers the commit", async () => {
+		const t = setup({ bagSize: 4, phase: "combat" });
+		let answer = () => {};
+		t.server.exitZone.mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					answer = () => resolve({});
+				}),
+		);
+		await act(() => t.flow().retreat());
+		let commit: Promise<void> = Promise.resolve();
+		act(() => {
+			commit = t.flow().pickAll(["a"]);
+		});
+		expect(t.modalOpen()).toBe(false);
+		await act(async () => {
+			answer();
+			await commit;
+		});
+		expect(t.modalOpen()).toBe(false);
+	});
+
+	it("sends a double-clicked commit once", async () => {
+		const t = setup({ bagSize: 4, phase: "combat" });
+		await act(() => t.flow().retreat());
+		await act(() =>
+			Promise.all([t.flow().pickAll(["a"]), t.flow().pickAll(["a"])]),
+		);
+		expect(t.server.exitZone).toHaveBeenCalledTimes(1);
+	});
+
+	it("reopens the modal when a commit fails", async () => {
 		const t = setup({ bagSize: 4, phase: "combat" });
 		t.server.exitZone.mockRejectedValueOnce(new Error("Inventory full"));
 		await act(() => t.flow().retreat());
 		await act(() => t.flow().pickAll(["a"]));
 		expect(t.modalOpen()).toBe(true);
+	});
+
+	it("keeps the pending stone for the retry when a commit fails", async () => {
+		const t = setup({ bagSize: 4, phase: "combat" });
+		t.server.exitZone.mockRejectedValueOnce(new Error("Inventory full"));
+		await act(() => t.flow().stoneToCity());
+		await act(() => t.flow().pickAll(["a"]));
+		expect(t.server.teleportStone).not.toHaveBeenCalled();
+		await act(() => t.flow().pickAll(["a"]));
+		expect(t.server.teleportStone).toHaveBeenCalledExactlyOnceWith(
+			stoneToCityArgs,
+		);
 	});
 
 	it("closes on a dismiss of an emptied bag without a pending stone", async () => {

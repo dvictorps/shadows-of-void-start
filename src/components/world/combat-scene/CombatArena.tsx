@@ -10,6 +10,7 @@ import EnemySprite from "./EnemySprite";
 import FloatingDamage from "./FloatingDamage";
 import FloatingXp from "./FloatingXp";
 import {
+	type ArenaView,
 	arenaView,
 	hpBarVisible,
 	type IntroStages,
@@ -19,11 +20,19 @@ import { useEnemySpriteMotion } from "./useEnemySpriteMotion";
 import ZoneCompletePanel from "./ZoneCompletePanel";
 import ZonePath, { type ZonePathState } from "./ZonePath";
 
-const FADE_S = 0.5;
-const LAYER_CLASS = {
-	path: "absolute inset-0 px-6 pt-16 pb-4",
-	fight: "absolute inset-0 flex flex-col items-center gap-4",
-} as const;
+const LAYER = {
+	path: { className: "absolute inset-0 px-6 pt-16 pb-4", inS: 0.5, outS: 0.5 },
+	fight: {
+		className: "absolute inset-0 flex flex-col items-center gap-4",
+		inS: 0.5,
+		outS: 0.5,
+	},
+	camp: {
+		className: "absolute inset-0 flex items-center justify-center",
+		inS: 1.2,
+		outS: 0.25,
+	},
+} satisfies Record<ArenaView, { className: string; inS: number; outS: number }>;
 
 export default function CombatArena({
 	stages,
@@ -75,18 +84,63 @@ export default function CombatArena({
 	const enemyOnStage = state !== "searching" && state !== "miniboss_victory";
 	const view = arenaView(state, ambushActive);
 
-	if (view === "camp") {
-		return (
-			<div className="relative flex min-h-0 flex-1 items-center justify-center">
-				<CampScreen
-					zoneId={zoneId}
-					source={campSource}
-					onReturn={onRetreat}
-					onContinue={onDismissCamp}
-				/>
+	const layer = LAYER[view];
+	const fight = (
+		<>
+			{nameplate}
+			<div className="relative flex w-full flex-1 items-center justify-center">
+				{state === "miniboss_victory" && (
+					<ZoneCompletePanel
+						onContinue={onDismissMinibossModal}
+						onRetreat={onRetreat}
+						showContinue={!isBossNode}
+					/>
+				)}
+				{enemy && enemyOnStage && (
+					<EnemySprite
+						enemy={enemy}
+						displayName={displayName}
+						bossConfig={bossConfig}
+						enemyControls={enemyControls}
+						redFlashControls={redFlashControls}
+						lastSwingHit={lastSwingHit}
+					/>
+				)}
+
+				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+					<AnimatePresence>
+						{enemyEvents.map((event) => (
+							<FloatingDamage key={event.id} event={event} />
+						))}
+					</AnimatePresence>
+				</div>
+
+				<div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
+					<AnimatePresence>
+						{state === "victory" && lastKillXp !== undefined && (
+							<FloatingXp amount={lastKillXp} />
+						)}
+					</AnimatePresence>
+				</div>
 			</div>
-		);
-	}
+
+			{enemy && state !== "miniboss_victory" && (
+				<EnemyHpBarSlot enemy={enemy} visible={hpBarVisible(stages)} />
+			)}
+		</>
+	);
+	const content = {
+		path: path.route && <ZonePath {...path} route={path.route} />,
+		camp: (
+			<CampScreen
+				zoneId={zoneId}
+				source={campSource}
+				onReturn={onRetreat}
+				onContinue={onDismissCamp}
+			/>
+		),
+		fight,
+	} satisfies Record<ArenaView, ReactNode>;
 
 	return (
 		<div className="relative min-h-0 flex-1">
@@ -94,57 +148,18 @@ export default function CombatArena({
 				<motion.div
 					key={view}
 					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					transition={{ duration: FADE_S, ease: "easeInOut" }}
-					className={LAYER_CLASS[view]}
+					animate={{
+						opacity: 1,
+						transition: { duration: layer.inS, ease: "easeInOut" },
+					}}
+					exit={{
+						opacity: 0,
+						pointerEvents: "none",
+						transition: { duration: layer.outS, ease: "easeIn" },
+					}}
+					className={layer.className}
 				>
-					{view === "path" ? (
-						path.route && <ZonePath {...path} route={path.route} />
-					) : (
-						<>
-							{nameplate}
-							<div className="relative flex w-full flex-1 items-center justify-center">
-								{state === "miniboss_victory" && (
-									<ZoneCompletePanel
-										onContinue={onDismissMinibossModal}
-										onRetreat={onRetreat}
-										showContinue={!isBossNode}
-									/>
-								)}
-								{enemy && enemyOnStage && (
-									<EnemySprite
-										enemy={enemy}
-										displayName={displayName}
-										bossConfig={bossConfig}
-										enemyControls={enemyControls}
-										redFlashControls={redFlashControls}
-										lastSwingHit={lastSwingHit}
-									/>
-								)}
-
-								<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-									<AnimatePresence>
-										{enemyEvents.map((event) => (
-											<FloatingDamage key={event.id} event={event} />
-										))}
-									</AnimatePresence>
-								</div>
-
-								<div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
-									<AnimatePresence>
-										{state === "victory" && lastKillXp !== undefined && (
-											<FloatingXp amount={lastKillXp} />
-										)}
-									</AnimatePresence>
-								</div>
-							</div>
-
-							{enemy && state !== "miniboss_victory" && (
-								<EnemyHpBarSlot enemy={enemy} visible={hpBarVisible(stages)} />
-							)}
-						</>
-					)}
+					{content[view]}
 				</motion.div>
 			</AnimatePresence>
 		</div>
