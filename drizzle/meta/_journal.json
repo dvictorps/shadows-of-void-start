@@ -15,6 +15,13 @@
       "when": 1794799437742,
       "tag": "0001_slimy_romulus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794919116216,
+      "tag": "0002_mute_energizer",
+      "breakpoints": true
     }
   ]
 }

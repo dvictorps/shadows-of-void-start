@@ -1,0 +1,1 @@
+ALTER TABLE `characters` ADD `gauntlet_kills` integer DEFAULT 0 NOT NULL;

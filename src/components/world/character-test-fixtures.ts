@@ -22,6 +22,7 @@ export function characterRow(
 		windCrystals: 0,
 		currentZoneSession: null,
 		currentZoneKills: 0,
+		gauntletKills: 0,
 		zoneStartedAt: null,
 		campThresholdsMs: null,
 		inCamp: false,

@@ -17,6 +17,7 @@ export const SERVER_ERRORS = {
 	noCampsInBoss: "No camps in boss nodes",
 	campAlreadyUsed: "Camp threshold already consumed",
 	campNotReached: "Camp threshold not reached",
+	killNotReached: "Kill not reachable yet",
 	alreadyTraveling: "Already traveling",
 	alreadyAtDestination: "Already at destination",
 	noTeleportStones: "No teleport stones",

@@ -498,6 +498,7 @@
 	"error_no_camps_in_boss": "There are no camps in a boss area",
 	"error_camp_already_used": "This camp was already used",
 	"error_camp_not_reached": "No camp yet — keep exploring",
+	"error_kill_not_reached": "That kill is not possible yet",
 	"error_already_traveling": "Already travelling",
 	"error_already_at_destination": "You're already there",
 	"error_no_teleport_stones": "No teleport stones left",

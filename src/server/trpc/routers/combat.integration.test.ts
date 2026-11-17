@@ -3,8 +3,11 @@ import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MAX_POTIONS } from "#/game/combat/constants";
+import { maxPacedKills } from "#/game/combat/kill-pace";
 import { xpToNextLevel } from "#/game/progression/levels";
+import { ACT_1 } from "#/game/world";
 import { TRAVEL_ARRIVAL_GRACE_MS } from "#/game/world/zone-actions";
+import { zoneContextFor } from "#/game/world/zone-context";
 import { SERVER_ERRORS } from "#/lib/server-errors";
 import { ARRIVAL_RETRY_MS, localTravelEnd } from "#/lib/travel-clock";
 
@@ -12,6 +15,7 @@ import { db } from "../../db/client";
 import { items } from "../../db/schema";
 import { computeLeaderboardSnapshot } from "../../leaderboard";
 import {
+	backdateZoneVisit,
 	callerFor,
 	createAccount,
 	createPlayableCharacter,
@@ -25,6 +29,7 @@ describe("combat", () => {
 	it("levels up on a kill and refills vitals from the new stat cache", async () => {
 		const account = await createAccount();
 		const hero = await createPlayableCharacter(account);
+		await enterZone(account, hero);
 		await patchCharacter(hero.characterId, {
 			xp: xpToNextLevel(1) - 1,
 			hpCurrent: 1,
@@ -45,6 +50,8 @@ describe("combat", () => {
 	it("syncs the client's HP on an ordinary kill, clamped, and returns the patch", async () => {
 		const account = await createAccount();
 		const hero = await createPlayableCharacter(account);
+		await enterZone(account, hero);
+		await backdateZoneVisit(hero.characterId, 30_000);
 		const { cachedMaxLife } = await readCharacter(hero.characterId);
 		const kill = {
 			...hero,
@@ -83,6 +90,95 @@ describe("combat", () => {
 			}),
 			"Unknown monster: dragon",
 		);
+	});
+
+	it("refuses regular kills past the zone's spawn pace", async () => {
+		const account = await createAccount();
+		const hero = await createPlayableCharacter(account);
+		await enterZone(account, hero);
+		await backdateZoneVisit(hero.characterId, 3_600_000);
+		const plan = zoneContextFor(ACT_1, "forest_starter").encounterPlan;
+		const ceiling = maxPacedKills(plan, plan.calmariaBudgetSeconds * 1000);
+		const goblin = {
+			...hero,
+			monsterId: "goblin",
+			monsterLevel: 1,
+			monsterRarity: "normal" as const,
+		};
+		for (let i = 0; i < ceiling; i++) {
+			await account.caller.combat.recordKill(goblin);
+		}
+		await expectServerError(
+			account.caller.combat.recordKill(goblin),
+			SERVER_ERRORS.killNotReached,
+		);
+		expect((await readCharacter(hero.characterId)).currentZoneKills).toBe(
+			ceiling,
+		);
+	});
+
+	it("refuses a miniboss before the zone's bar could have filled", async () => {
+		const account = await createAccount();
+		const hero = await createPlayableCharacter(account);
+		await enterZone(account, hero);
+		await expectServerError(
+			account.caller.combat.recordKill({
+				...hero,
+				monsterId: "goblin",
+				monsterLevel: 1,
+				monsterRarity: "rare",
+			}),
+			SERVER_ERRORS.killNotReached,
+		);
+		expect((await readCharacter(hero.characterId)).completedZones).toEqual([]);
+	});
+
+	it("counts the boss only after the full gauntlet, then restarts it", async () => {
+		const account = await createAccount();
+		const hero = await createPlayableCharacter(account);
+		await enterZone(account, hero, "covil_gralfor");
+		const lair = zoneContextFor(ACT_1, "covil_gralfor");
+		const warmupMs = lair.encounterPlan.calmariaBudgetSeconds * 1000;
+		const fights = lair.bossNode?.gauntlet.fights ?? 0;
+		const gauntletRare = {
+			...hero,
+			monsterId: "olho_do_vazio",
+			monsterLevel: 15,
+			monsterRarity: "rare" as const,
+		};
+		const boss = {
+			...hero,
+			monsterId: "gralfor",
+			monsterLevel: 15,
+			monsterRarity: "unique" as const,
+		};
+
+		await expectServerError(
+			account.caller.combat.recordKill(gauntletRare),
+			SERVER_ERRORS.killNotReached,
+		);
+		await backdateZoneVisit(hero.characterId, warmupMs);
+		await expectServerError(
+			account.caller.combat.recordKill(boss),
+			SERVER_ERRORS.killNotReached,
+		);
+		for (let i = 0; i < fights; i++) {
+			await account.caller.combat.recordKill(gauntletRare);
+		}
+		await account.caller.combat.recordKill(boss);
+		const row = await readCharacter(hero.characterId);
+		expect(row.totalBossKills).toBe(1);
+		expect(row.gauntletKills).toBe(0);
+
+		await expectServerError(
+			account.caller.combat.recordKill(boss),
+			SERVER_ERRORS.killNotReached,
+		);
+		await expectServerError(
+			account.caller.combat.recordKill(gauntletRare),
+			SERVER_ERRORS.killNotReached,
+		);
+		expect((await readCharacter(hero.characterId)).totalBossKills).toBe(1);
 	});
 
 	it("bounds a forged monster level and rarity by the character's zone", async () => {
@@ -386,6 +482,8 @@ describe("combat", () => {
 	it("drops at most the potion cap", async () => {
 		const account = await createAccount();
 		const hero = await createPlayableCharacter(account);
+		await enterZone(account, hero);
+		await backdateZoneVisit(hero.characterId, 30_000);
 		await patchCharacter(hero.characterId, { potions: MAX_POTIONS });
 		for (let i = 0; i < 10; i++) {
 			await account.caller.combat.recordKill({

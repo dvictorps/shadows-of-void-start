@@ -85,6 +85,13 @@ export async function patchCharacter(
 	await db.update(characters).set(values).where(eq(characters.id, characterId));
 }
 
+export async function backdateZoneVisit(
+	characterId: number,
+	exploredMs: number,
+): Promise<void> {
+	await patchCharacter(characterId, { zoneStartedAt: Date.now() - exploredMs });
+}
+
 export async function readCharacter(characterId: number) {
 	const row = await db.query.characters.findFirst({
 		where: eq(characters.id, characterId),

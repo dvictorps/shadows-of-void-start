@@ -4,7 +4,7 @@
 
 The current system is server-authoritative for **values** (HP cap, XP per monster, drops, prices) but trusts the **client for events** (kill happened, current HP). Two real exploits exist today:
 
-1. `recordKill` spam — infinite XP + free loot/potions.
+1. ~~`recordKill` spam — infinite XP + free loot/potions.~~ Closed 2026-11-17 by kill pacing (`src/game/combat/kill-pace.ts`); a script at an honest pace stays accepted by design.
 2. `syncHp` god mode — never die.
 
 Both are documented with severity, mechanism, and layered fixes in the threat-model doc.

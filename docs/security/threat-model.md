@@ -15,6 +15,7 @@ These are server-authoritative for both the VALUE and the CALCULATION. The clien
 | Cross-character access | every mutation                                                                          | `characterSessionProcedure` (src/server/trpc/init.ts) reads the session and verifies the caller owns the character, enforced by the lint rule `shadows/require-session-procedure`; read queries filter by `ctx.session.user.id`                                                                                                                       |
 | Cross-character items  | item ops                                                                                | `item.characterId === args.characterId` + `locationKind` check                                                                                                                                                                                                                                                                                        |
 | HP cap                 | `syncHp`, `recordKill` (vitals + level-up), `enterCity`, `respawnDead`, `consumePotion` | All clamp to `stats.maxLife` computed via the stat engine (post the silent-defense fix); client never decides max                                                                                                                                                                                                                                     |
+| Kill pacing            | `recordKill` → `resolveKillPace` (src/game/combat/kill-pace.ts)                         | Kills only inside a zone visit and at the pace the encounter schedule allows (rares / boss after the bar's budget, boss after the full gauntlet); see threat #1                                                                                                                                                                                       |
 | XP per kill            | `recordKill` → `resolveKillTarget` (src/game/combat/record-kill.ts)                     | XP comes from game data (`scaleMonsterStats(template, level).xpReward`). The client sends `monsterId`, `monsterLevel` and `monsterRarity`; the level is clamped to the zone's level ± 1 (boss: its own level), a boss counts only in its own boss node, and a non-boss claimed as `unique` is refused (see threat #1 → forged level / rarity, closed) |
 | Drop generation        | `recordKill` → `rollDrop`                                                               | Server-side roll; client never decides rarity or template                                                                                                                                                                                                                                                                                             |
 | Travel time            | `startTravel` → `computeTravelTime(distance, stats.movementSpeed)`                      | Distance lives in node data; movement speed comes from the engine; client only sends destination                                                                                                                                                                                                                                                      |
@@ -34,7 +35,7 @@ If a future change is about to weaken any of these, treat it like a regression a
 
 The architecture is **server-authoritative for values** but **client-authoritative for events**. Every exploit below stems from that gap.
 
-### 1. `recordKill` spam → infinite XP + loot (HIGH severity)
+### 1. `recordKill` spam → infinite XP + loot (HIGH severity) — **CLOSED** by kill pacing (2026-11-17)
 
 `recordKill({ characterId, monsterId })` validates that the monster id exists in game data but does **not** validate:
 
@@ -62,7 +63,18 @@ setInterval(
 
 **Why it works**: `recordKill` was built assuming the client only calls it when a kill genuinely happens. No server-side state corroborates the event.
 
-**Forged level / rarity — CLOSED.** Until the kill-claim bounds commit, `resolveKillTarget` took `monsterLevel` and `monsterRarity` from the client unbounded: `monsterLevel: 999` multiplied the XP and raised the drops' item level, and `gralfor` claimed as `unique` from any node rolled boss loot and bumped the boss-kill leaderboard. Now the server bounds the claim with data it owns (`zoneContextFor` on the character's `currentLocation`): the level is clamped to the zone's level ± 1 (character level ± 1 off a levelled node), a boss counts only inside its own boss node at its own level and as `unique`, and a non-boss claimed as `unique` is refused (`record-kill.test.ts`, `combat.integration.test.ts`). The event itself (spam, a `rare` claim for a mob that was never a miniboss) is still trusted: that is the rest of this threat, still open.
+**Forged level / rarity — CLOSED.** Until the kill-claim bounds commit, `resolveKillTarget` took `monsterLevel` and `monsterRarity` from the client unbounded: `monsterLevel: 999` multiplied the XP and raised the drops' item level, and `gralfor` claimed as `unique` from any node rolled boss loot and bumped the boss-kill leaderboard. Now the server bounds the claim with data it owns (`zoneContextFor` on the character's `currentLocation`): the level is clamped to the zone's level ± 1 (character level ± 1 off a levelled node), a boss counts only inside its own boss node at its own level and as `unique`, and a non-boss claimed as `unique` is refused (`record-kill.test.ts`, `combat.integration.test.ts`). The event itself (spam, a `rare` claim for a mob that was never a miniboss) was the rest of this threat, closed below.
+
+**Event pacing — CLOSED.** `recordKill` now runs `resolveKillPace` (`src/game/combat/kill-pace.ts`) before crediting anything, on the server's clock against `zoneStartedAt`:
+
+- outside a zone visit → `notInZone`;
+- a rare or the boss before the bar's budget (the boss node's warmup) could have elapsed since the visit started or since the last miniboss / boss kill → `killNotReached`;
+- a gauntlet rare past the node's N fights, or the boss before them (`characters.gauntletKills`, reset by the boss kill) → `killNotReached`;
+- regular kills past `floor(explored / shortest spawn gap) + every ambush pack at full size + 1` → `killNotReached`.
+
+The `setInterval` above now earns a handful of kills per visit, then refusals. Tests: `kill-pace.test.ts`, `combat.integration.test.ts` (spam ceiling, early miniboss, full lair cycle). The same change fixed an honest-client hole: "continue" after a boss kill used to respawn the boss alone (`useCombatLoop`), so the boss-kill leaderboard could be farmed without the gauntlet.
+
+**Accepted residual (owner decision, 2026-11-17):** a script that claims kills at an honest player's pace without fighting is indistinguishable from playing and stays accepted. Also accepted: the normal / magic split of regular claims is not bounded (claiming every mob as magic doubles the drop chance of those kills, inside the same pace ceiling), and a kill whose request lands after `exitZone` is refused, losing that kill's XP.
 
 ### 2. `syncHp` god mode (HIGH severity)
 
@@ -108,7 +120,7 @@ There are no per-character per-mutation rate limits at the application level. Ea
 - Adds DB write contention if the same character is hammered.
 - Enables the two exploits above to run at full speed.
 
-On the Free plan this is an availability threat: one spam script can take the game down for the day. Layer 1 below is the cheap guard.
+On the Free plan this is an availability threat: one spam script can take the game down for the day. Layer 1 below is the cheap guard. Since kill pacing (threat #1), a spammed `recordKill` is refused before its UPDATE: it still spends requests and reads, but no longer D1 writes.
 
 ### 5. Concurrent multi-tab / multi-device sessions — **CLOSED** in `feat/single-active-session`
 
@@ -262,6 +274,7 @@ These close a specific exploit without depending on the broader rate-limit / ses
 | Fix                                        | Closes                        | Status                                                                                                                                                                                                                                                                                                      |
 | ------------------------------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Server-authoritative camp/phase derivation | Threat #3 (`phase` arg trust) | ✅ **Shipped** in PR #48 + PR #51 — `derivePhaseFromCharacter` reads server state; `phase` arg removed from all mutations.                                                                                                                                                                                  |
+| Server-side kill pacing                    | Threat #1 (`recordKill` spam) | ✅ **Shipped** 2026-11-17 — `resolveKillPace` + `characters.gauntletKills`; script-at-honest-pace accepted by design.                                                                                                                                                                                       |
 | Single active session per character        | Threat #5 (multi-tab)         | ✅ **Shipped** in `feat/single-active-session` — `activeSessionToken` on `characters`, `claimCharacterSession`, the `characterSessionProcedure` middleware on every state-mutating procedure (since the Cloudflare migration), client-side `SessionTokenProvider` + `useSessionToken` + `SessionLostModal`. |
 
 ---

@@ -60,6 +60,14 @@ Each zone declares how many encounters its bar contains and how those encounters
   - `≥ 20` encounters → 2 camps anchored at ~33% and ~66%
 - After all scheduled encounters are consumed, the next spawn is the zone miniboss.
 
+**Kill pacing (server).** `recordKill` only credits kills the schedule could have produced (`src/game/combat/kill-pace.ts`), measured on the server's own clock from `zoneStartedAt` with 1s of grace:
+
+- No kill outside a zone visit (`zoneStartedAt` set by `enterZone`).
+- A rare (miniboss or gauntlet fight) or the boss needs the bar's full budget (`calmariaBudgetSeconds`, or the boss node's warmup) elapsed since the visit started or since the last miniboss / boss kill. Inside a boss node: at most N gauntlet rares, and the boss only after all N.
+- Regular kills since the last reset stay under `floor(explored / shortest spawn gap) + every ambush pack at full size + 1` (plus the gauntlet fights in a boss node), with `explored` capped at the bar's budget.
+
+These are ceilings an honest player never reaches; a script that claims kills at an honest player's pace is accepted (see the threat model).
+
 The schedule lives as data per zone (`src/game/world/act-1.ts`). The combat engine reads and dispatches events; spawn mechanics use an abstract `spawn event` shape (e.g., `{ size: 1, kind, ... }`) so future multi-enemy combat (NvN) can plug `size: N` ambush events without changing the engine surface.
 
 ### Acampamento
@@ -101,7 +109,7 @@ A distinct, more powerful enemy that gates progression to the next act. Lives in
 
 **Retreat between gauntlet fights** is allowed (the usual retreat button stays enabled in exploration phase) — bag retention is the standard 30% (combat tier). Re-entering the boss node restarts the gauntlet **from fight 1**; no checkpoint per rare killed.
 
-The act boss is **farmable** — it does not despawn permanently after the first kill. The challenge is having to clear the full gauntlet every attempt; the player can't walk in and re-kill the boss alone.
+The act boss is **farmable** — it does not despawn permanently after the first kill. The challenge is having to clear the full gauntlet every attempt; the player can't walk in and re-kill the boss alone. Continuing after a boss kill (instead of leaving) restarts the node from the warmup: warmup bar, then fight 1 of the gauntlet. The server counts the gauntlet (`characters.gauntletKills`) and only credits a boss kill after all N rares of the current run.
 
 Each boss node declares the gauntlet length and pool. Future acts can configure 5-fight gauntlets, multi-boss sequences, or gauntlet-less direct-fight nodes by adjusting the boss-node config — no per-act code path. The legacy "Model B" (Bar 1 → miniboss → Bar 2 → boss) is **superseded** by this and won't ship.
 

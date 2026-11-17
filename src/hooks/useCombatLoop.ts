@@ -214,8 +214,11 @@ export function useCombatLoop({
 			const isMinibossKill = killed.rarity === "rare" && !inBossNode;
 			const isBossKill = killed.rarity === "unique";
 			lastKillWasMinibossRef.current = isMinibossKill || isBossKill;
-			if (isMinibossKill) {
-				resetForMiniboss();
+			if (isMinibossKill || isBossKill) resetForMiniboss();
+			if (isBossKill) {
+				const restart = bossProgressFor(bossNode);
+				setWarmupDone(restart.warmupDone);
+				setGauntletFightIndex(restart.gauntletFightIndex);
 			}
 			const vitals = vitalsForKillRef.current();
 			void (async () => {

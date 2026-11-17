@@ -14,7 +14,9 @@ import {
 	rollCampThresholdsMs,
 } from "../world/encounter-schedule";
 import { ACT_1, findNode } from "../world/index";
-import { zoneContextFor } from "../world/zone-context";
+import type { WorldNode } from "../world/types";
+import type { Decision } from "../world/zone-actions";
+import { type ZoneContext, zoneContextFor } from "../world/zone-context";
 import {
 	ETHEREAL_INCENSE_DROP_CHANCE,
 	MAX_POTIONS,
@@ -38,7 +40,7 @@ export interface KillClaim {
 export function resolveKillTarget(
 	claim: KillClaim,
 	character: Pick<KillCharacter, "level" | "currentLocation">,
-): { ok: true; target: KillTarget } | { ok: false; error: string } {
+): Decision<{ target: KillTarget; zone: ZoneContext }> {
 	const boss = findBoss(claim.monsterId);
 	const template = findMonster(claim.monsterId) ?? boss?.template;
 	if (!template) {
@@ -62,6 +64,7 @@ export function resolveKillTarget(
 			);
 	return {
 		ok: true,
+		zone,
 		target: {
 			templateId: template.id,
 			monsterLevel,
@@ -77,6 +80,7 @@ export interface KillCharacter {
 	currentLocation: string;
 	currentZoneSession: string | null;
 	currentZoneKills: number;
+	gauntletKills: number;
 	inCamp: boolean;
 	potions: number;
 	etherealIncense: number;
@@ -92,6 +96,7 @@ export interface KillUpdate {
 	hpCurrent?: number;
 	barrierCurrent?: number;
 	currentZoneKills: number;
+	gauntletKills?: number;
 	inCamp?: boolean;
 	campThresholdsMs?: number[];
 	zoneStartedAt?: number;
@@ -125,6 +130,46 @@ export function resolveKillXp(
 	return applyXpGain(character.level, character.xp, target.xpReward);
 }
 
+function resolveCampTierKill(params: {
+	character: KillCharacter;
+	zone: WorldNode | null;
+	isBossKill: boolean;
+	resetCampSchedule: boolean;
+	monsterId: string;
+	now: number;
+	rng: Rng;
+}): Partial<KillUpdate> {
+	const { character, zone, rng } = params;
+	const update: Partial<KillUpdate> = {};
+	if (!character.completedZones.includes(character.currentLocation)) {
+		update.completedZones = [
+			...character.completedZones,
+			character.currentLocation,
+		];
+	}
+	if (params.resetCampSchedule && zone) {
+		update.campThresholdsMs = rollCampThresholdsMs(
+			zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN,
+			rng,
+		);
+		update.lastCampIndex = null;
+	}
+	if (params.resetCampSchedule || params.isBossKill) {
+		update.zoneStartedAt = params.now;
+	}
+	if (params.isBossKill) {
+		const tally = tallyBossKill(
+			params.monsterId,
+			character.bossKillCounts,
+			character.totalBossKills,
+		);
+		update.gauntletKills = 0;
+		update.bossKillCounts = tally.bossKillCounts;
+		update.totalBossKills = tally.totalBossKills;
+	}
+	return update;
+}
+
 export function resolveKill(params: {
 	character: KillCharacter;
 	monsterId: string;
@@ -151,6 +196,9 @@ export function resolveKill(params: {
 	};
 	if (gain.level !== character.level) update.level = gain.level;
 	if (progress.inCamp !== undefined) update.inCamp = progress.inCamp;
+	if (kill.isBossNodeRareKill) {
+		update.gauntletKills = character.gauntletKills + 1;
+	}
 
 	let magicFind = character.cachedMagicFind;
 	if (levelUpStats) {
@@ -161,29 +209,18 @@ export function resolveKill(params: {
 	}
 
 	if (kill.grantsCampTier) {
-		if (!character.completedZones.includes(character.currentLocation)) {
-			update.completedZones = [
-				...character.completedZones,
-				character.currentLocation,
-			];
-		}
-		if (progress.resetCampSchedule && zone) {
-			update.campThresholdsMs = rollCampThresholdsMs(
-				zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN,
+		Object.assign(
+			update,
+			resolveCampTierKill({
+				character,
+				zone,
+				isBossKill: kill.isBossKill,
+				resetCampSchedule: progress.resetCampSchedule,
+				monsterId: params.monsterId,
+				now: params.now,
 				rng,
-			);
-			update.zoneStartedAt = params.now;
-			update.lastCampIndex = null;
-		}
-		if (kill.isBossKill) {
-			const tally = tallyBossKill(
-				params.monsterId,
-				character.bossKillCounts,
-				character.totalBossKills,
-			);
-			update.bossKillCounts = tally.bossKillCounts;
-			update.totalBossKills = tally.totalBossKills;
-		}
+			}),
+		);
 	}
 
 	const potionDropped =

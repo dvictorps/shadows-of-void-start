@@ -352,6 +352,24 @@ describe("useCombatLoop — boss node", () => {
 		expect(result.current.bossIntroStage).toBeNull();
 	});
 
+	it("restarts the gauntlet after a boss kill, so the boss never respawns alone", async () => {
+		const { result, server } = setup({ bossNode: BOSS_NODE });
+		advance(GAUNTLET_SPAWN_MS + RARE_INTRO_MS + STEP_MS);
+		await flushServer();
+		advance(VICTORY_DELAY_MS + GAUNTLET_SPAWN_MS + BOSS_INTRO_MS + STEP_MS);
+		expect(server.recordKill).toHaveBeenLastCalledWith(
+			expect.objectContaining({ monsterRarity: "unique" }),
+		);
+		await flushServer();
+		advance(VICTORY_DELAY_MS);
+		expect(result.current.state).toBe("miniboss_victory");
+
+		act(() => result.current.dismissMinibossModal());
+		advance(GAUNTLET_SPAWN_MS);
+		expect(result.current.state).toBe("rare_intro");
+		expect(result.current.enemy?.rarity).toBe("rare");
+	});
+
 	it("holds each intro stage for the boss's own cinematic timings", async () => {
 		const slow = {
 			...GRALFOR,

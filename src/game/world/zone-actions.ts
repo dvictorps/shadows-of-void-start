@@ -9,7 +9,9 @@ import { ACT_1, findNode, isNodeAccessible } from "./index";
 import { computeTravelTime } from "./travel";
 import type { WorldNode } from "./types";
 
-type Decision<Value> = { ok: false; error: string } | ({ ok: true } & Value);
+export type Decision<Value = object> =
+	| { ok: false; error: string }
+	| ({ ok: true } & Value);
 
 export const CLEARED_VISIT = {
 	currentZoneSession: null,
@@ -17,6 +19,7 @@ export const CLEARED_VISIT = {
 	campThresholdsMs: null,
 	inCamp: false,
 	lastCampIndex: null,
+	gauntletKills: 0,
 } as const;
 
 export interface Whereabouts {

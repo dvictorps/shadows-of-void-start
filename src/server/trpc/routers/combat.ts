@@ -6,6 +6,7 @@ import {
 	ELEMENT_SWITCH_COOLDOWN_MS,
 	POTION_REFILL_FLOOR,
 } from "#/game/combat/constants";
+import { resolveKillPace } from "#/game/combat/kill-pace";
 import { resolvePotionUse } from "#/game/combat/potion";
 import {
 	resolveKill,
@@ -64,6 +65,14 @@ export const combatRouter = router({
 			const claim = resolveKillTarget(input, character);
 			if (!claim.ok) fail(claim.error);
 			const { target } = claim;
+			const now = Date.now();
+			const pace = resolveKillPace(
+				target.monsterRarity,
+				claim.zone,
+				character,
+				now,
+			);
+			if (!pace.ok) fail(pace.error);
 
 			const gain = resolveKillXp(character, target);
 			const levelUpStats =
@@ -74,7 +83,6 @@ export const combatRouter = router({
 						)
 					: null;
 
-			const now = Date.now();
 			const outcome = resolveKill({
 				character,
 				monsterId: input.monsterId,

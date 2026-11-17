@@ -55,6 +55,7 @@ const EXACT = {
 	[SERVER_ERRORS.noCampsInBoss]: m.error_no_camps_in_boss,
 	[SERVER_ERRORS.campAlreadyUsed]: m.error_camp_already_used,
 	[SERVER_ERRORS.campNotReached]: m.error_camp_not_reached,
+	[SERVER_ERRORS.killNotReached]: m.error_kill_not_reached,
 	[SERVER_ERRORS.alreadyTraveling]: m.error_already_traveling,
 	[SERVER_ERRORS.alreadyAtDestination]: m.error_already_at_destination,
 	[SERVER_ERRORS.noTeleportStones]: m.error_no_teleport_stones,

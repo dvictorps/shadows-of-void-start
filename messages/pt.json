@@ -498,6 +498,7 @@
 	"error_no_camps_in_boss": "Não há acampamento em área de boss",
 	"error_camp_already_used": "Este acampamento já foi usado",
 	"error_camp_not_reached": "Ainda não há acampamento — continue explorando",
+	"error_kill_not_reached": "Essa kill ainda não é possível",
 	"error_already_traveling": "Já está viajando",
 	"error_already_at_destination": "Você já está lá",
 	"error_no_teleport_stones": "Sem pedras de teleporte",

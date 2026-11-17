@@ -4,6 +4,7 @@ import { PICK_CAMP_ONLY } from "#/game/loot/bag";
 import { SERVER_ERRORS } from "#/lib/server-errors";
 
 import {
+	backdateZoneVisit,
 	createAccount,
 	createPlayableCharacter,
 	enterZone,
@@ -19,6 +20,7 @@ describe("zone bag", () => {
 		const account = await createAccount();
 		const hero = await createPlayableCharacter(account);
 		const zoneSession = await enterZone(account, hero);
+		await backdateZoneVisit(hero.characterId, 60_000);
 
 		const result = await account.caller.combat.recordKill({
 			...hero,
@@ -42,16 +44,18 @@ describe("zone bag", () => {
 		expect(bag).toEqual(row.zoneBag);
 	});
 
-	it("drops nothing outside a zone visit", async () => {
+	it("refuses a kill outside a zone visit, so nothing drops", async () => {
 		const account = await createAccount();
 		const hero = await createPlayableCharacter(account);
-		const result = await account.caller.combat.recordKill({
-			...hero,
-			monsterId: "goblin",
-			monsterLevel: 1,
-			monsterRarity: "rare",
-		});
-		expect(result.drops).toEqual([]);
+		await expectServerError(
+			account.caller.combat.recordKill({
+				...hero,
+				monsterId: "goblin",
+				monsterLevel: 1,
+				monsterRarity: "rare",
+			}),
+			SERVER_ERRORS.notInZone,
+		);
 		expect((await readCharacter(hero.characterId)).zoneBag).toEqual([]);
 	});
 
