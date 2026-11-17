@@ -1,6 +1,8 @@
 import { Skull } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { Button } from "#/components/ui/button";
+import { NativeSelect } from "#/components/ui/native-select";
 import { CLASS_DEFINITIONS } from "#/game/classes/data";
 import { getClassDisplayName } from "#/game/classes/i18n";
 import { typedKeys } from "#/game/typed-object";
@@ -100,10 +102,10 @@ export default function LeaderboardModal({
 					</div>
 
 					{category === "level" && (
-						<select
+						<NativeSelect
 							value={classFilter}
 							onChange={(e) => setClassFilter(e.target.value)}
-							className="border border-white/30 bg-black px-2 py-1 text-xs text-white"
+							className="px-2 py-1 text-xs"
 						>
 							<option value="all">{m.leaderboard_all_classes()}</option>
 							{CLASS_IDS.map((id) => (
@@ -111,7 +113,7 @@ export default function LeaderboardModal({
 									{getClassDisplayName(id)}
 								</option>
 							))}
-						</select>
+						</NativeSelect>
 					)}
 
 					{mode === "hardcore" && (
@@ -195,19 +197,16 @@ function TabButton({
 	children: React.ReactNode;
 	size?: "sm" | "md";
 }) {
-	const pad = size === "sm" ? "px-2 py-0.5 text-xs" : "px-3 py-1 text-sm";
 	return (
-		<button
+		<Button
 			type="button"
+			variant="toggle"
+			size={size === "sm" ? "tab-sm" : "tab"}
+			aria-pressed={active}
 			onClick={onClick}
-			className={`border transition ${pad} ${
-				active
-					? "border-white bg-white/10 text-white"
-					: "border-white/30 bg-black text-white/60 hover:border-white/60 hover:text-white/80"
-			}`}
 		>
 			{children}
-		</button>
+		</Button>
 	);
 }
 

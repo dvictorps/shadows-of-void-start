@@ -128,23 +128,21 @@ export default function CreateCharacterModal({
 						{CLASS_LIST.map((id) => {
 							const selected = classId === id;
 							return (
-								<button
+								<Button
 									key={id}
 									type="button"
+									variant="toggle"
+									size="card"
+									aria-pressed={selected}
 									onClick={() => setClassId(id)}
-									className={`border p-3 text-left transition ${
-										selected
-											? "border-white bg-white/10"
-											: "border-white/40 bg-black hover:bg-white/5"
-									}`}
 								>
 									<div className="display-title text-base uppercase tracking-wider text-white">
 										{getClassDisplayName(id)}
 									</div>
-									<div className="mt-1 text-[10px] uppercase tracking-wider text-white/50">
+									<div className="mt-1 text-2xs uppercase tracking-wider text-white/50">
 										{ATTRIBUTE_LABEL[CLASS_DEFINITIONS[id].primaryAttribute]()}
 									</div>
-								</button>
+								</Button>
 							);
 						})}
 					</div>
