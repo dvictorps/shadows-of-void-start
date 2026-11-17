@@ -78,6 +78,29 @@ const crackedWand: GeneratedItem = {
 	},
 };
 
+const apprenticeTome: GeneratedItem = {
+	id: "starter:apprentice_tome",
+	templateId: "tome_t1",
+	nameBase: "tome",
+	nameModifier: "apprentice",
+	equipmentType: "tome",
+	armorType: "silk",
+	rarity: "normal",
+	itemLevel: 1,
+	icon: "/assets/sprites/escudos-offhands/tomoMagico.png",
+	baseStats: { barrier: 12 },
+	implicits: [
+		{
+			modifierId: "globalSpellDamageIncrease",
+			description: "+10% increased Spell Damage",
+			value: 10,
+		},
+	],
+	explicits: [],
+	computedDefenseStats: { barrier: 12 },
+	requirements: { level: 1, int: 10 },
+};
+
 const tatteredLeatherVest: GeneratedItem = {
 	id: "starter:tattered_leather_vest",
 	templateId: "leather_chestplate_t1",
@@ -99,6 +122,7 @@ const STARTER_ITEMS: ReadonlyMap<string, GeneratedItem> = new Map([
 	["starter:rusty_dagger", rustyDagger],
 	["starter:cracked_wand", crackedWand],
 	["starter:tattered_leather_vest", tatteredLeatherVest],
+	["starter:apprentice_tome", apprenticeTome],
 ]);
 
 export const STARTER_WEAPON_BY_CLASS = {
@@ -111,6 +135,12 @@ export const STARTER_CHESTPLATE_BY_CLASS = {
 	warrior: undefined,
 	rogue: "starter:tattered_leather_vest",
 	mage: undefined,
+} satisfies Record<CharacterClassId, string | undefined>;
+
+export const STARTER_OFFHAND_BY_CLASS = {
+	warrior: undefined,
+	rogue: undefined,
+	mage: "starter:apprentice_tome",
 } satisfies Record<CharacterClassId, string | undefined>;
 
 export function findStarterItem(id: string): GeneratedItem | null {

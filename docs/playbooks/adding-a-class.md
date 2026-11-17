@@ -77,7 +77,7 @@ export const STARTER_WEAPON_BY_CLASS = {
 } satisfies Record<CharacterClassId, string>;
 ```
 
-3. Add the class to `STARTER_CHESTPLATE_BY_CLASS`: a starter chestplate id (defined and registered in `STARTER_ITEMS` like the weapon, e.g. the rogue's `starter:tattered_leather_vest`), or `undefined` for none:
+3. Add the class to `STARTER_CHESTPLATE_BY_CLASS` and `STARTER_OFFHAND_BY_CLASS`: a starter item id (defined and registered in `STARTER_ITEMS` like the weapon, e.g. the rogue's `starter:tattered_leather_vest` or the mage's `starter:apprentice_tome`), or `undefined` for none:
 
 ```ts
 export const STARTER_CHESTPLATE_BY_CLASS = {
@@ -86,9 +86,16 @@ export const STARTER_CHESTPLATE_BY_CLASS = {
 	mage: undefined,
 	templar: undefined,
 } satisfies Record<CharacterClassId, string | undefined>;
+
+export const STARTER_OFFHAND_BY_CLASS = {
+	warrior: undefined,
+	rogue: undefined,
+	mage: "starter:apprentice_tome",
+	templar: undefined,
+} satisfies Record<CharacterClassId, string | undefined>;
 ```
 
-Both maps are `satisfies Record<CharacterClassId, …>`, so a class id missing from either fails `tsc`. Character creation (`characters.create` → `planNewCharacter` in `src/game/classes/new-character.ts`) reads both maps and inserts the weapon and, if any, the chestplate as equipped. No server changes needed.
+All three maps are `satisfies Record<CharacterClassId, …>`, so a class id missing from any of them fails `tsc`. Character creation (`characters.create` → `planNewCharacter` in `src/game/classes/new-character.ts`) reads the maps and inserts the weapon and, if any, the chestplate and offhand as equipped. No server changes needed. `src/game/classes/new-character.test.ts` pins each class's kit; add the new class there.
 
 ## Step 3 — Localize the class name + description
 

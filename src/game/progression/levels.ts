@@ -1,3 +1,4 @@
+export const LEVEL_CAP = 100;
 export const XP_CURVE_BASE = 100;
 export const XP_CURVE_GROWTH = 1.08;
 
@@ -19,7 +20,7 @@ export function applyXpGain(
 	currentLevel: number,
 	currentXp: number,
 	amount: number,
-	levelCap = 100,
+	levelCap = LEVEL_CAP,
 ): XpGainResult {
 	let level = currentLevel;
 	let xp = currentXp + amount;

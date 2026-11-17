@@ -201,9 +201,9 @@
 	"stat_attack_speed": "Attack Speed",
 	"stat_physical_damage": "Physical Damage",
 	"stat_resistances": "Resistances",
-	"element_desc_fire": "Fire Attunement — 100% of base spell damage becomes fire damage. Bonus: +1 min / +2 max fire damage per level.",
-	"element_desc_cold": "Cold Attunement — 100% of base spell damage becomes cold damage. Bonus: +1 min / +2 max cold damage per level.",
-	"element_desc_lightning": "Lightning Attunement — 100% of base spell damage becomes lightning damage. Bonus: +1 min / +2 max lightning damage per level.",
+	"element_desc_fire": "Fire Attunement — 100% of base spell damage becomes fire damage. Bonus: +3 min / +5 max fire damage at level 1, growing to +100 / +200 at level 100.",
+	"element_desc_cold": "Cold Attunement — 100% of base spell damage becomes cold damage. Bonus: +3 min / +5 max cold damage at level 1, growing to +100 / +200 at level 100.",
+	"element_desc_lightning": "Lightning Attunement — 100% of base spell damage becomes lightning damage. Bonus: +3 min / +5 max lightning damage at level 1, growing to +100 / +200 at level 100.",
 	"stat_element_damage": "{element} Damage",
 
 	"settings_title": "Settings",

@@ -39,6 +39,20 @@ describe("characters", () => {
 		);
 	});
 
+	it("equips a new mage with the starter wand and tome", async () => {
+		const account = await createAccount();
+		const id = await account.caller.characters.create({
+			name: "Apprentice",
+			classId: "mage",
+		});
+		const gear = await db.select().from(items).where(eq(items.characterId, id));
+		expect(
+			gear
+				.map((g) => `${g.equippedSlot ?? ""}:${g.data.templateId}`)
+				.toSorted((x, y) => x.localeCompare(y)),
+		).toEqual(["offhand:tome_t1", "weapon:cracked_wand"]);
+	});
+
 	it("enforces name and roster rules", async () => {
 		const account = await createAccount();
 		await account.caller.characters.create({ name: "Taken", classId: "mage" });

@@ -2,6 +2,7 @@ import { SERVER_ERRORS } from "../../lib/server-errors";
 import {
 	findStarterItem,
 	STARTER_CHESTPLATE_BY_CLASS,
+	STARTER_OFFHAND_BY_CLASS,
 	STARTER_WEAPON_BY_CLASS,
 } from "../items/starter-gear";
 import type { GeneratedItem } from "../items/types";
@@ -41,6 +42,7 @@ export type NewCharacterResult =
 function starterItems(classId: CharacterClassId): EquippedItem[] {
 	const picks: Array<[EquippedItem["slot"], string | undefined]> = [
 		["weapon", STARTER_WEAPON_BY_CLASS[classId]],
+		["offhand", STARTER_OFFHAND_BY_CLASS[classId]],
 		["chestplate", STARTER_CHESTPLATE_BY_CLASS[classId]],
 	];
 	return picks.flatMap(([slot, id]) => {

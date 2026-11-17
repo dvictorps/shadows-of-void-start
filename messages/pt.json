@@ -201,9 +201,9 @@
 	"stat_attack_speed": "Velocidade de Ataque",
 	"stat_physical_damage": "Dano Físico",
 	"stat_resistances": "Resistências",
-	"element_desc_fire": "Sintonia de Fogo — 100% do dano base de conjuração vira dano de fogo. Bônus: +1 min / +2 max de dano de fogo por nível.",
-	"element_desc_cold": "Sintonia de Gelo — 100% do dano base de conjuração vira dano de gelo. Bônus: +1 min / +2 max de dano de gelo por nível.",
-	"element_desc_lightning": "Sintonia de Raio — 100% do dano base de conjuração vira dano de raio. Bônus: +1 min / +2 max de dano de raio por nível.",
+	"element_desc_fire": "Sintonia de Fogo — 100% do dano base de conjuração vira dano de fogo. Bônus: +3 min / +5 max de dano de fogo no nível 1, crescendo até +100 / +200 no nível 100.",
+	"element_desc_cold": "Sintonia de Gelo — 100% do dano base de conjuração vira dano de gelo. Bônus: +3 min / +5 max de dano de gelo no nível 1, crescendo até +100 / +200 no nível 100.",
+	"element_desc_lightning": "Sintonia de Raio — 100% do dano base de conjuração vira dano de raio. Bônus: +3 min / +5 max de dano de raio no nível 1, crescendo até +100 / +200 no nível 100.",
 	"stat_element_damage": "Dano de {element}",
 
 	"settings_title": "Configurações",

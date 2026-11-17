@@ -354,7 +354,7 @@ describe("computeCharacterStats — equipment contributions", () => {
 			(e) => e.element === "Lightning",
 		);
 		expect(fire).toEqual({ element: "Fire", min: 6, max: 12 });
-		expect(lightning).toEqual({ element: "Lightning", min: 13, max: 27 });
+		expect(lightning).toEqual({ element: "Lightning", min: 15, max: 30 });
 	});
 
 	it("wand+wand dual-wields without receiving the attack-DW buffs", () => {

@@ -477,10 +477,10 @@ Future skills will plug in as additional active controls; these three are the on
 In the MVP, classes differ along two axes only:
 
 - **Starting attribute distribution** — each class has its own baseline (Warrior favors Strength, Rogue favors Dexterity, Mage favors Intelligence). Lives in `src/game/classes/data.ts`.
-- **Starting equipment** — each class enters Act 1 with one class-flavored weapon:
+- **Starting equipment** — each class enters Act 1 with one class-flavored weapon, plus class-specific extras (normal rarity, lowest tier). Lives in `src/game/items/starter-gear.ts`; only new characters receive it (existing characters are never back-filled):
   - **Warrior** → Sword
-  - **Rogue** → Dagger
-  - **Mage** → Wand
+  - **Rogue** → Dagger + Tattered Leather Vest
+  - **Mage** → Wand + Apprentice Tome (`tome_t1`: 12 barrier, +10% increased Spell Damage implicit) in the offhand
 
 The current classes are **Warrior**, **Rogue**, **Mage**.
 
@@ -492,7 +492,7 @@ The Mage's class mechanic. A selector with three elements — **Fire**, **Cold**
 
 **Conversion.** 100% of the weapon's base damage (the physical "Spell Damage" on a wand/staff) is converted to damage of the selected element. A wand showing `Spell Damage: 8–16` with Fire selected deals `8–16 Fire Damage` — zero physical remains. The converted damage is mitigated by the target's elemental resistance, not by armor.
 
-**Level bonus.** The Mage gains flat bonus damage of the selected element that scales with character level: **+1 min / +2 max per level**. At level 30 with Fire selected, the Mage adds `+30 min / +60 max Fire Damage` on top of the weapon's converted base. This compensates for spell weapons not rolling local damage mods (attack weapons inflate their header via local flat/% physical; the Mage's level bonus fills that gap).
+**Level bonus.** The Mage gains flat bonus damage of the selected element that scales with character level, interpolated linearly from **+3 min / +5 max at level 1** to **+100 min / +200 max at the level cap (100)** and rounded: `bonus(L) = round(atLevel1 + (atCap − atLevel1) × (L − 1) / 99)`, i.e. ~0.98 min / ~1.97 max per level. At level 30 with Fire selected, the Mage adds `+31 min / +62 max Fire Damage` on top of the weapon's converted base; at level 50, `+51 / +102`. The front-loaded level-1 value (it was `+1 / +2` under the old flat `+1 / +2 per level`) lifts the level-1 Mage into the same damage ballpark as the Warrior and Rogue, while the cap value is unchanged. Anchors live in `ATTUNEMENT_LEVEL_BONUS` (`src/game/classes/attunement.ts`). This compensates for spell weapons not rolling local damage mods (attack weapons inflate their header via local flat/% physical; the Mage's level bonus fills that gap).
 
 **Switching.** The player may switch elements **during combat** with a **5-second cooldown** between switches. No cooldown on the first selection. The cooldown creates a tactical cost — the Mage can adapt to monster resistances mid-fight, but not reactively per-swing.
 

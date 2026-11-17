@@ -1,5 +1,6 @@
 import { m } from "#/paraglide/messages";
 
+import { attunementLevelBonus } from "../classes/attunement";
 import type {
 	CharacterClassDefinition,
 	CharacterClassId,
@@ -459,8 +460,9 @@ function convertToElement(
 	elementName: string,
 	level: number,
 ): void {
-	const convertedMin = phys.min + level;
-	const convertedMax = phys.max + level * 2;
+	const bonus = attunementLevelBonus(level);
+	const convertedMin = phys.min + bonus.min;
+	const convertedMax = phys.max + bonus.max;
 	const existing = elem.find((e) => e.element === elementName);
 	if (existing) {
 		existing.min += convertedMin;
