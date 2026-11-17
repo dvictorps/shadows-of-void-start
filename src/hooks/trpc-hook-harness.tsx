@@ -1,14 +1,18 @@
 import type { QueryKey } from "@tanstack/react-query";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
-import { createTRPCClient, httpLink } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
-import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import type { ReactNode } from "react";
 import { z } from "zod";
 
 import { CHARACTER_ID } from "#/components/world/item-test-fixtures";
 import { TRPCProvider } from "#/integrations/trpc/client";
+import {
+	type FakeHandler,
+	type FakeReply,
+	fakeTrpc,
+	type Json,
+} from "#/integrations/trpc/fake-client";
 import type { BagEntry, CharacterRow, ItemRow } from "#/lib/api-types";
 import { worldCache } from "#/lib/world-cache";
 import type { AppRouter } from "#/server/trpc/router";
@@ -32,7 +36,7 @@ export type OutputOf<P extends ProcedurePath> =
 
 type Reply<P extends ProcedurePath> = [OutputOf<P>] extends [never]
 	? []
-	: [data: OutputOf<P>];
+	: [data: OutputOf<P> & object];
 
 const callInputSchema = z.looseObject({
 	characterId: z.number(),
@@ -41,90 +45,36 @@ const callInputSchema = z.looseObject({
 
 export type CallInput = z.infer<typeof callInputSchema>;
 
-type Answer = { ok: true; data: unknown } | { ok: false; message: string };
-
-interface Hold {
-	arrive: (input: CallInput) => void;
-	answer: Promise<Answer>;
-}
-
-interface Held<P extends ProcedurePath> {
-	arrived: Promise<CallInput>;
-	resolve: (...reply: Reply<P>) => void;
-	reject: (message: string) => void;
-}
-
-const BASE_URL = "http://hooks.test/api/trpc";
-
-function jsonResponse(answer: Answer, path: string): Response {
-	if (answer.ok) {
-		return Response.json({ result: { data: answer.data } });
-	}
-	return Response.json(
-		{
-			error: {
-				message: answer.message,
-				code: -32_600,
-				data: { code: "BAD_REQUEST", httpStatus: 400, path },
-			},
-		},
-		{ status: 400 },
-	);
-}
-
 function deferred<Value>() {
 	let resolve!: (value: Value) => void;
-	const promise = new Promise<Value>((done) => {
+	let reject!: (error: Error) => void;
+	const promise = new Promise<Value>((done, fail) => {
 		resolve = done;
+		reject = fail;
 	});
-	return { promise, resolve };
+	return { promise, resolve, reject };
 }
 
 function createFakeServer() {
-	const replies = new Map<string, Answer>();
-	const holds = new Map<string, Hold[]>();
-
-	async function answerFor(path: string, input: CallInput): Promise<Answer> {
-		const hold = holds.get(path)?.shift();
-		if (hold) {
-			hold.arrive(input);
-			return hold.answer;
-		}
-		return (
-			replies.get(path) ?? {
-				ok: false,
-				message: `fake server: no reply for ${path}`,
-			}
-		);
-	}
-
-	async function fetch(
-		url: string | URL | Request,
-		init?: RequestInit,
-	): Promise<Response> {
-		const href = url instanceof Request ? url.url : String(url);
-		const path = new URL(href).pathname.split("/").at(-1) ?? "";
-		const body = z.string().parse(init?.body);
-		const input = callInputSchema.parse(JSON.parse(body));
-		return jsonResponse(await answerFor(path, input), path);
-	}
+	const handlers: Record<string, FakeHandler> = {};
+	const fake = fakeTrpc(handlers);
 
 	return {
-		fetch,
+		fake,
 		reply<P extends ProcedurePath>(path: P, ...reply: Reply<P>): void {
-			replies.set(path, { ok: true, data: reply[0] });
+			handlers[path] = () => reply[0] ?? null;
 		},
-		hold<P extends ProcedurePath>(path: P): Held<P> {
+		hold<P extends ProcedurePath>(path: P) {
 			const arrived = deferred<CallInput>();
-			const answer = deferred<Answer>();
-			holds.set(path, [
-				...(holds.get(path) ?? []),
-				{ arrive: arrived.resolve, answer: answer.promise },
-			]);
+			const answer = deferred<FakeReply>();
+			handlers[path] = (input: Json | undefined) => {
+				arrived.resolve(callInputSchema.parse(input));
+				return answer.promise;
+			};
 			return {
 				arrived: arrived.promise,
-				resolve: (...reply) => answer.resolve({ ok: true, data: reply[0] }),
-				reject: (message) => answer.resolve({ ok: false, message }),
+				resolve: (...reply: Reply<P>) => answer.resolve(reply[0] ?? null),
+				reject: (message: string) => answer.reject(new Error(message)),
 			};
 		},
 	};
@@ -140,19 +90,7 @@ export interface WorldSeed {
 
 export function renderWithServer<Result>(useHook: () => Result) {
 	const server = createFakeServer();
-	const queryClient = new QueryClient({
-		defaultOptions: {
-			queries: { retry: false },
-			mutations: { retry: false },
-		},
-	});
-	const trpcClient = createTRPCClient<AppRouter>({
-		links: [httpLink({ url: BASE_URL, fetch: server.fetch })],
-	});
-	const trpc = createTRPCOptionsProxy<AppRouter>({
-		client: trpcClient,
-		queryClient,
-	});
+	const { trpcClient, queryClient, trpc } = server.fake;
 	const cache = worldCache(trpc, queryClient, CHARACTER_ID);
 
 	function Wrapper({ children }: { children: ReactNode }) {
