@@ -495,9 +495,21 @@ a {
   animation: path-orbit-wobble 1.7s ease-in-out infinite;
 }
 
+@keyframes camp-glow {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  37%      { transform: translate(-50%, -50%) scale(1.035); }
+  71%      { transform: translate(-50%, -50%) scale(0.985); }
+}
+
+.camp-glow {
+  transform: translate(-50%, -50%);
+  animation: camp-glow 2.3s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .path-orbit,
-  .path-orbit-wobble {
+  .path-orbit-wobble,
+  .camp-glow {
     animation: none;
   }
 }

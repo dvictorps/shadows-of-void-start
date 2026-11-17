@@ -28,7 +28,7 @@ const LAYER = {
 		outS: 0.5,
 	},
 	camp: {
-		className: "absolute inset-0 flex items-center justify-center",
+		className: "absolute inset-0",
 		inS: 1.2,
 		outS: 0.25,
 	},

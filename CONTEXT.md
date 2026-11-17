@@ -83,7 +83,7 @@ The schedule lives as data per zone (`src/game/world/act-1.ts`). The combat engi
 
 ### Acampamento
 
-A guaranteed rest point inside the zone. A camp is a campfire tile on the Zone Path. When the player reaches it, in place of the next spawn, the view fades slowly into the **camp screen** (and fades out quickly when the player leaves it): a black background with the title "Acampamento", one zone-themed line (e.g., "O ar fica mais leve."; an incense camp uses its own line), and two options below:
+A guaranteed rest point inside the zone. A camp is a campfire tile on the Zone Path. When the player reaches it, in place of the next spawn, the view fades slowly into the **camp screen** (and fades out quickly when the player leaves it): a hand-drawn night campfire, with the title "Acampamento" and one zone-themed line above it (e.g., "O ar fica mais leve."; an incense camp uses its own line), and two options below it:
 
 - **Retornar à cidade com 100% do loot** — exits the zone via the standard `ExitZoneModal` with the full bag selectable. Player picks freely; nothing is capped or random.
 - **Seguir em frente** — closes the camp screen; the player resumes walking from the campfire, the next scheduled encounter spawns. Zone progress is preserved.
@@ -96,7 +96,7 @@ Mechanical side effects during the camp:
 
 Camps are the **only** path to retreating with 100% of the bag outside of a boss kill. This is the central economy lever of zone progression: planning around camp positions matters.
 
-The camp screen is silent and plain on purpose. Planned: a night campfire illustration behind the text, with the character sitting in front of the fire.
+The campfire flickers through its hand-drawn frames in random order, never showing the same frame twice in a row, and casts a warm glow that pulses with it. The screen is silent on purpose. Planned: the character sitting in front of the fire.
 
 ### Boss Deferral (planned, not implemented)
 
