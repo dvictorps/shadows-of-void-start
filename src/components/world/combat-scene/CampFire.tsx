@@ -8,6 +8,7 @@ import {
 	CAMP_FIRE_CENTER,
 	CAMP_FIRE_FRAME_MS,
 	CAMP_FIRE_FRAMES,
+	CAMP_FIRE_SCALE,
 	nextFireFrame,
 	nextGlow,
 } from "./camp-fire";
@@ -19,7 +20,7 @@ const SCENE: CSSProperties = {
 	position: "absolute",
 	left: "50%",
 	top: "50%",
-	width: `max(100cqw, calc(100cqh * ${width} / ${height}))`,
+	width: `calc(${CAMP_FIRE_SCALE} * max(100cqw, 100cqh * ${width} / ${height}))`,
 	aspectRatio: `${width} / ${height}`,
 	transform: "translate(-50%, -50%)",
 	isolation: "isolate",

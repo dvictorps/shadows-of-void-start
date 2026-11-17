@@ -10,6 +10,8 @@ export const CAMP_FIRE_FRAME_MS = 140;
 
 export const CAMP_FIRE_ASPECT = { width: 820, height: 465 } as const;
 
+export const CAMP_FIRE_SCALE = 0.65;
+
 export const CAMP_FIRE_CENTER = { xPct: 42.7, yPct: 57 } as const;
 
 const MIN_GLOW = 0.8;
