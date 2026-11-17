@@ -81,7 +81,7 @@ export function RarityHeader({
 }) {
 	return (
 		<div
-			className="display-title px-4 py-2 text-center uppercase tracking-[0.15em]"
+			className="display-title px-4 py-2 text-center uppercase tracking-title"
 			style={{
 				background: `linear-gradient(to bottom, ${RARITY_HEADER_BG[rarity]}, transparent)`,
 			}}

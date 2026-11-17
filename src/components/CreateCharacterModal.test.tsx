@@ -4,8 +4,7 @@
 // makes: the name field and its counter, the class cards and description,
 // the hardcore toggle, the empty-name guard, the create call with the
 // trimmed input, the in-flight lock, the success and failure toasts, and
-// cancel. The safety net for REFACTOR GATE item 8 (the modal takes its
-// server call as `server.create`; docs/plans/in-progress.md).
+// cancel. The modal takes its server call as `server.create`.
 //
 // - `server.create` is a `vi.fn()` fake. Sonner's toaster runs for real.
 

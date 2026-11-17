@@ -38,7 +38,8 @@ export default function ConfirmationModal({
 					type="button"
 					variant="starkMuted"
 					onClick={onCancel}
-					className="px-5 py-2 uppercase tracking-wider"
+					size="wide"
+					caps
 				>
 					{cancelLabel}
 				</Button>
@@ -46,7 +47,8 @@ export default function ConfirmationModal({
 					type="button"
 					variant={variant === "destructive" ? "starkDestructive" : "stark"}
 					onClick={onConfirm}
-					className="px-5 py-2 uppercase tracking-wider"
+					size="wide"
+					caps
 				>
 					{confirmLabel}
 				</Button>

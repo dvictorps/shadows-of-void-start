@@ -1,4 +1,4 @@
-import { TooltipSeparator } from "#/components/ui/rarity-card";
+import { TooltipSeparator } from "#/components/game/rarity-card";
 
 import { MODIFIED_COLOR } from "./colors";
 import type { StatRow } from "./stat-rows";

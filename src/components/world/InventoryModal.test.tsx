@@ -3,8 +3,7 @@
 // What the inventory modal renders and which server call each interaction
 // makes: opening and closing, the bag grid and the paper doll, the click
 // menu, equip / unequip / swap hands / reorder / discard (by click and by
-// drag), broken items and the error toasts. The safety net for the
-// InventoryModal split (docs/plans/in-progress.md → agent-ergonomics item 4).
+// drag), broken items and the error toasts.
 //
 // - The server is the `server` prop (the bundle `useInventoryMutations`
 //   returns, passed down by the route), so the calls are `vi.fn()` fakes, not

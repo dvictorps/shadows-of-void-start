@@ -30,7 +30,7 @@ export default function BetterAuthHeader() {
 							},
 						});
 					}}
-					className="uppercase tracking-wider"
+					caps
 				>
 					Sign out
 				</Button>
@@ -40,7 +40,7 @@ export default function BetterAuthHeader() {
 
 	return (
 		<Link to="/sign-in" className="no-underline">
-			<Button variant="stark" className="uppercase tracking-wider">
+			<Button variant="stark" caps>
 				Sign in
 			</Button>
 		</Link>

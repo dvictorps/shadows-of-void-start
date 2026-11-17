@@ -3,9 +3,8 @@
 // What the stats modal shows for a character: attributes and their
 // tooltips, defenses with the armor / evasion previews against the zone's
 // reference enemy, offense for attack, spell, dual wield and unarmed (DPS,
-// speed, crit, per-hand damage, the increased pools), and utility. The
-// safety net for the ShowStatsModal split (docs/plans/in-progress.md →
-// REFACTOR GATE item 7). Pure render: props in, DOM out; expected numbers
+// speed, crit, per-hand damage, the increased pools), and utility. Pure
+// render: props in, DOM out; expected numbers
 // come from the same engine functions, not literals.
 //
 // - The attribute tooltips are Radix: they need a Provider, and open on focus.

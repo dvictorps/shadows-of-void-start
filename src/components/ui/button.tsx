@@ -74,6 +74,10 @@ const buttonVariants = cva(
 				// The sidebar status card's smaller slots (wide / compact).
 				"hud-slot-md": "relative h-16 w-16 p-0",
 				"hud-slot-sm": "relative h-11 w-11 p-0",
+				// The stark modal actions (Cancel / Confirm / Create).
+				wide: "h-9 px-5 py-2",
+				// The landing page's Play.
+				hero: "h-12 px-12 text-xl uppercase tracking-hero",
 				// The toggle tabs (the leaderboard's category / mode).
 				tab: "h-auto px-3 py-1 font-normal",
 				"tab-sm": "h-auto px-2 py-0.5 text-xs font-normal",
