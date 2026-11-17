@@ -73,6 +73,7 @@ type Params = {
 	zoneLevel: number;
 	encounterPlan: ZoneEncounterPlan;
 	bossNode?: BossNodeConfig | null;
+	serverVisitId: string | null;
 	serverBudgetMs: number | null;
 	serverCampThresholdsMs: readonly number[];
 	active: boolean;
@@ -104,6 +105,7 @@ export function useCombatLoop({
 	zoneLevel,
 	encounterPlan,
 	bossNode,
+	serverVisitId,
 	serverBudgetMs,
 	serverCampThresholdsMs,
 	active,
@@ -158,6 +160,7 @@ export function useCombatLoop({
 		active,
 		encounterPlan,
 		monsterPool,
+		serverVisitId,
 		serverBudgetMs,
 		serverCampThresholdsMs,
 		isSearching: state === "searching" && (!bossNode || warmupActive),
@@ -173,21 +176,14 @@ export function useCombatLoop({
 			if (e) engageSpawned(e);
 		},
 		onExitReached: () => {
-			if (bossNode) return;
+			if (bossNode) {
+				setWarmupDone(true);
+				return;
+			}
 			const e = spawnMob(monsterPool, "rare");
 			if (e) engageSpawned(e);
 		},
 	});
-
-	const warmupBudgetMs = (bossNode?.warmupSeconds ?? 0) * 1000;
-	if (
-		bossNode &&
-		!warmupDone &&
-		warmupBudgetMs > 0 &&
-		calmariaElapsedMs >= warmupBudgetMs
-	) {
-		setWarmupDone(true);
-	}
 
 	const syncVitals = useCallback(
 		async (vitals: Vitals) => {
