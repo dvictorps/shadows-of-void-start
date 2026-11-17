@@ -153,7 +153,7 @@ function ev(overrides: Partial<DamageEvent>): DamageEvent {
 
 function nameplate(enemy: Enemy) {
 	return narrow(
-		screen.getAllByText(`Lv ${enemy.level}`)[0].parentElement,
+		screen.getAllByText(m.level_short({ level: enemy.level }))[0].parentElement,
 		HTMLElement,
 	);
 }
