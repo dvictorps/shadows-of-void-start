@@ -83,6 +83,7 @@ export function useWorldMutations({
 						currentZoneSession: visit.zoneSession,
 						zoneStartedAt: visit.zoneStartedAt,
 						campThresholdsMs: visit.campThresholdsMs,
+						zoneBudgetMs: visit.zoneBudgetMs,
 						currentZoneKills: 0,
 						hpCurrent: character.cachedMaxLife,
 						barrierCurrent: character.cachedMaxBarrier,

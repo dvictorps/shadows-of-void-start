@@ -21,7 +21,6 @@ export type ConsumableKey =
 type HoverReporter = (key: ConsumableKey | null) => void;
 
 export type CombatBottomHudProps = {
-	hudFading: boolean;
 	events: DamageEvent[];
 	playerHp: number;
 	maxHp: number;
@@ -47,7 +46,6 @@ export type CombatBottomHudProps = {
 };
 
 export default function CombatBottomHud({
-	hudFading,
 	events,
 	playerHp,
 	maxHp,
@@ -84,11 +82,7 @@ export default function CombatBottomHud({
 		onHover(hovered ? key : null);
 
 	return (
-		<div
-			className={`relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4 transition-opacity duration-[1200ms] ease-out ${
-				hudFading ? "pointer-events-none opacity-0" : "opacity-100"
-			}`}
-		>
+		<div className="relative flex items-center gap-4 border-t border-white/15 bg-black/60 p-4">
 			<div className="relative">
 				<HealthGlobe
 					hp={playerHp}

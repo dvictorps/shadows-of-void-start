@@ -1,6 +1,6 @@
 # Adding a monster
 
-A monster is a mob template with base stats, a sprite path, an XP reward, and the rarities it can spawn at.
+A monster is a mob template with base stats, a sprite path, a Zone Path color, an XP reward, and the rarities it can spawn at.
 
 ## Step 1 — Define the monster
 
@@ -11,6 +11,7 @@ stone_goblin: {
     id: "stone_goblin",
     name: "Stone Goblin",                                  // canonical English fallback
     sprite: "/assets/sprites/criaturas/goblin.png",        // public asset path
+    pathColor: "#7a8a6a",                                  // its dot on the Zone Path
     baseStats: {
         hp: 18,
         attackSpeed: 0.9,
@@ -23,6 +24,8 @@ stone_goblin: {
 ```
 
 The exact compile-checked shape lives in [`_examples/monster-example.ts`](./_examples/monster-example.ts) — if the playbook drifts, that sentinel fails `tsc` and forces a sync.
+
+`pathColor` is the dot the player sees ahead on the Zone Path (CONTEXT.md → Zone Path). Keep one hue per family with a shade per variant (the three skeletons are bone shades, the void creatures purples), and never white or gold: white is the player, gold is camps and the exit.
 
 The `MonsterId` type derives from the keys of `MONSTERS` (`keyof typeof MONSTERS`), so the id strings get type-checked everywhere automatically — you'll see compile errors at zone declarations that reference the new id once it's added.
 

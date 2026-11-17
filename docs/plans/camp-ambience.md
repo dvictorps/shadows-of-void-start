@@ -1,29 +1,11 @@
-# Camp cinematic biome ambience (deferred)
+# Camp screen art and ambience (deferred)
 
 **Status**: Planned, not started.
-**Triggered by**: time-based zone progression PR. The camp cinematic ships
-text-only + a warm radial glow as a stand-in for the full ambient layer.
-
-## Why
-
-The cinematic was designed to feel "comfy" — a real rest stop, not a UI
-pause. The text + slow HUD fade-out + warm glow gets ~60% of the felt
-experience. The remaining 40% is in (a) biome-themed background art and
-(b) ambient audio (campfire crackle + per-biome environment).
+**Today**: the camp screen is a plain cut to black with the title, one line and the two buttons (CONTEXT.md → Acampamento). The staged three-line cinematic with a wind sound was removed on purpose: text plus wind read as filler, and the cascade of fades felt generic.
 
 ## Scope
 
-- **Background art per biome**: hand-authored pixel scene per zone biome
-  (forest, swamp, crypt, castle, void) showing the character resting at a
-  campfire, in the spirit of the Dark Souls II–style "Hidamari" piece the
-  user referenced. Replaces the current radial-gradient glow.
-- **Ambient audio**: catalog biome ambient files (`/assets/audio/biomes/forest.mp3`, etc.)
-  plus a generic `campfire.mp3` loop on top. Hook into the cinematic
-  timeline: campfire+ambient fade-in synced with the first text fade-in;
-  ambient fade-out only after the player picks a button (so the moment
-  lingers as long as they need).
-- **Zone metadata**: each zone declares its biome key; cinematic looks up
-  the matching art + audio.
-- **Volume**: respect the existing global SFX volume (`useSfxVolume`).
-- **Accessibility**: ambient is auxiliary — the cinematic still reads
-  fully with audio off.
+- **Background art**: a night campfire with the character sitting in front of it, behind the title and the line. One piece first; per-biome variants (forest, swamp, crypt, castle, void) only if the single piece holds up.
+- **Ambient audio, only with the art**: a campfire crackle loop, maybe a biome bed under it. Not before the art lands: sound over a black screen is what got removed.
+- **Zone metadata**: if per-biome variants happen, each zone declares a biome key and the camp screen looks up its art and audio.
+- **Volume**: respects the global SFX volume (`src/lib/sfx.ts`). The screen still reads fully with audio off.

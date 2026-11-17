@@ -41,6 +41,7 @@ const SHORT_BUDGET_PLAN: ZoneEncounterPlan = {
 	...PLAN,
 	calmariaBudgetSeconds: 0.5,
 };
+const EXIT_MS = 500;
 
 const BOSS_NODE: BossNodeConfig = {
 	bossId: "gralfor",
@@ -98,6 +99,7 @@ function setup(overrides: Partial<Props> = {}) {
 		zoneLevel: 1,
 		encounterPlan: PLAN,
 		bossNode: null,
+		serverBudgetMs: null,
 		serverCampThresholdsMs: [],
 		active: true,
 		onPlayerDeath,
@@ -107,9 +109,7 @@ function setup(overrides: Partial<Props> = {}) {
 		initialProps: { ...props, active: false },
 	});
 	const enterZone = (next: Props = props) => {
-		act(() =>
-			hook.result.current.startVisit(next.encounterPlan, next.bossNode ?? null),
-		);
+		act(() => hook.result.current.startVisit(next.bossNode ?? null));
 		hook.rerender({ ...next, active: true });
 	};
 	const leaveZone = (next: Props = props) => {
@@ -207,9 +207,9 @@ describe("useCombatLoop — regular fight cycle", () => {
 });
 
 describe("useCombatLoop — zone miniboss", () => {
-	it("spawns a rare when the bar is full and cascades its intro into the fight", () => {
+	it("spawns a rare at the route's exit and cascades its intro into the fight", () => {
 		const { result } = setup({ encounterPlan: SHORT_BUDGET_PLAN });
-		advance(SPAWN_GAP_MS);
+		advance(EXIT_MS);
 		expect(result.current.state).toBe("rare_intro");
 		expect(result.current.rareIntroStage).toBe("sprite");
 		expect(result.current.enemy?.rarity).toBe("rare");
@@ -225,7 +225,7 @@ describe("useCombatLoop — zone miniboss", () => {
 
 	it("pauses on the miniboss panel after the kill, and resumes on dismiss", async () => {
 		const { result, server } = setup({ encounterPlan: SHORT_BUDGET_PLAN });
-		advance(SPAWN_GAP_MS + RARE_INTRO_MS + STEP_MS);
+		advance(EXIT_MS + RARE_INTRO_MS + STEP_MS);
 		expect(result.current.state).toBe("victory");
 		expect(server.recordKill).toHaveBeenCalledWith(
 			expect.objectContaining({ monsterRarity: "rare" }),
@@ -322,7 +322,7 @@ describe("useCombatLoop — Incenso Etéreo", () => {
 			encounterPlan: SHORT_BUDGET_PLAN,
 			stats: makeStats({ maxLife: MAX_LIFE }),
 		});
-		advance(SPAWN_GAP_MS + RARE_INTRO_MS);
+		advance(EXIT_MS + RARE_INTRO_MS);
 		expect(result.current.state).toBe("engaged");
 		act(() => result.current.triggerIncense());
 		expect(server.consumeIncense).not.toHaveBeenCalled();

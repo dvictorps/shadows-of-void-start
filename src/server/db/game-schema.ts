@@ -77,6 +77,7 @@ export const characters = sqliteTable(
 		gauntletKills: integer().notNull().default(0),
 		zoneStartedAt: integer(),
 		campThresholdsMs: text({ mode: "json" }).$type<number[]>(),
+		zoneBudgetMs: integer(),
 		inCamp: integer({ mode: "boolean" }).notNull().default(false),
 		lastCampIndex: integer(),
 

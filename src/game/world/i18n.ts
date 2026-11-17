@@ -79,64 +79,23 @@ export function translateNodeDescription(node: WorldNode): string | null {
 	return entry.description?.() ?? null;
 }
 
-type CampLines = [() => string, () => string, () => string];
+const CAMP_LINE_I18N = {
+	forest_starter: m.camp_line_forest_starter,
+	forest_profunda: m.camp_line_forest_profunda,
+	pantano: m.camp_line_pantano,
+	cripta: m.camp_line_cripta,
+	castelo: m.camp_line_castelo,
+	fenda_vazio: m.camp_line_fenda_vazio,
+} satisfies Record<string, () => string>;
 
-const CAMP_LINES_I18N = {
-	forest_starter: [
-		m.camp_line_forest_starter_1,
-		m.camp_line_forest_starter_2,
-		m.camp_line_forest_starter_3,
-	],
-	forest_profunda: [
-		m.camp_line_forest_profunda_1,
-		m.camp_line_forest_profunda_2,
-		m.camp_line_forest_profunda_3,
-	],
-	pantano: [
-		m.camp_line_pantano_1,
-		m.camp_line_pantano_2,
-		m.camp_line_pantano_3,
-	],
-	cripta: [m.camp_line_cripta_1, m.camp_line_cripta_2, m.camp_line_cripta_3],
-	castelo: [
-		m.camp_line_castelo_1,
-		m.camp_line_castelo_2,
-		m.camp_line_castelo_3,
-	],
-	fenda_vazio: [
-		m.camp_line_fenda_vazio_1,
-		m.camp_line_fenda_vazio_2,
-		m.camp_line_fenda_vazio_3,
-	],
-} satisfies Record<string, CampLines>;
-
-const CAMP_LINES_FALLBACK: CampLines = [
-	m.camp_line_fallback_1,
-	m.camp_line_fallback_2,
-	m.camp_line_fallback_3,
-];
-
-const CAMP_LINES_INCENSE: CampLines = [
-	m.camp_line_incense_1,
-	m.camp_line_incense_2,
-	m.camp_line_incense_3,
-];
-
-export function translateCampLines(
+export function translateCampLine(
 	zoneId: string,
 	source: CampSource = "baked",
-): [string, string, string] {
-	if (source === "incense") {
-		return [
-			CAMP_LINES_INCENSE[0](),
-			CAMP_LINES_INCENSE[1](),
-			CAMP_LINES_INCENSE[2](),
-		];
-	}
-	const entry = hasOwnKey(CAMP_LINES_I18N, zoneId)
-		? CAMP_LINES_I18N[zoneId]
-		: CAMP_LINES_FALLBACK;
-	return [entry[0](), entry[1](), entry[2]()];
+): string {
+	if (source === "incense") return m.camp_line_incense();
+	return hasOwnKey(CAMP_LINE_I18N, zoneId)
+		? CAMP_LINE_I18N[zoneId]()
+		: m.camp_line_fallback();
 }
 
 const MONSTER_I18N = {

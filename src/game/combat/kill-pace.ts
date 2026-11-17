@@ -10,6 +10,7 @@ export const KILL_PACE_GRACE_MS = 1000;
 
 export interface KillPaceState {
 	zoneStartedAt: number | null;
+	zoneBudgetMs: number | null;
 	currentZoneKills: number;
 	gauntletKills: number;
 }
@@ -36,7 +37,8 @@ export function resolveKillPace(
 	if (state.zoneStartedAt === null) {
 		return { ok: false, error: SERVER_ERRORS.notInZone };
 	}
-	const budgetMs = zone.encounterPlan.calmariaBudgetSeconds * 1000;
+	const budgetMs =
+		state.zoneBudgetMs ?? zone.encounterPlan.calmariaBudgetSeconds * 1000;
 	const exploredMs = now - state.zoneStartedAt + KILL_PACE_GRACE_MS;
 	if (rarity === "rare" || rarity === "unique") {
 		if (exploredMs < budgetMs) return NOT_REACHED;

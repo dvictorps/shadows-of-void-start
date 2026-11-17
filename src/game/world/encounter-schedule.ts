@@ -50,13 +50,42 @@ export function rollSpawnGapMs(
 	return randInt(Math.round(min * 1000), Math.round(max * 1000), rng);
 }
 
+const BUDGET_JITTER = 0.25;
+
+export function rollZoneBudgetMs(
+	plan: ZoneEncounterPlan,
+	varies: boolean,
+	rng: Rng = defaultRng,
+): number {
+	const budgetMs = plan.calmariaBudgetSeconds * 1000;
+	if (!varies) return budgetMs;
+	return Math.round(budgetMs * (1 + randSymmetric(BUDGET_JITTER, rng)));
+}
+
+export interface VisitSchedule {
+	zoneBudgetMs: number;
+	campThresholdsMs: number[];
+}
+
+export function rollVisitSchedule(
+	node: Pick<WorldNode, "encounterPlan" | "bossNode">,
+	rng: Rng = defaultRng,
+): VisitSchedule {
+	const plan = encounterPlanForNode(node);
+	const zoneBudgetMs = rollZoneBudgetMs(plan, !node.bossNode, rng);
+	return {
+		zoneBudgetMs,
+		campThresholdsMs: rollCampThresholdsMs(plan, zoneBudgetMs, rng),
+	};
+}
+
 const CAMP_JITTER = 0.1;
 
 export function rollCampThresholdsMs(
 	plan: ZoneEncounterPlan,
+	budgetMs: number,
 	rng: Rng = defaultRng,
 ): number[] {
-	const budgetMs = plan.calmariaBudgetSeconds * 1000;
 	return plan.campFractions
 		.map((fraction) =>
 			Math.round((fraction + randSymmetric(CAMP_JITTER, rng)) * budgetMs),
@@ -70,11 +99,11 @@ export type AmbushSchedule = { thresholdMs: number; packSize: number };
 
 export function rollAmbushSchedule(
 	plan: ZoneEncounterPlan,
+	budgetMs: number,
 	rng: Rng = defaultRng,
 ): AmbushSchedule[] {
 	if (!plan.ambushes) return [];
 	const { fractions, packSize } = plan.ambushes;
-	const budgetMs = plan.calmariaBudgetSeconds * 1000;
 	return fractions
 		.map((fraction) => ({
 			thresholdMs: Math.round(

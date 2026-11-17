@@ -27,6 +27,7 @@ function makeServer() {
 			zoneSession: "00000000-0000-4000-8000-000000000001",
 			zoneStartedAt: NOW,
 			campThresholdsMs: [],
+			zoneBudgetMs: 35_000,
 		}),
 		arriveAtTravel: vi.fn<WorldMutations["arriveAtTravel"]>(),
 	};

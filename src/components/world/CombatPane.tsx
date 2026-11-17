@@ -95,9 +95,13 @@ export function CombatPane({
 			bagCount={bagSize ?? 0}
 			onOpenBag={onOpenBag}
 			onConsumableHover={onConsumableHover}
-			calmariaElapsedMs={combat.calmariaElapsedMs}
-			calmariaBudgetMs={combat.calmariaBudgetMs}
-			campThresholdsMs={combat.campThresholdsMs}
+			path={{
+				route: combat.route,
+				routeSeed: combat.routeSeed,
+				nextStopIndex: combat.nextStopIndex,
+				elapsedMs: combat.calmariaElapsedMs,
+				incenseCampsMs: combat.incenseCampsMs,
+			}}
 			onDismissMinibossModal={combat.dismissMinibossModal}
 			zoneId={node.id}
 			onDismissCamp={combat.dismissCamp}

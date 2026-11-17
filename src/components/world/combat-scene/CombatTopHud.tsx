@@ -4,39 +4,23 @@ import { ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { m } from "#/paraglide/messages";
 
-import { fillPercent } from "../fill-percent";
-
 export default function CombatTopHud({
 	zoneName,
 	zoneLevel,
-	calmariaElapsedMs,
-	calmariaBudgetMs,
-	campThresholdsMs,
 	ambushActive,
-	hudFading,
 	bagCount,
 	onOpenBag,
 	onRetreat,
 }: {
 	zoneName: string;
 	zoneLevel: number;
-	calmariaElapsedMs: number;
-	calmariaBudgetMs: number;
-	campThresholdsMs: readonly number[];
 	ambushActive: boolean;
-	hudFading: boolean;
 	bagCount: number;
 	onOpenBag: () => void;
 	onRetreat: () => void;
 }) {
 	return (
 		<>
-			<ZoneTimeBar
-				elapsedMs={calmariaElapsedMs}
-				budgetMs={calmariaBudgetMs}
-				campThresholdsMs={campThresholdsMs}
-			/>
-
 			<AnimatePresence>
 				{ambushActive && (
 					<motion.div
@@ -60,20 +44,12 @@ export default function CombatTopHud({
 					</motion.div>
 				)}
 			</AnimatePresence>
-			<div
-				className={`absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60 transition-opacity duration-[1200ms] ease-out ${
-					hudFading ? "opacity-0" : "opacity-100"
-				}`}
-			>
+			<div className="absolute left-3 top-3 flex flex-col gap-0.5 text-xl uppercase tracking-[0.2em] text-white/60">
 				<span>{zoneName}</span>
 				<span className="text-base text-white/40">LV {zoneLevel}</span>
 			</div>
 
-			<div
-				className={`absolute top-3 right-3 z-10 flex items-center gap-2 transition-opacity duration-[1200ms] ease-out ${
-					hudFading ? "pointer-events-none opacity-0" : "opacity-100"
-				}`}
-			>
+			<div className="absolute top-3 right-3 z-10 flex items-center gap-2">
 				<Button
 					variant="hud"
 					size="hud-icon"
@@ -101,39 +77,5 @@ export default function CombatTopHud({
 				</Button>
 			</div>
 		</>
-	);
-}
-
-function ZoneTimeBar({
-	elapsedMs,
-	budgetMs,
-	campThresholdsMs,
-}: {
-	elapsedMs: number;
-	budgetMs: number;
-	campThresholdsMs: readonly number[];
-}) {
-	return (
-		<div
-			role="progressbar"
-			aria-label="Zone time progress"
-			aria-valuenow={Math.round(elapsedMs)}
-			aria-valuemin={0}
-			aria-valuemax={budgetMs}
-			className="relative h-2 w-full bg-white/10"
-		>
-			<div
-				className="h-full bg-gradient-to-r from-red-500 via-orange-400 to-yellow-300 transition-[width] duration-100 ease-linear"
-				style={{ width: `${fillPercent(elapsedMs, budgetMs)}%` }}
-			/>
-			{campThresholdsMs.map((thresholdMs) => (
-				<span
-					key={thresholdMs}
-					aria-hidden
-					className="-translate-x-1/2 -translate-y-1/2 pointer-events-none absolute top-1/2 h-3 w-1 bg-amber-200 shadow-[0_0_6px_rgba(252,211,77,0.85)]"
-					style={{ left: `${fillPercent(thresholdMs, budgetMs)}%` }}
-				/>
-			))}
-		</div>
 	);
 }

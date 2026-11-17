@@ -11,6 +11,7 @@ const baseDef: MonsterDefinition = {
 	id: "test",
 	name: "Test",
 	sprite: "/tmp/test.png",
+	pathColor: "#888888",
 	baseStats: {
 		hp: 10,
 		attackSpeed: 1.2,

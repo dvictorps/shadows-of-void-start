@@ -105,7 +105,7 @@ Open the relevant act file (e.g. `src/game/world/act-1.ts`). Add a `kind: "boss"
     monsterPool: ["enemy_a", "enemy_b"],        // optional — see note below
     bossNode: {
         bossId: "shade_of_the_first",
-        warmupSeconds: 30,                      // optional — calmaria/time-bar budget before the gauntlet
+        warmupSeconds: 30,                      // optional — the fixed warmup route before the gauntlet
         gauntlet: {
             fights: 3,                          // 3 rares before the boss spawns
             monsterPool: ["enemy_a", "enemy_b"],

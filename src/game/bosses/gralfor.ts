@@ -11,6 +11,7 @@ export const GRALFOR: BossConfig = {
 		id: "gralfor",
 		name: "Gralfor, O Persistente",
 		sprite: "/assets/sprites/bosses/gralfor.png",
+		pathColor: "#e04a2f",
 		baseStats: {
 			hp: 300,
 			attackSpeed: 0.9,

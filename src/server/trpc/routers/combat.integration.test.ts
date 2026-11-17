@@ -98,7 +98,11 @@ describe("combat", () => {
 		await enterZone(account, hero);
 		await backdateZoneVisit(hero.characterId, 3_600_000);
 		const plan = zoneContextFor(ACT_1, "forest_starter").encounterPlan;
-		const ceiling = maxPacedKills(plan, plan.calmariaBudgetSeconds * 1000);
+		const declaredMs = plan.calmariaBudgetSeconds * 1000;
+		const { zoneBudgetMs } = await readCharacter(hero.characterId);
+		expect(zoneBudgetMs).toBeGreaterThanOrEqual(declaredMs * 0.75);
+		expect(zoneBudgetMs).toBeLessThanOrEqual(declaredMs * 1.25);
+		const ceiling = maxPacedKills(plan, zoneBudgetMs ?? declaredMs);
 		const goblin = {
 			...hero,
 			monsterId: "goblin",

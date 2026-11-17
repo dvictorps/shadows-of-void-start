@@ -25,7 +25,7 @@ import { ELEMENT_SWITCH_COOLDOWN_MS } from "#/game/combat/constants";
 import type { Enemy } from "#/game/combat/types";
 import { MONSTERS } from "#/game/monsters";
 import {
-	translateCampLines,
+	translateCampLine,
 	translateEnemyName,
 	translateMonsterModDescription,
 } from "#/game/world/i18n";
@@ -72,9 +72,19 @@ function baseProps(): Props {
 		bagCount: 0,
 		onOpenBag: vi.fn<() => void>(),
 		onConsumableHover: vi.fn<(key: ConsumableKey | null) => void>(),
-		calmariaElapsedMs: 2500,
-		calmariaBudgetMs: 10_000,
-		campThresholdsMs: [],
+		path: {
+			route: {
+				budgetMs: 10_000,
+				stops: [
+					{ kind: "encounter", atMs: 4000, monsterId: "goblin", pack: null },
+					{ kind: "exit", atMs: 10_000 },
+				],
+			},
+			routeSeed: 1,
+			nextStopIndex: 0,
+			elapsedMs: 2500,
+			incenseCampsMs: [],
+		},
 		onDismissMinibossModal: vi.fn<() => void>(),
 		zoneId: ZONE_ID,
 		onDismissCamp: vi.fn<() => void>(),
@@ -108,9 +118,7 @@ async function advance(ms: number, slice = 100) {
 
 const SETTLE_MS = 800;
 
-const CAMP_LINE_2_SHOWN_MS = 3300;
-const CAMP_LINE_3_SHOWN_MS = 6300;
-const CAMP_PANEL_SHOWN_MS = 10_300;
+const zonePath = () => screen.queryByRole("img", { name: m.zone_path_aria() });
 
 function goblin(overrides: EnemyOverrides = {}): Enemy {
 	return makeEnemy(20, {
@@ -179,19 +187,6 @@ describe("CombatScene — fixed HUD", () => {
 		expect(screen.getByText("LV 2")).toBeTruthy();
 	});
 
-	it("reports calmaria progress on the time bar, with a marker per camp", () => {
-		renderScene({
-			calmariaElapsedMs: 2500.4,
-			calmariaBudgetMs: 10_000,
-			campThresholdsMs: [3000, 6600],
-		});
-		const bar = screen.getByRole("progressbar", { name: "Zone time progress" });
-		expect(bar.getAttribute("aria-valuenow")).toBe("2500");
-		expect(bar.getAttribute("aria-valuemax")).toBe("10000");
-		const markers = [...bar.querySelectorAll("span")];
-		expect(markers.map((marker) => marker.style.left)).toEqual(["30%", "66%"]);
-	});
-
 	it("shows XP as text and on the experience bar", () => {
 		renderScene({ xp: 30, xpNeeded: 120 });
 		expect(
@@ -237,20 +232,35 @@ describe("CombatScene — fixed HUD", () => {
 });
 
 describe("CombatScene — exploration and ambush", () => {
-	it("shows the searching line with no enemy on screen", () => {
+	it("draws the zone path with no enemy on screen", () => {
 		renderScene({ state: "searching", enemy: null });
-		expect(screen.getByText(m.searching_enemy())).toBeTruthy();
+		expect(zonePath()).toBeTruthy();
 	});
 
-	it("swaps the searching line for the ambush banner while a pack fires", async () => {
+	it("keeps the fight on screen with the ambush banner while a pack fires", async () => {
 		const scene = renderScene({ state: "searching", ambushActive: true });
 		expect(screen.getByText(m.ambush_banner())).toBeTruthy();
-		expect(screen.queryByText(m.searching_enemy())).toBeNull();
+		expect(zonePath()).toBeNull();
 
 		scene.update({ ambushActive: false });
 		await advance(SETTLE_MS);
 		expect(screen.queryByText(m.ambush_banner())).toBeNull();
-		expect(screen.getByText(m.searching_enemy())).toBeTruthy();
+		expect(zonePath()).toBeTruthy();
+	});
+
+	it("fades from the path into the fight, and back once it ends", async () => {
+		const enemy = goblin();
+		const scene = renderScene({ state: "searching" });
+		scene.update({ state: "engaged", enemy });
+		await advance(SETTLE_MS);
+		expect(zonePath()).toBeNull();
+		expect(
+			screen.getByRole("img", { name: translateEnemyName(enemy) }),
+		).toBeTruthy();
+
+		scene.update({ state: "searching", enemy: null });
+		await advance(SETTLE_MS);
+		expect(zonePath()).toBeTruthy();
 	});
 });
 
@@ -264,7 +274,7 @@ describe("CombatScene — fight", () => {
 		expect(screen.getByText(name)).toBeTruthy();
 		expect(nameplate(enemy).style.opacity).toBe("1");
 		expect(hpBar(enemy).style.opacity).toBe("1");
-		expect(screen.queryByText(m.searching_enemy())).toBeNull();
+		expect(zonePath()).toBeNull();
 	});
 
 	it.each([
@@ -504,57 +514,26 @@ describe("CombatScene — zone complete", () => {
 });
 
 describe("CombatScene — camp", () => {
-	function hudFaded() {
-		const label = screen.getByText("Whispering Woods").parentElement;
-		const actions = screen.getByRole("button", {
-			name: m.retreat_to_map(),
-		}).parentElement;
-		const bottom = screen.getByRole("button", { name: m.potion_use_aria() })
-			.parentElement?.parentElement;
-		const faded = [label, actions, bottom].map((el) =>
-			narrow(el, HTMLElement).classList.contains("opacity-0"),
-		);
-		expect(new Set(faded).size).toBe(1);
-		return faded[0];
-	}
-
-	it("fades the HUD, plays the zone's three lines, then the panel brings it back", async () => {
-		const lines = translateCampLines(ZONE_ID, "baked");
+	it("cuts straight to the camp screen with the zone's line", () => {
 		const scene = renderScene({ state: "searching" });
-		expect(hudFaded()).toBe(false);
-
 		scene.update({ state: "acampamento", campSource: "baked" });
-		expect(hudFaded()).toBe(true);
+		expect(zonePath()).toBeNull();
+		expect(screen.getByText(m.camp_title())).toBeTruthy();
+		expect(screen.getByText(translateCampLine(ZONE_ID, "baked"))).toBeTruthy();
+	});
+
+	it("keeps the HUD usable in camp", () => {
+		renderScene({ state: "acampamento" });
+		const retreat = screen.getByRole("button", { name: m.retreat_to_map() });
 		expect(
-			screen
-				.getByRole("button", { name: m.retreat_to_map() })
-				.parentElement?.classList.contains("pointer-events-none"),
-		).toBe(true);
-		expect(screen.getByText(lines[0])).toBeTruthy();
-
-		await advance(CAMP_LINE_2_SHOWN_MS);
-		expect(screen.getByText(lines[1])).toBeTruthy();
-		await advance(CAMP_LINE_3_SHOWN_MS - CAMP_LINE_2_SHOWN_MS);
-		expect(screen.getByText(lines[2])).toBeTruthy();
-		expect(screen.queryByText(m.camp_title())).toBeNull();
-
-		await advance(CAMP_PANEL_SHOWN_MS - CAMP_LINE_3_SHOWN_MS);
-		expect(screen.getByText(m.camp_title())).toBeTruthy();
-		expect(hudFaded()).toBe(false);
+			narrow(retreat.parentElement, HTMLElement).classList.contains(
+				"pointer-events-none",
+			),
+		).toBe(false);
 	});
 
-	it("skips to the panel on a click anywhere in the scene", async () => {
+	it("returns with the loot or presses onward", () => {
 		const scene = renderScene({ state: "acampamento" });
-		fireEvent.click(scene.section());
-		await advance(100);
-		expect(screen.getByText(m.camp_title())).toBeTruthy();
-		expect(hudFaded()).toBe(false);
-	});
-
-	it("returns with the loot or presses onward from the panel", () => {
-		const scene = renderScene({ state: "acampamento" });
-		fireEvent.click(scene.section());
-
 		fireEvent.click(
 			screen.getByRole("button", { name: m.camp_return_to_city() }),
 		);
@@ -565,25 +544,11 @@ describe("CombatScene — camp", () => {
 		expect(scene.props.onDismissCamp).toHaveBeenCalledTimes(1);
 	});
 
-	it("plays the incense lines for an incense camp", () => {
+	it("shows the incense line for an incense camp", () => {
 		renderScene({ state: "acampamento", campSource: "incense" });
 		expect(
-			screen.getByText(translateCampLines(ZONE_ID, "incense")[0]),
+			screen.getByText(translateCampLine(ZONE_ID, "incense")),
 		).toBeTruthy();
-	});
-
-	it("replays the lines on the next camp after a skipped one", async () => {
-		const lines = translateCampLines(ZONE_ID, "baked");
-		const scene = renderScene({ state: "acampamento" });
-		fireEvent.click(scene.section());
-		expect(screen.getByText(m.camp_title())).toBeTruthy();
-
-		scene.update({ state: "searching" });
-		await advance(SETTLE_MS);
-		scene.update({ state: "acampamento" });
-		expect(screen.getByText(lines[0])).toBeTruthy();
-		expect(screen.queryByText(m.camp_title())).toBeNull();
-		expect(hudFaded()).toBe(true);
 	});
 });
 

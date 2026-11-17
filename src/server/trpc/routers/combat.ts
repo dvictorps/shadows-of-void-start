@@ -289,12 +289,14 @@ export const combatRouter = router({
 					currentZoneKills: 0,
 					zoneStartedAt,
 					campThresholdsMs: entry.campThresholdsMs,
+					zoneBudgetMs: entry.zoneBudgetMs,
 				})
 				.where(byId(character));
 			return {
 				zoneSession,
 				zoneStartedAt,
 				campThresholdsMs: entry.campThresholdsMs,
+				zoneBudgetMs: entry.zoneBudgetMs,
 			};
 		}),
 
