@@ -477,3 +477,27 @@ a {
 .boss-screenshake {
   animation: boss-screenshake 0.4s ease-out;
 }
+
+@keyframes path-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes path-orbit-wobble {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(0.07px); }
+}
+
+.path-orbit {
+  animation: path-orbit 3.6s linear infinite;
+}
+
+.path-orbit-wobble {
+  animation: path-orbit-wobble 1.7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .path-orbit,
+  .path-orbit-wobble {
+    animation: none;
+  }
+}

@@ -36,7 +36,9 @@ A future **Boss pending** state is planned (see "Boss Deferral" below) but not i
 
 The sequence the player walks through on a zone visit, rolled per visit (on entry and again after each miniboss kill). It is laid out along the visit's **exploration budget**: the total exploração time from the entrance to the **Exit**. The budget is rolled per visit within **±25%** of the zone's declared budget (`calmariaBudgetSeconds` is the average, not the exact value), so a route can come out longer (more encounters, more loot, more risk) or shorter. Boss nodes don't vary: their warmup is fixed.
 
-Each stop on the route sits at a point of exploration time:
+The route is laid out on **tiles**, two per second of budget, from the entrance tile to the Exit tile. Each stop sits on a tile and fires the moment the player steps onto it: a fight starts as the white dot enters the enemy's tile. A stop is never moved earlier than its rolled time to land on a tile, only later. Several enemies can share a tile (an ambush pack); they fire in order. A camp always has its tile to itself: no enemy stands on a campfire.
+
+The stops:
 
 - **Encounters** — one monster each. The monster is known in advance; its **rarity is hidden** until the fight starts (rolled at spawn, as before).
 - **Ambush packs** — several encounters clustered at one point (see Encounter Schedule).
@@ -47,7 +49,7 @@ Progress along the route advances only during **exploração**; it pauses during
 
 ### Zone Path
 
-How the zone view shows the Zone Route during exploração: a winding tile path from the entrance to the Exit, randomly traced per route and sized in proportion to the budget. The entrance sits on any edge and the road heads off in any direction, turning freely but never touching itself. The whole path is always in view: a longer one zooms out to fit. The player is a small white dot walking at constant speed; each upcoming encounter is a dot in its monster's color (one hue per monster family, a shade per variant; white is reserved for the player, gold for camps and the Exit). Camps are campfire tiles, visible from the start, dimmed once used.
+How the zone view shows the Zone Route during exploração: a winding tile path from the entrance to the Exit, randomly traced per route and sized in proportion to the budget. The entrance sits on any edge and the road heads off in any direction, turning freely but never touching itself. The whole path is always in view: a longer one zooms out to fit. The tiles join into one continuous road. The player is a small white dot walking at constant speed; each upcoming encounter is a dot in its monster's color, circling loosely inside its tile (one hue per monster family, a shade per variant; white is reserved for the player, gold for camps and the Exit). Camps are campfire tiles, visible from the start, dimmed once used.
 
 When the player reaches an encounter, the path cross-fades into the fight (the enemy's nameplate included); when the fight ends, it cross-fades back to the path and the defeated dot is gone. An ambush pack stays in the fight view until the whole pack is resolved. The tiles are drawn in CSS for now; they are meant to be swapped for a tileset.
 

@@ -2,31 +2,52 @@ import { useMemo } from "react";
 
 import { findMonster } from "#/game/monsters";
 import type { ZoneRoute } from "#/game/world/zone-route";
-import { seededRng } from "#/lib/rng";
+import { hashStringToUnit, seededRng } from "#/lib/rng";
 import { m } from "#/paraglide/messages";
 
 import {
+	cellIndexAt,
 	type PathCell,
 	type PathLayout,
 	pointAt,
 	rollPathLayout,
-	stopCellIndex,
 } from "./path-layout";
 
 const VIEW_PADDING = 0.6;
-const TILE_GAP = 0.04;
-const CLUSTER_OFFSET = 0.22;
-const RADIUS = { player: 0.2, camp: 0.16, enemy: 0.12 } as const;
+const CLUSTER_OFFSET = 0.2;
+const RADIUS = { player: 0.13, camp: 0.16, enemy: 0.1 } as const;
+const ORBIT_RADIUS = { min: 0.1, max: 0.23 };
+const ORBIT_SECONDS = { min: 2.6, max: 5.4 };
+const WOBBLE_SECONDS = { min: 1.2, max: 2.4 };
+
+function orbitOf(key: string) {
+	const roll = (salt: number, range: { min: number; max: number }) =>
+		range.min + hashStringToUnit(key, salt) * (range.max - range.min);
+	const seconds = roll(1, ORBIT_SECONDS);
+	return {
+		radius: roll(2, ORBIT_RADIUS),
+		spin: {
+			animationDuration: `${seconds}s`,
+			animationDirection: hashStringToUnit(key, 3) < 0.5 ? "normal" : "reverse",
+			animationDelay: `-${roll(4, { min: 0, max: seconds })}s`,
+		},
+		wobble: { animationDuration: `${roll(5, WOBBLE_SECONDS)}s` },
+	};
+}
 const HALO = 1.7;
 const CENTERED = { dx: 0, dy: 0 };
 const UNKNOWN_MONSTER_COLOR = "#888888";
 
-export type ZonePathState = {
+type ZonePathProps = {
 	route: ZoneRoute;
 	routeSeed: number;
 	nextStopIndex: number;
 	elapsedMs: number;
 	incenseCampsMs: readonly number[];
+};
+
+export type ZonePathState = Omit<ZonePathProps, "route"> & {
+	route: ZoneRoute | null;
 };
 
 type Marker =
@@ -49,22 +70,21 @@ function markersByCell(
 	incenseCampsMs: readonly number[],
 ) {
 	const cells = new Map<number, Marker[]>();
-	const add = (atMs: number, marker: Marker) => {
-		const cell = stopCellIndex(layout, atMs / route.budgetMs);
+	const add = (cell: number, marker: Marker) => {
 		const members = cells.get(cell);
 		if (members) members.push(marker);
 		else cells.set(cell, [marker]);
 	};
 	route.stops.forEach((stop, index) => {
 		if (stop.kind === "camp") {
-			add(stop.atMs, {
+			add(stop.tile, {
 				key: `stop-${index}`,
 				kind: "camp",
 				used: index < nextStopIndex,
 			});
 		}
 		if (stop.kind === "encounter" && index >= nextStopIndex) {
-			add(stop.atMs, {
+			add(stop.tile, {
 				key: `stop-${index}`,
 				kind: "enemy",
 				monsterId: stop.monsterId,
@@ -73,7 +93,11 @@ function markersByCell(
 		}
 	});
 	incenseCampsMs.forEach((atMs, index) => {
-		add(atMs, { key: `incense-${index}`, kind: "camp", used: true });
+		add(cellIndexAt(layout, atMs / route.budgetMs), {
+			key: `incense-${index}`,
+			kind: "camp",
+			used: true,
+		});
 	});
 	return cells;
 }
@@ -107,34 +131,38 @@ function PathMarker({
 			</g>
 		);
 	}
+	const orbit = orbitOf(marker.key);
 	return (
-		<circle
+		<g
 			data-kind="enemy"
 			data-monster={marker.monsterId}
-			cx={cx}
-			cy={cy}
-			r={RADIUS.enemy}
+			transform={`translate(${cx} ${cy})`}
 			fill={marker.color}
-		/>
+		>
+			<g className="path-orbit" style={orbit.spin}>
+				<g className="path-orbit-wobble" style={orbit.wobble}>
+					<circle cx={orbit.radius} cy={0} r={RADIUS.enemy} />
+				</g>
+			</g>
+		</g>
 	);
 }
 
 function PathRoad({ layout }: { layout: PathLayout }) {
 	const exit = layout.cells.length - 1;
-	const size = 1 - 2 * TILE_GAP;
 	return (
 		<>
 			{layout.cells.map((cell, index) => (
 				<rect
 					key={`${cell.x},${cell.y}`}
 					data-kind={index === exit ? "exit" : "tile"}
-					x={cell.x + TILE_GAP}
-					y={cell.y + TILE_GAP}
-					width={size}
-					height={size}
-					fill={index === exit ? "#451a03" : "#292524"}
-					stroke={index === exit ? "#fcd34d" : "none"}
-					strokeWidth={0.06}
+					x={cell.x}
+					y={cell.y}
+					width={1}
+					height={1}
+					fill={index === exit ? "#451a03" : "#3a332d"}
+					stroke={index === exit ? "#fcd34d" : "#2a2420"}
+					strokeWidth={index === exit ? 0.08 : 0.03}
 				/>
 			))}
 		</>
@@ -147,11 +175,11 @@ export default function ZonePath({
 	nextStopIndex,
 	elapsedMs,
 	incenseCampsMs,
-}: ZonePathState) {
-	const { budgetMs } = route;
+}: ZonePathProps) {
+	const { budgetMs, tiles } = route;
 	const layout = useMemo(
-		() => rollPathLayout(budgetMs, seededRng(routeSeed)),
-		[budgetMs, routeSeed],
+		() => rollPathLayout(tiles, seededRng(routeSeed)),
+		[tiles, routeSeed],
 	);
 	const road = useMemo(() => <PathRoad layout={layout} />, [layout]);
 	const markers = useMemo(

@@ -8,7 +8,6 @@ import {
 	type PathLayout,
 	pointAt,
 	rollPathLayout,
-	stopCellIndex,
 } from "./path-layout";
 
 const distance = (a: PathCell, b: PathCell) =>
@@ -17,9 +16,9 @@ const steps = (a: PathCell, b: PathCell) =>
 	Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 
 describe("rollPathLayout", () => {
-	it("walks one tile at a time, about one tile per second, inside its box", () => {
+	it("walks the asked number of tiles, one step at a time, inside its box", () => {
 		for (let seed = 0; seed < 100; seed++) {
-			const { cells, cols, rows } = rollPathLayout(35_000, seededRng(seed));
+			const { cells, cols, rows } = rollPathLayout(35, seededRng(seed));
 			expect(cells).toHaveLength(35);
 			for (let i = 1; i < cells.length; i++) {
 				expect(steps(cells[i - 1], cells[i])).toBe(1);
@@ -35,7 +34,7 @@ describe("rollPathLayout", () => {
 
 	it("never touches itself, not even at a corner, so it reads as one road", () => {
 		for (let seed = 0; seed < 100; seed++) {
-			const { cells } = rollPathLayout(62_000, seededRng(seed));
+			const { cells } = rollPathLayout(62, seededRng(seed));
 			for (let i = 0; i < cells.length; i++) {
 				for (let j = i + 3; j < cells.length; j++) {
 					expect(distance(cells[i], cells[j])).toBeGreaterThan(1);
@@ -47,7 +46,7 @@ describe("rollPathLayout", () => {
 	it("heads off in different directions across rolls", () => {
 		const headings = new Set(
 			Array.from({ length: 40 }, (_, seed) => {
-				const { cells } = rollPathLayout(35_000, seededRng(seed));
+				const { cells } = rollPathLayout(35, seededRng(seed));
 				const [a, b] = cells;
 				return `${b.x - a.x},${b.y - a.y}`;
 			}),
@@ -55,15 +54,9 @@ describe("rollPathLayout", () => {
 		expect(headings.size).toBe(4);
 	});
 
-	it("grows with the budget", () => {
-		const short = rollPathLayout(26_000, seededRng(3)).cells.length;
-		const long = rollPathLayout(44_000, seededRng(3)).cells.length;
-		expect(long).toBeGreaterThan(short);
-	});
-
 	it("is reproducible under the same seed", () => {
-		expect(rollPathLayout(35_000, seededRng(5))).toEqual(
-			rollPathLayout(35_000, seededRng(5)),
+		expect(rollPathLayout(35, seededRng(5))).toEqual(
+			rollPathLayout(35, seededRng(5)),
 		);
 	});
 });
@@ -84,11 +77,6 @@ describe("positions along the path", () => {
 		expect(cellIndexAt(layout, 0.4)).toBe(1);
 		expect(cellIndexAt(layout, 1)).toBe(2);
 		expect(cellIndexAt(layout, 2)).toBe(2);
-	});
-
-	it("keeps every stop off the exit tile", () => {
-		expect(stopCellIndex(layout, 0.4)).toBe(1);
-		expect(stopCellIndex(layout, 0.99)).toBe(1);
 	});
 
 	it("interpolates the walker between tiles", () => {

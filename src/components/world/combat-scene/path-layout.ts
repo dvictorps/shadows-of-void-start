@@ -11,8 +11,6 @@ export interface PathLayout {
 	cells: readonly PathCell[];
 }
 
-const MS_PER_TILE = 1000;
-const MIN_TILES = 8;
 const AREA_PER_TILE = 3.2;
 const GRID_ASPECT = 2.4;
 const ATTEMPTS = 6;
@@ -132,8 +130,7 @@ function straightLine(target: number): PathLayout {
 	return fitToBox(Array.from({ length: target }, (_, x) => ({ x, y: 0 })));
 }
 
-export function rollPathLayout(budgetMs: number, rng: Rng): PathLayout {
-	const target = Math.max(MIN_TILES, Math.round(budgetMs / MS_PER_TILE));
+export function rollPathLayout(target: number, rng: Rng): PathLayout {
 	for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
 		const grid = gridFor(target, GROWTH_PER_ATTEMPT ** attempt);
 		const cells = walk(target, grid, rng);
@@ -147,10 +144,6 @@ const clamp01 = (fraction: number) => Math.min(1, Math.max(0, fraction));
 export function cellIndexAt(layout: PathLayout, fraction: number): number {
 	const last = layout.cells.length - 1;
 	return Math.round(clamp01(fraction) * last);
-}
-
-export function stopCellIndex(layout: PathLayout, fraction: number): number {
-	return Math.min(cellIndexAt(layout, fraction), layout.cells.length - 2);
 }
 
 export function pointAt(layout: PathLayout, fraction: number): PathCell {

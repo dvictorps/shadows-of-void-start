@@ -18,7 +18,7 @@ type LoopParams = Parameters<typeof useCombatLoop>[0];
 type Props = Omit<LoopParams, "barrierApi">;
 
 const STEP_MS = 50;
-const SPAWN_GAP_MS = 1000;
+const SPAWN_GAP_MS = 1300;
 const VICTORY_DELAY_MS = 800;
 const GAUNTLET_SPAWN_MS = 600;
 const RARE_INTRO_MS =
@@ -99,6 +99,7 @@ function setup(overrides: Partial<Props> = {}) {
 		zoneLevel: 1,
 		encounterPlan: PLAN,
 		bossNode: null,
+		serverVisitId: null,
 		serverBudgetMs: null,
 		serverCampThresholdsMs: [],
 		active: true,
@@ -108,9 +109,16 @@ function setup(overrides: Partial<Props> = {}) {
 	const hook = renderHook((p: Props) => useHarness(p), {
 		initialProps: { ...props, active: false },
 	});
+	let visits = 0;
 	const enterZone = (next: Props = props) => {
 		act(() => hook.result.current.startVisit(next.bossNode ?? null));
-		hook.rerender({ ...next, active: true });
+		visits += 1;
+		props.serverVisitId = `visit-${visits}`;
+		hook.rerender({
+			...next,
+			serverVisitId: props.serverVisitId,
+			active: true,
+		});
 	};
 	const leaveZone = (next: Props = props) => {
 		hook.rerender({ ...next, active: false });
@@ -245,7 +253,7 @@ describe("useCombatLoop — zone miniboss", () => {
 describe("useCombatLoop — camps", () => {
 	it("enters camp when the bar crosses a server threshold, and leaves on dismiss", () => {
 		const { result, server } = setup({ serverCampThresholdsMs: [300] });
-		advance(300);
+		advance(800);
 		expect(result.current.state).toBe("acampamento");
 		expect(result.current.campSource).toBe("baked");
 		expect(server.enterCamp).toHaveBeenCalledExactlyOnceWith({
@@ -448,7 +456,7 @@ describe("useCombatLoop — a new zone visit (startVisit)", () => {
 		const { result, props, enterZone, leaveZone } = setup({
 			encounterPlan: SHORT_BUDGET_PLAN,
 		});
-		advance(SPAWN_GAP_MS + RARE_INTRO_MS + STEP_MS);
+		advance(EXIT_MS + RARE_INTRO_MS + STEP_MS);
 		expect(result.current.state).toBe("victory");
 		await flushServer();
 

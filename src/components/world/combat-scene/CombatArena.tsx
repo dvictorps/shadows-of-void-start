@@ -100,7 +100,7 @@ export default function CombatArena({
 					className={LAYER_CLASS[view]}
 				>
 					{view === "path" ? (
-						<ZonePath {...path} />
+						path.route && <ZonePath {...path} route={path.route} />
 					) : (
 						<>
 							{nameplate}

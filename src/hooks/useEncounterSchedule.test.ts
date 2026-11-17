@@ -4,6 +4,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ZoneEncounterPlan } from "#/game/world/encounter-schedule";
+import type { ZoneRoute } from "#/game/world/zone-route";
 
 import { useEncounterSchedule } from "./useEncounterSchedule";
 
@@ -37,6 +38,7 @@ function setup(overrides: Partial<Props> = {}) {
 		active: true,
 		encounterPlan: PLAN,
 		monsterPool: ["goblin"],
+		serverVisitId: null,
 		serverBudgetMs: null,
 		serverCampThresholdsMs: [5500],
 		isSearching: true,
@@ -49,9 +51,16 @@ function setup(overrides: Partial<Props> = {}) {
 	const hook = renderHook((props: Props) => useEncounterSchedule(props), {
 		initialProps: { ...initialProps, active: false },
 	});
+	let visits = 0;
 	const enterZone = (next: Props = initialProps) => {
 		act(() => hook.result.current.startVisit());
-		hook.rerender({ ...next, active: true });
+		visits += 1;
+		initialProps.serverVisitId = `visit-${visits}`;
+		hook.rerender({
+			...next,
+			serverVisitId: initialProps.serverVisitId,
+			active: true,
+		});
 	};
 	enterZone();
 	return {
@@ -63,6 +72,11 @@ function setup(overrides: Partial<Props> = {}) {
 		postMinibossPauseRef,
 		enterZone,
 	};
+}
+
+function routeOf(current: { route: ZoneRoute | null }): ZoneRoute {
+	if (!current.route) throw new Error("route not ready");
+	return current.route;
 }
 
 function advance(ms: number) {
@@ -110,22 +124,25 @@ describe("useEncounterSchedule — walking the route", () => {
 
 	it("uses the server's rolled budget over the plan's", () => {
 		const { result } = setup({ serverBudgetMs: 12_000 });
-		expect(result.current.route.budgetMs).toBe(12_000);
-		expect(result.current.route.stops.at(-1)).toEqual({
+		expect(routeOf(result.current).budgetMs).toBe(12_000);
+		expect(routeOf(result.current).stops.at(-1)).toEqual({
 			kind: "exit",
-			atMs: 12_000,
+			tile: 24,
+			atMs: 11_750,
 		});
 	});
 
-	it("meets each encounter at its stop, with the stop's monster", () => {
+	it("meets each encounter as the walker enters its tile, with the stop's monster", () => {
 		const { result, onEncounter } = setup();
-		advance(900);
+		const [first] = routeOf(result.current).stops;
+		expect(first).toMatchObject({ kind: "encounter", tile: 3, atMs: 1250 });
+		advance(1200);
 		expect(onEncounter).not.toHaveBeenCalled();
 
 		advance(TICK_MS);
 		expect(onEncounter).toHaveBeenCalledExactlyOnceWith("goblin", "normal");
 		expect(result.current.nextStopIndex).toBe(1);
-		expect(result.current.calmariaElapsedMs).toBe(1000);
+		expect(result.current.calmariaElapsedMs).toBe(1250);
 	});
 
 	it("reaches the exit once every stop before it is behind", () => {
@@ -140,19 +157,44 @@ describe("useEncounterSchedule — walking the route", () => {
 	});
 });
 
+describe("useEncounterSchedule — waiting for the server's visit", () => {
+	it("draws and walks nothing until the new visit's budget arrives, so the path is rolled once", () => {
+		const { result, rerender, initialProps, onEncounter } = setup();
+		const entered = routeOf(result.current);
+
+		act(() => result.current.startVisit());
+		rerender({ ...initialProps, serverBudgetMs: 12_000 });
+		expect(result.current.route).toBeNull();
+		advance(3000);
+		expect(result.current.calmariaElapsedMs).toBe(0);
+		expect(onEncounter).not.toHaveBeenCalled();
+
+		rerender({
+			...initialProps,
+			serverVisitId: "visit-next",
+			serverBudgetMs: 12_000,
+		});
+		const route = routeOf(result.current);
+		expect(route).not.toBe(entered);
+		expect(route.budgetMs).toBe(12_000);
+		advance(1300);
+		expect(onEncounter).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe("useEncounterSchedule — camps", () => {
 	it("fires each server threshold once, with its index", () => {
 		const { result, onCampTriggered } = setup({
 			serverCampThresholdsMs: [3500, 6500],
 		});
-		advance(3400);
+		advance(3550);
 		expect(onCampTriggered).not.toHaveBeenCalled();
 
-		advance(TICK_MS);
+		advance(700);
 		expect(onCampTriggered).toHaveBeenCalledExactlyOnceWith(0);
 		expect(result.current.campSource).toBe("baked");
 
-		advance(3000);
+		advance(3500);
 		expect(onCampTriggered).toHaveBeenCalledTimes(2);
 		expect(onCampTriggered).toHaveBeenLastCalledWith(1);
 	});
@@ -169,7 +211,7 @@ describe("useEncounterSchedule — camps", () => {
 		});
 		advance(500);
 		rerender({ ...initialProps, serverCampThresholdsMs: [1500] });
-		advance(1000);
+		advance(1500);
 		expect(onCampTriggered).toHaveBeenCalledExactlyOnceWith(0);
 	});
 
@@ -188,7 +230,7 @@ describe("useEncounterSchedule — ambushes", () => {
 			encounterPlan: AMBUSH_PLAN,
 			serverCampThresholdsMs: [],
 		});
-		const pack = result.current.route.stops.filter(
+		const pack = routeOf(result.current).stops.filter(
 			(s) => s.kind === "encounter" && s.pack === 0,
 		);
 		expect(pack).toHaveLength(2);
@@ -208,7 +250,7 @@ describe("useEncounterSchedule — visits", () => {
 	it("a new visit resets the walk, the camps fired and the camp source", () => {
 		const { result, rerender, initialProps, onCampTriggered, enterZone } =
 			setup();
-		advance(5500);
+		advance(6500);
 		expect(onCampTriggered).toHaveBeenCalledTimes(1);
 		act(() => result.current.startIncenseCamp());
 
@@ -219,7 +261,7 @@ describe("useEncounterSchedule — visits", () => {
 		expect(result.current.campSource).toBe("baked");
 		expect(result.current.incenseCampsMs).toEqual([]);
 
-		advance(5500);
+		advance(6500);
 		expect(onCampTriggered).toHaveBeenCalledTimes(2);
 		expect(onCampTriggered).toHaveBeenLastCalledWith(0);
 	});
@@ -227,9 +269,11 @@ describe("useEncounterSchedule — visits", () => {
 	it("pausing and resuming the same visit keeps the walk", () => {
 		const { result, rerender, initialProps } = setup();
 		advance(2500);
+		const walked = result.current.calmariaElapsedMs;
+		expect(result.current.nextStopIndex).toBe(2);
 		rerender({ ...initialProps, active: false });
 		rerender({ ...initialProps, active: true });
-		expect(result.current.calmariaElapsedMs).toBe(2500);
+		expect(result.current.calmariaElapsedMs).toBe(walked);
 		expect(result.current.nextStopIndex).toBe(2);
 	});
 

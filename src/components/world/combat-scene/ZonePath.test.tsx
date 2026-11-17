@@ -16,12 +16,13 @@ type Props = ComponentProps<typeof ZonePath>;
 
 const ROUTE: ZoneRoute = {
 	budgetMs: 20_000,
+	tiles: 21,
 	stops: [
-		{ kind: "encounter", atMs: 2000, monsterId: "goblin", pack: null },
-		{ kind: "camp", atMs: 5000, campIndex: 0 },
-		{ kind: "encounter", atMs: 8000, monsterId: "lich", pack: 0 },
-		{ kind: "encounter", atMs: 8200, monsterId: "lich", pack: 0 },
-		{ kind: "exit", atMs: 20_000 },
+		{ kind: "encounter", tile: 2, atMs: 1500, monsterId: "goblin", pack: null },
+		{ kind: "camp", tile: 5, atMs: 4500, campIndex: 0 },
+		{ kind: "encounter", tile: 8, atMs: 7500, monsterId: "lich", pack: 0 },
+		{ kind: "encounter", tile: 8, atMs: 7500, monsterId: "lich", pack: 0 },
+		{ kind: "exit", tile: 20, atMs: 19_500 },
 	],
 };
 
@@ -48,7 +49,7 @@ afterEach(() => {
 
 describe("ZonePath", () => {
 	it("lays out one tile per path cell, ending at the exit", () => {
-		const layout = rollPathLayout(ROUTE.budgetMs, seededRng(3));
+		const layout = rollPathLayout(ROUTE.tiles, seededRng(3));
 		const { all } = renderPath();
 		expect(all("tile")).toHaveLength(layout.cells.length - 1);
 		expect(all("exit")).toHaveLength(1);
@@ -80,7 +81,7 @@ describe("ZonePath", () => {
 	});
 
 	it("walks the white dot from the entrance to the exit", () => {
-		const layout = rollPathLayout(ROUTE.budgetMs, seededRng(3));
+		const layout = rollPathLayout(ROUTE.tiles, seededRng(3));
 		const first = layout.cells[0];
 		const last = layout.cells.at(-1) ?? first;
 		const at = (elapsedMs: number) => {
@@ -95,8 +96,26 @@ describe("ZonePath", () => {
 		expect(at(ROUTE.budgetMs)).toBe(centre(last));
 	});
 
+	it("draws each enemy on its stop's tile, reached by the walker as the fight starts", () => {
+		const layout = rollPathLayout(ROUTE.tiles, seededRng(3));
+		const [goblin] = ROUTE.stops;
+		const tile = layout.cells[goblin.tile];
+		const before = layout.cells[goblin.tile - 1];
+		const { all } = renderPath({ elapsedMs: goblin.atMs });
+		const [dot] = all("enemy");
+		expect(dot.getAttribute("transform")).toBe(
+			`translate(${tile.x + 0.5} ${tile.y + 0.5})`,
+		);
+		const [player] = all("player");
+		const edge = {
+			x: (before.x + tile.x) / 2 + 0.5,
+			y: (before.y + tile.y) / 2 + 0.5,
+		};
+		expect(player.style.transform).toBe(`translate(${edge.x}px, ${edge.y}px)`);
+	});
+
 	it("fits the whole path in view, whatever its size", () => {
-		const layout = rollPathLayout(ROUTE.budgetMs, seededRng(3));
+		const layout = rollPathLayout(ROUTE.tiles, seededRng(3));
 		const { root } = renderPath();
 		const [, , w, h] = (root.getAttribute("viewBox") ?? "")
 			.split(" ")

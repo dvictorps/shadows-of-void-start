@@ -7,22 +7,28 @@ import {
 	type ZoneEncounterPlan,
 } from "./encounter-schedule";
 
-export type RouteStop =
-	| {
-			kind: "encounter";
-			atMs: number;
-			monsterId: MonsterId;
-			pack: number | null;
-	  }
-	| { kind: "camp"; atMs: number; campIndex: number }
-	| { kind: "exit"; atMs: number };
+type StopBody =
+	| { kind: "encounter"; monsterId: MonsterId; pack: number | null }
+	| { kind: "camp"; campIndex: number }
+	| { kind: "exit" };
+
+export type RouteStop = StopBody & { atMs: number; tile: number };
 
 export interface ZoneRoute {
 	budgetMs: number;
+	tiles: number;
 	stops: readonly RouteStop[];
 }
 
-type Encounter = Extract<RouteStop, { kind: "encounter" }>;
+type Encounter = Extract<StopBody, { kind: "encounter" }> & { atMs: number };
+type RawStop = Exclude<StopBody, { kind: "exit" }> & { atMs: number };
+
+const MS_PER_TILE = 500;
+const MIN_TILES = 16;
+
+export function tileCountFor(budgetMs: number): number {
+	return Math.max(MIN_TILES, Math.round(budgetMs / MS_PER_TILE) + 1);
+}
 
 interface RouteInput {
 	plan: ZoneEncounterPlan;
@@ -91,12 +97,37 @@ function campAfterPacks(atMs: number, encounters: readonly Encounter[]) {
 	return (last?.atMs ?? atMs) + 1;
 }
 
+function placeOnTiles(raw: readonly RawStop[], budgetMs: number) {
+	const tiles = tileCountFor(budgetMs);
+	const tileMs = budgetMs / (tiles - 1);
+	const entryMs = (tile: number) => Math.round((tile - 0.5) * tileMs);
+	const placed: RouteStop[] = [];
+	let prev: RouteStop | null = null;
+	for (const stop of raw.toSorted((a, b) => a.atMs - b.atMs)) {
+		const ownTile = stop.kind === "camp" || prev?.kind === "camp";
+		const tile = Math.max(
+			1,
+			Math.ceil(stop.atMs / tileMs + 0.5),
+			(prev?.tile ?? 0) + (ownTile ? 1 : 0),
+		);
+		if (tile >= tiles - 1) break;
+		prev = { ...stop, tile, atMs: entryMs(tile) };
+		placed.push(prev);
+	}
+	const exit: RouteStop = {
+		kind: "exit",
+		tile: tiles - 1,
+		atMs: entryMs(tiles - 1),
+	};
+	return { tiles, stops: [...placed, exit] };
+}
+
 export function rollZoneRoute(
 	input: RouteInput,
 	rng: Rng = defaultRng,
 ): ZoneRoute {
 	const encounters = rollEncounters(input, rng);
-	const camps: RouteStop[] = input.campThresholdsMs.flatMap(
+	const camps: RawStop[] = input.campThresholdsMs.flatMap(
 		(thresholdMs, campIndex) =>
 			thresholdMs < input.budgetMs
 				? [
@@ -108,9 +139,8 @@ export function rollZoneRoute(
 					]
 				: [],
 	);
-	const stops = [...camps, ...encounters].toSorted((a, b) => a.atMs - b.atMs);
 	return {
 		budgetMs: input.budgetMs,
-		stops: [...stops, { kind: "exit", atMs: input.budgetMs }],
+		...placeOnTiles([...encounters, ...camps], input.budgetMs),
 	};
 }

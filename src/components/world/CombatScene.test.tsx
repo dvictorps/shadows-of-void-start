@@ -75,9 +75,16 @@ function baseProps(): Props {
 		path: {
 			route: {
 				budgetMs: 10_000,
+				tiles: 11,
 				stops: [
-					{ kind: "encounter", atMs: 4000, monsterId: "goblin", pack: null },
-					{ kind: "exit", atMs: 10_000 },
+					{
+						kind: "encounter",
+						tile: 4,
+						atMs: 3500,
+						monsterId: "goblin",
+						pack: null,
+					},
+					{ kind: "exit", tile: 10, atMs: 9500 },
 				],
 			},
 			routeSeed: 1,

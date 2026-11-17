@@ -27,6 +27,7 @@ type Params = {
 	active: boolean;
 	encounterPlan: ZoneEncounterPlan;
 	monsterPool: readonly MonsterId[];
+	serverVisitId: string | null;
 	serverBudgetMs: number | null;
 	serverCampThresholdsMs: readonly number[];
 	isSearching: boolean;
@@ -51,6 +52,7 @@ export function useEncounterSchedule({
 	active,
 	encounterPlan,
 	monsterPool,
+	serverVisitId,
 	serverBudgetMs,
 	serverCampThresholdsMs,
 	isSearching,
@@ -60,6 +62,12 @@ export function useEncounterSchedule({
 	onExitReached,
 }: Params) {
 	const [routeSeed, setRouteSeed] = useState(rollRouteSeed);
+	const visitIdRef = useRef(serverVisitId);
+	useLayoutEffect(() => {
+		visitIdRef.current = serverVisitId;
+	}, [serverVisitId]);
+	const [staleVisitId, setStaleVisitId] = useState<string | null>(null);
+	const routeReady = serverVisitId !== null && serverVisitId !== staleVisitId;
 	const budgetMs = serverBudgetMs ?? encounterPlan.calmariaBudgetSeconds * 1000;
 	const route: ZoneRoute = useMemo(
 		() =>
@@ -110,6 +118,7 @@ export function useEncounterSchedule({
 	const startVisit = useCallback(() => {
 		resetForMiniboss();
 		setCampSource("baked");
+		setStaleVisitId(visitIdRef.current);
 	}, [resetForMiniboss]);
 
 	const arrive = (stop: RouteStop, index: number) => {
@@ -131,7 +140,7 @@ export function useEncounterSchedule({
 		onEncounter(stop.monsterId, rarity);
 	};
 
-	useTicker(active && isSearching, CALMARIA_TICK_MS, () => {
+	useTicker(active && isSearching && routeReady, CALMARIA_TICK_MS, () => {
 		if (postMinibossPauseRef.current) return;
 		const index = nextStopIndexRef.current;
 		const stop = routeRef.current.stops[index];
@@ -160,7 +169,7 @@ export function useEncounterSchedule({
 	}, [moveTo, setAmbush]);
 
 	return {
-		route,
+		route: routeReady ? route : null,
 		routeSeed,
 		nextStopIndex,
 		incenseCampsMs,

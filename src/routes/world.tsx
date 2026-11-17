@@ -308,6 +308,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		zoneLevel,
 		encounterPlan: zone.encounterPlan,
 		bossNode: zone.bossNode,
+		serverVisitId: character.currentZoneSession,
 		serverBudgetMs: character.zoneBudgetMs,
 		serverCampThresholdsMs: character.campThresholdsMs ?? EMPTY_THRESHOLDS,
 		active: view === "combat" && !exitModal.isOpen && tokenMatches,

@@ -30,6 +30,7 @@
 					"database_name": "shadows-of-void-staging",
 					"database_id": "7c05a253-9145-46e2-8071-aee5001ad770",
 					"migrations_dir": "drizzle",
+					"remote": true,
 				},
 			],
 			"triggers": { "crons": ["0 * * * *"] },
