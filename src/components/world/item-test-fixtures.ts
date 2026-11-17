@@ -1,6 +1,6 @@
 import type { GeneratedItem } from "#/game/items/types";
 import type { EquippedSlot } from "#/game/stats/types";
-import type { ItemRow } from "#/lib/api-types";
+import type { BagEntry, ItemRow } from "#/lib/api-types";
 
 export function makeItem(
 	name: string,
@@ -88,4 +88,14 @@ export function equippedRow(
 	slot: EquippedSlot,
 ): ItemRow {
 	return { ...baseRow(id, data), locationKind: "equipped", equippedSlot: slot };
+}
+
+export function bagEntry(bagId: string, data: GeneratedItem): BagEntry {
+	return {
+		bagId,
+		data,
+		droppedAt: 0,
+		droppedFrom: "test_monster",
+		droppedFromLevel: 1,
+	};
 }
