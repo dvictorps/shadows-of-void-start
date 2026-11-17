@@ -27,7 +27,9 @@ const json: z.ZodType<Json> = z.lazy(() =>
 
 export type FakeCall = { path: string; input: Json | undefined };
 export type FakeReply = object | null;
-export type FakeHandler = (input: Json | undefined) => FakeReply;
+export type FakeHandler = (
+	input: Json | undefined,
+) => FakeReply | Promise<FakeReply>;
 
 type WireError = {
 	message: string;
@@ -74,7 +76,7 @@ export function fakeTrpc(handlers: Record<string, FakeHandler>) {
 		const handler = handlers[path];
 		if (!handler) return failure(`no fake for ${path}`, "NOT_FOUND", 404);
 		try {
-			return reply({ result: { data: handler(input) } }, 200);
+			return reply({ result: { data: await handler(input) } }, 200);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : "fake failed";
 			return failure(message, "BAD_REQUEST", 400);
