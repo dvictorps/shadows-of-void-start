@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { BARRIER_REFILL_DELAY_SECONDS } from "#/game/combat/constants";
 import { m } from "#/paraglide/messages";
 
+import { fillPercent } from "./fill-percent";
+
 type Props = {
 	hp: number;
 	maxHp: number;
@@ -42,11 +44,8 @@ export default function HealthGlobe({
 	hitToken = null,
 }: Props) {
 	const dimensions = SIZE_CLASSES[size];
-	const hpPct = maxHp > 0 ? Math.max(0, Math.min(100, (hp / maxHp) * 100)) : 0;
-	const barrierPct =
-		maxBarrier > 0
-			? Math.max(0, Math.min(100, (barrier / maxBarrier) * 100))
-			: 0;
+	const hpPct = fillPercent(hp, maxHp);
+	const barrierPct = fillPercent(barrier, maxBarrier);
 	const showBarrier = maxBarrier > 0;
 	const showRefill = maxBarrier > 0 && barrierRefillRemaining > 0;
 	const refillProgress = showRefill

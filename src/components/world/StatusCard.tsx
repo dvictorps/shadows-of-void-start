@@ -13,6 +13,7 @@ import HealthGlobe from "./HealthGlobe";
 import { AttributeReadouts } from "./status-card/AttributeReadouts";
 import { statusCardLayout } from "./status-card/layout";
 import { statusVitals } from "./status-card/vitals";
+import { XpBar } from "./XpBar";
 
 type Props = {
 	character: CharacterRow;
@@ -27,11 +28,6 @@ type Props = {
 	onUseTeleportStone?: () => void;
 	onShowStats?: () => void;
 };
-
-// The teleport slot keeps its own, softer frame (dimmer border, translucent
-// background) over the shared HUD slot.
-const TELEPORT_SLOT_TONE =
-	"border-white/30 bg-black/60 disabled:opacity-60 disabled:hover:border-white/30 disabled:hover:bg-black/60";
 
 /**
  * The sidebar's character readout: name, class, level, DPS and attributes,
@@ -85,29 +81,11 @@ export default function StatusCard({
 				</div>
 
 				<div className={`flex items-center ${layout.stackGap}`}>
-					<div className="flex-1 space-y-1">
-						<div
-							className={`uppercase tracking-wider text-yellow-300/80 ${layout.xpLabel}`}
-						>
-							{m.status_xp_label({
-								current: vitals.xp,
-								needed: vitals.xpNeeded,
-							})}
-						</div>
-						<div
-							role="progressbar"
-							aria-label={m.xp_bar_aria()}
-							aria-valuenow={vitals.xp}
-							aria-valuemin={0}
-							aria-valuemax={vitals.xpNeeded}
-							className="h-2 w-full overflow-hidden rounded-full bg-white/10"
-						>
-							<div
-								className="h-full bg-yellow-300 transition-[width] duration-200"
-								style={{ width: `${vitals.xpPct}%` }}
-							/>
-						</div>
-					</div>
+					<XpBar
+						xp={vitals.xp}
+						xpNeeded={vitals.xpNeeded}
+						size={layout.xpBar}
+					/>
 					<ConsumableSlot
 						label={m.potion_use_aria()}
 						count={vitals.potions}
@@ -147,7 +125,6 @@ export default function StatusCard({
 							onUse={onUseTeleportStone}
 							tooltip={m.consumable_desc_teleport()}
 							size={layout.slot}
-							className={TELEPORT_SLOT_TONE}
 							art="/assets/sprites/ui/pedraTeleporte.png"
 						/>
 					</div>

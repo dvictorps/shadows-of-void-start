@@ -215,22 +215,12 @@ describe("StatusCard — XP bar", () => {
 		).toBeTruthy();
 		const bar = xpBar();
 		expect(bar.getAttribute("aria-valuenow")).toBe("40");
-		expect(bar.getAttribute("aria-valuemin")).toBe("0");
 		expect(bar.getAttribute("aria-valuemax")).toBe(String(needed));
-		const fill = narrow(bar.firstElementChild, HTMLElement);
-		expect(fill.style.width).toBe(`${(40 / needed) * 100}%`);
 	});
 
 	it("prefers the XP override over the row", () => {
 		setup({ character: characterRow({ xp: 40 }), xpOverride: 55 });
 		expect(xpBar().getAttribute("aria-valuenow")).toBe("55");
-	});
-
-	it("caps the fill at 100%", () => {
-		const needed = xpToNextLevel(1);
-		setup({ character: characterRow({ xp: needed * 3 }) });
-		const fill = narrow(xpBar().firstElementChild, HTMLElement);
-		expect(fill.style.width).toBe("100%");
 	});
 });
 
@@ -311,6 +301,11 @@ describe("StatusCard — teleport slot", () => {
 	it("is enabled at full life (unlike the potion)", () => {
 		setup({ ...outside, hpOverride: 100 });
 		expect(teleportSlot().disabled).toBe(false);
+	});
+
+	it("wears the same frame as the potion slot", () => {
+		setup(outside);
+		expect(teleportSlot().className).toBe(potionSlot().className);
 	});
 
 	it("describes the stone on focus", async () => {

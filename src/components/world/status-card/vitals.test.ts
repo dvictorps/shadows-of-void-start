@@ -47,12 +47,6 @@ describe("statusVitals", () => {
 		expect(v).toMatchObject({ hp: 5, barrier: 3, potions: 9, xp: 20 });
 	});
 
-	it("fills the XP bar in proportion, capped at 100%", () => {
-		const needed = xpToNextLevel(1);
-		expect(statusVitals(input({ xpOverride: needed / 2 })).xpPct).toBe(50);
-		expect(statusVitals(input({ xpOverride: needed * 2 })).xpPct).toBe(100);
-	});
-
 	it("allows a potion only with a handler, a potion and missing life", () => {
 		expect(statusVitals(input()).canUsePotion).toBe(true);
 		expect(statusVitals(input({ hasPotionHandler: false })).canUsePotion).toBe(

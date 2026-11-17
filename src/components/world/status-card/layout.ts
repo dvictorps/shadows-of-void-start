@@ -1,4 +1,5 @@
 import type { SlotSize } from "../ConsumableSlot";
+import type { XpBarSize } from "../XpBar";
 
 /** The status card's sizes, roomy on a wide viewport and tight on a compact one. */
 export type StatusCardLayout = {
@@ -8,7 +9,7 @@ export type StatusCardLayout = {
 	name: string;
 	line: string;
 	attributes: string;
-	xpLabel: string;
+	xpBar: XpBarSize;
 	slot: SlotSize;
 };
 
@@ -19,7 +20,7 @@ const WIDE: StatusCardLayout = {
 	name: "text-2xl",
 	line: "text-lg",
 	attributes: "text-xl",
-	xpLabel: "text-sm",
+	xpBar: "md",
 	slot: "md",
 };
 
@@ -30,7 +31,7 @@ const COMPACT: StatusCardLayout = {
 	name: "text-lg",
 	line: "text-sm",
 	attributes: "text-base",
-	xpLabel: "text-xs",
+	xpBar: "sm",
 	slot: "sm",
 };
 
