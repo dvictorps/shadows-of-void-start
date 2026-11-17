@@ -18,7 +18,7 @@ A central screen that lets the player switch between unlocked acts to farm them 
 
 A point in the act's DAG. Two kinds exist today:
 
-- **Zone node** — a combat location. The player enters, fights enemies (see Time Bar / Zone Miniboss), leaves, returns later. May be a regular zone, the act-boss node, or future variants.
+- **Zone node** — a combat location. The player enters, fights enemies (see Zone Route / Zone Miniboss), leaves, returns later. May be a regular zone, the act-boss node, or future variants.
 - **City node** — a safe location with no mobs. Houses the act's **vendor** and gives access to the **stash**. Always one city per act, unlocked at act entry (the player starts the act with both the city node and the first zone node visible on the map).
 
 ### Zone
@@ -27,44 +27,53 @@ Synonym for a Zone node. Used in the rest of this document when the distinction 
 
 A zone has persistent states per character:
 
-- **Incomplete** — never finished. Time bar resets every time the player leaves.
+- **Incomplete** — never finished. The route is rerolled every time the player enters.
 - **Complete** — the player killed the zone miniboss at least once. Stays this way forever. Re-entering the zone is allowed for farming; the miniboss can be summoned again by completing the encounter schedule.
 
-A future **Boss pending** state is planned (see "Boss Deferral" below) but not implemented yet — today the bar filling spawns the miniboss immediately, no pause modal.
+A future **Boss pending** state is planned (see "Boss Deferral" below) but not implemented yet — today reaching the exit spawns the miniboss immediately, no pause modal.
 
-### Time Bar
+### Zone Route
 
-The progress bar shown over the zone view that represents the player's transit through the zone. The bar advances only during **exploração** (gaps between encounters); it pauses during **combate** and during **acampamento**. When the bar fills (the zone's encounter schedule completes), the **next spawn is the zone miniboss** (or, in a future iteration, becomes summonable — see "Boss Deferral").
+The sequence the player walks through on a zone visit, rolled per visit (on entry and again after each miniboss kill). It is laid out along the visit's **exploration budget**: the total exploração time from the entrance to the **Exit**. The budget is rolled per visit within **±25%** of the zone's declared budget (`calmariaBudgetSeconds` is the average, not the exact value), so a route can come out longer (more encounters, more loot, more risk) or shorter. Boss nodes don't vary: their warmup is fixed.
 
-The fill resets to 0 every time the player leaves the zone with the miniboss unsummoned, and resets to 0 immediately after a miniboss kill so the farming loop can refill on the next entry.
+Each stop on the route sits at a point of exploration time:
 
-The bar UI displays the player's progress through the schedule (cumulative exploration time over total scheduled exploration time). The exact remaining time is hidden; only the bar is visible.
+- **Encounters** — one monster each. The monster is known in advance; its **rarity is hidden** until the fight starts (rolled at spawn, as before).
+- **Ambush packs** — several encounters clustered at one point (see Encounter Schedule).
+- **Camps** — see Acampamento.
+- **Exit** — the end of the route. The zone miniboss waits there; its monster is drawn at spawn, only its rare rank is known in advance. In a boss node the Exit holds the gauntlet fights followed by the act boss.
+
+Progress along the route advances only during **exploração**; it pauses during **combate** and **acampamento**. Reaching the Exit spawns the miniboss (or, in a future iteration, makes it summonable — see "Boss Deferral"). The remaining time is never shown as a number, only as the player's position on the Zone Path.
+
+### Zone Path
+
+How the zone view shows the Zone Route during exploração: a winding tile path from the entrance to the Exit, randomly traced per route and sized in proportion to the budget. The player is a white dot walking at constant speed; each upcoming encounter is a dot in its monster's color (one hue per monster family, a shade per variant; white is reserved for the player, gold for camps and the Exit). Camps are campfire tiles, visible from the start, dimmed once used.
+
+When the player reaches an encounter, the path fades out and the fight fades in; when the fight ends, it fades back to the path and the defeated dot is gone. An ambush pack stays in the fight view until the whole pack is resolved. The tiles are drawn in CSS for now; they are meant to be swapped for a tileset.
 
 ### Combat Phases
 
 Three distinct phases a player can be in inside a zone. They determine the bag retention rules on exit (see Loot Pipeline → Bag retention tiers):
 
 - **Combate** — an enemy is active and the combat tick is running. Player swings, enemy swings, damage is applied.
-- **Exploração** — no enemy on screen, the time bar is advancing. Conceptually, the player is "walking through the zone".
-- **Acampamento** — bar paused, cinematic + modal active. The player is at a safe rest point (either baked into the zone schedule, or summoned via Incenso Etéreo).
+- **Exploração** — no enemy on screen, the player is walking the Zone Path. Conceptually, the player is "walking through the zone".
+- **Acampamento** — route paused, camp screen active. The player is at a safe rest point (either baked into the zone schedule, or summoned via Incenso Etéreo).
 
 ### Encounter Schedule
 
-Each zone declares how many encounters its bar contains and how those encounters are paced. The schedule is generated per entry — every visit rolls a new variation:
+Each zone declares how its route is paced. The schedule is generated per route — every visit rolls a new variation:
 
-- **Encounter count** scales with the zone's position in the act: ~15 in entry zones (forest_starter), ramping up to ~30 in zones adjacent to the boss node.
+- **Encounter count** is not declared: it follows from the rolled budget and the spawn gaps. Budgets grow along the act, so later zones hold more encounters.
 - **Gap between normal spawns** is random within zone-declared bounds (e.g., 3–9 seconds of exploration).
 - **Ambush events** are deliberate packs of mobs inserted at random positions in the schedule (1–2 per zone). Each pack is 3–5 mobs back-to-back with very short gaps (~0.8s), heavy magic-rarity rate. Packs interrupt the normal cadence; the UI signals an ambush moment.
-- **Camp positions** are anchored proportionally to schedule length with a small jitter (±1 slot):
-  - `< 20` encounters → 1 camp anchored at ~50%
-  - `≥ 20` encounters → 2 camps anchored at ~33% and ~66%
-- After all scheduled encounters are consumed, the next spawn is the zone miniboss.
+- **Camp positions** are zone-declared fractions of the rolled budget (e.g. 50%, or 33% and 66%), with a small jitter.
+- After the route's last encounter, the next spawn is the zone miniboss at the Exit.
 
 **Kill pacing (server).** `recordKill` only credits kills the schedule could have produced (`src/game/combat/kill-pace.ts`), measured on the server's own clock from `zoneStartedAt` with 1s of grace:
 
 - No kill outside a zone visit (`zoneStartedAt` set by `enterZone`).
-- A rare (miniboss or gauntlet fight) or the boss needs the bar's full budget (`calmariaBudgetSeconds`, or the boss node's warmup) elapsed since the visit started or since the last miniboss / boss kill. Inside a boss node: at most N gauntlet rares, and the boss only after all N.
-- Regular kills since the last reset stay under `floor(explored / shortest spawn gap) + every ambush pack at full size + 1` (plus the gauntlet fights in a boss node), with `explored` capped at the bar's budget.
+- A rare (miniboss or gauntlet fight) or the boss needs the route's full rolled budget (or the boss node's warmup) elapsed since the visit started or since the last miniboss / boss kill. Inside a boss node: at most N gauntlet rares, and the boss only after all N.
+- Regular kills since the last reset stay under `floor(explored / shortest spawn gap) + every ambush pack at full size + 1` (plus the gauntlet fights in a boss node), with `explored` capped at the route's budget.
 
 These are ceilings an honest player never reaches; a script that claims kills at an honest player's pace is accepted (see the threat model).
 
@@ -72,34 +81,34 @@ The schedule lives as data per zone (`src/game/world/act-1.ts`). The combat engi
 
 ### Acampamento
 
-A guaranteed rest point inside the zone. When the schedule reaches a camp slot, in place of the next spawn, the engine triggers a **camp cinematic**: the combat HUD fades out, ambient text fades in (zone-themed: e.g., "Sons da natureza calma...", "Um vento corre...", "O ar fica mais leve."), and finally a modal opens with two options:
+A guaranteed rest point inside the zone. A camp is a campfire tile on the Zone Path. When the player reaches it, in place of the next spawn, the view cuts to the **camp screen**: a black background with the title "Acampamento", one zone-themed line (e.g., "O ar fica mais leve."; an incense camp uses its own line), and two options below:
 
 - **Retornar à cidade com 100% do loot** — exits the zone via the standard `ExitZoneModal` with the full bag selectable. Player picks freely; nothing is capped or random.
-- **Seguir em frente** — closes the modal; the bar resumes from where it was, the next scheduled encounter spawns. Zone progress is preserved.
+- **Seguir em frente** — closes the camp screen; the player resumes walking from the campfire, the next scheduled encounter spawns. Zone progress is preserved.
 
 Mechanical side effects during the camp:
 
-- Bar is paused.
-- Passive HP regen ticks naturally during the cinematic and modal time (no special "rest" UI — it's a side effect of being out of combat). The barrier has no passive regen: only a pending 10 s refill countdown keeps ticking, and the barrier snaps back to full when it ends.
+- The route is paused.
+- Passive HP regen ticks naturally while the camp screen is open (no special "rest" UI — it's a side effect of being out of combat). The barrier has no passive regen: only a pending 10 s refill countdown keeps ticking, and the barrier snaps back to full when it ends.
 - The bag is preserved as-is until the player commits to either option.
 
 Camps are the **only** path to retreating with 100% of the bag outside of a boss kill. This is the central economy lever of zone progression: planning around camp positions matters.
 
-A future audio layer will play biome-specific ambient sounds during the cinematic (the project already has hit-sound infra to build on). Until that layer ships, the cinematic is text + fade only.
+The camp screen is silent and plain on purpose. Planned: a night campfire illustration behind the text, with the character sitting in front of the fire.
 
 ### Boss Deferral (planned, not implemented)
 
-When the time bar fills, a pause modal will ask if the player wants to fight the boss now. If they decline, a persistent **"Invoke Boss"** button will appear in the zone UI. This button will survive leaving and re-entering the zone — the boss stays "pending" until killed. Until this lands, the bar-fill spawn happens automatically on the next mob roll.
+When the player reaches the Exit, a pause modal will ask if the player wants to fight the boss now. If they decline, a persistent **"Invoke Boss"** button will appear in the zone UI. This button will survive leaving and re-entering the zone — the boss stays "pending" until killed. Until this lands, the miniboss spawns automatically at the Exit.
 
 ### Zone Miniboss
 
-A **rare-rarity** monster that spawns when the time bar fills in a normal zone. Picked uniformly from the zone's `monsterPool` and promoted to rare with 3 random modifiers (see Monster Modifier Pool). Drops better loot than mobs — see drop table. Respawns every time the bar is filled again, including after the zone is complete (so completed zones remain meaningful for loot farming).
+A **rare-rarity** monster that waits at the Exit of a normal zone's route. Picked uniformly from the zone's `monsterPool` and promoted to rare with 3 random modifiers (see Monster Modifier Pool). Drops better loot than mobs — see drop table. Respawns every time the player reaches the Exit again, including after the zone is complete (so completed zones remain meaningful for loot farming).
 
-After a miniboss kill the combat scene shows an inline "Zone Complete" panel where the enemy was: **continue farming** (combat resumes, the bar resets to 0 and the schedule is rerolled) or **retreat** (standard exit-zone flow with the loot picker).
+After a miniboss kill the combat scene shows an inline "Zone Complete" panel where the enemy was: **continue farming** (a new route is rolled and the player starts again at its entrance) or **retreat** (standard exit-zone flow with the loot picker).
 
 ### Act Boss
 
-A distinct, more powerful enemy that gates progression to the next act. Lives in the **final node** of the act (a dedicated `kind: "boss"` node, not a regular zone). The boss node runs a **fixed gauntlet** — a configured sequence of rare-rarity fights ending in the act boss — instead of the time bar that regular zones use:
+A distinct, more powerful enemy that gates progression to the next act. Lives in the **final node** of the act (a dedicated `kind: "boss"` node, not a regular zone). The boss node runs a **fixed gauntlet** — a configured sequence of rare-rarity fights ending in the act boss — instead of the full route that regular zones use. Its Zone Path is a short fixed warmup ending at an Exit that holds the gauntlet and the boss:
 
 1. **Gauntlet fights**: N back-to-back rare-rarity miniboss fights (count + monster pool declared per boss node — Act 1 / Gralfor: 3 fights). Each gauntlet fight is a single rare monster picked from the pool and rolled with 4 mods (identical to the standard zone miniboss flow). Each one plays its own rare intro cascade (sprite → name → hp).
 2. After the last gauntlet fight, the **act boss** spawns with its own [Boss Cinematic](#boss-cinematic).
@@ -109,7 +118,7 @@ A distinct, more powerful enemy that gates progression to the next act. Lives in
 
 **Retreat between gauntlet fights** is allowed (the usual retreat button stays enabled in exploration phase) — bag retention is the standard 30% (combat tier). Re-entering the boss node restarts the gauntlet **from fight 1**; no checkpoint per rare killed.
 
-The act boss is **farmable** — it does not despawn permanently after the first kill. The challenge is having to clear the full gauntlet every attempt; the player can't walk in and re-kill the boss alone. Continuing after a boss kill (instead of leaving) restarts the node from the warmup: warmup bar, then fight 1 of the gauntlet. The server counts the gauntlet (`characters.gauntletKills`) and only credits a boss kill after all N rares of the current run.
+The act boss is **farmable** — it does not despawn permanently after the first kill. The challenge is having to clear the full gauntlet every attempt; the player can't walk in and re-kill the boss alone. Continuing after a boss kill (instead of leaving) restarts the node from the warmup: warmup path, then fight 1 of the gauntlet. The server counts the gauntlet (`characters.gauntletKills`) and only credits a boss kill after all N rares of the current run.
 
 Each boss node declares the gauntlet length and pool. Future acts can configure 5-fight gauntlets, multi-boss sequences, or gauntlet-less direct-fight nodes by adjusting the boss-node config — no per-act code path. The legacy "Model B" (Bar 1 → miniboss → Bar 2 → boss) is **superseded** by this and won't ship.
 
@@ -388,7 +397,7 @@ Mobs use the same rarity ladder as items, with reduced reach:
 
 - **Normal mob** — baseline stats, no modifiers.
 - **Magic mob** — 1-2 modifiers rolled from the monster modifier pool. Slightly tougher than normal.
-- **Rare** — used exclusively for **minibosses** (the bar-fill spawn). Higher-tier modifier rolls. Drops better loot.
+- **Rare** — used exclusively for **minibosses** (the Exit spawn). Higher-tier modifier rolls. Drops better loot.
 - **Legendary / Epic mobs do not exist** — those tiers are reserved for items.
 
 ### Between-zone state
@@ -440,10 +449,10 @@ Combat is otherwise automatic, but the player has **three active controls today*
   - Lore: a "memory keeper" — it can only take the player to places whose echo it already carries.
   - Uncapped. Vendor-only, 40 rubys.
 
-- **Incenso Etéreo**: consumable that triggers the camp cinematic at the player's chosen moment. Used during **exploração**, the next spawn doesn't occur and the modal opens with the same two options as a baked camp (Retornar com 100% / Seguir em frente). May be **activated during combate** and is then **queued** — it doesn't interrupt the current fight; immediately after the current enemy is resolved, the cinematic plays. Activation may also occur mid-ambush; the current mob completes, the remaining mobs in the ambush pack do NOT spawn, the cinematic takes over. **Does NOT activate during a boss fight** (boss = full commitment).
+- **Incenso Etéreo**: consumable that opens a camp at the player's chosen moment: a campfire appears under the player on the Zone Path. Used during **exploração**, the next spawn doesn't occur and the camp screen opens with the same two options as a baked camp (Retornar com 100% / Seguir em frente). May be **activated during combate** and is then **queued** — it doesn't interrupt the current fight; immediately after the current enemy is resolved, the camp screen opens. Activation may also occur mid-ambush; the current mob completes, the remaining mobs in the ambush pack do NOT spawn, the camp takes over. **Does NOT activate during a boss fight** (boss = full commitment).
   - Uncapped. **Drop only — never sold by vendors.** ~2-3% chance from any monster kill (independent roll, like potions). Lives on the character row as a counter (`char.etherealIncense: number`) until used.
-  - Cinematic uses the same structure as baked camps with different flavor text (e.g., "A fumaça arcana se dissipa pelos ares.", "O ar pesado e os sons perturbantes se reduzem à música do ambiente.").
-  - HUD button is the 4th active control in combat; greyed out during boss fight, **inside any `kind: "boss"` node (gauntlet included)**, and while a camp cinematic is already active.
+  - Camp screen uses the same structure as baked camps with different flavor text (e.g., "A fumaça arcana se dissipa pelos ares.", "O ar pesado e os sons perturbantes se reduzem à música do ambiente.").
+  - HUD button is the 4th active control in combat; greyed out during boss fight, **inside any `kind: "boss"` node (gauntlet included)**, and while a camp is already open.
 
 The travel consumable is tracked on the character row as `teleportStones`. The wind crystal counter was retired in this consolidation; if any legacy data has it, treat as zero.
 
@@ -664,7 +673,7 @@ Magic monsters keep the affix-based naming above ("Goblin Furioso da Velocidade"
 
 ### Magic mob spawn rate
 
-10% of mid-zone spawns are magic; the rest are normal. The bar-fill spawn (miniboss) is always rare regardless. Mobs that are part of an **ambush event** override the 10% baseline with the ambush's own magic rate (the zone's `ambushes.magicChance`, rolled by `rollAmbushRarity` — see Encounter Schedule).
+10% of mid-zone spawns are magic; the rest are normal. The Exit spawn (miniboss) is always rare regardless. Mobs that are part of an **ambush event** override the 10% baseline with the ambush's own magic rate (the zone's `ambushes.magicChance`, rolled by `rollAmbushRarity` — see Encounter Schedule).
 
 ---
 
@@ -742,7 +751,7 @@ A connected combat node is **only travel-eligible if the player has completed th
 - Attempting to travel to a locked node surfaces a toast (`"Complete a zona anterior"`); the map's "you are here" pin stays put.
 - Teleport stones still respect this gate — jumping to a locked node is rejected (regardless of `unlockedNodes` membership).
 
-A zone enters the **Complete** state by killing the miniboss at least once (see Zone states). The time-bar progress for the current visit lives on the character row; the Complete set is persistent and per-character.
+A zone enters the **Complete** state by killing the miniboss at least once (see Zone states). The current route's rolled budget and camp positions live on the character row; the Complete set is persistent and per-character.
 
 ### State on the character row
 

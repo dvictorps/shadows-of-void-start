@@ -1,0 +1,1 @@
+ALTER TABLE `characters` ADD `zone_budget_ms` integer;

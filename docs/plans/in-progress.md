@@ -15,7 +15,7 @@ The project is at **A** (see project-health.md). Gameplay, tuning and polish ope
 
 ## Future plans (one file each)
 
-[beta-readiness](./beta-readiness.md) (D1 quota envelope, actions before a public beta) · [anti-cheat](./anti-cheat.md) · [combat-identity](./combat-identity.md) · [passive-tree-and-skills](./passive-tree-and-skills.md) · [camp-ambience](./camp-ambience.md) · [lexicon-follow-ups](./lexicon-follow-ups.md) · [rare-name-bestiary](./rare-name-bestiary.md) · [admin-latency](./admin-latency.md) · [roadmap](./roadmap.md) (unique items)
+[beta-readiness](./beta-readiness.md) (D1 quota envelope, actions before a public beta) · [anti-cheat](./anti-cheat.md) · [combat-identity](./combat-identity.md) · [passive-tree-and-skills](./passive-tree-and-skills.md) · [camp-ambience](./camp-ambience.md) · [zone-path-tiles](./zone-path-tiles.md) · [lexicon-follow-ups](./lexicon-follow-ups.md) · [rare-name-bestiary](./rare-name-bestiary.md) · [admin-latency](./admin-latency.md) · [roadmap](./roadmap.md) (unique items)
 
 ## Open, not blocking
 

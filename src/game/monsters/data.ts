@@ -6,6 +6,7 @@ export const MONSTERS = {
 		id: "goblin",
 		name: "Goblin",
 		sprite: "/assets/sprites/criaturas/goblin.png",
+		pathColor: "#5fb04a",
 		baseStats: {
 			hp: 30,
 			attackSpeed: 1.2,
@@ -19,6 +20,7 @@ export const MONSTERS = {
 		id: "slime",
 		name: "Slime",
 		sprite: "/assets/sprites/criaturas/slime.png",
+		pathColor: "#3fc9b0",
 		baseStats: {
 			hp: 54,
 			attackSpeed: 0.7,
@@ -32,6 +34,7 @@ export const MONSTERS = {
 		id: "macaco",
 		name: "Macaco",
 		sprite: "/assets/sprites/criaturas/macaco.png",
+		pathColor: "#a0703c",
 		baseStats: {
 			hp: 18,
 			attackSpeed: 1.8,
@@ -45,6 +48,7 @@ export const MONSTERS = {
 		id: "morcego",
 		name: "Morcego",
 		sprite: "/assets/sprites/criaturas/morcego.png",
+		pathColor: "#9e3048",
 		baseStats: {
 			hp: 12,
 			attackSpeed: 2.0,
@@ -58,6 +62,7 @@ export const MONSTERS = {
 		id: "serpente",
 		name: "Serpente",
 		sprite: "/assets/sprites/criaturas/serpente.png",
+		pathColor: "#b5c43a",
 		baseStats: {
 			hp: 24,
 			attackSpeed: 1.4,
@@ -71,6 +76,7 @@ export const MONSTERS = {
 		id: "esqueleto",
 		name: "Esqueleto",
 		sprite: "/assets/sprites/criaturas/esqueleto.png",
+		pathColor: "#c9b68a",
 		baseStats: {
 			hp: 48,
 			attackSpeed: 1.1,
@@ -84,6 +90,7 @@ export const MONSTERS = {
 		id: "esqueleto_armadurado",
 		name: "Esqueleto Armadurado",
 		sprite: "/assets/sprites/criaturas/esqueletoArmadurado.png",
+		pathColor: "#a8946a",
 		baseStats: {
 			hp: 66,
 			attackSpeed: 0.9,
@@ -97,6 +104,7 @@ export const MONSTERS = {
 		id: "esqueleto_lanca",
 		name: "Esqueleto Lanceiro",
 		sprite: "/assets/sprites/criaturas/esqueletoLanca.png",
+		pathColor: "#e0cf9e",
 		baseStats: {
 			hp: 42,
 			attackSpeed: 0.8,
@@ -110,6 +118,7 @@ export const MONSTERS = {
 		id: "zumbi",
 		name: "Zumbi",
 		sprite: "/assets/sprites/criaturas/zumbi.png",
+		pathColor: "#7d9a6a",
 		baseStats: {
 			hp: 36,
 			attackSpeed: 0.8,
@@ -123,6 +132,7 @@ export const MONSTERS = {
 		id: "vampiro",
 		name: "Vampiro",
 		sprite: "/assets/sprites/criaturas/vampiro.png",
+		pathColor: "#d42a48",
 		baseStats: {
 			hp: 60,
 			attackSpeed: 1.0,
@@ -136,6 +146,7 @@ export const MONSTERS = {
 		id: "lich",
 		name: "Lich",
 		sprite: "/assets/sprites/criaturas/lich.png",
+		pathColor: "#6fb4e8",
 		baseStats: {
 			hp: 48,
 			attackSpeed: 0.9,
@@ -149,6 +160,7 @@ export const MONSTERS = {
 		id: "olho_do_vazio",
 		name: "Olho do Vazio",
 		sprite: "/assets/sprites/criaturas/olhodovazio.png",
+		pathColor: "#9b6bff",
 		baseStats: {
 			hp: 60,
 			attackSpeed: 1.0,
@@ -162,6 +174,7 @@ export const MONSTERS = {
 		id: "criatura_do_vazio",
 		name: "Criatura do Vazio",
 		sprite: "/assets/sprites/criaturas/criaturaVazio.png",
+		pathColor: "#6a3fd1",
 		baseStats: {
 			hp: 90,
 			attackSpeed: 0.9,

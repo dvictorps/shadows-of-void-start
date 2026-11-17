@@ -9,10 +9,7 @@ import { scaleMonsterStats } from "../monsters/scaling";
 import type { MonsterRarity } from "../monsters/types";
 import { applyXpGain, type XpGainResult } from "../progression/levels";
 import type { StatCache } from "../stats/cache";
-import {
-	DEFAULT_ENCOUNTER_PLAN,
-	rollCampThresholdsMs,
-} from "../world/encounter-schedule";
+import { rollVisitSchedule } from "../world/encounter-schedule";
 import { ACT_1, findNode } from "../world/index";
 import type { WorldNode } from "../world/types";
 import type { Decision } from "../world/zone-actions";
@@ -99,6 +96,7 @@ export interface KillUpdate {
 	gauntletKills?: number;
 	inCamp?: boolean;
 	campThresholdsMs?: number[];
+	zoneBudgetMs?: number;
 	zoneStartedAt?: number;
 	lastCampIndex?: null;
 	completedZones?: string[];
@@ -148,10 +146,9 @@ function resolveCampTierKill(params: {
 		];
 	}
 	if (params.resetCampSchedule && zone) {
-		update.campThresholdsMs = rollCampThresholdsMs(
-			zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN,
-			rng,
-		);
+		const visit = rollVisitSchedule(zone, rng);
+		update.campThresholdsMs = visit.campThresholdsMs;
+		update.zoneBudgetMs = visit.zoneBudgetMs;
 		update.lastCampIndex = null;
 	}
 	if (params.resetCampSchedule || params.isBossKill) {

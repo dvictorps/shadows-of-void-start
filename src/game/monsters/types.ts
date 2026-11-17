@@ -18,6 +18,7 @@ export interface MonsterDefinition {
 	id: string;
 	name: string;
 	sprite: string;
+	pathColor: string;
 	baseStats: {
 		hp: number;
 		attackSpeed: number;

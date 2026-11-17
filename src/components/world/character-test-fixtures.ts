@@ -25,6 +25,7 @@ export function characterRow(
 		gauntletKills: 0,
 		zoneStartedAt: null,
 		campThresholdsMs: null,
+		zoneBudgetMs: null,
 		inCamp: false,
 		lastCampIndex: null,
 		currentLocation: "city",

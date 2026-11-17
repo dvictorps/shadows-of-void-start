@@ -37,7 +37,7 @@ The exact compile-checked shape lives in [`_examples/zone-example.ts`](./_exampl
 
 Connections are undirected — listing the edge on one side is enough but listing on both sides makes the data easier to read. Each connection's `distance` feeds the travel-time formula (`src/game/world/travel.ts:computeTravelTime`).
 
-The `encounterPlan` controls time-based pacing (calmaria budget, gap between spawns, where camps land in the bar, ambush packs). See `src/game/world/encounter-schedule.ts` for the field-level contract and CONTEXT.md → Time-based zones for the design.
+The `encounterPlan` controls the Zone Route: the average exploration budget (`calmariaBudgetSeconds`, rolled ±25% per visit), the gap between spawns, where camps land, ambush packs. See `src/game/world/encounter-schedule.ts` for the field-level contract and CONTEXT.md → Zone Route for the design.
 
 ## Step 2 — Add the localized name (and optional description)
 
@@ -74,7 +74,7 @@ const NODE_I18N: Record<
 
 `translateNodeName` and `translateNodeDescription` look up by id. Without an entry, the zone renders its data-file `name` and has no description (`TextLog` falls back to the name).
 
-If the zone gets a camp cinematic, also add three `camp_line_<zone>_{1,2,3}` keys per locale and an entry in the `CAMP_LINES_I18N` table. The fallback `CAMP_LINES_FALLBACK` covers zones without their own ambient lines.
+If the zone has camps, give its camp screen a line: a `camp_line_<zone>` key per locale and an entry in the `CAMP_LINE_I18N` table (`src/game/world/i18n.ts`). Zones without one show `camp_line_fallback`.
 
 ## Step 3 — Verify ilvl + monsterPool
 

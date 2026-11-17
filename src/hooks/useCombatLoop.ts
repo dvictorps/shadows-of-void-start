@@ -18,7 +18,6 @@ import {
 	type MonsterRarity,
 	modCountForRarity,
 	rollMonsterMods,
-	rollMonsterRarity,
 	scaleMonsterStats,
 } from "#/game/monsters";
 import type { ComputedCharacterStats } from "#/game/stats/types";
@@ -74,6 +73,7 @@ type Params = {
 	zoneLevel: number;
 	encounterPlan: ZoneEncounterPlan;
 	bossNode?: BossNodeConfig | null;
+	serverBudgetMs: number | null;
 	serverCampThresholdsMs: readonly number[];
 	active: boolean;
 	onPlayerDeath: () => void;
@@ -104,6 +104,7 @@ export function useCombatLoop({
 	zoneLevel,
 	encounterPlan,
 	bossNode,
+	serverBudgetMs,
 	serverCampThresholdsMs,
 	active,
 	onPlayerDeath,
@@ -150,15 +151,14 @@ export function useCombatLoop({
 		resetForMiniboss,
 		startVisit: startScheduleVisit,
 		isAmbushPackActive,
-		cancelAmbush,
-		setCampSource,
-		rollSpawnRarity,
-		recordSpawn,
+		startIncenseCamp,
 		calmariaElapsedMs,
 		...schedule
 	} = useEncounterSchedule({
 		active,
 		encounterPlan,
+		monsterPool,
+		serverBudgetMs,
 		serverCampThresholdsMs,
 		isSearching: state === "searching" && (!bossNode || warmupActive),
 		postMinibossPauseRef: lastKillWasMinibossRef,
@@ -167,6 +167,15 @@ export function useCombatLoop({
 			stateRef.current = "acampamento";
 			setState("acampamento");
 			enterCamp({ characterId, thresholdIndex }).catch(() => {});
+		},
+		onEncounter: (monsterId, rarity) => {
+			const e = spawnMonster(monsterId, rarity);
+			if (e) engageSpawned(e);
+		},
+		onExitReached: () => {
+			if (bossNode) return;
+			const e = spawnMob(monsterPool, "rare");
+			if (e) engageSpawned(e);
 		},
 	});
 
@@ -275,7 +284,7 @@ export function useCombatLoop({
 	});
 
 	const startVisit = useCallback(
-		(plan: ZoneEncounterPlan, nextBossNode: BossNodeConfig | null) => {
+		(nextBossNode: BossNodeConfig | null) => {
 			pendingIncenseRef.current = false;
 			lastKillWasMinibossRef.current = false;
 			enemyRef.current = null;
@@ -288,7 +297,7 @@ export function useCombatLoop({
 			setGauntletFightIndex(progress.gauntletFightIndex);
 			stateRef.current = "searching";
 			setState("searching");
-			startScheduleVisit(plan);
+			startScheduleVisit();
 			startTickVisit();
 		},
 		[startScheduleVisit, startTickVisit],
@@ -325,8 +334,7 @@ export function useCombatLoop({
 			pendingIncenseRef.current = true;
 			return;
 		}
-		cancelAmbush();
-		setCampSource("incense");
+		startIncenseCamp();
 		stateRef.current = "acampamento";
 		setState("acampamento");
 		enterCampViaIncense({ characterId }).catch(() => {});
@@ -336,8 +344,7 @@ export function useCombatLoop({
 		enterCampViaIncense,
 		incense,
 		isAmbushPackActive,
-		cancelAmbush,
-		setCampSource,
+		startIncenseCamp,
 	]);
 
 	function spawnMob(
@@ -345,8 +352,11 @@ export function useCombatLoop({
 		rarity: MonsterRarity,
 	): Enemy | null {
 		const pick = pickRandom(pool);
-		if (!pick) return null;
-		const def = findMonster(pick);
+		return pick ? spawnMonster(pick, rarity) : null;
+	}
+
+	function spawnMonster(id: MonsterId, rarity: MonsterRarity): Enemy | null {
+		const def = findMonster(id);
 		if (!def) return null;
 		const level = rollMonsterLevel(zoneLevel);
 		const baseScaled = scaleMonsterStats(def, level);
@@ -373,26 +383,18 @@ export function useCombatLoop({
 		setEnemy(e);
 	}
 
-	useDelay(
-		active && state === "searching" && (!bossNode || warmupActive),
-		schedule.nextSpawnGapMs,
-		() => {
-			const rarity = warmupActive ? rollMonsterRarity() : rollSpawnRarity();
-			const e = spawnMob(monsterPool, rarity);
-			if (!e) return;
-			commitEnemy(e);
-			recordSpawn();
-			if (rarity === "rare") {
-				setRareIntroStage("sprite");
-				stateRef.current = "rare_intro";
-				setState("rare_intro");
-			} else {
-				setRareIntroStage(null);
-				stateRef.current = "engaged";
-				setState("engaged");
-			}
-		},
-	);
+	function engageSpawned(e: Enemy) {
+		commitEnemy(e);
+		if (e.rarity === "rare") {
+			setRareIntroStage("sprite");
+			stateRef.current = "rare_intro";
+			setState("rare_intro");
+			return;
+		}
+		setRareIntroStage(null);
+		stateRef.current = "engaged";
+		setState("engaged");
+	}
 
 	useDelay(
 		active && state === "searching" && !!bossNode && warmupDone,
@@ -472,8 +474,7 @@ export function useCombatLoop({
 			setState("miniboss_victory");
 		} else if (pendingIncenseRef.current) {
 			pendingIncenseRef.current = false;
-			cancelAmbush();
-			setCampSource("incense");
+			startIncenseCamp();
 			stateRef.current = "acampamento";
 			setState("acampamento");
 			enterCampViaIncense({ characterId }).catch(() => {});
@@ -499,13 +500,15 @@ export function useCombatLoop({
 		incense,
 		campSource: schedule.campSource,
 		ambushActive: schedule.ambushActive,
+		route: schedule.route,
+		routeSeed: schedule.routeSeed,
+		nextStopIndex: schedule.nextStopIndex,
+		incenseCampsMs: schedule.incenseCampsMs,
 		events,
 		lastKill,
 		drinkPotion,
 		triggerIncense,
 		calmariaElapsedMs,
-		calmariaBudgetMs: schedule.calmariaBudgetMs,
-		campThresholdsMs: schedule.campThresholdsMs,
 		dismissMinibossModal,
 		startVisit,
 		dismissCamp,

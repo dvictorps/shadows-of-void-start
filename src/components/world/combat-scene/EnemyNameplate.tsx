@@ -25,20 +25,14 @@ export default function EnemyNameplate({
 	displayName,
 	bossConfig,
 	stages,
-	hudFading,
 }: {
 	enemy: Enemy | null;
 	displayName: string;
 	bossConfig: BossConfig | null;
 	stages: IntroStages;
-	hudFading: boolean;
 }) {
 	return (
-		<div
-			className={`flex h-[120px] flex-col items-center gap-1 px-6 pt-14 transition-opacity duration-[1200ms] ease-out ${
-				hudFading ? "opacity-0" : "opacity-100"
-			}`}
-		>
+		<div className="flex h-[120px] flex-col items-center gap-1 px-6 pt-14">
 			{enemy && (
 				<Nameplate
 					enemy={enemy}

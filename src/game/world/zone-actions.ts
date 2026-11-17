@@ -1,10 +1,7 @@
 import { SERVER_ERRORS } from "#/lib/server-errors";
 
 import { teleportStoneTravelSeconds } from "../combat/constants";
-import {
-	DEFAULT_ENCOUNTER_PLAN,
-	rollCampThresholdsMs,
-} from "./encounter-schedule";
+import { rollVisitSchedule, type VisitSchedule } from "./encounter-schedule";
 import { ACT_1, findNode, isNodeAccessible } from "./index";
 import { computeTravelTime } from "./travel";
 import type { WorldNode } from "./types";
@@ -17,6 +14,7 @@ export const CLEARED_VISIT = {
 	currentZoneSession: null,
 	zoneStartedAt: null,
 	campThresholdsMs: null,
+	zoneBudgetMs: null,
 	inCamp: false,
 	lastCampIndex: null,
 	gauntletKills: 0,
@@ -33,7 +31,7 @@ export const TRAVEL_ARRIVAL_GRACE_MS = 1000;
 export function resolveZoneEntry(
 	zoneId: string,
 	where: Whereabouts,
-): Decision<{ zone: WorldNode; campThresholdsMs: number[] }> {
+): Decision<{ zone: WorldNode } & VisitSchedule> {
 	const zone = findNode(ACT_1, zoneId);
 	if (!zone || (zone.kind !== "combat" && zone.kind !== "boss")) {
 		return { ok: false, error: `Unknown combat zone: ${zoneId}` };
@@ -47,11 +45,7 @@ export function resolveZoneEntry(
 			error: `Cannot enter ${zoneId} from ${where.currentLocation}`,
 		};
 	}
-	const campThresholdsMs =
-		zone.kind === "boss"
-			? []
-			: rollCampThresholdsMs(zone.encounterPlan ?? DEFAULT_ENCOUNTER_PLAN);
-	return { ok: true, zone, campThresholdsMs };
+	return { ok: true, zone, ...rollVisitSchedule(zone) };
 }
 
 export interface CampState {

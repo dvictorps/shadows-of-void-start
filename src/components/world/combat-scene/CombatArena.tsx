@@ -3,16 +3,23 @@ import { useMemo } from "react";
 
 import type { BossConfig } from "#/game/bosses";
 import type { CampSource, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
-import { m } from "#/paraglide/messages";
 
-import CampCinematic from "../CampCinematic";
+import CampScreen from "./CampScreen";
 import EnemyHpBar from "./EnemyHpBar";
 import EnemySprite from "./EnemySprite";
 import FloatingDamage from "./FloatingDamage";
 import FloatingXp from "./FloatingXp";
-import { hpBarVisible, type IntroStages, isStagedEnemy } from "./reveal";
+import {
+	arenaView,
+	hpBarVisible,
+	type IntroStages,
+	isStagedEnemy,
+} from "./reveal";
 import { useEnemySpriteMotion } from "./useEnemySpriteMotion";
 import ZoneCompletePanel from "./ZoneCompletePanel";
+import ZonePath, { type ZonePathState } from "./ZonePath";
+
+const FADE_S = 0.4;
 
 export default function CombatArena({
 	stages,
@@ -27,9 +34,8 @@ export default function CombatArena({
 	onRetreat,
 	zoneId,
 	campSource,
-	campSkipped,
 	onDismissCamp,
-	onCampPanelShow,
+	path,
 }: {
 	stages: IntroStages;
 	enemy: Enemy | null;
@@ -43,9 +49,8 @@ export default function CombatArena({
 	onRetreat: () => void;
 	zoneId: string;
 	campSource: CampSource;
-	campSkipped: boolean;
 	onDismissCamp: () => void;
-	onCampPanelShow: () => void;
+	path: ZonePathState;
 }) {
 	const { state } = stages;
 	const enemyEvents = useMemo(
@@ -61,68 +66,81 @@ export default function CombatArena({
 		state,
 		enemyEvents,
 	});
-	const enemyOnStage =
-		state !== "searching" &&
-		state !== "miniboss_victory" &&
-		state !== "acampamento";
+	const enemyOnStage = state !== "searching" && state !== "miniboss_victory";
+	const view = arenaView(state, ambushActive);
+
+	if (view === "camp") {
+		return (
+			<div className="relative flex flex-1 items-center justify-center">
+				<CampScreen
+					zoneId={zoneId}
+					source={campSource}
+					onReturn={onRetreat}
+					onContinue={onDismissCamp}
+				/>
+			</div>
+		);
+	}
 
 	return (
-		<div className="relative flex flex-1 flex-col items-center justify-center gap-4">
-			<div className="relative flex flex-1 items-center justify-center">
-				{state === "searching" && !ambushActive && (
-					<p className="animate-pulse text-xs uppercase tracking-[0.25em] text-white/40">
-						{m.searching_enemy()}
-					</p>
-				)}
-				{state === "miniboss_victory" && (
-					<ZoneCompletePanel
-						onContinue={onDismissMinibossModal}
-						onRetreat={onRetreat}
-						showContinue={!isBossNode}
-					/>
-				)}
-				{state === "acampamento" && (
-					<CampCinematic
-						zoneId={zoneId}
-						source={campSource}
-						skip={campSkipped}
-						onReturn={onRetreat}
-						onContinue={onDismissCamp}
-						onPanelShow={onCampPanelShow}
-					/>
-				)}
-				{enemy && enemyOnStage && (
-					<EnemySprite
-						enemy={enemy}
-						displayName={displayName}
-						bossConfig={bossConfig}
-						enemyControls={enemyControls}
-						redFlashControls={redFlashControls}
-						lastSwingHit={lastSwingHit}
-					/>
-				)}
+		<AnimatePresence mode="wait" initial={false}>
+			<motion.div
+				key={view}
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				exit={{ opacity: 0 }}
+				transition={{ duration: FADE_S, ease: "easeInOut" }}
+				className="relative flex flex-1 flex-col items-center justify-center gap-4"
+			>
+				{view === "path" ? (
+					<div className="flex w-full flex-1 items-center justify-center px-6">
+						<ZonePath {...path} />
+					</div>
+				) : (
+					<>
+						<div className="relative flex flex-1 items-center justify-center">
+							{state === "miniboss_victory" && (
+								<ZoneCompletePanel
+									onContinue={onDismissMinibossModal}
+									onRetreat={onRetreat}
+									showContinue={!isBossNode}
+								/>
+							)}
+							{enemy && enemyOnStage && (
+								<EnemySprite
+									enemy={enemy}
+									displayName={displayName}
+									bossConfig={bossConfig}
+									enemyControls={enemyControls}
+									redFlashControls={redFlashControls}
+									lastSwingHit={lastSwingHit}
+								/>
+							)}
 
-				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-					<AnimatePresence>
-						{enemyEvents.map((event) => (
-							<FloatingDamage key={event.id} event={event} />
-						))}
-					</AnimatePresence>
-				</div>
+							<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+								<AnimatePresence>
+									{enemyEvents.map((event) => (
+										<FloatingDamage key={event.id} event={event} />
+									))}
+								</AnimatePresence>
+							</div>
 
-				<div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
-					<AnimatePresence>
-						{state === "victory" && lastKillXp !== undefined && (
-							<FloatingXp amount={lastKillXp} />
+							<div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">
+								<AnimatePresence>
+									{state === "victory" && lastKillXp !== undefined && (
+										<FloatingXp amount={lastKillXp} />
+									)}
+								</AnimatePresence>
+							</div>
+						</div>
+
+						{enemy && state !== "miniboss_victory" && (
+							<EnemyHpBarSlot enemy={enemy} visible={hpBarVisible(stages)} />
 						)}
-					</AnimatePresence>
-				</div>
-			</div>
-
-			{enemy && state !== "miniboss_victory" && (
-				<EnemyHpBarSlot enemy={enemy} visible={hpBarVisible(stages)} />
-			)}
-		</div>
+					</>
+				)}
+			</motion.div>
+		</AnimatePresence>
 	);
 }
 

@@ -185,6 +185,7 @@ describe("server-only mutations write their answer", () => {
 			zoneSession: VISIT_2,
 			zoneStartedAt: NOW,
 			campThresholdsMs: [5000],
+			zoneBudgetMs: 40_000,
 		});
 
 		await h.call(() =>
@@ -197,6 +198,7 @@ describe("server-only mutations write their answer", () => {
 			currentZoneSession: VISIT_2,
 			zoneStartedAt: NOW,
 			campThresholdsMs: [5000],
+			zoneBudgetMs: 40_000,
 			currentZoneKills: 0,
 			inCamp: false,
 			hpCurrent: 120,

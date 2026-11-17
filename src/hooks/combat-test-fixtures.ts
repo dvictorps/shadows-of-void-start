@@ -15,6 +15,7 @@ export function makeEnemy(
 		id: "test-mob",
 		name: "Test Mob",
 		sprite: "x",
+		pathColor: "#888888",
 		baseStats: {
 			hp: currentHp,
 			attackSpeed: 20,

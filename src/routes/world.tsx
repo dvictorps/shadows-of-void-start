@@ -247,7 +247,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		onEnterNewArea: (nodeId) => {
 			setDeathLog(null);
 			const entered = zoneContextFor(ACT_1, nodeId);
-			combat.startVisit(entered.encounterPlan, entered.bossNode);
+			combat.startVisit(entered.bossNode);
 		},
 	});
 
@@ -308,6 +308,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		zoneLevel,
 		encounterPlan: zone.encounterPlan,
 		bossNode: zone.bossNode,
+		serverBudgetMs: character.zoneBudgetMs,
 		serverCampThresholdsMs: character.campThresholdsMs ?? EMPTY_THRESHOLDS,
 		active: view === "combat" && !exitModal.isOpen && tokenMatches,
 		onPlayerDeath: () => void handlePlayerDeath(),

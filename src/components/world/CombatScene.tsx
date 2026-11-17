@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { getBossConfig } from "#/game/bosses";
 import { translateEnemyName } from "#/game/world/i18n";
@@ -16,6 +16,7 @@ import CombatBottomHud, {
 import CombatTopHud from "./combat-scene/CombatTopHud";
 import EnemyNameplate from "./combat-scene/EnemyNameplate";
 import type { CombatSceneState } from "./combat-scene/reveal";
+import type { ZonePathState } from "./combat-scene/ZonePath";
 
 export type { ConsumableKey } from "./combat-scene/CombatBottomHud";
 
@@ -33,15 +34,13 @@ type SceneProps = {
 	onRetreat: () => void;
 	bagCount: number;
 	onOpenBag: () => void;
-	calmariaElapsedMs: number;
-	calmariaBudgetMs: number;
-	campThresholdsMs: readonly number[];
+	path: ZonePathState;
 	onDismissMinibossModal: () => void;
 	zoneId: string;
 	onDismissCamp: () => void;
 };
 
-type Props = SceneProps & Omit<CombatBottomHudProps, "hudFading">;
+type Props = SceneProps & CombatBottomHudProps;
 
 export default function CombatScene({
 	zoneName,
@@ -56,9 +55,7 @@ export default function CombatScene({
 	onRetreat,
 	bagCount,
 	onOpenBag,
-	calmariaElapsedMs,
-	calmariaBudgetMs,
-	campThresholdsMs,
+	path,
 	lastKillXp,
 	onDismissMinibossModal,
 	zoneId,
@@ -84,37 +81,15 @@ export default function CombatScene({
 		};
 	}, [state, bossIntroStage, bossConfig]);
 
-	const inCamp = state === "acampamento";
-	const [hudFading, setHudFading] = useState(false);
-	const [campSkipped, setCampSkipped] = useState(false);
-	const [prevInCamp, setPrevInCamp] = useState(false);
-	if (inCamp !== prevInCamp) {
-		setPrevInCamp(inCamp);
-		setHudFading(inCamp);
-		if (!inCamp) setCampSkipped(false);
-	}
-
-	const onCampPanelShow = useCallback(() => setHudFading(false), []);
-
-	const handleSectionClick = () => {
-		if (!inCamp || campSkipped) return;
-		setCampSkipped(true);
-	};
-
 	return (
 		<section
 			ref={sectionRef}
-			onClick={handleSectionClick}
 			className="relative flex flex-col overflow-hidden rounded-md border border-white/40 bg-black"
 		>
 			<CombatTopHud
 				zoneName={zoneName}
 				zoneLevel={zoneLevel}
-				calmariaElapsedMs={calmariaElapsedMs}
-				calmariaBudgetMs={calmariaBudgetMs}
-				campThresholdsMs={campThresholdsMs}
 				ambushActive={ambushActive}
-				hudFading={hudFading}
 				bagCount={bagCount}
 				onOpenBag={onOpenBag}
 				onRetreat={onRetreat}
@@ -124,7 +99,6 @@ export default function CombatScene({
 				displayName={enemyDisplayName}
 				bossConfig={bossConfig}
 				stages={stages}
-				hudFading={hudFading}
 			/>
 			<CombatArena
 				stages={stages}
@@ -139,11 +113,10 @@ export default function CombatScene({
 				onRetreat={onRetreat}
 				zoneId={zoneId}
 				campSource={campSource}
-				campSkipped={campSkipped}
 				onDismissCamp={onDismissCamp}
-				onCampPanelShow={onCampPanelShow}
+				path={path}
 			/>
-			<CombatBottomHud hudFading={hudFading} events={events} {...bottomHud} />
+			<CombatBottomHud events={events} {...bottomHud} />
 		</section>
 	);
 }

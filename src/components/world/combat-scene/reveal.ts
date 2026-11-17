@@ -50,3 +50,14 @@ export function hpBarVisible({
 	if (state === "boss_intro") return bossIntroStage === "hp";
 	return true;
 }
+
+export type ArenaView = "path" | "fight" | "camp";
+
+export function arenaView(
+	state: CombatSceneState,
+	ambushActive: boolean,
+): ArenaView {
+	if (state === "acampamento") return "camp";
+	if (state === "searching" && !ambushActive) return "path";
+	return "fight";
+}

@@ -30,9 +30,12 @@ const LAIR = zoneContextFor(ACT_1, "covil_gralfor");
 const WARMUP_MS = (LAIR.bossNode?.warmupSeconds ?? 0) * 1000;
 const FIGHTS = LAIR.bossNode?.gauntlet.fights ?? 0;
 
-function state(over: Partial<Parameters<typeof resolveKillPace>[2]> = {}) {
+function state(
+	over: Partial<Parameters<typeof resolveKillPace>[2]> = {},
+): Parameters<typeof resolveKillPace>[2] {
 	return {
 		zoneStartedAt: START,
+		zoneBudgetMs: null,
 		currentZoneKills: 0,
 		gauntletKills: 0,
 		...over,
@@ -96,7 +99,17 @@ describe("resolveKillPace", () => {
 		).toEqual(NOT_REACHED);
 	});
 
-	it("refuses a miniboss before the bar could have filled", () => {
+	it("reads the visit's rolled budget over the zone's declared one", () => {
+		const rolled = state({ zoneBudgetMs: 40_000 });
+		expect(resolveKillPace("rare", ZONE, rolled, at(39_999))).toEqual(
+			NOT_REACHED,
+		);
+		expect(resolveKillPace("rare", ZONE, rolled, at(40_000))).toEqual({
+			ok: true,
+		});
+	});
+
+	it("refuses a miniboss before the route could have reached the exit", () => {
 		expect(resolveKillPace("rare", ZONE, state(), at(29_999))).toEqual(
 			NOT_REACHED,
 		);

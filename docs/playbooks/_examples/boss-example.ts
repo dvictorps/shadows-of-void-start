@@ -18,6 +18,7 @@ export const PLAYBOOK_BOSS_EXAMPLE: BossConfig = {
 		id: "gralfor",
 		name: "Gralfor, O Persistente",
 		sprite: "/assets/sprites/bosses/gralfor.png",
+		pathColor: "#e04a2f",
 		baseStats: {
 			hp: 200,
 			attackSpeed: 0.9,
