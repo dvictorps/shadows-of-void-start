@@ -9,6 +9,7 @@ import EnemyHpBar from "./EnemyHpBar";
 import EnemySprite from "./EnemySprite";
 import FloatingDamage from "./FloatingDamage";
 import FloatingXp from "./FloatingXp";
+import { pathTilesetFor } from "./path-tileset";
 import {
 	type ArenaView,
 	arenaView,
@@ -21,7 +22,11 @@ import ZoneCompletePanel from "./ZoneCompletePanel";
 import ZonePath, { type ZonePathState } from "./ZonePath";
 
 const LAYER = {
-	path: { className: "absolute inset-0 px-6 pt-16 pb-4", inS: 0.5, outS: 0.5 },
+	path: {
+		className: "absolute inset-0 overflow-hidden px-6 pt-16 pb-4",
+		inS: 0.5,
+		outS: 0.5,
+	},
 	fight: {
 		className: "absolute inset-0 flex flex-col items-center gap-4",
 		inS: 0.5,
@@ -130,7 +135,9 @@ export default function CombatArena({
 		</>
 	);
 	const content = {
-		path: path.route && <ZonePath {...path} route={path.route} />,
+		path: path.route && (
+			<ZonePath {...path} route={path.route} tileset={pathTilesetFor(zoneId)} />
+		),
 		camp: (
 			<CampScreen
 				zoneId={zoneId}

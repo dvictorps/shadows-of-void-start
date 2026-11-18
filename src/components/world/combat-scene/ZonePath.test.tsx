@@ -55,6 +55,25 @@ describe("ZonePath", () => {
 		expect(all("exit")).toHaveLength(1);
 	});
 
+	it("paints a zone with a tileset as one textured road over its ground", () => {
+		const layout = rollPathLayout(ROUTE.tiles, seededRng(3));
+		const { root, all } = renderPath({
+			tileset: { road: "/road.png", ground: "/ground.png" },
+		});
+		expect(all("tile")).toHaveLength(0);
+		expect(all("ground")).toHaveLength(1);
+		const [road] = all("road");
+		expect(road.getAttribute("d")?.match(/M/g)).toHaveLength(
+			layout.cells.length,
+		);
+		expect(all("exit")).toHaveLength(1);
+		const hrefs = [...root.querySelectorAll("pattern image")].map((image) =>
+			image.getAttribute("href"),
+		);
+		expect(hrefs).toEqual(["/ground.png", "/road.png"]);
+		expect(road.getAttribute("fill")).toMatch(/^url\(#road-/);
+	});
+
 	it("marks every upcoming encounter in its monster's color", () => {
 		const { all } = renderPath();
 		const enemies = all("enemy");
