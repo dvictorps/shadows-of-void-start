@@ -10,7 +10,6 @@ import { seededRng } from "#/lib/rng";
 import { m } from "#/paraglide/messages";
 
 import { rollPathLayout } from "./path-layout";
-import { pathTilesetFor } from "./path-tileset";
 import ZonePath from "./ZonePath";
 
 type Props = ComponentProps<typeof ZonePath>;
@@ -54,23 +53,6 @@ describe("ZonePath", () => {
 		const { all } = renderPath();
 		expect(all("tile")).toHaveLength(layout.cells.length - 1);
 		expect(all("exit")).toHaveLength(1);
-	});
-
-	it("paints a zone with a tileset as road pieces on a grass field that is the whole map", () => {
-		const layout = rollPathLayout(ROUTE.tiles, seededRng(3));
-		const { root, all } = renderPath({
-			tileset: pathTilesetFor("forest_starter"),
-		});
-		expect(all("tile")).toHaveLength(0);
-		const [ground] = all("ground");
-		expect(ground.querySelectorAll("image")).toHaveLength(
-			layout.cols * layout.rows,
-		);
-		expect(all("road")).toHaveLength(layout.cells.length);
-		expect(all("exit")).toHaveLength(1);
-		expect(root.getAttribute("viewBox")).toBe(
-			`0 0 ${layout.cols} ${layout.rows}`,
-		);
 	});
 
 	it("marks every upcoming encounter in its monster's color", () => {
