@@ -15,7 +15,7 @@ import GameStage from "./GameStage";
 
 function placement() {
 	const { style } = stage();
-	return ["--stage-x", "--stage-y", "--stage-scale"].map((name) =>
+	return ["--stage-x", "--stage-y", "--stage-scale", "--stage-h"].map((name) =>
 		style.getPropertyValue(name),
 	);
 }
@@ -47,8 +47,8 @@ afterEach(() => {
 });
 
 describe("GameStage", () => {
-	it("lays the stage out at 1920×1080 and scales it to the viewport", () => {
-		resizeTo(1366, 768);
+	it("lays the stage out 1920 wide and scales it to the viewport's width", () => {
+		resizeTo(1920, 1080);
 		render(
 			<GameStage>
 				<Probe />
@@ -56,19 +56,21 @@ describe("GameStage", () => {
 		);
 		expect(stage().className).toContain("game-stage");
 		expect(stage().className).not.toContain("invisible");
-		expect(placement()).toEqual(["0px", "0px", `${768 / 1080}`]);
+		expect(placement()).toEqual(["0px", "0px", "1", "1080px"]);
+		act(() => resizeTo(1920, 900));
+		expect(placement()).toEqual(["0px", "0px", "1", "900px"]);
 	});
 
-	it("letterboxes an ultrawide viewport and follows a resize", () => {
-		resizeTo(3440, 1440);
+	it("letterboxes a viewport wider than the stage's minimum height allows", () => {
+		resizeTo(3840, 1080);
 		render(
 			<GameStage>
 				<Probe />
 			</GameStage>,
 		);
-		expect(placement()).toEqual(["440px", "0px", `${4 / 3}`]);
-		act(() => resizeTo(1920, 1200));
-		expect(placement()).toEqual(["0px", "60px", "1"]);
+		expect(placement()).toEqual(["624px", "0px", "1.35", "800px"]);
+		act(() => resizeTo(1920, 1400));
+		expect(placement()).toEqual(["0px", "100px", "1", "1200px"]);
 	});
 
 	it("gives children the scale, the stage bounds and client-to-stage mapping", () => {

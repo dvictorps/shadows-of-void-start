@@ -441,7 +441,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 	});
 
 	return (
-		<main className="relative grid h-full grid-cols-world gap-3 overflow-hidden bg-black p-3 text-white">
+		<main className="relative grid h-full grid-cols-world grid-rows-world gap-3 overflow-hidden bg-black p-3 text-white">
 			{view === "map" && (
 				<Button
 					variant="hud"

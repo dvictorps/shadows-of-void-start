@@ -6,6 +6,7 @@ import ItemCard, {
 } from "#/components/game/ItemCard";
 import { describeBrokenReasons } from "#/game/stats/compute";
 import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
+import { useFitScale } from "#/hooks/useFitScale";
 import { m } from "#/paraglide/messages";
 
 import InventoryButton from "./InventoryButton";
@@ -99,10 +100,17 @@ const GRID_AREAS = `
 	"gloves .      boots"
 `;
 
+const GRID_ROWS = [120, 170, 104, 120];
+const GRID_GAP = 8;
+const GRID_HEIGHT =
+	GRID_ROWS.reduce((sum, row) => sum + row, 0) +
+	GRID_GAP * (GRID_ROWS.length - 1);
+
 const GRID_STYLE = {
 	gridTemplateColumns: "repeat(3, 120px)",
-	gridTemplateRows: "120px 170px 104px 120px",
+	gridTemplateRows: GRID_ROWS.map((row) => `${row}px`).join(" "),
 	gridTemplateAreas: GRID_AREAS,
+	gap: GRID_GAP,
 };
 
 export default function EquipmentPanel({
@@ -113,10 +121,17 @@ export default function EquipmentPanel({
 	onOpenInventory,
 }: Props) {
 	const mainHandWeaponType = equippedBySlot.get("weapon")?.data.weaponType;
+	const [fitBox, scale] = useFitScale(GRID_HEIGHT);
 	return (
-		<section className="relative rounded-md border border-white/40 p-3">
-			<div className="flex h-full items-center justify-center">
-				<div className="grid gap-2" style={GRID_STYLE}>
+		<section className="relative min-h-0 rounded-md border border-white/40 p-3">
+			<div
+				ref={fitBox}
+				className="flex h-full min-h-0 items-center justify-center"
+			>
+				<div
+					className="grid shrink-0"
+					style={scale === 1 ? GRID_STYLE : { ...GRID_STYLE, scale }}
+				>
 					{SLOT_CONFIG.map((cfg) => {
 						const entry = equippedBySlot.get(cfg.slot);
 						const broken = entry ? stats.brokenItemIds.has(entry.id) : false;

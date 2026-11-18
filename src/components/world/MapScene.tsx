@@ -21,6 +21,8 @@ import { type Act, isNodeAccessible, type WorldNode } from "#/game/world";
 import { translateNodeName } from "#/game/world/i18n";
 import { m } from "#/paraglide/messages";
 
+import FullscreenButton from "./FullscreenButton";
+
 type Props = {
 	act: Act;
 	onEnterNode: (nodeId: string) => void;
@@ -72,6 +74,7 @@ export default function MapScene({
 	return (
 		<section className="relative h-full overflow-hidden rounded-md border border-white/40 bg-black">
 			<div className="absolute top-3 right-3 z-10 flex gap-2">
+				<FullscreenButton />
 				{onOpenLeaderboard && (
 					<Button
 						type="button"

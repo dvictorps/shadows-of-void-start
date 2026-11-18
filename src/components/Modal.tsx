@@ -47,10 +47,10 @@ export default function Modal({
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby={title ? "modal-title" : undefined}
-				className={`relative w-full border border-white bg-black text-white shadow-dialog ${className}`}
+				className={`relative flex max-h-full w-full flex-col border border-white bg-black text-white shadow-dialog ${className}`}
 			>
 				{title && (
-					<div className="flex items-center justify-between border-b border-white/20 px-5 py-3">
+					<div className="flex shrink-0 items-center justify-between border-b border-white/20 px-5 py-3">
 						<h2
 							id="modal-title"
 							className="display-title text-base uppercase tracking-title text-white"
@@ -70,9 +70,11 @@ export default function Modal({
 						)}
 					</div>
 				)}
-				<div className="p-5">{children}</div>
+				<div className="min-h-0 overflow-y-auto p-5">{children}</div>
 				{footer && (
-					<div className="border-t border-white/20 px-5 py-3">{footer}</div>
+					<div className="shrink-0 border-t border-white/20 px-5 py-3">
+						{footer}
+					</div>
 				)}
 			</div>
 		</div>

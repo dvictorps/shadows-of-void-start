@@ -34,6 +34,7 @@ export default function GameStage({ children }: { children: React.ReactNode }) {
 					"--stage-x": `${fit.offsetX}px`,
 					"--stage-y": `${fit.offsetY}px`,
 					"--stage-scale": fit.scale,
+					"--stage-h": `${fit.height}px`,
 				}}
 			>
 				<GameStageContext.Provider value={value}>

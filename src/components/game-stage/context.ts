@@ -4,7 +4,6 @@ import {
 	clientRectToStage,
 	IDENTITY_FIT,
 	type RectSides,
-	STAGE_HEIGHT,
 	STAGE_WIDTH,
 	type StageFit,
 	type StageRect,
@@ -48,7 +47,7 @@ export function useGameStage(): StageView {
 			scale: stage.fit.scale,
 			container: stage.container ?? undefined,
 			width: STAGE_WIDTH,
-			height: STAGE_HEIGHT,
+			height: stage.fit.height,
 			toStage: (rect) => clientRectToStage(rect, stage.fit),
 		};
 	}, [stage]);

@@ -225,6 +225,8 @@
 	"settings_language": "Language",
 	"settings_sfx_volume": "Sound volume",
 	"open_settings": "Open settings",
+	"enter_fullscreen": "Full screen",
+	"exit_fullscreen": "Exit full screen",
 	"language_pt": "Português",
 	"language_en": "English",
 
