@@ -55,23 +55,24 @@ describe("ZonePath", () => {
 		expect(all("exit")).toHaveLength(1);
 	});
 
-	it("paints a zone with a tileset as one textured road over its ground", () => {
+	it("paints a zone with a tileset as one road piece per cell over its ground", () => {
 		const layout = rollPathLayout(ROUTE.tiles, seededRng(3));
-		const { root, all } = renderPath({
-			tileset: { road: "/road.png", ground: "/ground.png" },
-		});
+		const road = {
+			vertical: "/v.png",
+			horizontal: "/h.png",
+			cornerLeftDown: "/ld.png",
+			cornerLeftUp: "/lu.png",
+		};
+		const { all } = renderPath({ tileset: { road, ground: "/ground.png" } });
 		expect(all("tile")).toHaveLength(0);
 		expect(all("ground")).toHaveLength(1);
-		const [road] = all("road");
-		expect(road.getAttribute("d")?.match(/M/g)).toHaveLength(
-			layout.cells.length,
-		);
+		const pieces = all("road");
+		expect(pieces).toHaveLength(layout.cells.length);
+		const pieceHrefs = new Set(Object.values(road));
+		expect(
+			pieces.every((p) => pieceHrefs.has(p.getAttribute("href") ?? "")),
+		).toBe(true);
 		expect(all("exit")).toHaveLength(1);
-		const hrefs = [...root.querySelectorAll("pattern image")].map((image) =>
-			image.getAttribute("href"),
-		);
-		expect(new Set(hrefs)).toEqual(new Set(["/ground.png", "/road.png"]));
-		expect(road.getAttribute("fill")).toMatch(/^url\(#road-/);
 	});
 
 	it("marks every upcoming encounter in its monster's color", () => {

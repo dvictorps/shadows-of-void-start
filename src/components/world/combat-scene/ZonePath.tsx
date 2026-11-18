@@ -13,7 +13,7 @@ import {
 	pointAt,
 	rollPathLayout,
 } from "./path-layout";
-import type { PathTileset } from "./path-tileset";
+import { type PathTileset, roadPieceAt } from "./path-tileset";
 
 const VIEW_PADDING = 0.6;
 const GROUND_REACH_PER_CELL = 2;
@@ -153,17 +153,34 @@ function PathMarker({
 	);
 }
 
-function TilePattern({ id, href }: { id: string; href: string }) {
+const PIECE_BLEED = 0.01;
+
+function RoadPieceImage({
+	cell,
+	href,
+	flip,
+}: {
+	cell: PathCell;
+	href: string;
+	flip: boolean;
+}) {
+	const size = 1 + 2 * PIECE_BLEED;
+	const x = cell.x - PIECE_BLEED;
+	const y = cell.y - PIECE_BLEED;
 	return (
-		<pattern id={id} patternUnits="userSpaceOnUse" width={1} height={1}>
-			<image
-				href={href}
-				width={1}
-				height={1}
-				preserveAspectRatio="none"
-				style={{ imageRendering: "pixelated" }}
-			/>
-		</pattern>
+		<image
+			data-kind="road"
+			href={href}
+			width={size}
+			height={size}
+			preserveAspectRatio="none"
+			transform={
+				flip
+					? `translate(${x + size} ${y}) scale(-1 1)`
+					: `translate(${x} ${y})`
+			}
+			style={{ imageRendering: "pixelated" }}
+		/>
 	);
 }
 
@@ -204,16 +221,13 @@ function TiledRoad({
 	tileset: PathTileset;
 }) {
 	const id = useId().replaceAll(/[^a-zA-Z0-9]/g, "");
-	const roadId = `road-${id}`;
 	const groundId = `ground-${id}`;
 	const exit = layout.cells.at(-1);
 	const reach = GROUND_REACH_PER_CELL * Math.max(layout.cols, layout.rows);
-	const d = layout.cells.map((c) => `M${c.x} ${c.y}h1v1h-1z`).join("");
 	return (
 		<>
 			<defs>
 				<CanopyPattern id={groundId} href={tileset.ground} />
-				<TilePattern id={roadId} href={tileset.road} />
 			</defs>
 			<rect
 				data-kind="ground"
@@ -223,7 +237,17 @@ function TiledRoad({
 				height={layout.rows + 2 * reach}
 				fill={`url(#${groundId})`}
 			/>
-			<path data-kind="road" d={d} fill={`url(#${roadId})`} />
+			{layout.cells.map((cell, index) => {
+				const piece = roadPieceAt(layout.cells, index);
+				return (
+					<RoadPieceImage
+						key={`${cell.x},${cell.y}`}
+						cell={cell}
+						href={tileset.road[piece.id]}
+						flip={piece.flip}
+					/>
+				);
+			})}
 			{exit && (
 				<rect
 					data-kind="exit"
