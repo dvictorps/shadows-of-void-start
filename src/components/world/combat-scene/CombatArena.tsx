@@ -7,6 +7,7 @@ import type { CampSource, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import CampScreen from "./CampScreen";
 import EnemyHpBar from "./EnemyHpBar";
 import EnemySprite from "./EnemySprite";
+import { fightBackdropFor } from "./fight-backdrop";
 import FloatingDamage from "./FloatingDamage";
 import FloatingXp from "./FloatingXp";
 import {
@@ -23,7 +24,7 @@ import ZonePath, { type ZonePathState } from "./ZonePath";
 const LAYER = {
 	path: { className: "absolute inset-0 px-6 pt-16 pb-4", inS: 0.5, outS: 0.5 },
 	fight: {
-		className: "absolute inset-0 flex flex-col items-center gap-4",
+		className: "absolute inset-0 isolate flex flex-col items-center gap-4",
 		inS: 0.5,
 		outS: 0.5,
 	},
@@ -85,8 +86,19 @@ export default function CombatArena({
 	const view = arenaView(state, ambushActive);
 
 	const layer = LAYER[view];
+	const backdrop = fightBackdropFor(zoneId);
 	const fight = (
 		<>
+			{backdrop && (
+				<img
+					src={backdrop}
+					alt=""
+					aria-hidden
+					data-testid="fight-backdrop"
+					draggable={false}
+					className="-z-10 pointer-events-none absolute inset-0 h-full w-full object-cover"
+				/>
+			)}
 			{nameplate}
 			<div className="relative flex w-full flex-1 items-center justify-center">
 				{state === "miniboss_victory" && (
