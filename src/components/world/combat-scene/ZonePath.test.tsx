@@ -63,8 +63,9 @@ describe("ZonePath", () => {
 		});
 		expect(all("tile")).toHaveLength(0);
 		const [ground] = all("ground");
-		expect(ground.getAttribute("width")).toBe(String(layout.cols));
-		expect(ground.getAttribute("height")).toBe(String(layout.rows));
+		expect(ground.querySelectorAll("image")).toHaveLength(
+			layout.cols * layout.rows,
+		);
 		expect(all("road")).toHaveLength(layout.cells.length);
 		expect(all("exit")).toHaveLength(1);
 		expect(root.getAttribute("viewBox")).toBe(

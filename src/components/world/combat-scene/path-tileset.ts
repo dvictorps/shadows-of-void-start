@@ -9,15 +9,22 @@ export type RoadSidesKey =
 	| "left,up";
 
 export type PathTileset = {
-	ground: { href: string; cells: number };
+	ground: readonly (readonly [string, string, string])[];
 	pieces: Readonly<Record<RoadSidesKey, readonly string[]>>;
 };
 
 const FOREST_DIR = "/assets/sprites/zona/floresta";
 const forest = (name: string) => `${FOREST_DIR}/caminho-${name}.png`;
+const grass = (row: number, col: number) =>
+	`${FOREST_DIR}/grama-${row}-${col}.png`;
+const grassRow = (row: number): readonly [string, string, string] => [
+	grass(row, 0),
+	grass(row, 1),
+	grass(row, 2),
+];
 
 const FOREST: PathTileset = {
-	ground: { href: `${FOREST_DIR}/grama.png`, cells: 3 },
+	ground: [grassRow(0), grassRow(1), grassRow(2), grassRow(3)],
 	pieces: {
 		"left,right": [forest("horizontal-1"), forest("horizontal-2")],
 		"down,up": [forest("vertical-1"), forest("vertical-2")],
@@ -63,4 +70,24 @@ export function roadPieceAt(
 	if (variants.length === 0) return null;
 	const cell = layout.cells[index];
 	return variants[(cell.x + cell.y) % variants.length];
+}
+
+function edgeIndex(at: number, size: number): 0 | 1 | 2 {
+	if (size > 1 && at === 0) return 0;
+	if (size > 1 && at === size - 1) return 2;
+	return 1;
+}
+
+export function groundTileAt(
+	tileset: PathTileset,
+	layout: PathLayout,
+	x: number,
+	y: number,
+): string {
+	const { ground } = tileset;
+	const col = edgeIndex(x, layout.cols);
+	const band = edgeIndex(y, layout.rows);
+	if (band === 0) return ground[0][col];
+	if (band === 2) return ground.at(-1)[col];
+	return ground[1 + ((x + y) % (ground.length - 2))][col];
 }

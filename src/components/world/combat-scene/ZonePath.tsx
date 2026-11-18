@@ -1,4 +1,4 @@
-import { useId, useMemo } from "react";
+import { useMemo } from "react";
 
 import { findMonster } from "#/game/monsters";
 import type { ZoneRoute } from "#/game/world/zone-route";
@@ -12,7 +12,7 @@ import {
 	pointAt,
 	rollPathLayout,
 } from "./path-layout";
-import { type PathTileset, roadPieceAt } from "./path-tileset";
+import { groundTileAt, type PathTileset, roadPieceAt } from "./path-tileset";
 
 const VIEW_PADDING = 0.6;
 const CLUSTER_OFFSET = 0.2;
@@ -160,34 +160,26 @@ function TiledRoad({
 	layout: PathLayout;
 	tileset: PathTileset;
 }) {
-	const groundId = `ground-${useId().replaceAll(/[^a-zA-Z0-9]/g, "")}`;
-	const { cells: groundCells, href: groundHref } = tileset.ground;
 	const exit = layout.cells.at(-1);
 	const size = 1 + 2 * PIECE_BLEED;
 	return (
 		<>
-			<defs>
-				<pattern
-					id={groundId}
-					patternUnits="userSpaceOnUse"
-					width={groundCells}
-					height={groundCells}
-				>
-					<image
-						href={groundHref}
-						width={groundCells}
-						height={groundCells}
-						preserveAspectRatio="none"
-						style={PIXELATED}
-					/>
-				</pattern>
-			</defs>
-			<rect
-				data-kind="ground"
-				width={layout.cols}
-				height={layout.rows}
-				fill={`url(#${groundId})`}
-			/>
+			<g data-kind="ground">
+				{Array.from({ length: layout.rows }, (_row, y) =>
+					Array.from({ length: layout.cols }, (_col, x) => (
+						<image
+							key={`${x},${y}`}
+							href={groundTileAt(tileset, layout, x, y)}
+							x={x - PIECE_BLEED}
+							y={y - PIECE_BLEED}
+							width={size}
+							height={size}
+							preserveAspectRatio="none"
+							style={PIXELATED}
+						/>
+					)),
+				)}
+			</g>
 			{layout.cells.map((cell, index) => {
 				const href = roadPieceAt(tileset, layout, index);
 				return (
