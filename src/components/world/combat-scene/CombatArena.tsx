@@ -89,16 +89,7 @@ export default function CombatArena({
 	const backdrop = fightBackdropFor(zoneId);
 	const fight = (
 		<>
-			{backdrop && (
-				<img
-					src={backdrop}
-					alt=""
-					aria-hidden
-					data-testid="fight-backdrop"
-					draggable={false}
-					className="-z-10 pointer-events-none absolute inset-0 h-full w-full object-cover"
-				/>
-			)}
+			{backdrop && <FightBackdrop src={backdrop} />}
 			{nameplate}
 			<div className="relative flex w-full flex-1 items-center justify-center">
 				{state === "miniboss_victory" && (
@@ -174,6 +165,38 @@ export default function CombatArena({
 					{content[view]}
 				</motion.div>
 			</AnimatePresence>
+		</div>
+	);
+}
+
+const BACKDROP_ZOOM = 1.5;
+
+function FightBackdrop({ src }: { src: string }) {
+	return (
+		<div
+			aria-hidden
+			className="-z-10 pointer-events-none absolute inset-0 overflow-hidden"
+		>
+			<img
+				src={src}
+				alt=""
+				data-testid="fight-backdrop"
+				draggable={false}
+				className="absolute bottom-0 left-1/2 max-w-none object-cover object-bottom"
+				style={{
+					width: `${BACKDROP_ZOOM * 100}%`,
+					height: `${BACKDROP_ZOOM * 100}%`,
+					transform: "translateX(-50%)",
+					filter: "brightness(0.6) saturate(0.75)",
+				}}
+			/>
+			<div
+				className="absolute inset-0"
+				style={{
+					background:
+						"radial-gradient(ellipse 75% 70% at 50% 62%, transparent 35%, rgba(0, 0, 0, 0.75) 100%), linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 35%)",
+				}}
+			/>
 		</div>
 	);
 }
