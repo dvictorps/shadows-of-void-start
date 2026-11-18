@@ -179,6 +179,7 @@ function FightBackdrop({ src }: { src: string }) {
 		<div
 			aria-hidden
 			className="-z-10 pointer-events-none absolute inset-0 overflow-hidden"
+			style={{ willChange: "transform" }}
 		>
 			<img
 				src={src}
@@ -190,14 +191,13 @@ function FightBackdrop({ src }: { src: string }) {
 					width: `${BACKDROP_ZOOM * 100}%`,
 					height: `${BACKDROP_ZOOM * 100}%`,
 					transform: "translateX(-50%)",
-					filter: "brightness(0.6) saturate(0.75)",
 				}}
 			/>
 			<div
 				className="absolute inset-0"
 				style={{
 					background:
-						"radial-gradient(ellipse 75% 70% at 50% 62%, transparent 35%, rgba(0, 0, 0, 0.75) 100%), linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 35%)",
+						"radial-gradient(ellipse 75% 70% at 50% 62%, transparent 35%, rgba(0, 0, 0, 0.75) 100%), linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 35%), linear-gradient(rgba(8, 10, 14, 0.42), rgba(8, 10, 14, 0.42))",
 				}}
 			/>
 		</div>
