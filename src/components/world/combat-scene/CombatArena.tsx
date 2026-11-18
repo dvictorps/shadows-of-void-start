@@ -10,6 +10,7 @@ import EnemySprite from "./EnemySprite";
 import { fightBackdropFor } from "./fight-backdrop";
 import FloatingDamage from "./FloatingDamage";
 import FloatingXp from "./FloatingXp";
+import { pathTilesetFor } from "./path-tileset";
 import {
 	type ArenaView,
 	arenaView,
@@ -133,7 +134,9 @@ export default function CombatArena({
 		</>
 	);
 	const content = {
-		path: path.route && <ZonePath {...path} route={path.route} />,
+		path: path.route && (
+			<ZonePath {...path} route={path.route} tileset={pathTilesetFor(zoneId)} />
+		),
 		camp: (
 			<CampScreen
 				zoneId={zoneId}

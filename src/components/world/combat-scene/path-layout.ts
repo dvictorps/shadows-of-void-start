@@ -92,15 +92,26 @@ function candidates(
 	];
 }
 
+function onGridEdge(cell: PathCell, grid: Grid): boolean {
+	return (
+		cell.x === 0 ||
+		cell.y === 0 ||
+		cell.x === grid.w - 1 ||
+		cell.y === grid.h - 1
+	);
+}
+
 function walk(target: number, grid: Grid, rng: Rng): PathCell[] | null {
 	const path: PathCell[] = [rollEdgeStart(grid, rng)];
 	const onPath = new Set([key(path[0])]);
 	const options: PathCell[][] = [candidates(path, onPath, grid, rng)];
 	let expansions = 0;
-	while (path.length < target) {
+	for (;;) {
+		const head = path.at(-1);
+		if (path.length === target && head && onGridEdge(head, grid)) return path;
 		expansions += 1;
 		if (expansions > MAX_EXPANSIONS) return null;
-		const next = options.at(-1)?.shift();
+		const next = path.length < target ? options.at(-1)?.shift() : undefined;
 		if (!next) {
 			options.pop();
 			const dropped = path.pop();
@@ -110,9 +121,10 @@ function walk(target: number, grid: Grid, rng: Rng): PathCell[] | null {
 		}
 		path.push(next);
 		onPath.add(key(next));
-		options.push(candidates(path, onPath, grid, rng));
+		options.push(
+			path.length < target ? candidates(path, onPath, grid, rng) : [],
+		);
 	}
-	return path;
 }
 
 function fitToBox(cells: readonly PathCell[]): PathLayout {
@@ -154,4 +166,48 @@ export function pointAt(layout: PathLayout, fraction: number): PathCell {
 	const to = layout.cells[Math.min(index + 1, last)];
 	const t = position - index;
 	return { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t };
+}
+
+export type Side = "left" | "right" | "up" | "down";
+
+const OPPOSITE = {
+	left: "right",
+	right: "left",
+	up: "down",
+	down: "up",
+} as const satisfies Record<Side, Side>;
+
+function sideToward(from: PathCell, to: PathCell): Side {
+	if (to.x < from.x) return "left";
+	if (to.x > from.x) return "right";
+	return to.y < from.y ? "up" : "down";
+}
+
+function edgeSides(layout: PathLayout, cell: PathCell): Side[] {
+	const sides: Array<[boolean, Side]> = [
+		[cell.x === 0, "left"],
+		[cell.x === layout.cols - 1, "right"],
+		[cell.y === 0, "up"],
+		[cell.y === layout.rows - 1, "down"],
+	];
+	return sides.filter(([on]) => on).map(([, side]) => side);
+}
+
+function outwardSide(layout: PathLayout, cell: PathCell, inward: Side): Side {
+	const straight = OPPOSITE[inward];
+	const onEdge = edgeSides(layout, cell);
+	if (onEdge.includes(straight)) return straight;
+	return onEdge.find((side) => side !== inward) ?? straight;
+}
+
+export function roadSides(layout: PathLayout, index: number): [Side, Side] {
+	const { cells } = layout;
+	const cell = cells[index];
+	const prev = index > 0 ? cells[index - 1] : undefined;
+	const next = index < cells.length - 1 ? cells[index + 1] : undefined;
+	if (prev && next) return [sideToward(cell, prev), sideToward(cell, next)];
+	const neighbour = prev ?? next;
+	if (!neighbour) return ["left", "right"];
+	const inward = sideToward(cell, neighbour);
+	return [inward, outwardSide(layout, cell, inward)];
 }

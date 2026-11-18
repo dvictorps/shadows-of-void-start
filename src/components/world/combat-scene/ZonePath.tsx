@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 
 import { findMonster } from "#/game/monsters";
 import type { ZoneRoute } from "#/game/world/zone-route";
@@ -12,6 +12,7 @@ import {
 	pointAt,
 	rollPathLayout,
 } from "./path-layout";
+import { type PathTileset, roadPieceAt } from "./path-tileset";
 
 const VIEW_PADDING = 0.6;
 const CLUSTER_OFFSET = 0.2;
@@ -44,9 +45,10 @@ type ZonePathProps = {
 	nextStopIndex: number;
 	elapsedMs: number;
 	incenseCampsMs: readonly number[];
+	tileset?: PathTileset | null;
 };
 
-export type ZonePathState = Omit<ZonePathProps, "route"> & {
+export type ZonePathState = Omit<ZonePathProps, "route" | "tileset"> & {
 	route: ZoneRoute | null;
 };
 
@@ -148,6 +150,78 @@ function PathMarker({
 	);
 }
 
+const PIECE_BLEED = 0.01;
+const PIXELATED = { imageRendering: "pixelated" } as const;
+
+function TiledRoad({
+	layout,
+	tileset,
+}: {
+	layout: PathLayout;
+	tileset: PathTileset;
+}) {
+	const groundId = `ground-${useId().replaceAll(/[^a-zA-Z0-9]/g, "")}`;
+	const { cells: groundCells, href: groundHref } = tileset.ground;
+	const exit = layout.cells.at(-1);
+	const size = 1 + 2 * PIECE_BLEED;
+	return (
+		<>
+			<defs>
+				<pattern
+					id={groundId}
+					patternUnits="userSpaceOnUse"
+					width={groundCells}
+					height={groundCells}
+				>
+					<image
+						href={groundHref}
+						width={groundCells}
+						height={groundCells}
+						preserveAspectRatio="none"
+						style={PIXELATED}
+					/>
+				</pattern>
+			</defs>
+			<rect
+				data-kind="ground"
+				width={layout.cols}
+				height={layout.rows}
+				fill={`url(#${groundId})`}
+			/>
+			{layout.cells.map((cell, index) => {
+				const href = roadPieceAt(tileset, layout, index);
+				return (
+					href && (
+						<image
+							key={`${cell.x},${cell.y}`}
+							data-kind="road"
+							href={href}
+							x={cell.x - PIECE_BLEED}
+							y={cell.y - PIECE_BLEED}
+							width={size}
+							height={size}
+							preserveAspectRatio="none"
+							style={PIXELATED}
+						/>
+					)
+				);
+			})}
+			{exit && (
+				<rect
+					data-kind="exit"
+					x={exit.x}
+					y={exit.y}
+					width={1}
+					height={1}
+					fill="none"
+					stroke="#fcd34d"
+					strokeWidth={0.08}
+				/>
+			)}
+		</>
+	);
+}
+
 function PathRoad({ layout }: { layout: PathLayout }) {
 	const exit = layout.cells.length - 1;
 	return (
@@ -175,13 +249,22 @@ export default function ZonePath({
 	nextStopIndex,
 	elapsedMs,
 	incenseCampsMs,
+	tileset = null,
 }: ZonePathProps) {
 	const { budgetMs, tiles } = route;
 	const layout = useMemo(
 		() => rollPathLayout(tiles, seededRng(routeSeed)),
 		[tiles, routeSeed],
 	);
-	const road = useMemo(() => <PathRoad layout={layout} />, [layout]);
+	const road = useMemo(
+		() =>
+			tileset ? (
+				<TiledRoad layout={layout} tileset={tileset} />
+			) : (
+				<PathRoad layout={layout} />
+			),
+		[layout, tileset],
+	);
 	const markers = useMemo(
 		() =>
 			[...markersByCell(layout, route, nextStopIndex, incenseCampsMs)].flatMap(
@@ -198,11 +281,12 @@ export default function ZonePath({
 		[layout, route, nextStopIndex, incenseCampsMs],
 	);
 	const player = pointAt(layout, elapsedMs / budgetMs);
+	const padding = tileset ? 0 : VIEW_PADDING;
 	const viewBox = [
-		-VIEW_PADDING,
-		-VIEW_PADDING,
-		layout.cols + 2 * VIEW_PADDING,
-		layout.rows + 2 * VIEW_PADDING,
+		-padding,
+		-padding,
+		layout.cols + 2 * padding,
+		layout.rows + 2 * padding,
 	].join(" ");
 
 	return (
