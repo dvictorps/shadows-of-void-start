@@ -169,7 +169,7 @@ export default function CombatArena({
 	);
 }
 
-const BACKDROP_ZOOM = 1.5;
+const BACKDROP_ZOOM = 1.35;
 
 function FightBackdrop({ src }: { src: string }) {
 	return (
