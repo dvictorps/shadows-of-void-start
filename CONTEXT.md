@@ -1108,6 +1108,7 @@ Conditions that must always hold. If you find code that violates these, file it 
 ## UI Invariants
 
 - **Main screens never scroll.** Splash (`/`), character select, and world view must fit the viewport. Use `h-screen overflow-hidden` on the page root and constrain inner content (e.g., `max-h-[88vh]` for cards, `flex-1` for stretchy regions). Internal modals and side panels are allowed to scroll.
+- **The game screen is a fixed 1920×1080 stage.** `/world` is laid out once, at 1920×1080 (the reference: a 1920×1080 monitor), and scaled uniformly to fit the window, up or down, with black bars on the leftover sides (ultrawide → left/right, 16:10 → top/bottom). Proportions (mob size vs. path vs. sidebar) are the same on every resolution; there is no compact layout. Pages outside the game (splash, sign-in, character select, admin) stay responsive. See [ADR 0010](./docs/adr/0010-fixed-game-stage.md).
 - **Single theme: dark/black.** No theme switcher. `<html>` has `class="dark"` permanently. Background is pure `#000000`.
 - **Font: Jersey 25** (pixel display font) globally via `--font-sans`. Imported once in `styles.css`.
 - **Buttons: black bg + white border + white text.** Hover lightens via `bg-white/10`. Purple is reserved for the title glow effect, not interactive elements.
