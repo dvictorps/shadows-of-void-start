@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { seededRng } from "#/lib/rng";
 
 import { type PathLayout, rollPathLayout } from "./path-layout";
-import { groundTileAt, pathTilesetFor, roadPieceAt } from "./path-tileset";
+import { pathTilesetFor, roadPieceAt } from "./path-tileset";
 
 const forest = pathTilesetFor("forest_starter");
 
@@ -16,8 +16,7 @@ function layoutOf(cells: Array<[number, number]>): PathLayout {
 }
 
 describe("pathTilesetFor", () => {
-	it("gives the Floresta Inicial its road pieces and grass", () => {
-		expect(forest?.ground.middle).toHaveLength(2);
+	it("gives the Floresta Inicial its road pieces", () => {
 		expect(Object.keys(forest?.pieces ?? {}).toSorted()).toEqual([
 			"down,left",
 			"down,right",
@@ -68,34 +67,5 @@ describe("roadPieceAt", () => {
 			const pieces = layout.cells.map((_, i) => roadPieceAt(forest, layout, i));
 			expect(pieces.filter((piece) => piece === null)).toEqual([]);
 		}
-	});
-});
-
-describe("groundTileAt", () => {
-	if (!forest) throw new Error("forest tileset missing");
-	const layout: PathLayout = { cols: 4, rows: 4, cells: [{ x: 0, y: 0 }] };
-	const tile = (x: number, y: number) =>
-		groundTileAt(forest, layout, x, y).replace(/^.*grama-/, "");
-
-	it("frames the map with the border tiles and its corners", () => {
-		expect(tile(0, 0)).toBe("0-0.png");
-		expect(tile(1, 0)).toBe("0-1.png");
-		expect(tile(3, 0)).toBe("0-2.png");
-		expect(tile(0, 3)).toBe("3-0.png");
-		expect(tile(2, 3)).toBe("3-1.png");
-		expect(tile(3, 3)).toBe("3-2.png");
-		expect(tile(0, 1)).toMatch(/^[12]-0\.png$/);
-		expect(tile(3, 2)).toMatch(/^[12]-2\.png$/);
-	});
-
-	it("fills the middle with the centre tiles, alternating their variants", () => {
-		expect(new Set([tile(1, 1), tile(2, 1), tile(1, 2), tile(2, 2)])).toEqual(
-			new Set(["1-1.png", "2-1.png"]),
-		);
-	});
-
-	it("uses the middle band when the map is one cell thin", () => {
-		const thin: PathLayout = { cols: 5, rows: 1, cells: [{ x: 0, y: 0 }] };
-		expect(groundTileAt(forest, thin, 2, 0)).toMatch(/grama-[12]-1\.png$/);
 	});
 });

@@ -56,16 +56,12 @@ describe("ZonePath", () => {
 		expect(all("exit")).toHaveLength(1);
 	});
 
-	it("paints a zone with a tileset as road pieces on a grass field that is the whole map", () => {
+	it("paints a zone with a tileset as road pieces that reach the map's edge", () => {
 		const layout = rollPathLayout(ROUTE.tiles, seededRng(3));
 		const { root, all } = renderPath({
 			tileset: pathTilesetFor("forest_starter"),
 		});
 		expect(all("tile")).toHaveLength(0);
-		const [ground] = all("ground");
-		expect(ground.querySelectorAll("image")).toHaveLength(
-			layout.cols * layout.rows,
-		);
 		expect(all("road")).toHaveLength(layout.cells.length);
 		expect(all("exit")).toHaveLength(1);
 		expect(root.getAttribute("viewBox")).toBe(
