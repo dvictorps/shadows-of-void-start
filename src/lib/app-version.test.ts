@@ -54,3 +54,91 @@ describe("withBuildCheck", () => {
 		expect(listener).not.toHaveBeenCalled();
 	});
 });
+
+describe("checkServerBuild", () => {
+	it("asks the server for its build without touching the game's endpoints", async () => {
+		const fetchImpl = respondingWith("a-newer-build");
+		await version.checkServerBuild(0, fetchImpl);
+		expect(fetchImpl).toHaveBeenCalledWith("/api/trpc/health", {
+			cache: "no-store",
+		});
+		expect(version.isClientOutdated()).toBe(true);
+	});
+
+	it("checks at most once per interval", async () => {
+		const fetchImpl = respondingWith(version.BUILD_ID);
+		await version.checkServerBuild(0, fetchImpl);
+		await version.checkServerBuild(
+			version.BUILD_CHECK_MIN_INTERVAL_MS - 1,
+			fetchImpl,
+		);
+		expect(fetchImpl).toHaveBeenCalledOnce();
+		await version.checkServerBuild(
+			version.BUILD_CHECK_MIN_INTERVAL_MS,
+			fetchImpl,
+		);
+		expect(fetchImpl).toHaveBeenCalledTimes(2);
+	});
+
+	it("stops checking once the client is known to be outdated", async () => {
+		version.noteServerBuild("a-newer-build");
+		const fetchImpl = respondingWith("a-newer-build");
+		await version.checkServerBuild(0, fetchImpl);
+		expect(fetchImpl).not.toHaveBeenCalled();
+	});
+
+	it("swallows a failed check (offline) and stays current", async () => {
+		const fetchImpl = vi
+			.fn<typeof fetch>()
+			.mockRejectedValue(new TypeError("Failed to fetch"));
+		await version.checkServerBuild(0, fetchImpl);
+		expect(version.isClientOutdated()).toBe(false);
+	});
+});
+
+describe("reloadIntoNewBuild", () => {
+	const leaveWorld = {
+		action: "PUSH",
+		currentLocation: { pathname: "/world" },
+		nextLocation: {
+			pathname: "/character-select",
+			href: "/character-select",
+		},
+	};
+
+	it("lets every navigation through while the client is current", () => {
+		const loadDocument = vi.fn<(href: string) => void>();
+		expect(version.reloadIntoNewBuild(leaveWorld, loadDocument)).toBe(false);
+		expect(loadDocument).not.toHaveBeenCalled();
+	});
+
+	it("turns a route change of an outdated client into a document load of the target", () => {
+		version.noteServerBuild("a-newer-build");
+		const loadDocument = vi.fn<(href: string) => void>();
+		const enterWorld = {
+			action: "PUSH",
+			currentLocation: { pathname: "/character-select" },
+			nextLocation: { pathname: "/world", href: "/world?characterId=7" },
+		};
+		expect(version.reloadIntoNewBuild(enterWorld, loadDocument)).toBe(true);
+		expect(loadDocument).toHaveBeenCalledWith("/world?characterId=7");
+	});
+
+	it("keeps an outdated client in place for a search-only or replace step", () => {
+		version.noteServerBuild("a-newer-build");
+		const loadDocument = vi.fn<(href: string) => void>();
+		const sameRoute = {
+			action: "PUSH",
+			currentLocation: { pathname: "/world" },
+			nextLocation: { pathname: "/world", href: "/world?characterId=8" },
+		};
+		expect(version.reloadIntoNewBuild(sameRoute, loadDocument)).toBe(false);
+		expect(
+			version.reloadIntoNewBuild(
+				{ ...leaveWorld, action: "REPLACE" },
+				loadDocument,
+			),
+		).toBe(false);
+		expect(loadDocument).not.toHaveBeenCalled();
+	});
+});

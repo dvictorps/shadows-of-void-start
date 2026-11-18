@@ -46,9 +46,12 @@ const claimInput = z.object({
 	sessionToken: z.string(),
 });
 
-function setup(character: CharacterRow | null = characterRow()) {
+function setup(
+	character: CharacterRow | null = characterRow(),
+	signedIn = true,
+) {
 	const fake = fakeTrpc({
-		"users.getUserRole": () => ({ role: "user" }),
+		"users.getUserRole": () => (signedIn ? { role: "user" } : null),
 		"characters.byId": () => character,
 		"items.equipped": () => [],
 		"items.inventory": () => [inventoryRow(11, BLADE, 0)],
@@ -83,8 +86,13 @@ function setup(character: CharacterRow | null = characterRow()) {
 		path: "/character-select",
 		component: () => <p>character select</p>,
 	});
+	const signIn = createRoute({
+		getParentRoute: () => root,
+		path: "/sign-in",
+		component: () => <p>sign in</p>,
+	});
 	const router = createRouter({
-		routeTree: root.addChildren([world, characterSelect]),
+		routeTree: root.addChildren([world, characterSelect, signIn]),
 		history: createMemoryHistory({
 			initialEntries: [`/world?characterId=${CHARACTER_ID}`],
 		}),
@@ -135,11 +143,6 @@ describe("/world route — smoke", { timeout: 20_000 }, () => {
 		const claims = t.callsTo("characters.claimCharacterSession");
 		const claim = claimInput.parse(claims[0]);
 		expect(claim.characterId).toBe(CHARACTER_ID);
-		expect(
-			claims.every(
-				(other) => claimInput.parse(other).sessionToken === claim.sessionToken,
-			),
-		).toBe(true);
 		await waitFor(() =>
 			expect(
 				t.queryClient.getQueryData(
@@ -147,6 +150,15 @@ describe("/world route — smoke", { timeout: 20_000 }, () => {
 				)?.activeSessionToken,
 			).toBe(claim.sessionToken),
 		);
+		await act(async () => {
+			await new Promise((resolve) => {
+				setTimeout(resolve, 50);
+			});
+		});
+		expect(t.callsTo("characters.claimCharacterSession")).toHaveLength(1);
+		expect(t.callsTo("characters.byId")).toHaveLength(1);
+		expect(t.callsTo("items.inventory")).toHaveLength(1);
+		expect(t.callsTo("items.equipped")).toHaveLength(1);
 	});
 
 	it("opens the inventory with the fetched bag and equips through the server", async () => {
@@ -195,10 +207,17 @@ describe("/world route — smoke", { timeout: 20_000 }, () => {
 		expect(t.router.state.location.pathname).toBe("/character-select");
 	});
 
-	it("sends a missing character back to character select", async () => {
-		setup(null);
+	it("sends a missing or foreign character back to character select without claiming it", async () => {
+		const t = setup(null);
 		expect(
 			await screen.findByText("character select", {}, ARRIVAL),
 		).toBeTruthy();
+		expect(t.callsTo("characters.claimCharacterSession")).toEqual([]);
+	});
+
+	it("sends a signed-out visitor to sign in before loading the character", async () => {
+		const t = setup(characterRow(), false);
+		expect(await screen.findByText("sign in", {}, ARRIVAL)).toBeTruthy();
+		expect(t.callsTo("characters.byId")).toEqual([]);
 	});
 });

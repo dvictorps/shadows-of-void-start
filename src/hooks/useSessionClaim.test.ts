@@ -51,6 +51,20 @@ describe("useSessionClaim", () => {
 		expect(hook.result.current.sessionLost).toBe(false);
 	});
 
+	it("does not re-claim when the claim settles before the claimed token reaches the props", async () => {
+		const { claim, hook, settle } = setup(false);
+		await act(async () => {});
+		await act(async () => settle());
+		hook.rerender({ matches: false, id: 3 });
+		await act(async () => {});
+		expect(claim).toHaveBeenCalledTimes(1);
+		expect(hook.result.current.sessionLost).toBe(false);
+		hook.rerender({ matches: true, id: 3 });
+		await act(async () => {});
+		expect(claim).toHaveBeenCalledTimes(1);
+		expect(hook.result.current.sessionLost).toBe(false);
+	});
+
 	it("does not claim when the session is already ours", async () => {
 		const { claim, hook } = setup(true);
 		await act(async () => {});

@@ -12,6 +12,7 @@ import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { useEffect } from "react";
 
 import { ConfirmationProvider } from "#/hooks/useConfirmationModal";
+import { useReloadIntoNewBuild } from "#/hooks/useReloadIntoNewBuild";
 import { SessionTokenProvider } from "#/hooks/useSessionToken";
 import { useUpdateAvailable } from "#/hooks/useUpdateAvailable";
 import { consumeFlashToast } from "#/lib/flash-toast";
@@ -97,6 +98,7 @@ function RootComponent() {
 
 function UpdatePrompt() {
 	const { open, update, later } = useUpdateAvailable();
+	useReloadIntoNewBuild();
 	return <UpdateAvailableModal open={open} onUpdate={update} onLater={later} />;
 }
 
