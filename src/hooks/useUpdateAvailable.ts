@@ -1,6 +1,10 @@
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
-import { isClientOutdated, subscribeClientOutdated } from "#/lib/app-version";
+import {
+	checkServerBuild,
+	isClientOutdated,
+	subscribeClientOutdated,
+} from "#/lib/app-version";
 
 export function useUpdateAvailable() {
 	const outdated = useSyncExternalStore(
@@ -9,6 +13,16 @@ export function useUpdateAvailable() {
 		() => false,
 	);
 	const [dismissed, setDismissed] = useState(false);
+
+	useEffect(() => {
+		const onVisible = () => {
+			if (document.visibilityState === "visible")
+				void checkServerBuild(Date.now());
+		};
+		document.addEventListener("visibilitychange", onVisible);
+		return () => document.removeEventListener("visibilitychange", onVisible);
+	}, []);
+
 	return {
 		open: outdated && !dismissed,
 		update: () => window.location.reload(),

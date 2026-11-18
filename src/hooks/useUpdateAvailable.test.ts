@@ -36,4 +36,29 @@ describe("useUpdateAvailable", () => {
 
 		expect(result.current.open).toBe(false);
 	});
+
+	it("asks the server for its build when the tab comes back and opens on a new one", async () => {
+		const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+			new Response("{}", {
+				headers: { [mods.version.BUILD_ID_HEADER]: "a-newer-build" },
+			}),
+		);
+		const { result } = renderHook(() => mods.hook.useUpdateAvailable());
+
+		await act(async () => setVisibility("hidden"));
+		expect(fetchSpy).not.toHaveBeenCalled();
+		await act(async () => setVisibility("visible"));
+
+		expect(fetchSpy).toHaveBeenCalledOnce();
+		expect(result.current.open).toBe(true);
+		fetchSpy.mockRestore();
+	});
 });
+
+function setVisibility(state: DocumentVisibilityState) {
+	Object.defineProperty(document, "visibilityState", {
+		configurable: true,
+		get: () => state,
+	});
+	document.dispatchEvent(new Event("visibilitychange"));
+}
