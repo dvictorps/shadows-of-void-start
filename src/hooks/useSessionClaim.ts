@@ -19,16 +19,18 @@ export function useSessionClaim({
 	}) => Promise<object>;
 }) {
 	const [hasMatched, setHasMatched] = useState(false);
+	const [claimed, setClaimed] = useState(false);
 	const [failure, setFailure] = useState<ClaimFailure | null>(null);
 	const [isClaiming, runClaim] = useInFlight();
 	if (tokenMatches && !hasMatched) setHasMatched(true);
 
 	useEffect(() => {
 		// oxlint-disable-next-line you-might-not-need-an-effect/no-event-handler -- the claim fires on arriving at /world (refresh, bookmark, restored tab) with no prior claim; no user action starts it, so this is a mount-time sync with the server, which is what effects are for
-		if (tokenMatches || hasMatched || isClaiming || failure) return;
+		if (tokenMatches || hasMatched || claimed || isClaiming || failure) return;
 		void runClaim(async () => {
 			try {
 				await claim({ characterId, sessionToken });
+				setClaimed(true);
 			} catch (error) {
 				setFailure({ error });
 			}
@@ -36,6 +38,7 @@ export function useSessionClaim({
 	}, [
 		tokenMatches,
 		hasMatched,
+		claimed,
 		isClaiming,
 		failure,
 		runClaim,
