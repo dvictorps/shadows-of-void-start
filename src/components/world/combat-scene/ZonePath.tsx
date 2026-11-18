@@ -5,6 +5,7 @@ import type { ZoneRoute } from "#/game/world/zone-route";
 import { hashStringToUnit, seededRng } from "#/lib/rng";
 import { m } from "#/paraglide/messages";
 
+import { CANOPY_PERIOD, CANOPY_SIZE, canopyTrees } from "./canopy";
 import {
 	cellIndexAt,
 	type PathCell,
@@ -166,6 +167,35 @@ function TilePattern({ id, href }: { id: string; href: string }) {
 	);
 }
 
+const CANOPY = canopyTrees();
+
+function CanopyPattern({ id, href }: { id: string; href: string }) {
+	return (
+		<pattern
+			id={id}
+			patternUnits="userSpaceOnUse"
+			width={CANOPY_PERIOD}
+			height={CANOPY_PERIOD}
+		>
+			{CANOPY.map((tree) => (
+				<image
+					key={`${tree.x},${tree.y}`}
+					href={href}
+					width={CANOPY_SIZE}
+					height={CANOPY_SIZE}
+					preserveAspectRatio="none"
+					transform={
+						tree.flip
+							? `translate(${tree.x + CANOPY_SIZE} ${tree.y}) scale(-1 1)`
+							: `translate(${tree.x} ${tree.y})`
+					}
+					style={{ imageRendering: "pixelated" }}
+				/>
+			))}
+		</pattern>
+	);
+}
+
 function TiledRoad({
 	layout,
 	tileset,
@@ -182,7 +212,7 @@ function TiledRoad({
 	return (
 		<>
 			<defs>
-				<TilePattern id={groundId} href={tileset.ground} />
+				<CanopyPattern id={groundId} href={tileset.ground} />
 				<TilePattern id={roadId} href={tileset.road} />
 			</defs>
 			<rect

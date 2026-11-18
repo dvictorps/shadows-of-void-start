@@ -70,7 +70,7 @@ describe("ZonePath", () => {
 		const hrefs = [...root.querySelectorAll("pattern image")].map((image) =>
 			image.getAttribute("href"),
 		);
-		expect(hrefs).toEqual(["/ground.png", "/road.png"]);
+		expect(new Set(hrefs)).toEqual(new Set(["/ground.png", "/road.png"]));
 		expect(road.getAttribute("fill")).toMatch(/^url\(#road-/);
 	});
 
