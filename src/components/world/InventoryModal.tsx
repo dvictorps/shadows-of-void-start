@@ -2,7 +2,6 @@ import {
 	closestCenter,
 	DndContext,
 	type DragEndEvent,
-	DragOverlay,
 	type DragStartEvent,
 	PointerSensor,
 	useSensor,
@@ -11,6 +10,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import StageDragOverlay from "#/components/game-stage/StageDragOverlay";
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
@@ -289,7 +289,7 @@ export default function InventoryModal({
 						onItemClick={openMenu}
 					/>
 				</div>
-				<DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
+				<StageDragOverlay>
 					{activeItem ? (
 						<ItemCard
 							item={activeItem}
@@ -297,7 +297,7 @@ export default function InventoryModal({
 							suppressTooltip
 						/>
 					) : null}
-				</DragOverlay>
+				</StageDragOverlay>
 			</DndContext>
 			{menu && menuActions.length > 0 && (
 				<ItemContextMenu

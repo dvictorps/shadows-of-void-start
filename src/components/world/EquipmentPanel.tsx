@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-
 import ItemCard, {
 	BROKEN_BORDER,
 	BROKEN_GLOW,
@@ -8,7 +6,6 @@ import ItemCard, {
 } from "#/components/game/ItemCard";
 import { describeBrokenReasons } from "#/game/stats/compute";
 import type { ComputedCharacterStats, EquippedSlot } from "#/game/stats/types";
-import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { m } from "#/paraglide/messages";
 
 import InventoryButton from "./InventoryButton";
@@ -102,8 +99,11 @@ const GRID_AREAS = `
 	"gloves .      boots"
 `;
 
-const COL_BASE = 120;
-const ROW_HEIGHTS = [120, 170, 104, 120];
+const GRID_STYLE = {
+	gridTemplateColumns: "repeat(3, 120px)",
+	gridTemplateRows: "120px 170px 104px 120px",
+	gridTemplateAreas: GRID_AREAS,
+};
 
 export default function EquipmentPanel({
 	equippedBySlot,
@@ -112,37 +112,12 @@ export default function EquipmentPanel({
 	rubys,
 	onOpenInventory,
 }: Props) {
-	const compact = useCompactViewport();
-	const s = compact ? 0.65 : 1;
-
-	const scaled = useMemo(
-		() => ({
-			grid: {
-				gridTemplateColumns: `repeat(3, ${Math.round(COL_BASE * s)}px)`,
-				gridTemplateRows: ROW_HEIGHTS.map((h) => `${Math.round(h * s)}px`).join(
-					" ",
-				),
-				gridTemplateAreas: GRID_AREAS,
-			},
-			slots: SLOT_CONFIG.map((cfg) => ({
-				w: Math.round(cfg.size.w * s),
-				h: Math.round(cfg.size.h * s),
-			})),
-		}),
-		[s],
-	);
-
 	const mainHandWeaponType = equippedBySlot.get("weapon")?.data.weaponType;
 	return (
-		<section
-			className={`relative rounded-md border border-white/40 ${compact ? "p-1.5" : "p-3"}`}
-		>
+		<section className="relative rounded-md border border-white/40 p-3">
 			<div className="flex h-full items-center justify-center">
-				<div
-					className={`grid ${compact ? "gap-1" : "gap-2"}`}
-					style={scaled.grid}
-				>
-					{SLOT_CONFIG.map((cfg, i) => {
+				<div className="grid gap-2" style={GRID_STYLE}>
+					{SLOT_CONFIG.map((cfg) => {
 						const entry = equippedBySlot.get(cfg.slot);
 						const broken = entry ? stats.brokenItemIds.has(entry.id) : false;
 						const reasons =
@@ -158,7 +133,6 @@ export default function EquipmentPanel({
 							<EquipmentSlot
 								key={cfg.slot}
 								cfg={cfg}
-								scaledSize={scaled.slots[i]}
 								item={entry?.data ?? null}
 								broken={broken}
 								brokenReasons={reasons}
@@ -175,18 +149,16 @@ export default function EquipmentPanel({
 
 function EquipmentSlot({
 	cfg,
-	scaledSize,
 	item,
 	broken,
 	brokenReasons,
 }: {
 	cfg: SlotConfig;
-	scaledSize: { w: number; h: number };
 	item: import("#/game/items/types").GeneratedItem | null;
 	broken: boolean;
 	brokenReasons: string[] | undefined;
 }) {
-	const innerSize = { w: scaledSize.w - 8, h: scaledSize.h - 8 };
+	const innerSize = { w: cfg.size.w - 8, h: cfg.size.h - 8 };
 	const frameClass = item
 		? `border-2 bg-black ${broken ? BROKEN_BORDER : RARITY_BORDER[item.rarity]} ${broken ? BROKEN_GLOW : RARITY_GLOW[item.rarity]}`
 		: "border border-white/30 bg-black/40";
@@ -196,8 +168,8 @@ function EquipmentSlot({
 			data-slot-area={cfg.area}
 			style={{
 				gridArea: cfg.area,
-				width: scaledSize.w,
-				height: scaledSize.h,
+				width: cfg.size.w,
+				height: cfg.size.h,
 				placeSelf: "center",
 			}}
 			className={`relative flex items-center justify-center rounded-md ${frameClass}`}

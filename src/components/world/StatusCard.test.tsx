@@ -8,16 +8,7 @@ import {
 	screen,
 } from "@testing-library/react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
-import {
-	afterAll,
-	afterEach,
-	beforeAll,
-	beforeEach,
-	describe,
-	expect,
-	it,
-	vi,
-} from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { narrow } from "#/components/dom-test-utils";
 import { getClassDisplayName } from "#/game/classes/i18n";
@@ -37,28 +28,6 @@ import { characterRow } from "./character-test-fixtures";
 import StatusCard from "./StatusCard";
 
 type Props = Parameters<typeof StatusCard>[0];
-
-let compact = false;
-
-beforeAll(() => {
-	Object.defineProperty(window, "matchMedia", {
-		configurable: true,
-		value: (query: string) => ({
-			matches: compact,
-			media: query,
-			addEventListener: () => {},
-			removeEventListener: () => {},
-		}),
-	});
-});
-
-afterAll(() => {
-	Reflect.deleteProperty(window, "matchMedia");
-});
-
-beforeEach(() => {
-	compact = false;
-});
 
 afterEach(cleanup);
 
@@ -353,7 +322,7 @@ describe("StatusCard — health globe", () => {
 });
 
 describe("StatusCard — layout", () => {
-	it("uses the roomy sizes on a wide viewport", () => {
+	it("uses its fixed stage sizes", () => {
 		const { container } = setup();
 		expect(
 			narrow(container.querySelector("section"), HTMLElement).className,
@@ -361,16 +330,5 @@ describe("StatusCard — layout", () => {
 		expect(screen.getByRole("heading").className).toContain("text-2xl");
 		expect(potionSlot().className).toContain("h-16 w-16");
 		expect(teleportSlot().className).toContain("h-16 w-16");
-	});
-
-	it("shrinks on a compact viewport", () => {
-		compact = true;
-		const { container } = setup();
-		expect(
-			narrow(container.querySelector("section"), HTMLElement).className,
-		).toContain("p-2");
-		expect(screen.getByRole("heading").className).toContain("text-lg");
-		expect(potionSlot().className).toContain("h-11 w-11");
-		expect(teleportSlot().className).toContain("h-11 w-11");
 	});
 });

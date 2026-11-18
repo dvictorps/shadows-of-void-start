@@ -156,15 +156,6 @@ const escape = () =>
 installDragHarness();
 
 beforeAll(() => {
-	Object.defineProperty(window, "matchMedia", {
-		configurable: true,
-		value: (query: string) => ({
-			matches: false,
-			media: query,
-			addEventListener: () => {},
-			removeEventListener: () => {},
-		}),
-	});
 	Object.defineProperty(globalThis, "ResizeObserver", {
 		configurable: true,
 		value: class {
@@ -176,7 +167,6 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-	Reflect.deleteProperty(window, "matchMedia");
 	Reflect.deleteProperty(globalThis, "ResizeObserver");
 });
 

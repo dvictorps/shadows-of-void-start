@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
+import { portalTarget, useGameStage } from "#/components/game-stage/context";
 import { Button } from "#/components/ui/button";
 import { useEscapeLayer } from "#/hooks/useEscapeLayer";
 
@@ -52,21 +53,19 @@ export default function ItemContextMenu({
 		return () => onLayout(null);
 	}, [onLayout]);
 
-	const viewportHeight =
-		globalThis.window === undefined ? 800 : window.innerHeight;
-	const viewportWidth =
-		globalThis.window === undefined ? 1200 : window.innerWidth;
+	const stage = useGameStage();
+	const box = stage.toStage(anchor);
 	const dividerCount = actions.filter((a) => a.dividerBefore).length;
 	const estimatedHeight =
 		12 + actions.length * 36 + dividerCount * DIVIDER_HEIGHT_PX;
-	const belowCandidate = anchor.bottom + MENU_OFFSET_PX;
-	const flipAbove = belowCandidate + estimatedHeight > viewportHeight;
+	const belowCandidate = box.bottom + MENU_OFFSET_PX;
+	const flipAbove = belowCandidate + estimatedHeight > stage.height;
 	const top = flipAbove
-		? Math.max(8, anchor.top - MENU_OFFSET_PX - estimatedHeight)
+		? Math.max(8, box.top - MENU_OFFSET_PX - estimatedHeight)
 		: belowCandidate;
 	const left = Math.min(
-		Math.max(8, anchor.left),
-		viewportWidth - MENU_ESTIMATED_WIDTH - 8,
+		Math.max(8, box.left),
+		stage.width - MENU_ESTIMATED_WIDTH - 8,
 	);
 
 	return createPortal(
@@ -102,6 +101,6 @@ export default function ItemContextMenu({
 				</Fragment>
 			))}
 		</div>,
-		document.body,
+		portalTarget(stage),
 	);
 }

@@ -77,7 +77,7 @@ export default function StashPanel({
 					<span>{freeLabel(Math.max(0, maxSlots - items.length))}</span>
 				</div>
 			</div>
-			<div className="fancy-scroll max-h-[60vh] overflow-y-auto pr-2">
+			<div className="fancy-scroll max-h-162 overflow-y-auto pr-2">
 				{showEmpty ? (
 					<p className="py-12 text-center text-sm text-white/40">
 						{emptyLabel}

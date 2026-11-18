@@ -38,7 +38,6 @@ describe("XpBar", () => {
 	it.each<[XpBarSize, string, string]>([
 		["hud", "text-[10px]", "h-3"],
 		["md", "text-sm", "h-2"],
-		["sm", "text-xs", "h-2"],
 	])("size %s: label %s, track %s", (size, labelClass, trackClass) => {
 		render(<XpBar xp={1} xpNeeded={2} size={size} />);
 		expect(label(1, 2).className).toContain(labelClass);

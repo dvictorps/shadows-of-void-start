@@ -6,6 +6,7 @@ import {
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
+import { portalTarget, useGameStage } from "#/components/game-stage/context";
 import type { BossConfig } from "#/game/bosses";
 import type { DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 
@@ -95,8 +96,9 @@ function SpriteTooltipPortal({
 	enemy: Enemy;
 	bossConfig: BossConfig | null;
 }) {
+	const stage = useGameStage();
 	if (!sprite.isConnected) return null;
-	const rect = sprite.getBoundingClientRect();
+	const rect = stage.toStage(sprite.getBoundingClientRect());
 	return createPortal(
 		<div
 			className="pointer-events-none fixed z-[9999]"
@@ -108,6 +110,6 @@ function SpriteTooltipPortal({
 		>
 			<MonsterTooltip enemy={enemy} bossConfig={bossConfig} />
 		</div>,
-		document.body,
+		portalTarget(stage),
 	);
 }

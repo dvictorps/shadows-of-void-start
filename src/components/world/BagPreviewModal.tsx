@@ -25,7 +25,7 @@ export default function BagPreviewModal({ isOpen, onClose, items }: Props) {
 					{m.loot_bag_empty_combat()}
 				</p>
 			) : (
-				<div className="fancy-scroll flex max-h-[60vh] flex-wrap gap-3 overflow-y-auto pr-3">
+				<div className="fancy-scroll flex max-h-162 flex-wrap gap-3 overflow-y-auto pr-3">
 					{items.map((item) => (
 						<ItemCard key={item.bagId} item={item.data} size={ITEM_SLOT_SIZE} />
 					))}

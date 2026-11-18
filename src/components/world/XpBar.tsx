@@ -2,12 +2,11 @@ import { m } from "#/paraglide/messages";
 
 import { fillPercent } from "./fill-percent";
 
-export type XpBarSize = "hud" | "md" | "sm";
+export type XpBarSize = "hud" | "md";
 
 const SIZE = {
 	hud: { label: "text-[10px]", track: "h-3" },
 	md: { label: "text-sm", track: "h-2" },
-	sm: { label: "text-xs", track: "h-2" },
 } as const satisfies Record<XpBarSize, { label: string; track: string }>;
 
 export function XpBar({
