@@ -19,7 +19,7 @@ export default function CampScreen({
 	return (
 		<div className="absolute inset-0">
 			<CampFire />
-			<div className="relative z-10 flex h-full flex-col items-center justify-between px-6 pt-16 pb-6 text-center">
+			<div className="pointer-events-none relative z-10 flex h-full flex-col items-center justify-between px-6 pt-16 pb-6 text-center">
 				<div className="flex flex-col items-center gap-3">
 					<div
 						className="display-title text-3xl uppercase tracking-[0.2em]"
@@ -34,7 +34,7 @@ export default function CampScreen({
 						{translateCampLine(zoneId, source)}
 					</p>
 				</div>
-				<div className="flex gap-3">
+				<div className="pointer-events-auto flex gap-3">
 					<Button variant="hud" size="hud-lg" caps onClick={onReturn}>
 						{m.camp_return_to_city()}
 					</Button>
