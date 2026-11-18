@@ -17,7 +17,7 @@ function layoutOf(cells: Array<[number, number]>): PathLayout {
 
 describe("pathTilesetFor", () => {
 	it("gives the Floresta Inicial its road pieces and grass", () => {
-		expect(forest?.ground).toHaveLength(4);
+		expect(forest?.ground.middle).toHaveLength(2);
 		expect(Object.keys(forest?.pieces ?? {}).toSorted()).toEqual([
 			"down,left",
 			"down,right",

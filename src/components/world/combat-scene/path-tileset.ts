@@ -8,8 +8,14 @@ export type RoadSidesKey =
 	| "right,up"
 	| "left,up";
 
+type GroundRow = readonly [string, string, string];
+
 export type PathTileset = {
-	ground: readonly (readonly [string, string, string])[];
+	ground: {
+		top: GroundRow;
+		middle: readonly [GroundRow, ...GroundRow[]];
+		bottom: GroundRow;
+	};
 	pieces: Readonly<Record<RoadSidesKey, readonly string[]>>;
 };
 
@@ -17,14 +23,18 @@ const FOREST_DIR = "/assets/sprites/zona/floresta";
 const forest = (name: string) => `${FOREST_DIR}/caminho-${name}.png`;
 const grass = (row: number, col: number) =>
 	`${FOREST_DIR}/grama-${row}-${col}.png`;
-const grassRow = (row: number): readonly [string, string, string] => [
+const grassRow = (row: number): GroundRow => [
 	grass(row, 0),
 	grass(row, 1),
 	grass(row, 2),
 ];
 
 const FOREST: PathTileset = {
-	ground: [grassRow(0), grassRow(1), grassRow(2), grassRow(3)],
+	ground: {
+		top: grassRow(0),
+		middle: [grassRow(1), grassRow(2)],
+		bottom: grassRow(3),
+	},
 	pieces: {
 		"left,right": [forest("horizontal-1"), forest("horizontal-2")],
 		"down,up": [forest("vertical-1"), forest("vertical-2")],
@@ -87,7 +97,8 @@ export function groundTileAt(
 	const { ground } = tileset;
 	const col = edgeIndex(x, layout.cols);
 	const band = edgeIndex(y, layout.rows);
-	if (band === 0) return ground[0][col];
-	if (band === 2) return ground.at(-1)[col];
-	return ground[1 + ((x + y) % (ground.length - 2))][col];
+	if (band === 0) return ground.top[col];
+	if (band === 2) return ground.bottom[col];
+	const { middle } = ground;
+	return (middle[(x + y) % middle.length] ?? middle[0])[col];
 }
