@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import GameStage from "#/components/GameStage";
 import { Button } from "#/components/ui/button";
 import CityScene from "#/components/world/CityScene";
 import { CombatPane } from "#/components/world/CombatPane";
@@ -35,8 +36,10 @@ import { useBarrier } from "#/hooks/useBarrier";
 import { useCachedQuery } from "#/hooks/useCachedQuery";
 import { useCombatLoop } from "#/hooks/useCombatLoop";
 import { useCombatMutations } from "#/hooks/useCombatMutations";
-import { useCompactViewport } from "#/hooks/useCompactViewport";
-import { useConfirmationModal } from "#/hooks/useConfirmationModal";
+import {
+	ConfirmationProvider,
+	useConfirmationModal,
+} from "#/hooks/useConfirmationModal";
 import { useExitFlow } from "#/hooks/useExitFlow";
 import { useIncenseGuard } from "#/hooks/useIncenseGuard";
 import { useInFlight } from "#/hooks/useInFlight";
@@ -98,36 +101,28 @@ function WorldView() {
 		if (missing) void navigate({ to: "/character-select" });
 	}, [missing, navigate]);
 
-	if (!character) {
-		return (
-			<main className="flex h-screen items-center justify-center bg-black text-white">
-				<p className="text-xs uppercase tracking-label text-muted-foreground">
-					{m.loading()}
-				</p>
-			</main>
-		);
-	}
-
-	return <WorldLayout character={character} />;
+	return (
+		<GameStage>
+			{character ? (
+				<ConfirmationProvider>
+					<WorldLayout character={character} />
+				</ConfirmationProvider>
+			) : (
+				<main className="flex h-full items-center justify-center bg-black text-white">
+					<p className="text-xs uppercase tracking-label text-muted-foreground">
+						{m.loading()}
+					</p>
+				</main>
+			)}
+		</GameStage>
+	);
 }
 
 const EMPTY_THRESHOLDS: readonly number[] = [];
 
-const LAYOUT = {
-	compact: {
-		main: "grid-cols-world-compact gap-2 p-2",
-		scene: "grid-rows-world-scene-compact gap-2",
-	},
-	wide: {
-		main: "grid-cols-world gap-3 p-3",
-		scene: "grid-rows-world-scene gap-3",
-	},
-};
-
 function WorldLayout({ character }: { character: CharacterRow }) {
 	const navigate = useNavigate();
 	const confirm = useConfirmationModal();
-	const compact = useCompactViewport();
 	const trpc = useTRPC();
 	const cache = useWorldCache(character.id);
 	const classDef = findClassDefinition(character.classId);
@@ -444,12 +439,9 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 		hoveredNodeId,
 		currentNode,
 	});
-	const layout = compact ? LAYOUT.compact : LAYOUT.wide;
 
 	return (
-		<main
-			className={`relative grid h-screen overflow-hidden bg-black text-white ${layout.main}`}
-		>
+		<main className="relative grid h-full grid-cols-world gap-3 overflow-hidden bg-black p-3 text-white">
 			{view === "map" && (
 				<Button
 					variant="hud"
@@ -463,7 +455,7 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 					{m.back()}
 				</Button>
 			)}
-			<div className={`grid overflow-hidden ${layout.scene}`}>
+			<div className="grid grid-rows-world-scene gap-3 overflow-hidden">
 				{view === "map" && (
 					<WorldMapPane
 						currentNode={currentNode}
@@ -513,7 +505,6 @@ function WorldLayout({ character }: { character: CharacterRow }) {
 			</div>
 
 			<WorldSidebar
-				compact={compact}
 				view={view}
 				character={character}
 				stats={stats}

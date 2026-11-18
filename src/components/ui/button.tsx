@@ -50,7 +50,6 @@ const buttonVariants = cva(
 				"hud-icon": "h-auto p-2.5 [&_svg:not([class*='size-'])]:size-5",
 				"hud-slot": "relative size-20 p-0",
 				"hud-slot-md": "relative h-16 w-16 p-0",
-				"hud-slot-sm": "relative h-11 w-11 p-0",
 				wide: "h-9 px-5 py-2",
 				hero: "h-12 px-12 text-xl uppercase tracking-hero",
 				tab: "h-auto px-3 py-1 font-normal",

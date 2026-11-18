@@ -16,7 +16,6 @@ export type EquippedBySlot = ReadonlyMap<
 >;
 
 export function WorldSidebar({
-	compact,
 	view,
 	character,
 	stats,
@@ -31,7 +30,6 @@ export function WorldSidebar({
 	onOpenInventory,
 	onShowStats,
 }: {
-	compact: boolean;
 	view: WorldViewMode;
 	character: CharacterRow;
 	stats: ComputedCharacterStats;
@@ -51,9 +49,7 @@ export function WorldSidebar({
 	const rubys = character.rubys ?? 0;
 
 	return (
-		<aside
-			className={`grid grid-rows-world-sidebar ${compact ? "gap-1" : "gap-3"}`}
-		>
+		<aside className="grid grid-rows-world-sidebar gap-3">
 			<EquipmentPanel
 				equippedBySlot={equippedBySlot}
 				stats={stats}

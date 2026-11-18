@@ -136,9 +136,7 @@
   --color-danger-foreground: var(--color-red-100);
   --color-danger-muted: var(--color-red-950);
   --grid-template-columns-world: 1fr 640px;
-  --grid-template-columns-world-compact: 1fr 520px;
   --grid-template-rows-world-scene: 1fr 160px;
-  --grid-template-rows-world-scene-compact: 1fr 100px;
   --grid-template-rows-world-sidebar: 1fr auto;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -233,6 +231,19 @@ pre code {
 .page-wrap {
   width: min(1080px, calc(100% - 2rem));
   margin-inline: auto;
+}
+
+@utility game-stage {
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+  transform: translate(var(--stage-x, 0px), var(--stage-y, 0px))
+    scale(var(--stage-scale, 1));
+}
+
+@utility stage-scaled {
+  transform-origin: top left;
+  transform: scale(var(--stage-scale, 1));
 }
 
 @utility void-vignette {

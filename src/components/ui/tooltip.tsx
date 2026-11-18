@@ -1,6 +1,8 @@
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import type { ReactNode } from "react";
 
+import { useGameStage } from "#/components/game-stage/context";
+
 type Props = {
 	content: ReactNode;
 	children: ReactNode;
@@ -8,10 +10,11 @@ type Props = {
 };
 
 export default function Tooltip({ content, children, side = "top" }: Props) {
+	const stage = useGameStage();
 	return (
 		<TooltipPrimitive.Root>
 			<TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
-			<TooltipPrimitive.Portal>
+			<TooltipPrimitive.Portal container={stage.container}>
 				<TooltipPrimitive.Content
 					side={side}
 					sideOffset={8}

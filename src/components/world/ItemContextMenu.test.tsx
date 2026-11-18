@@ -11,6 +11,12 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { narrow } from "#/components/dom-test-utils";
+import {
+	inStagePortal,
+	resetViewport,
+	resizeViewport,
+} from "#/components/game-stage/stage-test-utils";
+import GameStage from "#/components/GameStage";
 
 import ItemContextMenu, { type MenuAction } from "./ItemContextMenu";
 
@@ -177,5 +183,40 @@ describe("ItemContextMenu — layout", () => {
 			anchor: { left: window.innerWidth, top: 5, right: 0, bottom: 10 },
 		});
 		expect(menuStyle().left).toBe(`${window.innerWidth - 220 - 8}px`);
+	});
+});
+
+describe("ItemContextMenu — inside the scaled game stage", () => {
+	afterEach(resetViewport);
+
+	function setupInStage(anchor: Props["anchor"]) {
+		resizeViewport(960, 540);
+		render(
+			<GameStage>
+				<ItemContextMenu
+					anchor={anchor}
+					actions={[action("equip")]}
+					onClose={vi.fn<() => void>()}
+				/>
+			</GameStage>,
+		);
+	}
+
+	it("renders in the stage and opens at the click in stage pixels", () => {
+		setupInStage(ANCHOR);
+		expect(inStagePortal(menu())).toBe(true);
+		expect(menuStyle().top).toBe(`${ANCHOR.bottom * 2 + 6}px`);
+		expect(menuStyle().left).toBe(`${ANCHOR.left * 2}px`);
+	});
+
+	it("reads a DOMRect anchor, whose sides are prototype getters", () => {
+		setupInStage(new DOMRect(100, 100, 50, 50));
+		expect(menuStyle().top).toBe(`${150 * 2 + 6}px`);
+		expect(menuStyle().left).toBe("200px");
+	});
+
+	it("clamps to the stage's 1920 px, not the viewport", () => {
+		setupInStage({ left: 950, top: 5, right: 960, bottom: 10 });
+		expect(menuStyle().left).toBe(`${1920 - 220 - 8}px`);
 	});
 });

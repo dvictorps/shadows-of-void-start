@@ -2,7 +2,6 @@ import {
 	closestCenter,
 	DndContext,
 	type DragEndEvent,
-	DragOverlay,
 	type DragStartEvent,
 	PointerSensor,
 	useSensor,
@@ -11,6 +10,7 @@ import {
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import StageDragOverlay from "#/components/game-stage/StageDragOverlay";
 import ItemCard from "#/components/game/ItemCard";
 import Modal from "#/components/Modal";
 import { Button } from "#/components/ui/button";
@@ -19,7 +19,6 @@ import {
 	STASH_MAX_SLOTS,
 } from "#/game/inventory/constants";
 import type { GeneratedItem } from "#/game/items/types";
-import { useCompactViewport } from "#/hooks/useCompactViewport";
 import { useEscapeLayer } from "#/hooks/useEscapeLayer";
 import { useInFlight } from "#/hooks/useInFlight";
 import { useOpenedEdge } from "#/hooks/useOpenedEdge";
@@ -38,8 +37,7 @@ import {
 } from "./stash-modal/drag";
 import StashPanel from "./stash-modal/StashPanel";
 
-const SLOT_SIZE_DEFAULT = 76;
-const SLOT_SIZE_COMPACT = 64;
+const SLOT_SIZE = 76;
 
 type Props = {
 	isOpen: boolean;
@@ -80,9 +78,6 @@ export default function StashModal({
 	onReorderInventory,
 	onReorderStash,
 }: Props) {
-	const compact = useCompactViewport();
-	const slotSize = compact ? SLOT_SIZE_COMPACT : SLOT_SIZE_DEFAULT;
-
 	const [active, setActive] = useState<DragSourceData | null>(null);
 	useEscapeLayer(active !== null);
 	const [invSelected, setInvSelected] = useState(emptySelection);
@@ -205,7 +200,7 @@ export default function StashModal({
 			isOpen={isOpen}
 			onClose={onClose}
 			title={m.stash_title({ used: stashItems.length, total: STASH_MAX_SLOTS })}
-			className={compact ? "max-w-[1200px]" : "max-w-[1440px]"}
+			className="max-w-[1440px]"
 			hideHeaderClose
 			footer={
 				<div className="flex items-center justify-between">
@@ -261,7 +256,7 @@ export default function StashModal({
 						maxSlots={INVENTORY_MAX_SLOTS}
 						selected={invSelected}
 						dragging={active}
-						slotSize={slotSize}
+						slotSize={SLOT_SIZE}
 						onToggleAll={handleToggleAll("inventory")}
 						onItemClick={handleItemClick("inventory")}
 					/>
@@ -281,17 +276,17 @@ export default function StashModal({
 						maxSlots={STASH_MAX_SLOTS}
 						selected={stashSelected}
 						dragging={active}
-						slotSize={slotSize}
+						slotSize={SLOT_SIZE}
 						onToggleAll={handleToggleAll("stash")}
 						onItemClick={handleItemClick("stash")}
 					/>
 				</div>
 
-				<DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
+				<StageDragOverlay>
 					{activeItem ? (
-						<ItemCard item={activeItem} size={slotSize} suppressTooltip />
+						<ItemCard item={activeItem} size={SLOT_SIZE} suppressTooltip />
 					) : null}
-				</DragOverlay>
+				</StageDragOverlay>
 			</DndContext>
 		</Modal>
 	);

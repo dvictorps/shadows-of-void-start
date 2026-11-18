@@ -8,16 +8,7 @@ import {
 	screen,
 } from "@testing-library/react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
-import {
-	afterAll,
-	afterEach,
-	beforeAll,
-	beforeEach,
-	describe,
-	expect,
-	it,
-	vi,
-} from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { narrow } from "#/components/dom-test-utils";
 import { BROKEN_BORDER, RARITY_BORDER } from "#/components/game/ItemCard";
@@ -39,28 +30,6 @@ import {
 } from "./item-test-fixtures";
 
 type Props = Parameters<typeof EquipmentPanel>[0];
-
-let compact = false;
-
-beforeAll(() => {
-	Object.defineProperty(window, "matchMedia", {
-		configurable: true,
-		value: (query: string) => ({
-			matches: compact,
-			media: query,
-			addEventListener: () => {},
-			removeEventListener: () => {},
-		}),
-	});
-});
-
-afterAll(() => {
-	Reflect.deleteProperty(window, "matchMedia");
-});
-
-beforeEach(() => {
-	compact = false;
-});
 
 afterEach(cleanup);
 
@@ -234,19 +203,12 @@ describe("EquipmentPanel — corner widgets", () => {
 	});
 });
 
-describe("EquipmentPanel — viewport", () => {
-	it("sizes the grid and its slots down on a compact viewport", () => {
+describe("EquipmentPanel — layout", () => {
+	it("lays the grid and its slots out at their fixed stage sizes", () => {
 		setup();
 		expect(grid().style.gridTemplateColumns).toBe("repeat(3, 120px)");
 		expect(grid().style.gridTemplateRows).toBe("120px 170px 104px 120px");
 		expect(slot("weapon").style.width).toBe("120px");
 		expect(slot("weapon").style.height).toBe("170px");
-		cleanup();
-		compact = true;
-		setup();
-		expect(grid().style.gridTemplateColumns).toBe("repeat(3, 78px)");
-		expect(grid().style.gridTemplateRows).toBe("78px 111px 68px 78px");
-		expect(slot("weapon").style.width).toBe("78px");
-		expect(slot("weapon").style.height).toBe("111px");
 	});
 });

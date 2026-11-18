@@ -31,7 +31,7 @@ export default function ShowStatsModal({
 			title={m.stats_title()}
 			className="max-w-3xl"
 		>
-			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+			<div className="grid grid-cols-2 gap-4">
 				<AttributesSection stats={stats} />
 				<DefensesSection
 					stats={stats}

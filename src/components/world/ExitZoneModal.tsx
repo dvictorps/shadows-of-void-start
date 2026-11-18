@@ -139,7 +139,7 @@ export default function ExitZoneModal({
 								})}
 							</p>
 						)}
-						<div className="fancy-scroll flex max-h-[55vh] min-h-[20vh] flex-wrap content-start gap-3 overflow-y-auto pr-3">
+						<div className="fancy-scroll flex max-h-148.5 min-h-54 flex-wrap content-start gap-3 overflow-y-auto pr-3">
 							{bagItems.map((item) => {
 								const isSelected = selected.has(item.bagId);
 								return (

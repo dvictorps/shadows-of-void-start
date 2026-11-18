@@ -121,7 +121,7 @@ export default function LeaderboardModal({
 					)}
 				</div>
 
-				<div className="max-h-[50vh] overflow-y-auto">
+				<div className="max-h-135 overflow-y-auto">
 					<table className="w-full text-sm">
 						<thead>
 							<tr className="border-b border-white/20 text-left text-xs uppercase tracking-wider text-white/50">

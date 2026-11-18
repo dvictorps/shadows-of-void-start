@@ -1,24 +1,16 @@
 // @vitest-environment jsdom
 
-import {
-	act,
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-} from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { Toaster } from "sonner";
-import {
-	afterAll,
-	beforeAll,
-	beforeEach,
-	describe,
-	expect,
-	it,
-	vi,
-} from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { narrow } from "#/components/dom-test-utils";
+import {
+	resetViewport,
+	resizeViewport,
+	stageElement,
+} from "#/components/game-stage/stage-test-utils";
+import GameStage from "#/components/GameStage";
 import { ruleError } from "#/components/trpc-test-utils";
 import {
 	INVENTORY_MAX_SLOTS,
@@ -147,28 +139,6 @@ const OVER = "ring-yellow-300/80";
 
 installDragHarness();
 
-let compact = false;
-
-beforeAll(() => {
-	Object.defineProperty(window, "matchMedia", {
-		configurable: true,
-		value: (query: string) => ({
-			matches: compact,
-			media: query,
-			addEventListener: () => {},
-			removeEventListener: () => {},
-		}),
-	});
-});
-
-afterAll(() => {
-	Reflect.deleteProperty(window, "matchMedia");
-});
-
-beforeEach(() => {
-	compact = false;
-});
-
 describe("StashModal — open and close", () => {
 	it("renders nothing while closed", () => {
 		setup({ isOpen: false });
@@ -247,15 +217,12 @@ describe("StashModal — the two grids", () => {
 		expect(cells(stashSection())).toHaveLength(STASH_MAX_SLOTS);
 	});
 
-	it("sizes the slots down on a compact viewport", () => {
-		const grid = () =>
-			narrow(inventorySection().querySelector(".grid"), HTMLElement);
+	it("lays the slots out at their fixed stage size", () => {
 		setup();
-		expect(grid().style.gridTemplateColumns).toBe("repeat(8, 76px)");
-		cleanup();
-		compact = true;
-		setup();
-		expect(grid().style.gridTemplateColumns).toBe("repeat(8, 64px)");
+		expect(
+			narrow(inventorySection().querySelector(".grid"), HTMLElement).style
+				.gridTemplateColumns,
+		).toBe("repeat(8, 76px)");
 	});
 });
 
@@ -551,6 +518,8 @@ describe("StashModal — drag across panels (transfer)", () => {
 });
 
 describe("StashModal — drag feedback", () => {
+	afterEach(resetViewport);
+
 	it("hides the dragged card and rings the slot under the pointer", async () => {
 		const a = sword();
 		setup({
@@ -561,6 +530,28 @@ describe("StashModal — drag feedback", () => {
 		expect(dragSlotIn(invCell(0)).style.opacity).toBe("0");
 		expect(stashCell(4).className).toContain(OVER);
 		expect(screen.getAllByRole("button", { name: nameOf(a) })).toHaveLength(2);
+	});
+
+	it("inside the scaled stage, floats the dragged copy over it at the stage's scale", async () => {
+		const a = sword();
+		resizeViewport(960, 540);
+		render(
+			<GameStage>
+				<StashModal
+					isOpen
+					onClose={vi.fn<() => void>()}
+					inventoryItems={[inventoryRow(1, a, 0)]}
+					stashItems={[stashRow(2, ring(), 0)]}
+					{...fakeCalls()}
+				/>
+			</GameStage>,
+		);
+		await startDrag(a, stashCell(4));
+		const copies = screen.getAllByRole("button", { name: nameOf(a) });
+		const floating = copies.filter((b) => !stageElement().contains(b));
+		expect(floating).toHaveLength(1);
+		const scaled = narrow(floating[0]?.closest(".stage-scaled"), HTMLElement);
+		expect(scaled.style.getPropertyValue("--stage-scale")).toBe("0.5");
 	});
 
 	it("drops the selection ring from the dragged item while it moves", async () => {

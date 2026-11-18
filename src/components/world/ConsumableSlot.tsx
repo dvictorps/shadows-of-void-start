@@ -3,12 +3,11 @@ import type { ReactNode } from "react";
 import { Button } from "#/components/ui/button";
 import Tooltip from "#/components/ui/tooltip";
 
-export type SlotSize = "lg" | "md" | "sm";
+export type SlotSize = "lg" | "md";
 
 const SLOT = {
 	lg: { button: "hud-slot", art: "h-14 w-14", badge: "text-2xs" },
 	md: { button: "hud-slot-md", art: "h-12 w-12", badge: "text-xs" },
-	sm: { button: "hud-slot-sm", art: "h-8 w-8", badge: "text-xs" },
 } as const satisfies Record<
 	SlotSize,
 	{ button: string; art: string; badge: string }

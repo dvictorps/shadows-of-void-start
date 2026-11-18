@@ -20,7 +20,7 @@ import {
 } from "@testing-library/react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { Toaster, toast } from "sonner";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import { characterRow } from "#/components/world/character-test-fixtures";
@@ -109,22 +109,6 @@ async function press(el: HTMLElement) {
 		fireEvent.click(el);
 	});
 }
-
-beforeAll(() => {
-	Object.defineProperty(window, "matchMedia", {
-		configurable: true,
-		value: (query: string) => ({
-			matches: false,
-			media: query,
-			addEventListener: () => {},
-			removeEventListener: () => {},
-		}),
-	});
-});
-
-afterAll(() => {
-	Reflect.deleteProperty(window, "matchMedia");
-});
 
 afterEach(() => {
 	cleanup();

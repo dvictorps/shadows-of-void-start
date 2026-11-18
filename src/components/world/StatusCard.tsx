@@ -4,16 +4,16 @@ import { Button } from "#/components/ui/button";
 import { getClassDisplayName } from "#/game/classes/i18n";
 import { estimateDps } from "#/game/stats/dps";
 import type { ComputedCharacterStats } from "#/game/stats/types";
-import { useCompactViewport } from "#/hooks/useCompactViewport";
 import type { CharacterRow } from "#/lib/api-types";
 import { m } from "#/paraglide/messages";
 
 import { ConsumableSlot } from "./ConsumableSlot";
 import HealthGlobe from "./HealthGlobe";
 import { AttributeReadouts } from "./status-card/AttributeReadouts";
-import { statusCardLayout } from "./status-card/layout";
 import { statusVitals } from "./status-card/vitals";
 import { XpBar } from "./XpBar";
+
+const line = "text-lg text-white/80";
 
 type Props = {
 	character: CharacterRow;
@@ -38,7 +38,6 @@ export default function StatusCard({
 	barrierRefillRemaining,
 	...overrides
 }: Props) {
-	const layout = statusCardLayout(useCompactViewport());
 	const vitals = statusVitals({
 		character,
 		stats,
@@ -47,16 +46,13 @@ export default function StatusCard({
 		hasTeleportHandler: !!onUseTeleportStone,
 	});
 	const dps = useMemo(() => estimateDps(stats), [stats]);
-	const line = `text-white/80 ${layout.line}`;
 
 	return (
-		<section className={`rounded-md border border-white/40 ${layout.padding}`}>
-			<div className={`flex flex-col ${layout.stackGap}`}>
-				<div className={`grid grid-cols-2 ${layout.gridGap}`}>
+		<section className="rounded-md border border-white/40 p-4">
+			<div className="flex flex-col gap-3">
+				<div className="grid grid-cols-2 gap-4">
 					<div className="min-w-0">
-						<h3
-							className={`display-title truncate uppercase tracking-wider text-white ${layout.name}`}
-						>
+						<h3 className="display-title truncate uppercase tracking-wider text-white text-2xl">
 							{character.name}
 						</h3>
 						<p className={`mt-1 ${line}`}>
@@ -72,31 +68,25 @@ export default function StatusCard({
 							{dps > 0 ? dps : "—"}
 						</p>
 					</div>
-					<AttributeReadouts stats={stats} textSize={layout.attributes} />
+					<AttributeReadouts stats={stats} />
 				</div>
 
-				<div className={`flex items-center ${layout.stackGap}`}>
-					<XpBar
-						xp={vitals.xp}
-						xpNeeded={vitals.xpNeeded}
-						size={layout.xpBar}
-					/>
+				<div className="flex items-center gap-3">
+					<XpBar xp={vitals.xp} xpNeeded={vitals.xpNeeded} size="md" />
 					<ConsumableSlot
 						label={m.potion_use_aria()}
 						count={vitals.potions}
 						disabled={!vitals.canUsePotion}
 						onUse={onUsePotion}
 						tooltip={m.consumable_desc_potion()}
-						size={layout.slot}
+						size="md"
 						art="/assets/sprites/ui/pocaoCura.png"
 					/>
 				</div>
 
 				<hr className="border-white/15" />
 
-				<div
-					className={`grid grid-cols-[auto_1fr_auto] items-center ${layout.gridGap}`}
-				>
+				<div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
 					<div className="flex flex-col items-center gap-1">
 						<span className="text-[10px] uppercase tracking-wider text-white/50">
 							{m.status_header()}
@@ -119,7 +109,7 @@ export default function StatusCard({
 							disabled={!vitals.canUseTeleportStone}
 							onUse={onUseTeleportStone}
 							tooltip={m.consumable_desc_teleport()}
-							size={layout.slot}
+							size="md"
 							art="/assets/sprites/ui/pedraTeleporte.png"
 						/>
 					</div>

@@ -44,7 +44,7 @@ export default function BagGrid({
 						: m.inventory_free_slot_other({ count: freeSlots })}
 				</span>
 			</div>
-			<div className="fancy-scroll max-h-[60vh] overflow-y-auto pr-3">
+			<div className="fancy-scroll max-h-162 overflow-y-auto pr-3">
 				<div
 					className="grid gap-2"
 					style={{

@@ -2,6 +2,12 @@ import { AlertTriangle } from "lucide-react";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import {
+	portalTarget,
+	type StageView,
+	useGameStage,
+} from "#/components/game-stage/context";
+import type { StageRect } from "#/components/game-stage/fit";
 import ItemTooltip from "#/components/game/ItemTooltip";
 import { Button } from "#/components/ui/button";
 import { TEMPLATE_BY_ID } from "#/game/items/data/templates";
@@ -92,7 +98,7 @@ type Props = {
 const TOOLTIP_OFFSET_PX = 12;
 const TOOLTIP_ESTIMATED_WIDTH = 280;
 
-function tooltipOverlapsAvoid(tooltipLeft: number, avoid: DOMRect): boolean {
+function tooltipOverlapsAvoid(tooltipLeft: number, avoid: StageRect): boolean {
 	const tooltipRight = tooltipLeft + TOOLTIP_ESTIMATED_WIDTH;
 	return tooltipLeft < avoid.right && tooltipRight > avoid.left;
 }
@@ -102,21 +108,34 @@ function isSquareSize(size: number | { w: number; h: number }): size is number {
 }
 
 function computeTooltipLeft(
-	cardRect: DOMRect,
-	avoid: DOMRect | null | undefined,
-	viewportWidth: number,
+	cardRect: StageRect,
+	avoid: StageRect | null,
+	boundsWidth: number,
 ): number {
 	let leftCandidate = cardRect.right + TOOLTIP_OFFSET_PX;
 	if (avoid && tooltipOverlapsAvoid(leftCandidate, avoid)) {
 		leftCandidate = avoid.right + TOOLTIP_OFFSET_PX;
 	}
-	const flipLeft = leftCandidate + TOOLTIP_ESTIMATED_WIDTH > viewportWidth;
+	const flipLeft = leftCandidate + TOOLTIP_ESTIMATED_WIDTH > boundsWidth;
 	if (!flipLeft) return leftCandidate;
 	let flippedLeft = cardRect.left - TOOLTIP_OFFSET_PX - TOOLTIP_ESTIMATED_WIDTH;
 	if (avoid && tooltipOverlapsAvoid(flippedLeft, avoid)) {
 		flippedLeft = avoid.left - TOOLTIP_OFFSET_PX - TOOLTIP_ESTIMATED_WIDTH;
 	}
 	return Math.max(8, flippedLeft);
+}
+
+function tooltipPosition(
+	stage: StageView,
+	anchorRect: DOMRect,
+	avoidRect: DOMRect | null | undefined,
+) {
+	const anchor = stage.toStage(anchorRect);
+	const avoid = avoidRect ? stage.toStage(avoidRect) : null;
+	return {
+		left: computeTooltipLeft(anchor, avoid, stage.width),
+		top: anchor.top,
+	};
 }
 
 export default function ItemCard({
@@ -136,10 +155,9 @@ export default function ItemCard({
 	const cardRef = useRef<HTMLButtonElement>(null);
 	const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 	if (suppressTooltip && anchorRect) setAnchorRect(null);
-	const tooltipPos = anchorRect && {
-		left: computeTooltipLeft(anchorRect, avoidRect, window.innerWidth),
-		top: anchorRect.top,
-	};
+	const stage = useGameStage();
+	const tooltipPos =
+		anchorRect && tooltipPosition(stage, anchorRect, avoidRect);
 
 	if (!item) {
 		return (
@@ -235,7 +253,7 @@ export default function ItemCard({
 					>
 						<ItemTooltip item={item} brokenReasons={brokenReasons} />
 					</div>,
-					document.body,
+					portalTarget(stage),
 				)}
 		</>
 	);

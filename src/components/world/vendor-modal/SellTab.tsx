@@ -48,7 +48,7 @@ export default function SellTab({
 						: m.vendor_sell_select_all()}
 				</Button>
 			</div>
-			<div className="fancy-scroll flex max-h-[50vh] min-h-[20vh] flex-1 flex-wrap content-start gap-3 overflow-y-auto pr-3">
+			<div className="fancy-scroll flex max-h-135 min-h-54 flex-1 flex-wrap content-start gap-3 overflow-y-auto pr-3">
 				{inventoryItems.map((item) => (
 					<ItemCard
 						key={item.id}

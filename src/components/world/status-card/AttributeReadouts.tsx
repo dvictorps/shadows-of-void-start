@@ -30,15 +30,11 @@ function readouts({ attributes }: Pick<ComputedCharacterStats, "attributes">) {
 
 export function AttributeReadouts({
 	stats,
-	textSize,
 }: {
 	stats: Pick<ComputedCharacterStats, "attributes">;
-	textSize: string;
 }) {
 	return (
-		<div
-			className={`display-title space-y-1.5 text-right tracking-wider ${textSize}`}
-		>
+		<div className="display-title space-y-1.5 text-right text-xl tracking-wider">
 			{readouts(stats).map((row) => (
 				<Tooltip
 					key={row.label}
