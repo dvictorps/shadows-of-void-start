@@ -1,11 +1,10 @@
-import { useId, useMemo } from "react";
+import { useMemo } from "react";
 
 import { findMonster } from "#/game/monsters";
 import type { ZoneRoute } from "#/game/world/zone-route";
 import { hashStringToUnit, seededRng } from "#/lib/rng";
 import { m } from "#/paraglide/messages";
 
-import { CANOPY_PERIOD, CANOPY_SIZE, canopyTrees } from "./canopy";
 import {
 	cellIndexAt,
 	type PathCell,
@@ -13,11 +12,8 @@ import {
 	pointAt,
 	rollPathLayout,
 } from "./path-layout";
-import { type PathTileset, roadPieceAt } from "./path-tileset";
 
 const VIEW_PADDING = 0.6;
-const GROUND_REACH_PER_CELL = 2;
-const EXIT_STROKE = { stroke: "#fcd34d", strokeWidth: 0.08 } as const;
 const CLUSTER_OFFSET = 0.2;
 const RADIUS = { player: 0.13, camp: 0.16, enemy: 0.1 } as const;
 const ORBIT_RADIUS = { min: 0.1, max: 0.23 };
@@ -48,10 +44,9 @@ type ZonePathProps = {
 	nextStopIndex: number;
 	elapsedMs: number;
 	incenseCampsMs: readonly number[];
-	tileset?: PathTileset | null;
 };
 
-export type ZonePathState = Omit<ZonePathProps, "route" | "tileset"> & {
+export type ZonePathState = Omit<ZonePathProps, "route"> & {
 	route: ZoneRoute | null;
 };
 
@@ -153,116 +148,6 @@ function PathMarker({
 	);
 }
 
-const PIECE_BLEED = 0.01;
-
-function RoadPieceImage({
-	cell,
-	href,
-	flip,
-}: {
-	cell: PathCell;
-	href: string;
-	flip: boolean;
-}) {
-	const size = 1 + 2 * PIECE_BLEED;
-	const x = cell.x - PIECE_BLEED;
-	const y = cell.y - PIECE_BLEED;
-	return (
-		<image
-			data-kind="road"
-			href={href}
-			width={size}
-			height={size}
-			preserveAspectRatio="none"
-			transform={
-				flip
-					? `translate(${x + size} ${y}) scale(-1 1)`
-					: `translate(${x} ${y})`
-			}
-			style={{ imageRendering: "pixelated" }}
-		/>
-	);
-}
-
-const CANOPY = canopyTrees();
-
-function CanopyPattern({ id, href }: { id: string; href: string }) {
-	return (
-		<pattern
-			id={id}
-			patternUnits="userSpaceOnUse"
-			width={CANOPY_PERIOD}
-			height={CANOPY_PERIOD}
-		>
-			{CANOPY.map((tree) => (
-				<image
-					key={`${tree.x},${tree.y}`}
-					href={href}
-					width={CANOPY_SIZE}
-					height={CANOPY_SIZE}
-					preserveAspectRatio="none"
-					transform={
-						tree.flip
-							? `translate(${tree.x + CANOPY_SIZE} ${tree.y}) scale(-1 1)`
-							: `translate(${tree.x} ${tree.y})`
-					}
-					style={{ imageRendering: "pixelated" }}
-				/>
-			))}
-		</pattern>
-	);
-}
-
-function TiledRoad({
-	layout,
-	tileset,
-}: {
-	layout: PathLayout;
-	tileset: PathTileset;
-}) {
-	const id = useId().replaceAll(/[^a-zA-Z0-9]/g, "");
-	const groundId = `ground-${id}`;
-	const exit = layout.cells.at(-1);
-	const reach = GROUND_REACH_PER_CELL * Math.max(layout.cols, layout.rows);
-	return (
-		<>
-			<defs>
-				<CanopyPattern id={groundId} href={tileset.ground} />
-			</defs>
-			<rect
-				data-kind="ground"
-				x={-reach}
-				y={-reach}
-				width={layout.cols + 2 * reach}
-				height={layout.rows + 2 * reach}
-				fill={`url(#${groundId})`}
-			/>
-			{layout.cells.map((cell, index) => {
-				const piece = roadPieceAt(layout.cells, index);
-				return (
-					<RoadPieceImage
-						key={`${cell.x},${cell.y}`}
-						cell={cell}
-						href={tileset.road[piece.id]}
-						flip={piece.flip}
-					/>
-				);
-			})}
-			{exit && (
-				<rect
-					data-kind="exit"
-					x={exit.x}
-					y={exit.y}
-					width={1}
-					height={1}
-					fill="none"
-					{...EXIT_STROKE}
-				/>
-			)}
-		</>
-	);
-}
-
 function PathRoad({ layout }: { layout: PathLayout }) {
 	const exit = layout.cells.length - 1;
 	return (
@@ -276,8 +161,8 @@ function PathRoad({ layout }: { layout: PathLayout }) {
 					width={1}
 					height={1}
 					fill={index === exit ? "#451a03" : "#3a332d"}
-					stroke={index === exit ? EXIT_STROKE.stroke : "#2a2420"}
-					strokeWidth={index === exit ? EXIT_STROKE.strokeWidth : 0.03}
+					stroke={index === exit ? "#fcd34d" : "#2a2420"}
+					strokeWidth={index === exit ? 0.08 : 0.03}
 				/>
 			))}
 		</>
@@ -290,22 +175,13 @@ export default function ZonePath({
 	nextStopIndex,
 	elapsedMs,
 	incenseCampsMs,
-	tileset = null,
 }: ZonePathProps) {
 	const { budgetMs, tiles } = route;
 	const layout = useMemo(
 		() => rollPathLayout(tiles, seededRng(routeSeed)),
 		[tiles, routeSeed],
 	);
-	const road = useMemo(
-		() =>
-			tileset ? (
-				<TiledRoad layout={layout} tileset={tileset} />
-			) : (
-				<PathRoad layout={layout} />
-			),
-		[layout, tileset],
-	);
+	const road = useMemo(() => <PathRoad layout={layout} />, [layout]);
 	const markers = useMemo(
 		() =>
 			[...markersByCell(layout, route, nextStopIndex, incenseCampsMs)].flatMap(
@@ -335,7 +211,6 @@ export default function ZonePath({
 			aria-label={m.zone_path_aria()}
 			viewBox={viewBox}
 			preserveAspectRatio="xMidYMid meet"
-			overflow="visible"
 			className="h-full w-full"
 		>
 			{road}
