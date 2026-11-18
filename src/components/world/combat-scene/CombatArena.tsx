@@ -7,6 +7,7 @@ import type { CampSource, DamageEvent, Enemy } from "#/hooks/useCombatLoop";
 import CampScreen from "./CampScreen";
 import EnemyHpBar from "./EnemyHpBar";
 import EnemySprite from "./EnemySprite";
+import { fightBackdropFor } from "./fight-backdrop";
 import FloatingDamage from "./FloatingDamage";
 import FloatingXp from "./FloatingXp";
 import {
@@ -23,7 +24,7 @@ import ZonePath, { type ZonePathState } from "./ZonePath";
 const LAYER = {
 	path: { className: "absolute inset-0 px-6 pt-16 pb-4", inS: 0.5, outS: 0.5 },
 	fight: {
-		className: "absolute inset-0 flex flex-col items-center gap-4",
+		className: "absolute inset-0 isolate flex flex-col items-center gap-4",
 		inS: 0.5,
 		outS: 0.5,
 	},
@@ -85,8 +86,10 @@ export default function CombatArena({
 	const view = arenaView(state, ambushActive);
 
 	const layer = LAYER[view];
+	const backdrop = fightBackdropFor(zoneId);
 	const fight = (
 		<>
+			{backdrop && <FightBackdrop src={backdrop} />}
 			{nameplate}
 			<div className="relative flex w-full flex-1 items-center justify-center">
 				{state === "miniboss_victory" && (
@@ -162,6 +165,38 @@ export default function CombatArena({
 					{content[view]}
 				</motion.div>
 			</AnimatePresence>
+		</div>
+	);
+}
+
+const BACKDROP_ZOOM = 1.35;
+
+function FightBackdrop({ src }: { src: string }) {
+	return (
+		<div
+			aria-hidden
+			className="-z-10 pointer-events-none absolute inset-0 overflow-hidden"
+			style={{ willChange: "transform" }}
+		>
+			<img
+				src={src}
+				alt=""
+				data-testid="fight-backdrop"
+				draggable={false}
+				className="absolute bottom-0 left-1/2 max-w-none object-cover object-bottom"
+				style={{
+					width: `${BACKDROP_ZOOM * 100}%`,
+					height: `${BACKDROP_ZOOM * 100}%`,
+					transform: "translateX(-50%)",
+				}}
+			/>
+			<div
+				className="absolute inset-0"
+				style={{
+					background:
+						"radial-gradient(ellipse 75% 70% at 50% 62%, transparent 35%, rgba(0, 0, 0, 0.75) 100%), linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 35%), linear-gradient(rgba(8, 10, 14, 0.42), rgba(8, 10, 14, 0.42))",
+				}}
+			/>
 		</div>
 	);
 }

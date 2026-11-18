@@ -92,15 +92,26 @@ function candidates(
 	];
 }
 
+function onGridEdge(cell: PathCell, grid: Grid): boolean {
+	return (
+		cell.x === 0 ||
+		cell.y === 0 ||
+		cell.x === grid.w - 1 ||
+		cell.y === grid.h - 1
+	);
+}
+
 function walk(target: number, grid: Grid, rng: Rng): PathCell[] | null {
 	const path: PathCell[] = [rollEdgeStart(grid, rng)];
 	const onPath = new Set([key(path[0])]);
 	const options: PathCell[][] = [candidates(path, onPath, grid, rng)];
 	let expansions = 0;
-	while (path.length < target) {
+	for (;;) {
+		const head = path.at(-1);
+		if (path.length === target && head && onGridEdge(head, grid)) return path;
 		expansions += 1;
 		if (expansions > MAX_EXPANSIONS) return null;
-		const next = options.at(-1)?.shift();
+		const next = path.length < target ? options.at(-1)?.shift() : undefined;
 		if (!next) {
 			options.pop();
 			const dropped = path.pop();
@@ -110,9 +121,10 @@ function walk(target: number, grid: Grid, rng: Rng): PathCell[] | null {
 		}
 		path.push(next);
 		onPath.add(key(next));
-		options.push(candidates(path, onPath, grid, rng));
+		options.push(
+			path.length < target ? candidates(path, onPath, grid, rng) : [],
+		);
 	}
-	return path;
 }
 
 function fitToBox(cells: readonly PathCell[]): PathLayout {

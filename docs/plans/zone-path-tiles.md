@@ -1,6 +1,6 @@
 # Zone Path tileset (deferred)
 
-**Status**: Planned, waiting on the owner's tiles.
+**Status**: Not started. A forest road sprite attempt (road pieces and grass for the Floresta Inicial) was tried and removed; the owner chose the plain drawing for now.
 **Today**: the Zone Path (CONTEXT.md → Zone Path) is drawn as an SVG of plain shapes by `src/components/world/combat-scene/ZonePath.tsx`: stone tiles, a gold exit, amber campfires, dots per monster `pathColor`, a white walker.
 
 ## Scope

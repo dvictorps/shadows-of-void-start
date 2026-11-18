@@ -32,6 +32,17 @@ describe("rollPathLayout", () => {
 		}
 	});
 
+	it("starts and ends on the edge of its box, so the road enters and leaves the map", () => {
+		const onEdge = (c: PathCell | undefined, cols: number, rows: number) =>
+			c !== undefined &&
+			(c.x === 0 || c.y === 0 || c.x === cols - 1 || c.y === rows - 1);
+		for (let seed = 0; seed < 100; seed++) {
+			const { cells, cols, rows } = rollPathLayout(35, seededRng(seed));
+			expect(onEdge(cells[0], cols, rows)).toBe(true);
+			expect(onEdge(cells.at(-1), cols, rows)).toBe(true);
+		}
+	});
+
 	it("never touches itself, not even at a corner, so it reads as one road", () => {
 		for (let seed = 0; seed < 100; seed++) {
 			const { cells } = rollPathLayout(62, seededRng(seed));

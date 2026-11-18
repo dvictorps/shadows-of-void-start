@@ -271,6 +271,16 @@ describe("CombatScene — exploration and ambush", () => {
 		await advance(SETTLE_MS);
 		expect(zonePath()).toBeTruthy();
 	});
+
+	it("shows the zone's scenery behind the fight only", async () => {
+		const scene = renderScene({ state: "searching" });
+		expect(screen.queryByTestId("fight-backdrop")).toBeNull();
+		scene.update({ state: "engaged", enemy: goblin() });
+		await advance(SETTLE_MS);
+		expect(screen.getByTestId("fight-backdrop").getAttribute("src")).toBe(
+			"/assets/sprites/cenarios/floresta-1.png",
+		);
+	});
 });
 
 describe("CombatScene — fight", () => {

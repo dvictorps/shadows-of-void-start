@@ -38,7 +38,7 @@ const config = defineConfig({
 		paraglideVitePlugin({
 			project: "./project.inlang",
 			outdir: "./src/paraglide",
-			strategy: ["cookie", "preferredLanguage", "baseLocale"],
+			strategy: ["globalVariable", "cookie", "preferredLanguage", "baseLocale"],
 		}),
 		tailwindcss(),
 		...(process.env.VITEST
