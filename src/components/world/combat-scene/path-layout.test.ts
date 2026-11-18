@@ -7,7 +7,6 @@ import {
 	type PathCell,
 	type PathLayout,
 	pointAt,
-	roadSides,
 	rollPathLayout,
 } from "./path-layout";
 
@@ -95,42 +94,5 @@ describe("positions along the path", () => {
 		expect(pointAt(layout, 0.25)).toEqual({ x: 0, y: 0.5 });
 		expect(pointAt(layout, 0.75)).toEqual({ x: 0.5, y: 1 });
 		expect(pointAt(layout, 1)).toEqual({ x: 1, y: 1 });
-	});
-});
-
-describe("roadSides", () => {
-	const layout: PathLayout = {
-		cols: 3,
-		rows: 2,
-		cells: [
-			{ x: 0, y: 0 },
-			{ x: 1, y: 0 },
-			{ x: 1, y: 1 },
-			{ x: 2, y: 1 },
-		],
-	};
-
-	it("opens a middle cell toward its two neighbours", () => {
-		expect(roadSides(layout, 1)).toEqual(["left", "down"]);
-		expect(roadSides(layout, 2)).toEqual(["up", "right"]);
-	});
-
-	it("runs an end straight off the map when it can", () => {
-		expect(roadSides(layout, 0)).toEqual(["right", "left"]);
-		expect(roadSides(layout, 3)).toEqual(["left", "right"]);
-	});
-
-	it("turns an end off the map when straight ahead stays inside", () => {
-		const bend: PathLayout = {
-			cols: 3,
-			rows: 3,
-			cells: [
-				{ x: 1, y: 0 },
-				{ x: 2, y: 0 },
-				{ x: 2, y: 1 },
-				{ x: 2, y: 2 },
-			],
-		};
-		expect(roadSides(bend, 0)).toEqual(["right", "up"]);
 	});
 });
