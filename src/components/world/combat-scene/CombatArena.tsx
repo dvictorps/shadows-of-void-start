@@ -29,7 +29,7 @@ const LAYER = {
 	},
 	camp: {
 		className: "absolute inset-0",
-		inS: 2.5,
+		inS: 4,
 		outS: 0.25,
 	},
 } satisfies Record<ArenaView, { className: string; inS: number; outS: number }>;
